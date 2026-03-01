@@ -8,7 +8,6 @@
   "projects": {
     "GreenIsland-Online": {
       "projectType": "application",
-      "schematics": {},
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -19,13 +18,22 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
+              "src/assets",
+              "public"
             ],
             "styles": [
+              "src/assets/css/bootstrap.min.css",
+              "src/assets/css/app.min.css",
+              "src/assets/css/icons.min.css",
               "src/styles.css"
+            ],
+            "scripts": [
+             
+              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",
+              "src/assets/js/metisMenu.min.js",
+              "src/assets/js/simplebar.min.js",
+              "src/assets/js/waves.min.js",
+              "src/assets/js/app.js"
             ]
           },
           "configurations": {
@@ -50,7 +58,7 @@
               "sourceMap": true
             }
           },
-          "defaultConfiguration": "production"
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
