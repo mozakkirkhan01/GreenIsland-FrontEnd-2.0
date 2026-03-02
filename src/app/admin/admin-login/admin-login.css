@@ -1,0 +1,28 @@
+.auth-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.auth-logo img {
+  width: 200px;   
+  height: auto;  
+}
+::ng-deep .mat-mdc-form-field-error {
+  background-color: red;   /* Dark Red */
+  color: #ffffff !important;   /* White text */
+  padding: 0px 12px;
+  border-radius: 6px;
+  margin-top: 0px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.mat-mdc-form-field-hint-wrapper, .mat-mdc-form-field-error-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 0px;
+    opacity: 1;
+    transform: translateY(0);
+    animation: _mat-form-field-subscript-animation 0ms cubic-bezier(0.55, 0, 0.55, 0.2);
+}
