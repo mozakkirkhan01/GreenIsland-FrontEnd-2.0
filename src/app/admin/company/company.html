@@ -1,0 +1,320 @@
+<div class="page-content">
+    <div class="container-fluid">
+
+
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0 font-size-18">Dashboard</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="javascript: void(0);">Layouts</a></li>
+                            <li class="breadcrumb-item active">Dashboard</li>
+                        </ol>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body" *ngIf="action.CanEdit || action.CanCreate">
+
+                        <!-- <h4 class="card-title">Tinymce wysihtml5</h4> -->
+
+                        <form #formCompany="ngForm" (ngSubmit)="saveCompany()" novalidate
+                            class="d-flex justify-content-evenly flex-wrap">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="row">
+                                            <mat-form-field appearance="outline" class="col-sm-8">
+                                                <mat-label>Company Name</mat-label>
+                                                <input matInput #CompanyName="ngModel" name="CompanyName"
+                                                    [(ngModel)]="Company.CompanyName" required>
+                                                <mat-error *ngIf="isSubmitted && CompanyName.invalid">
+                                                    Company Name is required
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Short Name</mat-label>
+                                                <input matInput #ShortName="ngModel" name="ShortName"
+                                                    [(ngModel)]="Company.ShortName">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Email</mat-label>
+                                                <input type="email" matInput #Email="ngModel" name="Email"
+                                                    [(ngModel)]="Company.Email">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Mobile No</mat-label>
+                                                <input type="number" matInput #MobileNo="ngModel" name="MobileNo"
+                                                    [(ngModel)]="Company.MobileNo">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Alternate No</mat-label>
+                                                <input type="number" matInput #AlternateNo="ngModel" name="AlternateNo"
+                                                    [(ngModel)]="Company.AlternateNo">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>City</mat-label>
+                                                <input matInput #CityName="ngModel" name="CityName"
+                                                    [(ngModel)]="Company.CityName">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>State</mat-label>
+                                                <input matInput #StateName="ngModel" name="StateName"
+                                                    [(ngModel)]="Company.StateName">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Pin Code</mat-label>
+                                                <input matInput #PinCode="ngModel" name="PinCode"
+                                                    [(ngModel)]="Company.PinCode">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-8">
+                                                <mat-label>Website</mat-label>
+                                                <input matInput #Website="ngModel" name="Website"
+                                                    [(ngModel)]="Company.Website">
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+                                            <mat-form-field appearance="outline" class="col-sm-4">
+                                                <mat-label>Status</mat-label>
+                                                <mat-select #Status="ngModel" name="Status" [(ngModel)]="Company.Status"
+                                                    required>
+                                                    <mat-option [value]="status.Key"
+                                                        *ngFor="let status of StatusList">{{status.Value}}</mat-option>
+                                                </mat-select>
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+
+                                            <mat-form-field appearance="outline" class="col-sm-12">
+                                                <mat-label>Full Address</mat-label>
+                                                <textarea matInput #CompanyAddress="ngModel" name="CompanyAddress"
+                                                    [(ngModel)]="Company.CompanyAddress"></textarea>
+                                                <mat-error>
+                                                    required !!
+                                                </mat-error>
+                                            </mat-form-field>
+
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="card">
+                                                    <div class="card-body profile-card flex-column align-items-center">
+                                                        <label>LOGO (PNG)</label>
+                                                        <img [src]="LogoPNGPhoto ? LogoPNGPhoto:'assets/img/no-image.avif'"
+                                                            alt="Profile" class="img-responsive">
+                                                        <input type="file" accept="image/*" #LogoPNGFile="ngModel"
+                                                            (change)="setLogoPNGFile($event)" name="LogoPNGFile"
+                                                            [(ngModel)]="Company.LogoPNGFile"
+                                                            class="form-control mt-2 mb-4"
+                                                            placeholder="Enter Logo (PNG) *">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="card">
+                                                    <div class="card-body profile-card flex-column align-items-center">
+                                                        <label>LOGO</label>
+                                                        <img [src]="LogoPhoto ? LogoPhoto:'assets/img/no-image.avif'"
+                                                            alt="Profile" class="img-responsive">
+                                                        <input type="file" accept="image/*" #LogoFile="ngModel"
+                                                            name="LogoFile" (change)="setLogoFile($event)"
+                                                            [(ngModel)]="Company.LogoFile"
+                                                            class="form-control mt-2 mb-4" placeholder="Enter Logo">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button mat-flat-button color="primary" type="submit" class="w-100">
+                                                Update
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div> <!-- end col -->
+        </div>
+
+        <!-- <section class="section dashboard">
+            <div class="card">
+                <div class="card-body" *ngIf="action.CanEdit || action.CanCreate">
+                    <form #formCompany="ngForm" (ngSubmit)="saveCompany()" novalidate
+                        class="d-flex justify-content-evenly flex-wrap">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="row">
+                                        <mat-form-field appearance="outline" class="col-sm-8">
+                                            <mat-label>Company Name</mat-label>
+                                            <input matInput #CompanyName="ngModel" name="CompanyName"
+                                                [(ngModel)]="Company.CompanyName" required>
+                                            <mat-error *ngIf="isSubmitted && CompanyName.invalid">
+                                                Company Name is required
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Short Name</mat-label>
+                                            <input matInput #ShortName="ngModel" name="ShortName"
+                                                [(ngModel)]="Company.ShortName">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Email</mat-label>
+                                            <input type="email" matInput #Email="ngModel" name="Email"
+                                                [(ngModel)]="Company.Email">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Mobile No</mat-label>
+                                            <input type="number" matInput #MobileNo="ngModel" name="MobileNo"
+                                                [(ngModel)]="Company.MobileNo">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Alternate No</mat-label>
+                                            <input type="number" matInput #AlternateNo="ngModel" name="AlternateNo"
+                                                [(ngModel)]="Company.AlternateNo">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>City</mat-label>
+                                            <input matInput #CityName="ngModel" name="CityName"
+                                                [(ngModel)]="Company.CityName">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>State</mat-label>
+                                            <input matInput #StateName="ngModel" name="StateName"
+                                                [(ngModel)]="Company.StateName">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Pin Code</mat-label>
+                                            <input matInput #PinCode="ngModel" name="PinCode"
+                                                [(ngModel)]="Company.PinCode">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-8">
+                                            <mat-label>Website</mat-label>
+                                            <input matInput #Website="ngModel" name="Website"
+                                                [(ngModel)]="Company.Website">
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="col-sm-4">
+                                            <mat-label>Status</mat-label>
+                                            <mat-select #Status="ngModel" name="Status" [(ngModel)]="Company.Status"
+                                                required>
+                                                <mat-option [value]="status.Key"
+                                                    *ngFor="let status of StatusList">{{status.Value}}</mat-option>
+                                            </mat-select>
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="outline" class="col-sm-12">
+                                            <mat-label>Full Address</mat-label>
+                                            <textarea matInput #CompanyAddress="ngModel" name="CompanyAddress"
+                                                [(ngModel)]="Company.CompanyAddress"></textarea>
+                                            <mat-error>
+                                                required !!
+                                            </mat-error>
+                                        </mat-form-field>
+
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="card">
+                                                <div class="card-body profile-card flex-column align-items-center">
+                                                    <label>LOGO (PNG)</label>
+                                                    <img [src]="LogoPNGPhoto ? LogoPNGPhoto:'assets/img/no-image.avif'"
+                                                        alt="Profile" class="img-responsive">
+                                                    <input type="file" accept="image/*" #LogoPNGFile="ngModel"
+                                                        (change)="setLogoPNGFile($event)" name="LogoPNGFile"
+                                                        [(ngModel)]="Company.LogoPNGFile" class="form-control mt-2 mb-4"
+                                                        placeholder="Enter Logo (PNG) *">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="card">
+                                                <div class="card-body profile-card flex-column align-items-center">
+                                                    <label>LOGO</label>
+                                                    <img [src]="LogoPhoto ? LogoPhoto:'assets/img/no-image.avif'"
+                                                        alt="Profile" class="img-responsive">
+                                                    <input type="file" accept="image/*" #LogoFile="ngModel"
+                                                        name="LogoFile" (change)="setLogoFile($event)"
+                                                        [(ngModel)]="Company.LogoFile" class="form-control mt-2 mb-4"
+                                                        placeholder="Enter Logo">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <button mat-flat-button color="primary" type="submit">
+                        Update
+                    </button>
+                </div>
+            </div>
+
+        </section>  -->
+
+
+    </div>
+</div>
