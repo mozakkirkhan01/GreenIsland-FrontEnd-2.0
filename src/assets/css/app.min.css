@@ -1169,7 +1169,7 @@ body[data-sidebar=colored].vertical-collpsed .vertical-menu #sidebar-menu ul li 
 
     body[data-layout=horizontal] .container-fluid,
     body[data-layout=horizontal] .navbar-header {
-        max-width: 85%
+        max-width: 95%
     }
 }
 
