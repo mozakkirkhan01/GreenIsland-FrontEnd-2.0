@@ -1,6 +1,6 @@
 import { Component, viewChild } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router,RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
@@ -21,7 +21,7 @@ declare var $: any;
 @Component({
   selector: 'app-company',
   standalone: true,
-  imports: [FormsModule, MatFormFieldModule, FormsModule, MatInputModule, MatIconModule,
+  imports: [FormsModule, MatFormFieldModule, FormsModule, MatInputModule, MatIconModule,RouterModule,
     CommonModule, MatButtonModule, MatSelectModule,],
   templateUrl: './company.html',
   styleUrl: './company.css',
