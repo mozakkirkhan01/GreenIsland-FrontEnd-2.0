@@ -1,1 +1,62 @@
-/* You can add global styles to this file, and also import other style files */
+
+div.dataTables_wrapper div.dataTables_length select {
+    width: auto;
+    display: inline-block;
+}
+div.dataTables_wrapper div.dataTables_filter label {
+    font-weight: normal;
+    white-space: nowrap;
+    text-align: left;
+}
+label {
+    display: inline-block;
+}
+div.dataTables_wrapper div.dataTables_filter input {
+    margin-left: 0.5em;
+    display: inline-block;
+    width: auto;
+}
+.page-title-box {
+    padding-bottom: 15px;
+}/* You can add global styles to this file, and also import other style files */
+body[data-layout=horizontal] .page-content {
+    margin-top: 40px;
+    padding: calc(55px + 24px) calc(24px * .5) 60px calc(24px * .5);
+}
+.mat-mdc-form-field-infix {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  min-height: 38px !important;
+  font-size: 13px !important;
+}
+
+.mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-floating-label {
+  top: 19px !important;
+  font-size: 13px !important;
+}
+
+.mat-mdc-text-field-wrapper.mdc-text-field--outlined 
+.mdc-notched-outline--upgraded 
+.mdc-floating-label--float-above {
+  --mat-mdc-form-field-label-transform: translateY(-26px) scale(0.75) !important;
+  font-size: 13px !important;
+}
+
+/* Input text */
+.mat-mdc-input-element {
+  font-size: 13px !important;
+}
+
+/* Select value text */
+.mat-mdc-select-value-text {
+  font-size: 13px !important;
+}
+a[style], a:not([href]) {
+  cursor: pointer;
+}
+table.dataTable thead .sorting:before,table.dataTable thead .sorting:after,table.dataTable thead .sorting_asc:before,table.dataTable thead .sorting_asc:after,table.dataTable thead .sorting_desc:before,table.dataTable thead .sorting_desc:after,table.dataTable thead .sorting_asc_disabled:before,table.dataTable thead .sorting_asc_disabled:after,table.dataTable thead .sorting_desc_disabled:before,table.dataTable thead .sorting_desc_disabled:after {
+    position: absolute;
+    bottom: 0.9em;
+    display: block;
+    opacity: 0.3
+}
