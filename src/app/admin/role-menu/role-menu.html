@@ -1,0 +1,144 @@
+<div class="page-content">
+    <div class="container-fluid">
+
+
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0 font-size-18">{{action.MenuTitle}}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a routerLink="/admin/admin-dashboard">Dashboard</a></li>
+                            <li class="breadcrumb-item active">{{action.ParentMenuTitle}}</li>
+                            <li class="breadcrumb-item">{{action.MenuTitle}}</li>
+                        </ol>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+
+
+                        <div class="card">
+                            <div class="card-body">
+                                <form #formRoleMenu="ngForm">
+                                    <div class="row">
+
+                                        <!-- Role Autocomplete -->
+                                        <mat-form-field appearance="outline" class="col-sm-4" >
+                                            <mat-label>Role</mat-label>
+                                            <input matInput #Role="ngModel" name="Role"
+                                                (ngModelChange)="filterRoleList(RoleMenu.RoleTitle)"
+                                                placeholder="Enter Role Name" [(ngModel)]="RoleMenu.RoleTitle"
+                                                [matAutocomplete]="autoRole" required>
+                                            <mat-autocomplete #autoRole="matAutocomplete"
+                                                (optionSelected)="getRoleMenuList($event.option)">
+                                                @for (option of filterRole; track option.RoleId) {
+                                                <mat-option [id]="option.RoleId" [value]="option.RoleTitle">
+                                                    {{ option.RoleTitle }}
+                                                </mat-option>
+                                                }
+                                            </mat-autocomplete>
+                                            @if (RoleMenu.RoleTitle) {
+                                            <button mat-icon-button matSuffix color="primary" (click)="resetForm()">
+                                                <mat-icon><i class="ri-close-circle-line"></i></mat-icon>
+                                            </button>
+                                            }
+                                            @if ((Role.dirty || Role.touched) || (Role.invalid && isSubmitted)) {
+                                            <mat-error>Role Title is <strong>required</strong></mat-error>
+                                            }
+                                        </mat-form-field>
+
+                                        <!-- Search -->
+                                        @if (AllRoleMenuList.length > 0) {
+                                        <mat-form-field appearance="outline" class="col-sm-3" >
+                                            <mat-label>Search</mat-label>
+                                            <input matInput type="text" #SearchData="ngModel" name="Search"
+                                                [(ngModel)]="Search" placeholder="Search......">
+                                        </mat-form-field>
+                                        }
+
+                                    </div>
+                                </form>
+
+                                <!-- Role Menu List -->
+                                @if (RoleMenu.RoleId) {
+                                @for (pageGroup of AllRoleMenuList | filter: Search; track pageGroup.PageGroupId) {
+                                <div class="mb-4">
+
+                                    <!-- Page Group Header -->
+                                    <input class="form-check-input me-2" id="pg_{{pageGroup.PageGroupId}}"
+                                        type="checkbox" [(ngModel)]="pageGroup.IsSelectAll"
+                                        (ngModelChange)="selectAllMenu(pageGroup)">
+                                    <label class="pageGroupName form-check-label text-link"
+                                        for="pg_{{pageGroup.PageGroupId}}">
+                                        {{ pageGroup.PageGroupName }}
+                                    </label>
+                                    <mat-divider></mat-divider>
+
+                                    <!-- Menu Items -->
+                                    <div class="mx-3 row g-3">
+                                        @for (menu of pageGroup.RoleMenuList; track menu.MenuId) {
+                                        <div class="col-lg-6">
+                                            <span class="menu mb-3 row">
+
+                                                <!-- Menu Title -->
+                                                <span class="col-sm-6">
+                                                    <input class="form-check-input me-2" id="selc_{{menu.MenuId}}"
+                                                        [(ngModel)]="menu.IsSelected" (ngModelChange)="selectMenu(menu)"
+                                                        type="checkbox">
+                                                    <label class="form-check-label text-link"
+                                                        for="selc_{{menu.MenuId}}">
+                                                        {{ menu.MenuTitle }}
+                                                    </label>
+                                                </span>
+
+                                                <!-- Permissions -->
+                                                <span class="col-sm-6">
+                                                    <span>
+                                                        <input class="form-check-input create ms-3 me-2"
+                                                            id="create_m_{{menu.MenuId}}" [(ngModel)]="menu.CanCreate"
+                                                            type="checkbox">
+                                                        <label class="text-success form-check-label text-link"
+                                                            for="create_m_{{menu.MenuId}}">Create</label>
+                                                    </span>
+                                                    <span>
+                                                        <input class="form-check-input edit ms-3 me-2"
+                                                            [(ngModel)]="menu.CanEdit" id="edit_m_{{menu.MenuId}}"
+                                                            type="checkbox">
+                                                        <label class="text-warning form-check-label text-link"
+                                                            for="edit_m_{{menu.MenuId}}">Edit</label>
+                                                    </span>
+                                                    <span>
+                                                        <input class="form-check-input delete ms-3 me-2"
+                                                            id="delete_m_{{menu.MenuId}}" [(ngModel)]="menu.CanDelete"
+                                                            type="checkbox">
+                                                        <label class="text-danger form-check-label text-link"
+                                                            for="delete_m_{{menu.MenuId}}">Delete</label>
+                                                    </span>
+                                                </span>
+
+                                            </span>
+                                        </div>
+                                        }
+                                    </div>
+
+                                </div>
+                                }
+                                }
+
+                            </div>
+
+                            <!-- Footer Submit -->
+                            @if (AllRoleMenuList.length > 0 && (action.CanEdit || action.CanCreate)) {
+                            <div class="card-footer" style="text-align:center;">
+                                <button class="btn btn-primary" (click)="saveRoleMenu()">Submit</button>
+                            </div>
+                            }
+
+                        </div>
