@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef} from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -70,7 +70,8 @@ export class Page {
     private toastr: ToastrService,
     private localService: LocalService,
     private loadData: LoadDataService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -91,6 +92,7 @@ export class Page {
     this.service.validiateMenu(obj).subscribe((response: any) => {
       this.action = this.loadData.validiateMenu(response, this.toastr, this.router);
       this.dataLoading = false;
+      this.cdr.detectChanges();   // ← add this
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;

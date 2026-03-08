@@ -148,7 +148,7 @@
 
                                                 <div class="row">
                                                     <mat-form-field appearance="outline" class="col-sm-6"
-                                                        subscriptSizing="dynamic">
+                                                        >
                                                         <mat-label>Group</mat-label>
                                                         <input matInput #PageGroupName="ngModel" name="PageGroupName"
                                                             (ngModelChange)="filterPageGroupList(Page.PageGroupName)"
@@ -170,7 +170,7 @@
                                                     </mat-form-field>
 
                                                     <mat-form-field appearance="outline" class="col-sm-6"
-                                                        subscriptSizing="dynamic">
+                                                        >
                                                         <mat-label>Page Name</mat-label>
                                                         <input matInput #PageName="ngModel" name="PageName"
                                                             [(ngModel)]="Page.PageName" required>
@@ -183,7 +183,7 @@
 
                                                 <div class="row">
                                                     <mat-form-field appearance="outline" class="col-sm-6"
-                                                        subscriptSizing="dynamic">
+                                                        >
                                                         <mat-label>Page Url</mat-label>
                                                         <input matInput #PageUrl="ngModel" name="PageUrl"
                                                             [(ngModel)]="Page.PageUrl" required>
@@ -194,7 +194,7 @@
                                                     </mat-form-field>
 
                                                     <mat-form-field appearance="outline" class="col-sm-6"
-                                                        subscriptSizing="dynamic">
+                                                        >
                                                         <mat-label>Status</mat-label>
                                                         <mat-select #Status="ngModel" name="Status"
                                                             [(ngModel)]="Page.Status" required>

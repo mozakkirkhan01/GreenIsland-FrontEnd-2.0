@@ -1,7 +1,7 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router,RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -51,30 +51,30 @@ export class PageGroup {
   // Modal state
   showModal: boolean = false;
 
-sortColumn: string = '';
-sortDirection: boolean = true;
+  sortColumn: string = '';
+  sortDirection: boolean = true;
 
-sort(column: string) {
+  sort(column: string) {
 
-  if (this.sortColumn === column) {
-    this.sortDirection = !this.sortDirection;
-  } else {
-    this.sortColumn = column;
-    this.sortDirection = true;
+    if (this.sortColumn === column) {
+      this.sortDirection = !this.sortDirection;
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = true;
+    }
+
+    this.PageGroupList.sort((a: any, b: any) => {
+
+      const valueA = a[column];
+      const valueB = b[column];
+
+      if (valueA < valueB) return this.sortDirection ? -1 : 1;
+      if (valueA > valueB) return this.sortDirection ? 1 : -1;
+
+      return 0;
+    });
+
   }
-
-  this.PageGroupList.sort((a: any, b: any) => {
-
-    const valueA = a[column];
-    const valueB = b[column];
-
-    if (valueA < valueB) return this.sortDirection ? -1 : 1;
-    if (valueA > valueB) return this.sortDirection ? 1 : -1;
-
-    return 0;
-  });
-
-}
 
   onTableDataChange(p: any) {
     this.p = p;
@@ -85,7 +85,8 @@ sort(column: string) {
     private toastr: ToastrService,
     private localService: LocalService,
     private loadData: LoadDataService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
   ) { }
 
   ngOnInit(): void {
@@ -105,6 +106,7 @@ sort(column: string) {
     this.service.validiateMenu(obj).subscribe((response: any) => {
       this.action = this.loadData.validiateMenu(response, this.toastr, this.router);
       this.dataLoading = false;
+      this.cdr.detectChanges();   // ← add this
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
@@ -215,5 +217,5 @@ sort(column: string) {
 
 
 
-  
+
 }
