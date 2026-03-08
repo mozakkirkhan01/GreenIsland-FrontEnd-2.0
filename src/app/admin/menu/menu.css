@@ -1,0 +1,30 @@
+.tree {
+  font-size: 16px;
+}
+
+.tree summary {
+  font-size: 16px;
+}
+
+.tree li {
+  font-size: 16px;
+}
+
+.tree a {
+  font-size: 16px;
+}
+
+.tree .icon i {
+  font-size: 16px;
+}
+/* .tree li {
+  list-style: none;
+} */
+
+.tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree summary {
+  list-style: none;
+}
