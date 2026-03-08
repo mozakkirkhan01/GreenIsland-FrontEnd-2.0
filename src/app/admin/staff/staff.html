@@ -188,7 +188,7 @@
               <div class="container">
                 <div class="row">
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Staff Name</mat-label>
                     <input matInput #StaffName="ngModel" name="StaffName"
                       [(ngModel)]="Staff.StaffName" required autofocus>
@@ -198,7 +198,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Staff Code</mat-label>
                     <input matInput #StaffCode="ngModel" name="StaffCode"
                       [(ngModel)]="Staff.StaffCode" required>
@@ -208,7 +208,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Designation</mat-label>
                     <mat-select #DesignationId="ngModel" name="DesignationId"
                       [(ngModel)]="Staff.DesignationId" required>
@@ -224,7 +224,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Department</mat-label>
                     <mat-select #DepartmentId="ngModel" name="DepartmentId"
                       [(ngModel)]="Staff.DepartmentId" required>
@@ -240,7 +240,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Staff Type</mat-label>
                     <mat-select #StaffType="ngModel" name="StaffType"
                       [(ngModel)]="Staff.StaffType" required>
@@ -254,12 +254,12 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Father Name</mat-label>
                     <input matInput name="FatherName" [(ngModel)]="Staff.FatherName">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>DOB</mat-label>
                     <input matInput name="DOB" [(ngModel)]="Staff.DOB"
                       [matDatepicker]="DOBPicker">
@@ -267,7 +267,7 @@
                     <mat-datepicker #DOBPicker></mat-datepicker>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Mobile No</mat-label>
                     <input type="number" matInput #MobileNo="ngModel" name="MobileNo"
                       [(ngModel)]="Staff.MobileNo" required>
@@ -277,18 +277,18 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Alternate No</mat-label>
                     <input type="number" matInput name="AlternateNo"
                       [(ngModel)]="Staff.AlternateNo">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Email</mat-label>
                     <input type="email" matInput name="Email" [(ngModel)]="Staff.Email">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Gender</mat-label>
                     <mat-select name="Gender" [(ngModel)]="Staff.Gender">
                       @for (gender of GenderList; track gender.Key) {
@@ -297,17 +297,17 @@
                     </mat-select>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Qualification</mat-label>
                     <input matInput name="Qualification" [(ngModel)]="Staff.Qualification">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Full Address</mat-label>
                     <input matInput name="FullAddress" [(ngModel)]="Staff.FullAddress">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Join Date</mat-label>
                     <input matInput #JoinDate="ngModel" name="JoinDate"
                       [(ngModel)]="Staff.JoinDate" required
@@ -320,7 +320,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                  <mat-form-field appearance="outline" class="col-sm-3" >
                     <mat-label>Status</mat-label>
                     <mat-select #Status="ngModel" name="Status"
                       [(ngModel)]="Staff.Status" required>

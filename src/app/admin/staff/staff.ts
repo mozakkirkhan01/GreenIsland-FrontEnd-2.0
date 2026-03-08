@@ -1,4 +1,4 @@
-import { Component, ViewChild, inject } from '@angular/core';
+import { Component, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -76,7 +76,8 @@ export class Staff {
     private service: AppService,
     private toastr: ToastrService,
     private localService: LocalService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -100,6 +101,7 @@ export class Staff {
     this.service.validiateMenu(obj).subscribe((response: any) => {
       this.action = this.loadDataService.validiateMenu(response, this.toastr, this.router);
       this.dataLoading = false;
+      this.cdr.detectChanges();
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
