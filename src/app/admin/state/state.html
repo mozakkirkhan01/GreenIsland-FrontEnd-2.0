@@ -1,0 +1,207 @@
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Page Title & Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+
+            <div id="datatable_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
+
+              <div class="row mb-2">
+
+                <!-- New State Button -->
+                <div class="col-12 d-flex justify-content-end mb-2">
+                  @if (action.CanCreate) {
+                    <button mat-raised-button color="primary" (click)="openModal()">
+                      New State
+                    </button>
+                  }
+                </div>
+
+                <!-- Show Entries -->
+                <div class="col-sm-12 col-md-4">
+                  <div class="dataTables_length">
+                    <label>Show
+                      <select
+                        class="custom-select custom-select-sm form-control form-control-sm form-select form-select-sm"
+                        [(ngModel)]="itemPerPage">
+                        @for (option of PageSize; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select> entries
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Search -->
+                <div class="col-sm-12 col-md-4 ms-auto">
+                  <div class="dataTables_filter d-flex justify-content-end">
+                    <label>Search:
+                      <input type="search" class="form-control form-control-sm"
+                        placeholder="" [(ngModel)]="Search">
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Table -->
+              <div class="row">
+                <div class="col-sm-12">
+                  <div class="table-responsive">
+                    <table
+                      class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
+                      role="grid">
+                      <thead>
+                        <tr role="row">
+                          <th>S.No</th>
+                          <th style="cursor:pointer" (click)="sort('StateName')">State</th>
+                          <th style="cursor:pointer" (click)="sort('Status')">Status</th>
+                          @if (action.CanEdit) { <th>Edit</th> }
+                          @if (action.CanDelete) { <th>Delete</th> }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (
+                          item of StateList
+                            | filter: Search
+                            | orderBy: sortKey : reverse
+                            | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                          track item.StateId;
+                          let i = $index
+                        ) {
+                          <tr>
+                            <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                            <td>{{ item.StateName }}</td>
+                            <td>
+                              <span class="p-1"
+                                [ngClass]="item.Status == 1
+                                  ? 'badge text-bg-success'
+                                  : 'badge text-bg-danger'">
+                                {{ AllStatusList[item.Status] }}
+                              </span>
+                            </td>
+                            @if (action.CanEdit) {
+                              <td>
+                                <a class="text-success p-1" style="cursor:pointer"
+                                   (click)="editState(item)">
+                                  <i class="bx bxs-edit-alt"></i>
+                                </a>
+                              </td>
+                            }
+                            @if (action.CanDelete) {
+                              <td>
+                                <a class="text-danger p-1" style="cursor:pointer"
+                                   (click)="deleteState(item)">
+                                  <i class="bx bxs-trash"></i>
+                                </a>
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div>
+                  <pagination-controls
+                    (pageChange)="onTableDataChange($event)"
+                    style="float:right;"
+                    class="my-pagination">
+                  </pagination-controls>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal -->
+  @if (showModal && (action.CanEdit || action.CanCreate)) {
+    <div class="modal fade show d-block" tabindex="-1"
+         style="background:rgba(0,0,0,0.5)">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <div class="modal-header">
+            <h1 class="modal-title fs-5">
+              @if (State.StateId > 0) { Update } @else { New } State
+            </h1>
+            <button type="button" class="btn-close" (click)="closeModal()"></button>
+          </div>
+
+          <div class="modal-body">
+            <form #formState="ngForm">
+              <div class="container">
+                <div class="row">
+
+                  <mat-form-field appearance="outline" class="col-sm-6" subscriptSizing="dynamic">
+                    <mat-label>State Name</mat-label>
+                    <input matInput #StateName="ngModel" name="StateName"
+                      [(ngModel)]="State.StateName" required autofocus>
+                    @if ((StateName.dirty || StateName.touched) ||
+                         (StateName.invalid && isSubmitted)) {
+                      <mat-error>State name is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-sm-6" subscriptSizing="dynamic">
+                    <mat-label>Status</mat-label>
+                    <mat-select #Status="ngModel" name="Status"
+                      [(ngModel)]="State.Status" required>
+                      @for (status of StatusList; track status.Key) {
+                        <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                      }
+                    </mat-select>
+                    @if ((Status.dirty || Status.touched) ||
+                         (Status.invalid && isSubmitted)) {
+                      <mat-error>Status is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="modal-footer mt-2">
+            <button type="button" mat-raised-button color="warn"
+              class="me-2" (click)="closeModal()">Cancel</button>
+            <button mat-raised-button color="primary" (click)="saveState()">
+              @if (State.StateId > 0) { Update } @else { Submit }
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
