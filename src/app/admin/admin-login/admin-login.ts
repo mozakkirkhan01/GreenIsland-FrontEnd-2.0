@@ -90,7 +90,8 @@ export class AdminLogin {
         this.toastr.success("Login Successful.")
         this.submitted = false;
         this.localService.setEmployeeDetail(response.UserDetail)
-        this.router.navigate(['/admin/admin-dashboard']);
+        // this.router.navigate(['/admin/company']);
+         this.router.navigate(['/admin/admin-dashboard']);
       } else {
         this.toastr.error(response.Message);
         this.dataLoading = false;
