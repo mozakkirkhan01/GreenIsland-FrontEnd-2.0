@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef,inject } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -11,14 +11,14 @@ import { NgxPaginationModule } from 'ngx-pagination';
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
 import { LocalService } from '../../utils/local.service';
-import { LoadDataService } from '../../utils/load-data.service';
 import { Status } from '../../utils/enum';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
+import { LoadDataService } from '../../utils/load-data.service';
 
 @Component({
-  selector: 'app-designation',
+  selector: 'app-destination',
   standalone: true,
   imports: [
     CommonModule,
@@ -32,13 +32,13 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
     FilterPipe,
     OrderByPipe,
   ],
-  templateUrl: './designation.html',
-  styleUrls: ['./designation.css']
+  templateUrl: './destination.html',
+  styleUrl: './destination.css',
 })
-export class Designation {
+export class Destination {
   dataLoading: boolean = false;
-  DesignationList: any = [];
-  Designation: any = {};
+  DestinationList: any = [];
+  Destination: any = {};
   isSubmitted = false;
   loadData = inject(LoadDataService);
   StatusList = this.loadData.GetEnumList(Status);
@@ -49,7 +49,13 @@ export class Designation {
   reverse: boolean = false;
   sortKey: string = '';
   itemPerPage: number = this.PageSize[0];
-  action: ActionModel = {} as ActionModel;
+  action: ActionModel = {
+    CanCreate: false,
+    CanEdit: false,
+    CanDelete: false,
+    MenuTitle: '',
+    ParentMenuTitle: ''
+  } as ActionModel;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
   showModal: boolean = false;
 
@@ -73,7 +79,7 @@ export class Designation {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
-    this.getDesignationList();
+    this.getDestinationList();
     this.resetForm();
   }
 
@@ -91,16 +97,17 @@ export class Designation {
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  @ViewChild('formDesignation') formDesignation!: NgForm;
+  @ViewChild('formDestination') formDestination!: NgForm;
 
   resetForm() {
-    this.Designation = { Status: 1 };
-    if (this.formDesignation) {
-      this.formDesignation.control.markAsPristine();
-      this.formDesignation.control.markAsUntouched();
+    this.Destination = { Status: 1 };
+    if (this.formDestination) {
+      this.formDestination.control.markAsPristine();
+      this.formDestination.control.markAsUntouched();
     }
     this.isSubmitted = false;
   }
@@ -115,79 +122,84 @@ export class Designation {
     this.showModal = false;
   }
 
-  getDesignationList() {
+  getDestinationList() {
     var obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
     this.dataLoading = true;
-    this.service.getDesignationList(obj).subscribe(r1 => {
+    this.service.getDestinationList(obj).subscribe(r1 => {
       let response = r1 as any;
       if (response.Message == ConstantData.SuccessMessage) {
-        this.DesignationList = response.DesignationList;
+        this.DestinationList = response.DestinationList;
       } else {
         this.toastr.error(response.Message);
       }
       this.dataLoading = false;
+      this.cdr.detectChanges();
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  saveDesignation() {
-    this.formDesignation.control.markAllAsTouched();
+  saveDestination() {
     this.isSubmitted = true;
-    if (this.formDesignation.invalid) {
+    this.formDestination.control.markAllAsTouched();
+    if (this.formDestination.invalid) {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
     var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(this.Designation)).toString()
+      request: this.localService.encrypt(JSON.stringify(this.Destination)).toString()
     };
     this.dataLoading = true;
-    this.service.saveDesignation(obj).subscribe(r1 => {
+    this.service.saveDestination(obj).subscribe(r1 => {
       let response = r1 as any;
       if (response.Message == ConstantData.SuccessMessage) {
-        this.toastr.success(this.Designation.DesignationId > 0
-          ? "Designation updated successfully"
-          : "Designation added successfully");
+        this.toastr.success(this.Destination.DestinationId > 0
+          ? "Destination updated successfully"
+          : "Destination added successfully");
         this.closeModal();
-        this.getDesignationList();
+        this.getDestinationList();
       } else {
         this.toastr.error(response.Message);
         this.dataLoading = false;
+        this.cdr.detectChanges();
       }
     }, err => {
       this.toastr.error("Error occured while submitting data");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  deleteDesignation(obj: any) {
+  deleteDestination(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
       var request: RequestModel = {
         request: this.localService.encrypt(JSON.stringify(obj)).toString()
       };
       this.dataLoading = true;
-      
-      this.service.deleteDesignation(request).subscribe(r1 => {
+      this.service.deleteDestination(request).subscribe(r1 => {
         let response = r1 as any;
         if (response.Message == ConstantData.SuccessMessage) {
           this.toastr.success("Record deleted successfully");
-          this.getDesignationList();
+          this.getDestinationList();
         } else {
           this.toastr.error(response.Message);
           this.dataLoading = false;
+          this.cdr.detectChanges();
         }
       }, err => {
         this.toastr.error("Error occured while deleting the record");
         this.dataLoading = false;
+        this.cdr.detectChanges();
       });
     }
   }
 
-  editDesignation(obj: any) {
-    this.Designation = { ...obj };
+  editDestination(obj: any) {
+    this.Destination = { ...obj };
     this.showModal = true;
   }
 }
