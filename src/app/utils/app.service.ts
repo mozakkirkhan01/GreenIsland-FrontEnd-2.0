@@ -72,6 +72,36 @@ export class AppService {
   }
 
   /* ---------------------------------------------------------------------- */
+  //Destination
+  getDestinationList(obj: any) {
+    return this.http.post(this.apiUrl + "Destination/DestinationList", obj, { headers: this.headers })
+  }
+
+  saveDestination(obj: any) {
+    return this.http.post(this.apiUrl + "Destination/saveDestination", obj, { headers: this.headers })
+  }
+
+  deleteDestination(obj: any) {
+    return this.http.post(this.apiUrl + "Destination/deleteDestination", obj, { headers: this.headers })
+  }
+
+  /* ---------------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------------- */
+  //Location
+  getLocationList(obj: any) {
+    return this.http.post(this.apiUrl + "Location/LocationList", obj, { headers: this.headers })
+  }
+
+  saveLocation(obj: any) {
+    return this.http.post(this.apiUrl + "Location/saveLocation", obj, { headers: this.headers })
+  }
+
+  deleteLocation(obj: any) {
+    return this.http.post(this.apiUrl + "Location/deleteLocation", obj, { headers: this.headers })
+  }
+
+  /* ---------------------------------------------------------------------- */
 
   // Staff
   getStaffList(obj: any) {

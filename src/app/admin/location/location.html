@@ -1,0 +1,233 @@
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Page Title & Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div id="datatable_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
+
+              <div class="row mb-2">
+
+                <!-- New Location Button -->
+                <div class="col-12 d-flex justify-content-end mb-2">
+                  @if (action.CanCreate) {
+                  <button mat-raised-button color="primary" (click)="openModal()">
+                    New Location
+                  </button>
+                  }
+                </div>
+
+                <!-- Show Entries -->
+                <div class="col-sm-12 col-md-4">
+                  <div class="dataTables_length">
+                    <label>Show
+                      <select
+                        class="custom-select custom-select-sm form-control form-control-sm form-select form-select-sm"
+                        [(ngModel)]="itemPerPage">
+                        @for (option of PageSize; track option) {
+                        <option [value]="option">{{ option }}</option>
+                        }
+                      </select> entries
+                    </label>
+                  </div>
+                </div>
+
+
+
+
+                <!-- Search -->
+                <div class="col-sm-12 col-md-4 ms-auto">
+                  <div class="dataTables_filter d-flex justify-content-end">
+                    <label>Search:
+                      <input type="search" class="form-control form-control-sm" placeholder="" [(ngModel)]="Search">
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+              <!-- Filter by Destination + Search Button -->
+              <div class="col-sm-4 d-flex align-items-center gap-2">
+                <label class="mb-3" style="white-space: nowrap;">
+                  Select Destination <span class="text-danger">*</span>
+                </label>
+
+                <select class="form-select mb-3" [(ngModel)]="SelectedDestinationId" name="FilterDestination"
+                  (ngModelChange)="onDestinationChange()">
+
+                  <option  [ngValue]="null">-- Select Destination --</option>
+
+                  <option [value]="dest.DestinationId" *ngFor="let dest of DestinationList">
+                    {{ dest.DestinationName }}
+                  </option>
+
+                </select>
+              </div>
+
+              <!-- Table -->
+              <div class="row">
+                <div class="col-sm-12">
+                  <div class="table-responsive">
+                    <table class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
+                      role="grid">
+                      <thead>
+                        <tr role="row">
+                          <th>S.No</th>
+                          <th style="cursor:pointer" (click)="sort('LocationName')">Location</th>
+                          <th style="cursor:pointer" (click)="sort('Status')">Status</th>
+                          @if (action.CanEdit) { <th>Edit</th> }
+                          @if (action.CanDelete) { <th>Delete</th> }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (
+                        item of LocationList
+                        | filter: Search
+                        | orderBy: sortKey : reverse
+                        | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                        track item.LocationId;
+                        let i = $index
+                        ) {
+                        <tr>
+                          <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                          <td>{{ item.LocationName }}</td>
+                          <td>
+                            <span class="p-1" [ngClass]="item.Status == 1
+                                  ? 'badge text-bg-success'
+                                  : 'badge text-bg-danger'">
+                              {{ AllStatusList[item.Status] }}
+                            </span>
+                          </td>
+                          @if (action.CanEdit) {
+                          <td>
+                            <a class="text-success p-1" style="cursor:pointer" (click)="editLocation(item)">
+                              <i class="bx bxs-edit-alt"></i>
+                            </a>
+                          </td>
+                          }
+                          @if (action.CanDelete) {
+                          <td>
+                            <a class="text-danger p-1" style="cursor:pointer" (click)="deleteLocation(item)">
+                              <i class="bx bxs-trash"></i>
+                            </a>
+                          </td>
+                          }
+                        </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div>
+                  <pagination-controls (pageChange)="onTableDataChange($event)" style="float:right;"
+                    class="my-pagination">
+                  </pagination-controls>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal -->
+  @if (showModal && (action.CanEdit || action.CanCreate)) {
+  <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h1 class="modal-title fs-5">
+            @if (Location.LocationId > 0) { Update } @else { New } Location
+          </h1>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <form #formLocation="ngForm">
+            <div class="container">
+              <div class="row">
+
+                <!-- Destination Dropdown -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Destination</mat-label>
+                  <mat-select #DestinationId="ngModel" name="DestinationId" [(ngModel)]="Location.DestinationId"
+                    required>
+                    @for (dest of DestinationList; track dest.DestinationId) {
+                    <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((DestinationId.dirty || DestinationId.touched) ||
+                  (DestinationId.invalid && isSubmitted)) {
+                  <mat-error>Destination is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Location Name -->
+                <mat-form-field appearance="outline" class="col-sm-9">
+                  <mat-label>Location Name</mat-label>
+                  <input matInput #LocationName="ngModel" name="LocationName" [(ngModel)]="Location.LocationName"
+                    required autofocus>
+                  @if ((LocationName.dirty || LocationName.touched) ||
+                  (LocationName.invalid && isSubmitted)) {
+                  <mat-error>Location name is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status" [(ngModel)]="Location.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                    <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) ||
+                  (Status.invalid && isSubmitted)) {
+                  <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer mt-2">
+          <button type="button" mat-raised-button color="warn" class="me-2" (click)="closeModal()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveLocation()">
+            @if (Location.LocationId > 0) { Update } @else { Submit }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  }
+
+</div>

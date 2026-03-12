@@ -34,8 +34,8 @@
               "src/assets/js/bootstrap.bundle.min.js",
               "src/assets/js/metisMenu.min.js",
               "src/assets/js/simplebar.min.js",
-              "src/assets/js/waves.min.js",
-              "src/assets/js/app.js"
+              "src/assets/js/waves.min.js"
+             
             ]
           },
           "configurations": {

@@ -18,7 +18,7 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
 import { LoadDataService } from '../../utils/load-data.service';
 
 @Component({
-  selector: 'app-department',
+  selector: 'app-location',
   standalone: true,
   imports: [
     CommonModule,
@@ -32,13 +32,15 @@ import { LoadDataService } from '../../utils/load-data.service';
     FilterPipe,
     OrderByPipe,
   ],
-  templateUrl: './department.html',
-  styleUrls: ['./department.css']
+  templateUrl: './location.html',
+  styleUrl: './location.css',
 })
-export class Department {
+export class Location {
   dataLoading: boolean = false;
-  DepartmentList: any = [];
-  Department: any = {};
+  LocationList: any[] = [];
+  Location: any = {};
+  DestinationList: any[] = [];
+  SelectedDestinationId: number | null = null;
   isSubmitted = false;
   loadData = inject(LoadDataService);
   StatusList = this.loadData.GetEnumList(Status);
@@ -49,7 +51,13 @@ export class Department {
   reverse: boolean = false;
   sortKey: string = '';
   itemPerPage: number = this.PageSize[0];
-  action: ActionModel = {} as ActionModel;
+  action: ActionModel = {
+    CanCreate: false,
+    CanEdit: false,
+    CanDelete: false,
+    MenuTitle: '',
+    ParentMenuTitle: ''
+  } as ActionModel;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
   showModal: boolean = false;
 
@@ -73,7 +81,7 @@ export class Department {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
-    this.getDepartmentList();
+    this.getDestinationList();
     this.resetForm();
   }
 
@@ -91,20 +99,20 @@ export class Department {
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  @ViewChild('formDepartment') formDepartment!: NgForm;
+  @ViewChild('formLocation') formLocation!: NgForm;
 
-  resetForm() {
-    this.Department = { Status: 1 };
-    if (this.formDepartment) {
-      this.formDepartment.control.markAsPristine();
-      this.formDepartment.control.markAsUntouched();
-    }
-    this.isSubmitted = false;
+resetForm() {
+  this.Location = { Status: 1, DestinationId: 0 }; // 👈 change null to 0
+  if (this.formLocation) {
+    this.formLocation.control.markAsPristine();
+    this.formLocation.control.markAsUntouched();
   }
-
+  this.isSubmitted = false;
+}
   openModal() {
     this.resetForm();
     this.showModal = true;
@@ -115,80 +123,123 @@ export class Department {
     this.showModal = false;
   }
 
-  getDepartmentList() {
+  getDestinationList() {
     var obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    this.dataLoading = true;
-    this.service.getDepartmentList(obj).subscribe(r1 => {
+    this.service.getDestinationList(obj).subscribe(r1 => {
       let response = r1 as any;
       if (response.Message == ConstantData.SuccessMessage) {
-        this.DepartmentList = response.DepartmentList;
+        this.DestinationList = response.DestinationList;
+      } else {
+        this.toastr.error(response.Message);
+      }
+      this.cdr.detectChanges();
+    }, err => {
+      this.toastr.error("Error while fetching destination list");
+      this.cdr.detectChanges();
+    });
+  }
+
+  searchByDestination() {
+    if (this.SelectedDestinationId == null) {
+      this.toastr.error("Please select a destination");
+      return;
+    }
+    this.p = 1;
+    this.getLocationList(this.SelectedDestinationId);
+  }
+onDestinationChange() {
+
+  if (!this.SelectedDestinationId) {
+    this.LocationList = [];
+    return;
+  }
+
+  this.getLocationList(this.SelectedDestinationId);
+
+}
+
+  getLocationList(destinationId: any = null) {
+    var obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: destinationId })
+      ).toString()
+    };
+    this.dataLoading = true;
+    this.service.getLocationList(obj).subscribe(r1 => {
+      let response = r1 as any;
+      if (response.Message == ConstantData.SuccessMessage) {
+        this.LocationList = response.LocationList;
       } else {
         this.toastr.error(response.Message);
       }
       this.dataLoading = false;
+      this.cdr.detectChanges();
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  saveDepartment() {
+  saveLocation() {
     this.isSubmitted = true;
-    this.formDepartment.control.markAllAsTouched();
-    if (this.formDepartment.invalid) {
+    this.formLocation.control.markAllAsTouched();
+    if (this.formLocation.invalid) {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
     var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(this.Department)).toString()
+      request: this.localService.encrypt(JSON.stringify(this.Location)).toString()
     };
     this.dataLoading = true;
-    this.service.saveDepartment(obj).subscribe(r1 => {
+    this.service.saveLocation(obj).subscribe(r1 => {
       let response = r1 as any;
       if (response.Message == ConstantData.SuccessMessage) {
-        this.toastr.success(this.Department.DepartmentId > 0
-          ? "Department updated successfully"
-          : "Department added successfully");
+        this.toastr.success(this.Location.LocationId > 0
+          ? "Location updated successfully"
+          : "Location added successfully");
         this.closeModal();
-        this.getDepartmentList();
+        this.getLocationList(this.SelectedDestinationId);
       } else {
         this.toastr.error(response.Message);
         this.dataLoading = false;
+        this.cdr.detectChanges();
       }
     }, err => {
       this.toastr.error("Error occured while submitting data");
       this.dataLoading = false;
+      this.cdr.detectChanges();
     });
   }
 
-  deleteDepartment(obj: any) {
+  deleteLocation(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
       var request: RequestModel = {
         request: this.localService.encrypt(JSON.stringify(obj)).toString()
       };
       this.dataLoading = true;
-      console.log("deleteeeeeee");
-
-      this.service.deleteDepartment(request).subscribe(r1 => {
+      this.service.deleteLocation(request).subscribe(r1 => {
         let response = r1 as any;
         if (response.Message == ConstantData.SuccessMessage) {
           this.toastr.success("Record deleted successfully");
-          this.getDepartmentList();
+          this.getLocationList(this.SelectedDestinationId);
         } else {
           this.toastr.error(response.Message);
           this.dataLoading = false;
+          this.cdr.detectChanges();
         }
       }, err => {
         this.toastr.error("Error occured while deleting the record");
         this.dataLoading = false;
+        this.cdr.detectChanges();
       });
     }
   }
 
-  editDepartment(obj: any) {
-    this.Department = { ...obj };
+  editLocation(obj: any) {
+    this.Location = { ...obj };
     this.showModal = true;
   }
 }
