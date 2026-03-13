@@ -16,6 +16,10 @@ import { State } from './admin/state/state';
 import { ChangePassword } from './admin/change-password/change-password';
 import { Destination } from './admin/destination/destination';
 import { Location } from './admin/location/location';
+import { RoomType } from './admin/room-type/room-type';
+import { HotelCategory } from './admin/hotel-category/hotel-category';
+import { Hotel } from './admin/hotel/hotel';
+import { HotelRate } from './admin/hotel-rate/hotel-rate';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -43,6 +47,10 @@ export const routes: Routes = [
       { path: 'change-password', component: ChangePassword},
       { path: 'destination', component: Destination},
       { path: 'location', component: Location},
+      { path: 'room-type', component: RoomType},
+      { path: 'hotel-category', component: HotelCategory},
+      { path: 'hotel', component: Hotel},
+      { path: 'hotel-rate', component: HotelRate},
     ]
   },
 
