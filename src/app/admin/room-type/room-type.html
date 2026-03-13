@@ -33,7 +33,7 @@
                 <div class="col-12 d-flex justify-content-end mb-2">
                   @if (action.CanCreate) {
                     <button mat-raised-button color="primary" (click)="openModal()">
-                      New RoomType
+                      New Room Type
                     </button>
                   }
                 </div>
@@ -75,10 +75,10 @@
                       <thead>
                         <tr role="row">
                           <th>S.No</th>
-                          <th style="cursor:pointer" (click)="sort('RoomTypeName')">RoomType</th>
-                          <th style="cursor:pointer" (click)="sort('Status')">Status</th>
+                          <th style="cursor:pointer" (click)="sort('RoomTypeName')">Room Type</th>
                           @if (action.CanEdit) { <th>Edit</th> }
                           @if (action.CanDelete) { <th>Delete</th> }
+                          <th style="cursor:pointer" (click)="sort('Status')">Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -93,29 +93,29 @@
                           <tr>
                             <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
                             <td>{{ item.RoomTypeName }}</td>
-                            <td>
-                              <span class="p-1"
-                                [ngClass]="item.Status == 1
-                                  ? 'badge text-bg-success'
-                                  : 'badge text-bg-danger'">
-                                {{ AllStatusList[item.Status] }}
-                              </span>
-                            </td>
                             @if (action.CanEdit) {
-                              <td>
-                                <a class="text-success p-1" style="cursor:pointer"
-                                   (click)="editRoomType(item)">
-                                  <i class="bx bxs-edit-alt"></i>
+                                <td>
+                                    <a class="text-success p-1" style="cursor:pointer"
+                                    (click)="editRoomType(item)">
+                                    <i class="bx bxs-edit-alt"></i>
                                 </a>
-                              </td>
-                            }
-                            @if (action.CanDelete) {
-                              <td>
+                            </td>
+                        }
+                        @if (action.CanDelete) {
+                            <td>
                                 <a class="text-danger p-1" style="cursor:pointer"
-                                   (click)="deleteRoomType(item)">
-                                  <i class="bx bxs-trash"></i>
-                                </a>
-                              </td>
+                                (click)="deleteRoomType(item)">
+                                <i class="bx bxs-trash"></i>
+                            </a>
+                        </td>
+                        <td>
+                          <span class="p-1"
+                            [ngClass]="item.Status == 1
+                              ? 'badge text-bg-success'
+                              : 'badge text-bg-danger'">
+                            {{ AllStatusList[item.Status] }}
+                          </span>
+                        </td>
                             }
                           </tr>
                         }
@@ -152,7 +152,7 @@
 
           <div class="modal-header">
             <h1 class="modal-title fs-5">
-              @if (RoomType.RoomTypeId > 0) { Update } @else { New } RoomType
+              @if (RoomType.RoomTypeId > 0) { Update } @else { New } Room Type
             </h1>
             <button type="button" class="btn-close" (click)="closeModal()"></button>
           </div>
@@ -163,12 +163,12 @@
                 <div class="row">
 
                   <mat-form-field appearance="outline" class="col-sm-6" >
-                    <mat-label>RoomType Name</mat-label>
+                    <mat-label>Room Type Name</mat-label>
                     <input matInput #RoomTypeName="ngModel" name="RoomTypeName"
                       [(ngModel)]="RoomType.RoomTypeName" required autofocus>
                     @if ((RoomTypeName.dirty || RoomTypeName.touched) ||
                          (RoomTypeName.invalid && isSubmitted)) {
-                      <mat-error>RoomType name is <strong>required</strong></mat-error>
+                      <mat-error>Room Type name is <strong>required</strong></mat-error>
                     }
                   </mat-form-field>
 
