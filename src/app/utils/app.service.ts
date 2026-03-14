@@ -58,6 +58,20 @@ export class AppService {
 
   /* ---------------------------------------------------------------------- */
 
+  //HotelCategory
+  getHotelCategoryList(obj: any) {
+    return this.http.post(this.apiUrl + "HotelCategory/HotelCategoryList", obj, { headers: this.headers })
+  }
+
+  saveHotelCategory(obj: any) {
+    return this.http.post(this.apiUrl + "HotelCategory/saveHotelCategory", obj, { headers: this.headers })
+  }
+
+  deleteHotelCategory(obj: any) {
+    return this.http.post(this.apiUrl + "HotelCategory/deleteHotelCategory", obj, { headers: this.headers })
+  }
+  /* ---------------------------------------------------------------------- */
+
   //Department
   getDepartmentList(obj: any) {
     return this.http.post(this.apiUrl + "Department/DepartmentList", obj, { headers: this.headers })
@@ -71,6 +85,19 @@ export class AppService {
     return this.http.post(this.apiUrl + "Department/deleteDepartment", obj, { headers: this.headers })
   }
 
+  /* ---------------------------------------------------------------------- */
+  //RoomType
+  getRoomTypeList(obj: any) {
+    return this.http.post(this.apiUrl + "RoomType/RoomTypeList", obj, { headers: this.headers })
+  }
+
+  saveRoomType(obj: any) {
+    return this.http.post(this.apiUrl + "RoomType/saveRoomType", obj, { headers: this.headers })
+  }
+
+  deleteRoomType(obj: any) {
+    return this.http.post(this.apiUrl + "RoomType/deleteRoomType", obj, { headers: this.headers })
+  }
   /* ---------------------------------------------------------------------- */
   //Destination
   getDestinationList(obj: any) {
