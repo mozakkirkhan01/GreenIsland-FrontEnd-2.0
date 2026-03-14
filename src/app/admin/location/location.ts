@@ -76,7 +76,7 @@ export class Location {
     private localService: LocalService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
@@ -105,14 +105,14 @@ export class Location {
 
   @ViewChild('formLocation') formLocation!: NgForm;
 
-resetForm() {
-  this.Location = { Status: 1, DestinationId: 0 }; // 👈 change null to 0
-  if (this.formLocation) {
-    this.formLocation.control.markAsPristine();
-    this.formLocation.control.markAsUntouched();
+  resetForm() {
+    this.Location = { Status: 1, DestinationId: 0 }; // 👈 change null to 0
+    if (this.formLocation) {
+      this.formLocation.control.markAsPristine();
+      this.formLocation.control.markAsUntouched();
+    }
+    this.isSubmitted = false;
   }
-  this.isSubmitted = false;
-}
   openModal() {
     this.resetForm();
     this.showModal = true;
@@ -149,16 +149,16 @@ resetForm() {
     this.p = 1;
     this.getLocationList(this.SelectedDestinationId);
   }
-onDestinationChange() {
+  onDestinationChange() {
 
-  if (!this.SelectedDestinationId) {
-    this.LocationList = [];
-    return;
+    if (!this.SelectedDestinationId) {
+      this.LocationList = [];
+      return;
+    }
+
+    this.getLocationList(this.SelectedDestinationId);
+
   }
-
-  this.getLocationList(this.SelectedDestinationId);
-
-}
 
   getLocationList(destinationId: any = null) {
     var obj: RequestModel = {
@@ -201,7 +201,7 @@ onDestinationChange() {
           ? "Location updated successfully"
           : "Location added successfully");
         this.closeModal();
-        this.getLocationList(this.SelectedDestinationId);
+        // this.getLocationList(Number(this.SelectedDestinationId) || 0); // 👈
       } else {
         this.toastr.error(response.Message);
         this.dataLoading = false;
