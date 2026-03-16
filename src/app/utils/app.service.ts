@@ -70,6 +70,19 @@ export class AppService {
   deleteHotelCategory(obj: any) {
     return this.http.post(this.apiUrl + "HotelCategory/deleteHotelCategory", obj, { headers: this.headers })
   }
+
+  //Hotel
+  getHotelList(obj: any) {
+    return this.http.post(this.apiUrl + "Hotel/HotelList", obj, { headers: this.headers })
+  }
+
+  saveHotel(obj: any) {
+    return this.http.post(this.apiUrl + "Hotel/saveHotel", obj, { headers: this.headers })
+  }
+
+  deleteHotel(obj: any) {
+    return this.http.post(this.apiUrl + "Hotel/deleteHotel", obj, { headers: this.headers })
+  }
   /* ---------------------------------------------------------------------- */
 
   //Department
