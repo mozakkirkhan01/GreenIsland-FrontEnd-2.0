@@ -1,0 +1,30 @@
+.no-location-alert {
+  animation: fadeOut 0.5s ease forwards;
+  animation-delay: 3.5s;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+.no-location-alert {
+  animation: fadeOut 0.5s ease forwards;
+  animation-delay: 3.5s;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* 👇 Add this */
+.modal-blur-overlay {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(3px);
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 998;
+  border-radius: 4px;
+  animation: fadeOut 0.5s ease forwards;
+  animation-delay: 3.5s;
+}
