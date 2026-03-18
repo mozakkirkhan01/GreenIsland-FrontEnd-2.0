@@ -76,6 +76,9 @@
                                                 <tr role="row">
                                                     <th>S.No</th>
                                                     <th style="cursor:pointer" (click)="sort('HotelName')">Hotel</th>
+                                                    <th style="cursor:pointer" (click)="sort('DestinationName')">Destination</th>
+                                                    <th style="cursor:pointer" (click)="sort('LocationName')">Location</th>
+                                                    <th style="cursor:pointer" (click)="sort('HotelCategory')">Hotel Category</th>
                                                     @if (action.CanEdit) { <th>Edit</th> }
                                                     @if (action.CanDelete) { <th>Delete</th> }
                                                     <th style="cursor:pointer" (click)="sort('Status')">Status</th>
@@ -93,6 +96,9 @@
                                                 <tr>
                                                     <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
                                                     <td>{{ item.HotelName }}</td>
+                                                    <td>{{ item.DestinationName }}</td>
+                                                    <td>{{ item.LocationName }}</td>
+                                                    <td>{{ item.HotelCategoryName }}</td>
                                                     @if (action.CanEdit) {
                                                     <td>
                                                         <a class="text-success p-1" style="cursor:pointer"
@@ -210,7 +216,7 @@
 
 
                                     <!-- Alert floats over layout -->
-                                    <div *ngIf="Hotel.DestinationId && LocationList.length === 0 && !dataLoading"
+                                    <div *ngIf="noLocationFound"
                                         style="position: absolute; top: 4px; left: 0; right: 0; z-index: 1000;">
                                         <div class="alert alert-warning py-2 mb-0 no-location-alert" role="alert"
                                             style="font-size: 12px; padding: 6px 10px !important; border-radius: 6px;">
@@ -261,7 +267,7 @@
                                     }
                                 </mat-form-field>
 
-                                <mat-form-field appearance="outline" class="col-sm-3">
+                                <mat-form-field appearance="outline" class="col-sm-3"  style="height:15px;">
                                     <mat-label>Status</mat-label>
                                     <mat-select #Status="ngModel" name="Status" [(ngModel)]="Hotel.Status" required>
                                         @for (status of StatusList; track status.Key) {
@@ -273,6 +279,22 @@
                                     <mat-error>Status is <strong>required</strong></mat-error>
                                     }
                                 </mat-form-field>
+
+                                <div class="col-sm-3">
+                                    <!-- <div class="card"> -->
+                                        <div class="card-body profile-card flex-column align-items-center">
+                                            <label>LOGO</label> <br>
+                                            <img [src]="LogoPhoto ? LogoPhoto:'assets/img/no-image.avif'" alt="Profile"
+                                                class="img-responsive" width="250">
+                                            <input type="file" accept="image/*" #LogoFile="ngModel" name="LogoFile"
+                                                (change)="setLogoFile($event)" [(ngModel)]="Hotel.HotelImage"
+                                                class="form-control mt-2 mb-4" placeholder="Enter Logo">
+                                        <!-- </div> -->
+                                    </div>
+                                </div>
+
+
+
 
                             </div>
                         </div>

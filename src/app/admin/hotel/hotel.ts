@@ -79,7 +79,7 @@ export class Hotel {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
-    // this.getHotelList();
+    this.getHotelList();
     this.resetForm();
   }
 
@@ -103,14 +103,15 @@ export class Hotel {
 
   @ViewChild('formHotel') formHotel!: NgForm;
 
-  resetForm() {
-    this.Hotel = { Status: 1 };
-    if (this.formHotel) {
-      this.formHotel.control.markAsPristine();
-      this.formHotel.control.markAsUntouched();
-    }
-    this.isSubmitted = false;
+resetForm() {
+  this.Hotel = { Status: 1, DestinationId: null };
+  this.LogoPhoto = null; // ← add this
+  if (this.formHotel) {
+    this.formHotel.control.markAsPristine();
+    this.formHotel.control.markAsUntouched();
   }
+  this.isSubmitted = false;
+}
 
   openModal() {
     this.resetForm();
@@ -152,6 +153,8 @@ export class Hotel {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
+    this.Hotel.CreatedBy = this.staffLogin.StaffLoginId;
+    this.Hotel.UpdatedBy = this.staffLogin.StaffLoginId;
     var obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify(this.Hotel)).toString()
     };
@@ -200,10 +203,14 @@ export class Hotel {
     }
   }
 
-  editHotel(obj: any) {
-    this.Hotel = { ...obj };
-    this.showModal = true;
-  }
+editHotel(obj: any) {
+  this.Hotel = { ...obj };
+  this.LogoPhoto = obj.HotelImage ? this.imageUrl + obj.HotelImage : null; // ← add this
+  this.getDestinationList();
+  this.getLocationList(this.Hotel.DestinationId);
+  this.getHotelCategoryList();
+  this.showModal = true;
+}
 
   getDestinationList() {
     var obj: RequestModel = {
@@ -235,38 +242,76 @@ export class Hotel {
     this.getLocationList(this.Hotel.DestinationId);
 
   }
+  noLocationFound: boolean = false;
   getLocationList(destinationId: any = null) {
+
     var obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ DestinationId: destinationId })
       ).toString()
     };
+
     this.dataLoading = true;
+
     this.service.getLocationList(obj).subscribe(r1 => {
+
       let response = r1 as any;
+
       if (response.Message == ConstantData.SuccessMessage) {
+
         this.LocationList = response.LocationList;
 
-        // 👇 Add this
-        if (this.LocationList.length === 0) {
-          setTimeout(() => {
-            this.Hotel.DestinationId = null;  // resets destination so message disappears
-            this.LocationList = [];
-            this.cdr.detectChanges();
-          }, 4000);
-        }
+        // ✅ Handle empty list WITHOUT timeout
+        this.noLocationFound = this.LocationList.length === 0;
 
       } else {
         this.toastr.error(response.Message);
       }
+
       this.dataLoading = false;
       this.cdr.detectChanges();
+
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
       this.cdr.detectChanges();
     });
   }
+
+
+
+  // getLocationList(destinationId: any = null) {
+  //   var obj: RequestModel = {
+  //     request: this.localService.encrypt(
+  //       JSON.stringify({ DestinationId: destinationId })
+  //     ).toString()
+  //   };
+  //   this.dataLoading = true;
+  //   this.service.getLocationList(obj).subscribe(r1 => {
+  //     let response = r1 as any;
+  //     if (response.Message == ConstantData.SuccessMessage) {
+  //       this.LocationList = response.LocationList;
+
+  //       // 👇 Add this
+  //       if (this.LocationList.length === 0) {
+  //         setTimeout(() => {
+  //           this.Hotel.DestinationId = null;  // resets destination so message disappears
+  //           this.LocationList = [];
+  //           this.cdr.detectChanges();
+  //         }, 4000);
+  //       }
+
+  //     } else {
+  //       this.toastr.error(response.Message);
+  //     }
+  //     this.dataLoading = false;
+  //     this.cdr.detectChanges();
+  //   }, err => {
+  //     this.toastr.error("Error while fetching records");
+  //     this.dataLoading = false;
+  //     this.cdr.detectChanges();
+  //   });
+  // }
 
 
   HotelCategoryList: any[] = [];
@@ -290,5 +335,75 @@ export class Hotel {
       this.cdr.detectChanges();
     });
   }
+  LogoPhoto: string | null = null;
+  imageUrl = ConstantData.getBaseUrl();
 
+  setLogoFile(event: any): void {
+
+    const file: File = event?.target?.files?.[0];
+    if (!file) {
+      this.toastr.error("No file selected");
+      return;
+    }
+
+    if (file.size === 0) {
+      this.toastr.error("File is empty");
+      this.resetLogo();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const maxSize = 500 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      this.toastr.error("Only JPG, JPEG, PNG files are allowed");
+      this.resetLogo();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (file.size > maxSize) {
+      this.toastr.error("File size should be less than 500 KB");
+      this.resetLogo();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+
+      const result = reader.result as string;
+
+      if (!result) {
+        this.toastr.error("Error reading file");
+        this.resetLogo();
+        this.cdr.detectChanges();
+        return;
+      }
+
+      const base64Data = result.split(',')[1];
+
+      this.Hotel.HotelImage = base64Data; // ✅ FIXED
+      this.LogoPhoto = result;
+
+      // 🔥 IMPORTANT: Force UI update
+      this.cdr.detectChanges();
+
+    };
+
+    reader.onerror = () => {
+      this.toastr.error("Error processing file");
+      this.resetLogo();
+      this.cdr.detectChanges();
+    };
+
+    reader.readAsDataURL(file);
+
+  }
+resetLogo(): void {
+  this.Hotel.HotelImage = '';
+  this.LogoPhoto = null;
+}
 }

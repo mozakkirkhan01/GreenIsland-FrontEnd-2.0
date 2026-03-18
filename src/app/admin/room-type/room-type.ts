@@ -76,6 +76,7 @@ export class RoomType {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
+    this.getHotelList();
     this.getRoomTypeList();
     this.resetForm();
   }
@@ -101,7 +102,7 @@ export class RoomType {
   @ViewChild('formRoomType') formRoomType!: NgForm;
 
   resetForm() {
-    this.RoomType = { Status: 1 };
+    this.RoomType = { Status: 1, HotelId: 0};
     if (this.formRoomType) {
       this.formRoomType.control.markAsPristine();
       this.formRoomType.control.markAsUntouched();
@@ -200,4 +201,36 @@ export class RoomType {
     this.showModal = true;
   }
 
+HotelList : any[] = [];
+      getHotelList() {
+    var obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.dataLoading = true;
+    this.service.getHotelList(obj).subscribe(r1 => {
+      let response = r1 as any;
+      if (response.Message == ConstantData.SuccessMessage) {
+        this.HotelList = response.HotelList;
+      } else {
+        this.toastr.error(response.Message);
+      }
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+    }, err => {
+      this.toastr.error("Error while fetching records");
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+    });
+  }
+
+
+
+
+
+
+
+
+
+
+  
 }

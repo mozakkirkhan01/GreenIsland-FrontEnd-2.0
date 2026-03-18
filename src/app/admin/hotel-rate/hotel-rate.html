@@ -1,1 +1,278 @@
-<p>hotel-rate works!</p>
+<div class="page-content">
+    <div class="container-fluid">
+
+        <!-- Page Title & Breadcrumb -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item">
+                                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
+                            <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Card -->
+        <!-- <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+
+                        <div>
+                            <h5 style="text-align: center;">Set Hotel Rate</h5>
+                        </div>
+
+                        <form #formHotel="ngForm">
+                            <div class="container">
+                                <div class="row">
+
+
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>Hotel</mat-label>
+                                        <mat-select #HotelId="ngModel" name="HotelId"
+                                            [(ngModel)]="HotelRate.HotelId" (ngModelChange)="onHotelChange()"
+                                            required>
+                                            @for (dest of DestinationList; track dest.DestinationId) {
+                                            <mat-option [value]="dest.DestinationId">{{ dest.DestinationName
+                                                }}</mat-option>
+                                            }
+                                        </mat-select>
+                                        @if ((HotelId.dirty || HotelId.touched) ||
+                                        (HotelId.invalid && isSubmitted)) {
+                                        <mat-error>Hotel is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                </div>
+                            </div>
+                        </form> -->
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Set Hotel Rate</h5>
+                        <br>
+                        <div class="">
+                            <!-- d-flex flex-wrap gap-1 -->
+                            <form #formPatientDetails="ngForm">
+                                <div class="row d-flex align-items-center">
+
+
+                                    <mat-form-field appearance="outline" class="col-sm-2">
+                                        <mat-label>Select Hotel</mat-label>
+                                        <mat-select #HotelId="ngModel" name="HotelId" [(ngModel)]="HotelRate.HotelId"
+                                            (ngModelChange)="onHotelChange()" required>
+                                            @for (dest of HotelList; track dest.HotelId) {
+                                            <mat-option [value]="dest.HotelId">{{ dest.HotelName
+                                                }}</mat-option>
+                                            }
+                                        </mat-select>
+                                        @if ((HotelId.dirty || HotelId.touched) ||
+                                        (HotelId.invalid && isSubmitted)) {
+                                        <mat-error>Hotel is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <mat-form-field appearance="outline" class="col-lg-3">
+                                        <mat-label>Hotel Category</mat-label>
+                                        <input matInput name="HotelCategoryName"
+                                            [(ngModel)]="HotelRate.HotelCategoryName" readonly="true" />
+                                    </mat-form-field>
+
+                                    <!-- Room Type -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>Room Type</mat-label>
+                                        <mat-select #RoomTypeId="ngModel" name="RoomTypeId"
+                                            [(ngModel)]="HotelRate.RoomTypeId" required>
+                                            @for (room of RoomTypeList; track room.RoomTypeId) {
+                                            <mat-option [value]="room.RoomTypeId">{{ room.RoomTypeName }}</mat-option>
+                                            }
+                                        </mat-select>
+                                        @if ((RoomTypeId.dirty || RoomTypeId.touched) || (RoomTypeId.invalid &&
+                                        isSubmitted)) {
+                                        <mat-error>Room Type is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <!-- From Date -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>From Date</mat-label>
+                                        <input matInput [matDatepicker]="fromPicker" #FromDate="ngModel" name="FromDate"
+                                            [(ngModel)]="HotelRate.FromDate" required>
+                                        <mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+                                        <mat-datepicker #fromPicker></mat-datepicker>
+                                        @if ((FromDate.dirty || FromDate.touched) || (FromDate.invalid && isSubmitted))
+                                        {
+                                        <mat-error>From Date is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field> 
+                                    
+
+                                    <!-- To Date -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>To Date</mat-label>
+                                        <input matInput [matDatepicker]="toPicker" #ToDate="ngModel" name="ToDate"
+                                            [(ngModel)]="HotelRate.ToDate" required [min]="HotelRate.FromDate">
+                                        <mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+                                        <mat-datepicker #toPicker></mat-datepicker>
+                                        @if ((ToDate.dirty || ToDate.touched) || (ToDate.invalid && isSubmitted)) {
+                                        <mat-error>To Date is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <!-- CP Rate -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>CP Rate</mat-label>
+                                        <input matInput #CpRate="ngModel" name="CpRate" [(ngModel)]="HotelRate.CpRate"
+                                            type="number" required>
+                                        @if ((CpRate.dirty || CpRate.touched) || (CpRate.invalid && isSubmitted)) {
+                                        <mat-error>CP Rate is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <!-- MAP Rate -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>MAP Rate</mat-label>
+                                        <input matInput #MapRate="ngModel" name="MapRate"
+                                            [(ngModel)]="HotelRate.MapRate" type="number" required>
+                                        @if ((MapRate.dirty || MapRate.touched) || (MapRate.invalid && isSubmitted)) {
+                                        <mat-error>MAP Rate is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <!-- AP Rate -->
+                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                        <mat-label>AP Rate</mat-label>
+                                        <input matInput #ApRate="ngModel" name="ApRate" [(ngModel)]="HotelRate.ApRate"
+                                            type="number" required>
+                                        @if ((ApRate.dirty || ApRate.touched) || (ApRate.invalid && isSubmitted)) {
+                                        <mat-error>AP Rate is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field>
+
+                                    <!-- Add to Table Button -->
+                                    <div class="col-sm-12 mt-2 mb-3">
+                                        <button mat-raised-button color="primary" (click)="addToTable()">
+                                            <i class="bx bx-plus me-1"></i>
+                                            {{ editingRowIndex !== null ? 'Update Row' : 'Add to Table' }}
+                                        </button>
+                                        <!-- Cancel edit button -->
+                                        <button mat-raised-button color="warn" class="ms-2"
+                                            *ngIf="editingRowIndex !== null" (click)="cancelEdit()">
+                                            Cancel
+                                        </button>
+                                    </div>
+
+                                    <!-- Preview Table -->
+                                    <div class="col-sm-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm nowrap w-100">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>S.No</th>
+                                                        <th>Hotel</th>
+                                                        <th>Category</th>
+                                                        <th>Room Type</th>
+                                                        <th>From Date</th>
+                                                        <th>To Date</th>
+                                                        <th>CP Rate</th>
+                                                        <th>MAP Rate</th>
+                                                        <th>AP Rate</th>
+                                                        <th>Edit</th>
+                                                        <th>Remove</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="HotelRateRows.length > 0">
+                                                    @for (row of HotelRateRows; track $index; let i = $index) {
+                                                    <tr>
+                                                        <td>{{ i + 1 }}</td>
+                                                        <td>{{ row.HotelName }}</td>
+                                                        <td>{{ row.HotelCategoryName }}</td>
+                                                        <td>{{ row.RoomTypeName }}</td>
+                                                        <td>{{ row.FromDate | date:'dd-MM-yyyy' }}</td>
+                                                        <td>{{ row.ToDate | date:'dd-MM-yyyy' }}</td>
+                                                        <td>{{ row.CpRate }}</td>
+                                                        <td>{{ row.MapRate }}</td>
+                                                        <td>{{ row.ApRate }}</td>
+                                                        <td>
+                                                            <a class="text-success" style="cursor:pointer"
+                                                                (click)="editRow(i)">
+                                                                <i class="bx bxs-edit-alt"></i>
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <a class="text-danger" style="cursor:pointer"
+                                                                (click)="removeRow(i)">
+                                                                <i class="bx bxs-trash"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- 
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>Age</mat-label>
+                    <input matInput type="text" name="Age" [(ngModel)]="Patient.Age" required readonly="true" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>Gender</mat-label>
+                    <input matInput name="Gender" [value]="AllGenderList[Patient.Gender]" required readonly="true" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>Category</mat-label>
+                    <input matInput name="Category" [value]="AllCategoryList[Patient.Category]" required
+                      readonly="true" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>Contact No</mat-label>
+                    <input matInput type="tel" name="ContactNo" [(ngModel)]="Patient.ContactNo" required
+                      readonly="true" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-3">
+                    <mat-label>Gurdian Name</mat-label>
+                    <input matInput name="PatientGardianName" [(ngModel)]="Patient.PatientGardianName" required
+                      readonly="true" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>Aadhar No</mat-label>
+                    <input matInput type="tel" name="AadharNo" [(ngModel)]="Patient.AadharNo" required
+                      readonly="true" />
+                  </mat-form-field>
+
+
+                  <mat-form-field appearance="outline" class="col-lg-2">
+                    <mat-label>OPD Date</mat-label>
+                    <input matInput [matDatepicker]="picker" [(ngModel)]="Patient.OpdDate" name="SurgeryDate"
+                      required />
+                    <mat-datepicker-toggle matSuffix [for]="picker"
+                      class="small-datepicker-icon"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="col-lg-4">
+                    <mat-label>Address</mat-label>
+                    <textarea matInput name="Address" [(ngModel)]="Patient.Address" required readonly="true"></textarea>
+                  </mat-form-field> -->
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
