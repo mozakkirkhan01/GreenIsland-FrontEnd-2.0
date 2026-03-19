@@ -116,6 +116,47 @@ export class HotelRate {
     }
     this.isSubmitted = false;
   }
+
+saveHotelRates() {
+    if (this.HotelRateRows.length === 0) {
+        this.toastr.error("Please add at least one row");
+        return;
+    }
+
+    var obj: RequestModel = {
+        request: this.localService.encrypt(
+            JSON.stringify(this.HotelRateRows)
+        ).toString()
+    };
+
+    this.dataLoading = true;
+    this.service.saveHotelRate(obj).subscribe(r1 => {
+        let response = r1 as any;
+        if (response.Message == ConstantData.SuccessMessage) {
+            this.toastr.success("Hotel rates saved successfully");
+            this.HotelRateRows = [];
+            this.resetForm();
+        } else {
+            this.toastr.error(response.Message);
+        }
+        this.dataLoading = false;
+        this.cdr.detectChanges();
+    }, err => {
+        this.toastr.error("Error occurred while saving data");
+        this.dataLoading = false;
+        this.cdr.detectChanges();
+    });
+}
+
+
+
+
+
+
+
+
+
+
   HotelList: any[] = [];
   getHotelList() {
     var obj: RequestModel = {
@@ -181,42 +222,6 @@ export class HotelRate {
 
   HotelRateRows: any[] = [];
 
-  // addToTable() {
-  //   // Validate required fields
-  //   if (!this.HotelRate.HotelId || !this.HotelRate.RoomTypeId ||
-  //     !this.HotelRate.FromDate || !this.HotelRate.ToDate ||
-  //     !this.HotelRate.CpRate || !this.HotelRate.MapRate || !this.HotelRate.ApRate) {
-  //     this.toastr.error("Please fill all required fields");
-  //     return;
-  //   }
-
-  //   // Get display names
-  //   const selectedHotel = this.HotelList.find(h => h.HotelId === this.HotelRate.HotelId);
-  //   const selectedRoom = this.RoomTypeList.find(r => r.RoomTypeId === this.HotelRate.RoomTypeId);
-
-  //   // Push a copy into the table
-  //   this.HotelRateRows.push({
-  //     HotelId: this.HotelRate.HotelId,
-  //     HotelName: selectedHotel?.HotelName,
-  //     HotelCategoryId: this.HotelRate.HotelCategoryId,
-  //     HotelCategoryName: this.HotelRate.HotelCategoryName,
-  //     RoomTypeId: this.HotelRate.RoomTypeId,
-  //     RoomTypeName: selectedRoom?.RoomTypeName,
-  //     FromDate: this.HotelRate.FromDate,
-  //     ToDate: this.HotelRate.ToDate,
-  //     CpRate: this.HotelRate.CpRate,
-  //     MapRate: this.HotelRate.MapRate,
-  //     ApRate: this.HotelRate.ApRate
-  //   });
-
-  //   // Reset only rate fields, keep hotel/dates for convenience
-  //   this.HotelRate.RoomTypeId = 0;
-  //   this.HotelRate.CpRate = '';
-  //   this.HotelRate.MapRate = '';
-  //   this.HotelRate.ApRate = '';
-
-  //   this.cdr.detectChanges();
-  // }
 
   removeRow(index: number) {
     this.HotelRateRows.splice(index, 1);

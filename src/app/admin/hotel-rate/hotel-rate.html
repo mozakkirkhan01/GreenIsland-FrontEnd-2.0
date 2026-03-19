@@ -19,40 +19,6 @@
             </div>
         </div>
 
-        <!-- Main Card -->
-        <!-- <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-
-                        <div>
-                            <h5 style="text-align: center;">Set Hotel Rate</h5>
-                        </div>
-
-                        <form #formHotel="ngForm">
-                            <div class="container">
-                                <div class="row">
-
-
-                                    <mat-form-field appearance="outline" class="col-sm-3">
-                                        <mat-label>Hotel</mat-label>
-                                        <mat-select #HotelId="ngModel" name="HotelId"
-                                            [(ngModel)]="HotelRate.HotelId" (ngModelChange)="onHotelChange()"
-                                            required>
-                                            @for (dest of DestinationList; track dest.DestinationId) {
-                                            <mat-option [value]="dest.DestinationId">{{ dest.DestinationName
-                                                }}</mat-option>
-                                            }
-                                        </mat-select>
-                                        @if ((HotelId.dirty || HotelId.touched) ||
-                                        (HotelId.invalid && isSubmitted)) {
-                                        <mat-error>Hotel is <strong>required</strong></mat-error>
-                                        }
-                                    </mat-form-field>
-
-                                </div>
-                            </div>
-                        </form> -->
         <div class="row">
             <div class="col-lg-12">
                 <div class="card">
@@ -80,14 +46,15 @@
                                         }
                                     </mat-form-field>
 
-                                    <mat-form-field appearance="outline" class="col-lg-3">
+                                    <!-- Hotel Category -->
+                                    <mat-form-field appearance="outline" class="col-lg-2">
                                         <mat-label>Hotel Category</mat-label>
                                         <input matInput name="HotelCategoryName"
                                             [(ngModel)]="HotelRate.HotelCategoryName" readonly="true" />
                                     </mat-form-field>
 
                                     <!-- Room Type -->
-                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                    <mat-form-field appearance="outline" class="col-sm-2">
                                         <mat-label>Room Type</mat-label>
                                         <mat-select #RoomTypeId="ngModel" name="RoomTypeId"
                                             [(ngModel)]="HotelRate.RoomTypeId" required>
@@ -112,8 +79,8 @@
                                         {
                                         <mat-error>From Date is <strong>required</strong></mat-error>
                                         }
-                                    </mat-form-field> 
-                                    
+                                    </mat-form-field>
+
 
                                     <!-- To Date -->
                                     <mat-form-field appearance="outline" class="col-sm-3">
@@ -128,7 +95,7 @@
                                     </mat-form-field>
 
                                     <!-- CP Rate -->
-                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                    <mat-form-field appearance="outline" class="col-sm-2">
                                         <mat-label>CP Rate</mat-label>
                                         <input matInput #CpRate="ngModel" name="CpRate" [(ngModel)]="HotelRate.CpRate"
                                             type="number" required>
@@ -138,7 +105,7 @@
                                     </mat-form-field>
 
                                     <!-- MAP Rate -->
-                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                    <mat-form-field appearance="outline" class="col-sm-2">
                                         <mat-label>MAP Rate</mat-label>
                                         <input matInput #MapRate="ngModel" name="MapRate"
                                             [(ngModel)]="HotelRate.MapRate" type="number" required>
@@ -148,7 +115,7 @@
                                     </mat-form-field>
 
                                     <!-- AP Rate -->
-                                    <mat-form-field appearance="outline" class="col-sm-3">
+                                    <mat-form-field appearance="outline" class="col-sm-2">
                                         <mat-label>AP Rate</mat-label>
                                         <input matInput #ApRate="ngModel" name="ApRate" [(ngModel)]="HotelRate.ApRate"
                                             type="number" required>
@@ -158,7 +125,8 @@
                                     </mat-form-field>
 
                                     <!-- Add to Table Button -->
-                                    <div class="col-sm-12 mt-2 mb-3">
+                                    <!-- <div class="col-sm-12 mt-2 mb-2"> -->
+                                    <div class="col-sm-4 d-flex mb-4 align-items-center gap-2">
                                         <button mat-raised-button color="primary" (click)="addToTable()">
                                             <i class="bx bx-plus me-1"></i>
                                             {{ editingRowIndex !== null ? 'Update Row' : 'Add to Table' }}
@@ -168,7 +136,7 @@
                                             *ngIf="editingRowIndex !== null" (click)="cancelEdit()">
                                             Cancel
                                         </button>
-                                    </div>
+                                    </div><hr>
 
                                     <!-- Preview Table -->
                                     <div class="col-sm-12">
@@ -220,55 +188,18 @@
                                         </div>
                                     </div>
 
-                                    <!-- 
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>Age</mat-label>
-                    <input matInput type="text" name="Age" [(ngModel)]="Patient.Age" required readonly="true" />
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>Gender</mat-label>
-                    <input matInput name="Gender" [value]="AllGenderList[Patient.Gender]" required readonly="true" />
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>Category</mat-label>
-                    <input matInput name="Category" [value]="AllCategoryList[Patient.Category]" required
-                      readonly="true" />
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>Contact No</mat-label>
-                    <input matInput type="tel" name="ContactNo" [(ngModel)]="Patient.ContactNo" required
-                      readonly="true" />
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-lg-3">
-                    <mat-label>Gurdian Name</mat-label>
-                    <input matInput name="PatientGardianName" [(ngModel)]="Patient.PatientGardianName" required
-                      readonly="true" />
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>Aadhar No</mat-label>
-                    <input matInput type="tel" name="AadharNo" [(ngModel)]="Patient.AadharNo" required
-                      readonly="true" />
-                  </mat-form-field>
 
 
-                  <mat-form-field appearance="outline" class="col-lg-2">
-                    <mat-label>OPD Date</mat-label>
-                    <input matInput [matDatepicker]="picker" [(ngModel)]="Patient.OpdDate" name="SurgeryDate"
-                      required />
-                    <mat-datepicker-toggle matSuffix [for]="picker"
-                      class="small-datepicker-icon"></mat-datepicker-toggle>
-                    <mat-datepicker #picker></mat-datepicker>
-                  </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-lg-4">
-                    <mat-label>Address</mat-label>
-                    <textarea matInput name="Address" [(ngModel)]="Patient.Address" required readonly="true"></textarea>
-                  </mat-form-field> -->
+                                    <!-- Save Button -->
+                                    <div class="col-sm-12 mt-3" *ngIf="HotelRateRows.length > 0">
+                                        <button mat-raised-button color="primary" (click)="saveHotelRates()">
+                                            <i class="bx bx-save me-1"></i> Save All
+                                        </button>
+                                    </div>
+
+
+
                                 </div>
                             </form>
                         </div>
