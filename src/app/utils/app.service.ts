@@ -85,6 +85,21 @@ export class AppService {
   }
   /* ---------------------------------------------------------------------- */
 
+
+  //HotelRate
+  getHotelRateList(obj: any) {
+    return this.http.post(this.apiUrl + "HotelRate/HotelRateList", obj, { headers: this.headers })
+  }
+
+  saveHotelRate(obj: any) {
+    return this.http.post(this.apiUrl + "HotelRate/saveHotelRate", obj, { headers: this.headers })
+  }
+
+  deleteHotelRate(obj: any) {
+    return this.http.post(this.apiUrl + "HotelRate/deleteHotelRate", obj, { headers: this.headers })
+  }
+  /* ---------------------------------------------------------------------- */
+
   //Department
   getDepartmentList(obj: any) {
     return this.http.post(this.apiUrl + "Department/DepartmentList", obj, { headers: this.headers })
