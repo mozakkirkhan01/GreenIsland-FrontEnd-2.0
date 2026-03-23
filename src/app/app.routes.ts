@@ -20,6 +20,7 @@ import { RoomType } from './admin/room-type/room-type';
 import { HotelCategory } from './admin/hotel-category/hotel-category';
 import { Hotel } from './admin/hotel/hotel';
 import { HotelRate } from './admin/hotel-rate/hotel-rate';
+import { HotelRatelist } from './admin/hotel-ratelist/hotel-ratelist';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -51,6 +52,7 @@ export const routes: Routes = [
       { path: 'hotel-category', component: HotelCategory},
       { path: 'hotel', component: Hotel},
       { path: 'hotel-rate', component: HotelRate},
+      { path: 'hotel-ratelist', component: HotelRatelist},
     ]
   },
 
