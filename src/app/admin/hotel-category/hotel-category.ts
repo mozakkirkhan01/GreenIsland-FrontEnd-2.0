@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -20,7 +20,8 @@ import { LoadDataService } from '../../utils/load-data.service';
 @Component({
   selector: 'app-hotel-category',
   standalone: true,
-  imports: [CommonModule,
+  imports: [
+    CommonModule,
     FormsModule,
     RouterModule,
     MatFormFieldModule,
@@ -29,33 +30,55 @@ import { LoadDataService } from '../../utils/load-data.service';
     MatButtonModule,
     NgxPaginationModule,
     FilterPipe,
-    OrderByPipe],
+    OrderByPipe
+  ],
   templateUrl: './hotel-category.html',
   styleUrl: './hotel-category.css',
 })
 export class HotelCategory {
-  dataLoading: boolean = false;
-  HotelCategoryList: any = [];
-  HotelCategory: any = {};
-  isSubmitted = false;
-  loadData = inject(LoadDataService);
-  StatusList = this.loadData.GetEnumList(Status);
-  AllStatusList = Status;
-  PageSize = ConstantData.PageSizes;
-  p: number = 1;
-  Search: string = '';
-  reverse: boolean = false;
-  sortKey: string = '';
-  itemPerPage: number = this.PageSize[0];
-  action: ActionModel = {
+
+  // ── Signals ───────────────────────────────────────────────────────────
+  dataLoading = signal(false);
+  HotelCategoryList = signal<any[]>([]);
+  showModal = signal(false);
+  action = signal<ActionModel>({
     CanCreate: false,
     CanEdit: false,
     CanDelete: false,
     MenuTitle: '',
     ParentMenuTitle: ''
-  } as ActionModel;
+  } as ActionModel);
+
+  // ── Plain properties ──────────────────────────────────────────────────
+  HotelCategory: any = {};
+  isSubmitted = false;
+  Search = '';
+  reverse = false;
+  sortKey = '';
+  p = 1;
+  itemPerPage: number;
+
+  loadData = inject(LoadDataService);
+  StatusList = this.loadData.GetEnumList(Status);
+  AllStatusList = Status;
+  PageSize = ConstantData.PageSizes;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
-  showModal: boolean = false;
+
+  constructor(
+    private service: AppService,
+    private toastr: ToastrService,
+    private localService: LocalService,
+    private router: Router,
+  ) {
+    this.itemPerPage = this.PageSize[0];
+  }
+
+  ngOnInit(): void {
+    this.staffLogin = this.localService.getEmployeeDetail();
+    this.validiateMenu();
+    this.getHotelCategoryList();
+    this.resetForm();
+  }
 
   sort(key: any) {
     this.sortKey = key;
@@ -66,41 +89,29 @@ export class HotelCategory {
     this.p = p;
   }
 
-  constructor(
-    private service: AppService,
-    private toastr: ToastrService,
-    private localService: LocalService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
-
-  ngOnInit(): void {
-    this.staffLogin = this.localService.getEmployeeDetail();
-    this.validiateMenu();
-    this.getHotelCategoryList();
-    this.resetForm();
-  }
-
+  // ── Menu validation ───────────────────────────────────────────────────
   validiateMenu() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ Url: this.router.url, StaffLoginId: this.staffLogin.StaffLoginId })
       ).toString()
     };
-    this.dataLoading = true;
-    this.service.validiateMenu(obj).subscribe((response: any) => {
-      this.action = { ...this.loadData.validiateMenu(response, this.toastr, this.router) };
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
+    this.dataLoading.set(true);
+    this.service.validiateMenu(obj).subscribe({
+      next: (response: any) => {
+        this.action.set({ ...this.loadData.validiateMenu(response, this.toastr, this.router) });
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
+      }
     });
   }
 
   @ViewChild('formHotelCategory') formHotelCategory!: NgForm;
 
+  // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
     this.HotelCategory = { Status: 1 };
     if (this.formHotelCategory) {
@@ -112,35 +123,37 @@ export class HotelCategory {
 
   openModal() {
     this.resetForm();
-    this.showModal = true;
+    this.showModal.set(true);
   }
 
   closeModal() {
     this.resetForm();
-    this.showModal = false;
+    this.showModal.set(false);
   }
 
+  // ── Get list ──────────────────────────────────────────────────────────
   getHotelCategoryList() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    this.dataLoading = true;
-    this.service.getHotelCategoryList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.HotelCategoryList = response.HotelCategoryList;
-      } else {
-        this.toastr.error(response.Message);
+    this.dataLoading.set(true);
+    this.service.getHotelCategoryList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.HotelCategoryList.set(r1.HotelCategoryList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
       }
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
 
+  // ── Save ──────────────────────────────────────────────────────────────
   saveHotelCategory() {
     this.isSubmitted = true;
     this.formHotelCategory.control.markAllAsTouched();
@@ -148,58 +161,60 @@ export class HotelCategory {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify(this.HotelCategory)).toString()
     };
-    this.dataLoading = true;
-    this.service.saveHotelCategory(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.toastr.success(this.HotelCategory.HotelCategoryId > 0
-          ? "HotelCategory updated successfully"
-          : "HotelCategory added successfully");
-        this.closeModal();
-        this.getHotelCategoryList();
-      } else {
-        this.toastr.error(response.Message);
-        this.dataLoading = false;
-        this.cdr.detectChanges();
+    this.dataLoading.set(true);
+    this.service.saveHotelCategory(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.toastr.success(this.HotelCategory.HotelCategoryId > 0
+            ? "Hotel Category updated successfully"
+            : "Hotel Category added successfully");
+          this.closeModal();
+          this.getHotelCategoryList();
+        } else {
+          this.toastr.error(r1.Message);
+          this.dataLoading.set(false);
+        }
+      },
+      error: () => {
+        this.toastr.error("Error occurred while submitting data");
+        this.dataLoading.set(false);
       }
-    }, err => {
-      this.toastr.error("Error occured while submitting data");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
 
+  // ── Delete ────────────────────────────────────────────────────────────
   deleteHotelCategory(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
-      var request: RequestModel = {
+      const request: RequestModel = {
         request: this.localService.encrypt(JSON.stringify(obj)).toString()
       };
-      this.dataLoading = true;
-      this.service.deleteHotelCategory(request).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
-          this.toastr.success("Record deleted successfully");
-          this.getHotelCategoryList();
-        } else {
-          this.toastr.error(response.Message);
-          this.dataLoading = false;
-          this.cdr.detectChanges();
+      this.dataLoading.set(true);
+      this.service.deleteHotelCategory(request).subscribe({
+        next: (r1: any) => {
+          if (r1.Message == ConstantData.SuccessMessage) {
+            this.toastr.success("Record deleted successfully");
+            this.HotelCategoryList.update(list =>
+              list.filter(x => x.HotelCategoryId !== obj.HotelCategoryId)
+            );
+          } else {
+            this.toastr.error(r1.Message);
+          }
+          this.dataLoading.set(false);
+        },
+        error: () => {
+          this.toastr.error("Error occurred while deleting the record");
+          this.dataLoading.set(false);
         }
-      }, err => {
-        this.toastr.error("Error occured while deleting the record");
-        this.dataLoading = false;
-        this.cdr.detectChanges();
       });
     }
   }
 
+  // ── Edit ──────────────────────────────────────────────────────────────
   editHotelCategory(obj: any) {
     this.HotelCategory = { ...obj };
-    this.showModal = true;
+    this.showModal.set(true);
   }
-
 }
-
