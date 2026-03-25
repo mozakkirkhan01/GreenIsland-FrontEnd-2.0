@@ -112,6 +112,7 @@ export class RoomType {
 
   openModal() {
     this.resetForm();
+    this.getDestinationList();
     this.showModal = true;
   }
 
@@ -222,7 +223,92 @@ HotelList : any[] = [];
       this.cdr.detectChanges();
     });
   }
+  DestinationList: any[] = [];
+  getDestinationList() {
+    var obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.service.getDestinationList(obj).subscribe(r1 => {
+      let response = r1 as any;
+      if (response.Message == ConstantData.SuccessMessage) {
+        this.DestinationList = response.DestinationList;
+        console.log("des list", this.DestinationList);
 
+      } else {
+        this.toastr.error(response.Message);
+      }
+      this.cdr.detectChanges();
+    }, err => {
+      this.toastr.error("Error while fetching destination list");
+      this.cdr.detectChanges();
+    });
+  }
+
+  LocationList: any[] = [];
+ Hotel: any = {};
+FilteredHotelList: any[] = [];  // 👈 add this
+
+onDestinationChange() {
+    if (!this.Hotel.DestinationId) {
+        this.LocationList = [];
+        this.FilteredHotelList = [];  // 👈 clear hotels
+        this.RoomType.HotelId = 0;
+        return;
+    }
+    this.Hotel.LocationId = null;     // 👈 reset location
+    this.RoomType.HotelId = 0;        // 👈 reset hotel
+    this.FilteredHotelList = [];
+    this.getLocationList(this.Hotel.DestinationId);
+}
+
+onLocationChange() {
+    if (!this.Hotel.LocationId) {
+        this.FilteredHotelList = [];
+        this.RoomType.HotelId = 0;
+        return;
+    }
+    // Filter hotels by selected location
+    this.FilteredHotelList = this.HotelList.filter(
+        h => h.LocationId === this.Hotel.LocationId
+    );
+    this.RoomType.HotelId = 0;  // reset hotel when location changes
+    this.cdr.detectChanges();
+}
+  noLocationFound: boolean = false;
+  getLocationList(destinationId: any = null) {
+
+    var obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: destinationId })
+      ).toString()
+    };
+
+    this.dataLoading = true;
+
+    this.service.getLocationList(obj).subscribe(r1 => {
+
+      let response = r1 as any;
+
+      if (response.Message == ConstantData.SuccessMessage) {
+
+        this.LocationList = response.LocationList;
+
+        // ✅ Handle empty list WITHOUT timeout
+        this.noLocationFound = this.LocationList.length === 0;
+
+      } else {
+        this.toastr.error(response.Message);
+      }
+
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+
+    }, err => {
+      this.toastr.error("Error while fetching records");
+      this.dataLoading = false;
+      this.cdr.detectChanges();
+    });
+  }
 
 
 

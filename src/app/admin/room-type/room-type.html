@@ -159,11 +159,66 @@
                   <!-- <label class="mb-3" style="white-space: nowrap;">
                     Select Hotel <span class="text-danger">*</span>
                   </label> -->
-                  <select class="form-select mb-3" [(ngModel)]="RoomType.HotelId" name="HotelId">
+
+                  <!-- Destination Dropdown -->
+                  <mat-form-field appearance="outline" class="col-sm-12">
+                    <mat-label>Destination</mat-label>
+                    <mat-select #DestinationId="ngModel" name="DestinationId" [(ngModel)]="Hotel.DestinationId"
+                      (ngModelChange)="onDestinationChange()" required>
+                      @for (dest of DestinationList; track dest.DestinationId) {
+                      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                      }
+                    </mat-select>
+                    @if ((DestinationId.dirty || DestinationId.touched) ||
+                    (DestinationId.invalid && isSubmitted)) {
+                    <mat-error>Destination is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+
+                  <!-- Location Dropdown acc to destination -->
+                  <!-- <div class="col-sm-3" style="position: relative;"> -->
+                  <!-- <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Location</mat-label>
+                                        <mat-select #LocationId="ngModel" name="LocationId"
+                                            [(ngModel)]="Hotel.LocationId" required>
+                                            @for (list of LocationList; track list.LocationId) {
+                                            <mat-option [value]="list.LocationId">{{ list.LocationName }}</mat-option>
+                                            }
+                                        </mat-select>
+                                        @if ((LocationId.dirty || LocationId.touched) ||
+                                        (LocationId.invalid && isSubmitted)) {
+                                        <mat-error>Location is <strong>required</strong></mat-error>
+                                        }
+                                    </mat-form-field> -->
+
+                  <!-- select hotel -->
+                  <!-- <select class="form-select mb-3" [(ngModel)]="RoomType.HotelId" name="HotelId">
 
                     <option [ngValue]=0>-- Select Hotel --</option>
 
                     <option [ngValue]="dest.HotelId" *ngFor="let dest of HotelList">
+                      {{ dest.HotelName }}
+                    </option>
+                  </select> -->
+                  <!-- Location Dropdown acc to destination -->
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Location</mat-label>
+                    <mat-select #LocationId="ngModel" name="LocationId" [(ngModel)]="Hotel.LocationId" required
+                      (ngModelChange)="onLocationChange()"> <!-- 👈 add this -->
+                      @for (list of LocationList; track list.LocationId) {
+                      <mat-option [value]="list.LocationId">{{ list.LocationName }}</mat-option>
+                      }
+                    </mat-select>
+                    @if ((LocationId.dirty || LocationId.touched) ||
+                    (LocationId.invalid && isSubmitted)) {
+                    <mat-error>Location is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+
+                  <!-- Select Hotel — use FilteredHotelList instead of HotelList -->
+                  <select class="form-select mb-3" [(ngModel)]="RoomType.HotelId" name="HotelId">
+                    <option [ngValue]="0">-- Select Hotel --</option>
+                    <option [ngValue]="dest.HotelId" *ngFor="let dest of FilteredHotelList"> <!-- 👈 changed -->
                       {{ dest.HotelName }}
                     </option>
                   </select>
