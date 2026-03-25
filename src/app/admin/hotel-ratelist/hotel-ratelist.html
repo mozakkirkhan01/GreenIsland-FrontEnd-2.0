@@ -5,14 +5,14 @@
         <div class="row">
             <div class="col-12">
                 <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+                    <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
                     <div class="page-title-right">
                         <ol class="breadcrumb m-0">
                             <li class="breadcrumb-item">
                                 <a routerLink="/admin/admin-dashboard">Dashboard</a>
                             </li>
-                            <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
-                            <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+                            <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+                            <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
                         </ol>
                     </div>
                 </div>
@@ -24,14 +24,13 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-
                         <div id="datatable_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
 
                             <div class="row mb-2">
 
-                                <!-- New Hotel Button -->
+                                <!-- Set Hotel Rate Button -->
                                 <div class="col-12 d-flex justify-content-end mb-2">
-                                    @if (action.CanCreate) {
+                                    @if (action().CanCreate) {
                                     <button mat-raised-button color="primary" [routerLink]="['/admin/hotel-rate']">
                                         Set Hotel Rate
                                     </button>
@@ -39,7 +38,7 @@
                                 </div>
 
                                 <!-- Show Entries -->
-                                <div class="col-sm-12 col-md-4">
+                                <div class="col-sm-12 col-md-2">
                                     <div class="dataTables_length">
                                         <label>Show
                                             <select
@@ -53,6 +52,20 @@
                                     </div>
                                 </div>
 
+                                <!-- Filter by Hotel -->
+                                <div class="col-sm-12 d-flex justify-content-start col-md-4">
+                                    <mat-form-field appearance="outline" class="w-80">
+                                        <mat-label>Select Hotel</mat-label>
+                                        <mat-select name="HotelId" [(ngModel)]="SelectedHotelId"
+                                            (ngModelChange)="onHotelChange()">
+                                            <mat-option [value]="0">-- All Hotels --</mat-option>
+                                            @for (hotel of HotelList(); track hotel.HotelId) {
+                                            <mat-option [value]="hotel.HotelId">{{ hotel.HotelName }}</mat-option>
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+
                                 <!-- Search -->
                                 <div class="col-sm-12 col-md-4 ms-auto">
                                     <div class="dataTables_filter d-flex justify-content-end">
@@ -64,79 +77,86 @@
                                 </div>
 
                             </div>
-                            <div class="row mb-2">
 
+                            <!-- Loading indicator -->
+                            @if (dataLoading()) {
+                            <div class="text-center my-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            }
 
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>Select Hotel</mat-label>
-                                    <mat-select #HotelId="ngModel" name="HotelId" [(ngModel)]="SelectedHotelId"
-                                        (ngModelChange)="onHotelChange()">
-                                        <mat-option [value]="0">-- All Hotels --</mat-option>
-                                        @for (hotel of HotelList; track hotel.HotelId) {
-                                        <mat-option [value]="hotel.HotelId">{{ hotel.HotelName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                </mat-form-field>
-
-                                <div class="table-responsive">
-                                    <table
-                                        class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
-                                        role="grid">
-                                        <thead>
-                                            <tr>
-                                                <th>S.No</th>
-                                                <th style="cursor:pointer" (click)="sort('HotelName')">Hotel</th>
-                                                <th style="cursor:pointer" (click)="sort('HotelCategoryName')">Category
-                                                </th>
-                                                <th style="cursor:pointer" (click)="sort('RoomTypeName')">Room Type</th>
-                                                <th style="cursor:pointer" (click)="sort('FromDate')">From Date</th>
-                                                <th style="cursor:pointer" (click)="sort('ToDate')">To Date</th>
-                                                <th>CP Rate</th>
-                                                <th>MAP Rate</th>
-                                                <th>AP Rate</th>
-                                                @if (action.CanEdit) { <th>Edit</th> }
-                                                @if (action.CanDelete) { <th>Delete</th> }
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (
-                                            item of RateHotelList
-                                            | filter: Search
-                                            | orderBy: sortKey : reverse
-                                            | paginate: { itemsPerPage: itemPerPage, currentPage: p };
-                                            track item.HotelRateId;
-                                            let i = $index
-                                            ) {
-                                            <tr>
-                                                <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
-                                                <td>{{ item.HotelName }}</td>
-                                                <td>{{ item.HotelCategoryName }}</td>
-                                                <td>{{ item.RoomTypeName }}</td>
-                                                <td>{{ item.FromDate | date:'dd-MM-yyyy' }}</td>
-                                                <td>{{ item.ToDate | date:'dd-MM-yyyy' }}</td>
-                                                <td>{{ item.CpRate }}</td>
-                                                <td>{{ item.MapRate }}</td>
-                                                <td>{{ item.ApRate }}</td>
-                                                @if (action.CanEdit) {
-                                                <td>
-                                                    <a class="text-success p-1" style="cursor:pointer"
-                                                        (click)="editHotelRate(item)">
-                                                        <i class="bx bxs-edit-alt"></i>
-                                                    </a>
-                                                </td>
+                            <!-- Table -->
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="table-responsive">
+                                        <table
+                                            class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
+                                            role="grid">
+                                            <thead>
+                                                <tr>
+                                                    <th>S.No</th>
+                                                    <th style="cursor:pointer" (click)="sort('HotelName')">Hotel</th>
+                                                    <th style="cursor:pointer" (click)="sort('HotelCategoryName')">
+                                                        Category</th>
+                                                    <th style="cursor:pointer" (click)="sort('RoomTypeName')">Room Type
+                                                    </th>
+                                                    <th style="cursor:pointer" (click)="sort('FromDate')">From Date</th>
+                                                    <th style="cursor:pointer" (click)="sort('ToDate')">To Date</th>
+                                                    <th>CP Rate</th>
+                                                    <th>MAP Rate</th>
+                                                    <th>AP Rate</th>
+                                                    @if (action().CanEdit) { <th>Edit</th> }
+                                                    @if (action().CanDelete) { <th>Delete</th> }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (
+                                                item of RateHotelList()
+                                                | filter: Search
+                                                | orderBy: sortKey : reverse
+                                                | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                                                track item.HotelRateId;
+                                                let i = $index
+                                                ) {
+                                                <tr>
+                                                    <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                                                    <td>{{ item.HotelName }}</td>
+                                                    <td>{{ item.HotelCategoryName }}</td>
+                                                    <td>{{ item.RoomTypeName }}</td>
+                                                    <td>{{ item.FromDate | date:'dd-MM-yyyy' }}</td>
+                                                    <td>{{ item.ToDate | date:'dd-MM-yyyy' }}</td>
+                                                    <td>{{ item.CpRate }}</td>
+                                                    <td>{{ item.MapRate }}</td>
+                                                    <td>{{ item.ApRate }}</td>
+                                                    @if (action().CanEdit) {
+                                                    <td>
+                                                        <a class="text-success p-1" style="cursor:pointer"
+                                                            (click)="editHotelRate(item)">
+                                                            <i class="bx bxs-edit-alt"></i>
+                                                        </a>
+                                                    </td>
+                                                    }
+                                                    @if (action().CanDelete) {
+                                                    <td>
+                                                        <a class="text-danger p-1" style="cursor:pointer"
+                                                            (click)="deleteHotelRate(item)">
+                                                            <i class="bx bxs-trash"></i>
+                                                        </a>
+                                                    </td>
+                                                    }
+                                                </tr>
                                                 }
-                                                @if (action.CanDelete) {
-                                                <td>
-                                                    <a class="text-danger p-1" style="cursor:pointer"
-                                                        (click)="deleteHotelRate(item)">
-                                                        <i class="bx bxs-trash"></i>
-                                                    </a>
-                                                </td>
+                                                @if (RateHotelList().length === 0 && !dataLoading()) {
+                                                <tr>
+                                                    <td colspan="11" class="text-center text-muted">No records found
+                                                    </td>
+                                                </tr>
                                                 }
-                                            </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
 
                                 <!-- Pagination -->
@@ -147,4 +167,12 @@
                                 </div>
 
                             </div>
+
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
