@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -16,12 +16,12 @@ import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interfac
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
 import { LoadDataService } from '../../utils/load-data.service';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 
 @Component({
   selector: 'app-hotel-ratelist',
-  imports: [CommonModule,
+  standalone: true,
+  imports: [
+    CommonModule,
     FormsModule,
     RouterModule,
     MatFormFieldModule,
@@ -36,29 +36,49 @@ import { MatNativeDateModule } from '@angular/material/core';
   styleUrl: './hotel-ratelist.css',
 })
 export class HotelRatelist {
-  dataLoading: boolean = false;
-  RateHotelList: any[] = [];
-  RateHotel: any = {};
-  DestinationList: any[] = [];
-  isSubmitted = false;
-  loadData = inject(LoadDataService);
-  StatusList = this.loadData.GetEnumList(Status);
-  AllStatusList = Status;
-  PageSize = ConstantData.PageSizes;
-  p: number = 1;
-  Search: string = '';
-  reverse: boolean = false;
-  sortKey: string = '';
-  itemPerPage: number = this.PageSize[0];
-  action: ActionModel = {
+
+  // ── Signals ───────────────────────────────────────────────────────────
+  dataLoading = signal(false);
+  HotelList = signal<any[]>([]);
+  RateHotelList = signal<any[]>([]);
+  action = signal<ActionModel>({
     CanCreate: false,
     CanEdit: false,
     CanDelete: false,
     MenuTitle: '',
     ParentMenuTitle: ''
-  } as ActionModel;
+  } as ActionModel);
+
+  // ── Plain properties ──────────────────────────────────────────────────
+  SelectedHotelId: number = 0;
+  isSubmitted = false;
+  Search = '';
+  reverse = false;
+  sortKey = '';
+  p = 1;
+  itemPerPage: number;
+
+  loadData = inject(LoadDataService);
+  StatusList = this.loadData.GetEnumList(Status);
+  AllStatusList = Status;
+  PageSize = ConstantData.PageSizes;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
-  showModal: boolean = false;
+
+  constructor(
+    private service: AppService,
+    private toastr: ToastrService,
+    private localService: LocalService,
+    private router: Router,
+  ) {
+    this.itemPerPage = this.PageSize[0];
+  }
+
+  ngOnInit(): void {
+    this.staffLogin = this.localService.getEmployeeDetail();
+    this.validiateMenu();
+    this.getHotelList();
+    this.getHotelRateList();
+  }
 
   sort(key: any) {
     this.sortKey = key;
@@ -69,152 +89,107 @@ export class HotelRatelist {
     this.p = p;
   }
 
-  constructor(
-    private service: AppService,
-    private toastr: ToastrService,
-    private localService: LocalService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) { }
-
-
-  ngOnInit(): void {
-    this.staffLogin = this.localService.getEmployeeDetail();
-    this.validiateMenu();
-    this.getHotelList();        // 👈 load hotels for dropdown
-    this.getHotelRateList();    // 👈 load all rates on start
-    // this.getRateHotelList();
-    // this.getRoomTypeList();
-    // this.resetForm();
-  }
-
+  // ── Menu validation ───────────────────────────────────────────────────
   validiateMenu() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ Url: this.router.url, StaffLoginId: this.staffLogin.StaffLoginId })
       ).toString()
     };
-    this.dataLoading = true;
-    this.service.validiateMenu(obj).subscribe((response: any) => {
-      this.action = { ...this.loadData.validiateMenu(response, this.toastr, this.router) };
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      // this.cdr.detectChanges();
+    this.dataLoading.set(true);
+    this.service.validiateMenu(obj).subscribe({
+      next: (response: any) => {
+        this.action.set({ ...this.loadData.validiateMenu(response, this.toastr, this.router) });
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
+      }
     });
   }
-  @ViewChild('formRateHotel') formHotelRate!: NgForm;
 
-  // resetForm() {
-  //   this.RateHotel = { Status: 1, DestinationId: null };
-  //   if (this.formRateHotel) {
-  //     this.formRateHotel.control.markAsPristine();
-  //     this.formRateHotel.control.markAsUntouched();
-  //   }
-  //   this.isSubmitted = false;
-  // }
+  // ── Hotel list ────────────────────────────────────────────────────────
+  getHotelList() {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.service.getHotelList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.HotelList.set(r1.HotelList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+      },
+      error: () => {
+        this.toastr.error("Error while fetching hotel list");
+      }
+    });
+  }
 
+  // ── On hotel dropdown change ──────────────────────────────────────────
+  onHotelChange() {
+    this.p = 1;
+    this.getHotelRateList();
+  }
 
+  // ── Hotel rate list ───────────────────────────────────────────────────
+  getHotelRateList() {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ HotelId: Number(this.SelectedHotelId) || 0 })
+      ).toString()
+    };
+    this.dataLoading.set(true);
+    this.service.getHotelRateList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.RateHotelList.set(r1.HotelRateList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching hotel rates");
+        this.dataLoading.set(false);
+      }
+    });
+  }
 
-  // getHotelRateList() {
-  //   var obj: RequestModel = {
-  //     request: this.localService.encrypt(
-  //       JSON.stringify({ HotelId: this.RateHotel.HotelId })
-  //     ).toString()
-  //   };
-  //   this.dataLoading = true;
-  //   this.service.getHotelRateList(obj).subscribe(r1 => {
-  //     let response = r1 as any;
-  //     if (response.Message == ConstantData.SuccessMessage) {
-  //       this.RateHotelList = response.HotelRateList;
-  //       console.log("list", this.RateHotelList);
-
-  //     } else {
-  //       this.toastr.error(response.Message);
-  //     }
-  //     this.dataLoading = false;
-  //     this.cdr.detectChanges();
-  //   }, err => {
-  //     this.toastr.error("Error while fetching hotel rates");
-  //     this.dataLoading = false;
-  //     this.cdr.detectChanges();
-  //   });
-  // }
+  // ── Delete ────────────────────────────────────────────────────────────
   deleteHotelRate(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
-      var request: RequestModel = {
+      const request: RequestModel = {
         request: this.localService.encrypt(JSON.stringify(obj)).toString()
       };
-      this.dataLoading = true;
-      this.service.deleteHotelRate(request).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
-          this.toastr.success("Record deleted successfully");
-          this.getHotelRateList();
-        } else {
-          this.toastr.error(response.Message);
-          this.dataLoading = false;
-          this.cdr.detectChanges();
+      this.dataLoading.set(true);
+      this.service.deleteHotelRate(request).subscribe({
+        next: (r1: any) => {
+          if (r1.Message == ConstantData.SuccessMessage) {
+            this.toastr.success("Record deleted successfully");
+            // remove from signal directly — no API call needed
+            this.RateHotelList.update(rows =>
+              rows.filter(x => x.HotelRateId !== obj.HotelRateId)
+            );
+          } else {
+            this.toastr.error(r1.Message);
+          }
+          this.dataLoading.set(false);
+        },
+        error: () => {
+          this.toastr.error("Error occurred while deleting the record");
+          this.dataLoading.set(false);
         }
-      }, err => {
-        this.toastr.error("Error occurred while deleting the record");
-        this.dataLoading = false;
-        this.cdr.detectChanges();
       });
     }
   }
-  HotelList: any[] = [];
-  SelectedHotelId: number = 0;
-  getHotelList() {
-    var obj: RequestModel = {
-        request: this.localService.encrypt(JSON.stringify({})).toString()
-    };
-    this.service.getHotelList(obj).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
-            this.HotelList = response.HotelList;
-        } else {
-            this.toastr.error(response.Message);
-        }
-        this.cdr.detectChanges();
-    }, err => {
-        this.toastr.error("Error while fetching hotel list");
-        this.cdr.detectChanges();
-    });
-}
 
-onHotelChange() {
-    this.getHotelRateList(); // reload list with selected hotel filter
-}
-
-getHotelRateList() {
-    var obj: RequestModel = {
-        request: this.localService.encrypt(
-            JSON.stringify({ HotelId: Number(this.SelectedHotelId) || 0 }) // 👈 send selected hotel
-        ).toString()
-    };
-    this.dataLoading = true;
-    this.service.getHotelRateList(obj).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
-            this.RateHotelList = response.HotelRateList;
-        } else {
-            this.toastr.error(response.Message);
-        }
-        this.dataLoading = false;
-        this.cdr.detectChanges();
-    }, err => {
-        this.toastr.error("Error while fetching hotel rates");
-        this.dataLoading = false;
-        this.cdr.detectChanges();
+  // ── Edit — navigate to hotel-rate page ───────────────────────────────
+  editHotelRate(obj: any) {
+    this.router.navigate(['/admin/hotel-rate'], {
+      queryParams: { HotelRateId: obj.HotelRateId }
     });
-}
-
-editHotelRate(obj: any) {
-    this.router.navigate(['/admin/hotel-rate'], { 
-        queryParams: { HotelRateId: obj.HotelRateId } 
-    });
-}
+  }
 }
