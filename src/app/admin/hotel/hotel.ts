@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -38,7 +38,8 @@ export class Hotel {
   dataLoading: boolean = false;
   HotelList: any = [];
   Hotel: any = {};
-  DestinationList: any[] = [];
+  DestinationList = signal<any[]>([]);
+
   isSubmitted = false;
   loadData = inject(LoadDataService);
   StatusList = this.loadData.GetEnumList(Status);
@@ -79,7 +80,7 @@ export class Hotel {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
-    this.getHotelList();
+    this.getDestinationList();
     this.resetForm();
   }
 
@@ -97,21 +98,21 @@ export class Hotel {
     }, err => {
       this.toastr.error("Error while fetching records");
       this.dataLoading = false;
-      // this.cdr.detectChanges();
+      this.cdr.detectChanges();
     });
   }
 
   @ViewChild('formHotel') formHotel!: NgForm;
 
-resetForm() {
-  this.Hotel = { Status: 1, DestinationId: null };
-  this.LogoPhoto = null; // ← add this
-  if (this.formHotel) {
-    this.formHotel.control.markAsPristine();
-    this.formHotel.control.markAsUntouched();
+  resetForm() {
+    this.Hotel = { Status: 1, DestinationId: null };
+    this.LogoPhoto = null; // ← add this
+    if (this.formHotel) {
+      this.formHotel.control.markAsPristine();
+      this.formHotel.control.markAsUntouched();
+    }
+    this.isSubmitted = false;
   }
-  this.isSubmitted = false;
-}
 
   openModal() {
     this.resetForm();
@@ -203,34 +204,34 @@ resetForm() {
     }
   }
 
-editHotel(obj: any) {
-  this.Hotel = { ...obj };
-  this.LogoPhoto = obj.HotelImage ? this.imageUrl + obj.HotelImage : null; // ← add this
-  this.getDestinationList();
-  this.getLocationList(this.Hotel.DestinationId);
-  this.getHotelCategoryList();
-  this.showModal = true;
-}
+  editHotel(obj: any) {
+    this.Hotel = { ...obj };
+    this.LogoPhoto = obj.HotelImage ? this.imageUrl + obj.HotelImage : null; // ← add this
+    this.getDestinationList();
+    this.getLocationList(this.Hotel.DestinationId);
+    this.getHotelCategoryList();
+    this.showModal = true;
+  }
 
+  // ── Destination list ──────────────────────────────────────────────────
   getDestinationList() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    this.service.getDestinationList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.DestinationList = response.DestinationList;
-        console.log("des list", this.DestinationList);
-
-      } else {
-        this.toastr.error(response.Message);
+    this.service.getDestinationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.DestinationList.set(r1.DestinationList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+      },
+      error: () => {
+        this.toastr.error("Error while fetching destination list");
       }
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching destination list");
-      this.cdr.detectChanges();
     });
   }
+
   LocationList: any[] = [];
   onDestinationChange() {
 
@@ -402,8 +403,66 @@ editHotel(obj: any) {
     reader.readAsDataURL(file);
 
   }
-resetLogo(): void {
-  this.Hotel.HotelImage = '';
-  this.LogoPhoto = null;
-}
+  resetLogo(): void {
+    this.Hotel.HotelImage = '';
+    this.LogoPhoto = null;
+  }
+
+  FilterDestinationId: any = 0;
+  FilterLocationId: any = 0;
+  FilterLocationList = signal<any[]>([]);
+  FilterHotelList = signal<any[]>([]);
+
+
+
+  // ── Filter bar changes ────────────────────────────────────────────────
+  onFilterDestinationChange() {
+    this.FilterLocationId = 0;
+    this.FilterHotelId = 0;
+    this.FilterLocationList.set([]);
+    this.FilterHotelList.set([]);
+    if (!this.FilterDestinationId || this.FilterDestinationId == 0) return;
+
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
+      ).toString()
+    };
+    this.service.getLocationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.FilterLocationList.set(r1.LocationList);
+        }
+      }
+    });
+  }
+  FilterHotelId: any = 0;
+  onFilterLocationChange() {
+    this.FilterHotelId = 0;
+    this.FilterHotelList.set([]);
+    if (!this.FilterLocationId || this.FilterLocationId == 0) return;
+
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ LocationId: Number(this.FilterLocationId) })
+      ).toString()
+    };
+    this.service.getHotelList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.FilterHotelList.set(r1.HotelList);
+        }
+      }
+    });
+  }
+
+
+
+
+
+
+
+
+
+
 }

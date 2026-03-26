@@ -28,3 +28,19 @@
   animation: fadeOut 0.5s ease forwards;
   animation-delay: 3.5s;
 }
+
+.mat-mdc-option {
+  font-size: 13px !important;
+  min-height: 36px !important;
+}
+::ng-deep .mat-mdc-icon-button.mat-mdc-button-base {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 4px !important;
+}
+
+::ng-deep .mat-mdc-icon-button .mat-icon {
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+}

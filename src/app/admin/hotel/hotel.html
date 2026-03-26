@@ -33,7 +33,7 @@
                                 <div class="col-12 d-flex justify-content-end mb-2">
                                     @if (action.CanCreate) {
                                     <button mat-raised-button color="primary" (click)="openModal()">
-                                        New Hotel Type
+                                        New Hotel
                                     </button>
                                     }
                                 </div>
@@ -65,6 +65,39 @@
 
                             </div>
 
+
+
+                            <!-- Filter Row -->
+                            <div class="row mb-3">
+
+                                <!-- Filter Destination -->
+                                <div class="col-sm-12 col-md-3">
+                                    <label>Destination</label>
+                                    <select class="form-select" [(ngModel)]="FilterDestinationId"
+                                        (ngModelChange)="onFilterDestinationChange()">
+                                        <option value="0">-- All Destinations --</option>
+                                        @for (dest of DestinationList(); track dest.DestinationId) {
+                                        <option [value]="dest.DestinationId">{{ dest.DestinationName }}</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <!-- Filter Location -->
+                                <div class="col-sm-12 col-md-3">
+                                    <label>Location</label>
+                                    <select class="form-select" [(ngModel)]="FilterLocationId"
+                                        (ngModelChange)="onFilterLocationChange()"
+                                        [disabled]="FilterLocationList().length === 0">
+                                        <option value="0">-- All Locations --</option>
+                                        @for (loc of FilterLocationList(); track loc.LocationId) {
+                                        <option [value]="loc.LocationId">{{ loc.LocationName }}</option>
+                                        }
+                                    </select>
+                                </div>
+
+                            </div>
+
+
                             <!-- Table -->
                             <div class="row">
                                 <div class="col-sm-12">
@@ -76,9 +109,12 @@
                                                 <tr role="row">
                                                     <th>S.No</th>
                                                     <th style="cursor:pointer" (click)="sort('HotelName')">Hotel</th>
-                                                    <th style="cursor:pointer" (click)="sort('DestinationName')">Destination</th>
-                                                    <th style="cursor:pointer" (click)="sort('LocationName')">Location</th>
-                                                    <th style="cursor:pointer" (click)="sort('HotelCategory')">Hotel Category</th>
+                                                    <th style="cursor:pointer" (click)="sort('DestinationName')">
+                                                        Destination</th>
+                                                    <th style="cursor:pointer" (click)="sort('LocationName')">Location
+                                                    </th>
+                                                    <th style="cursor:pointer" (click)="sort('HotelCategory')">Hotel
+                                                        Category</th>
                                                     @if (action.CanEdit) { <th>Edit</th> }
                                                     @if (action.CanDelete) { <th>Delete</th> }
                                                     <th style="cursor:pointer" (click)="sort('Status')">Status</th>
@@ -86,7 +122,7 @@
                                             </thead>
                                             <tbody>
                                                 @for (
-                                                item of HotelList
+                                                item of FilterHotelList()
                                                 | filter: Search
                                                 | orderBy: sortKey : reverse
                                                 | paginate: { itemsPerPage: itemPerPage, currentPage: p };
@@ -171,7 +207,7 @@
                                     <mat-select #DestinationId="ngModel" name="DestinationId"
                                         [(ngModel)]="Hotel.DestinationId" (ngModelChange)="onDestinationChange()"
                                         required>
-                                        @for (dest of DestinationList; track dest.DestinationId) {
+                                        @for (dest of DestinationList(); track dest.DestinationId) {
                                         <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
                                         }
                                     </mat-select>
@@ -180,23 +216,6 @@
                                     <mat-error>Destination is <strong>required</strong></mat-error>
                                     }
                                 </mat-form-field>
-
-
-                                <!-- Location Dropdown acc to destination -->
-                                <!-- <mat-form-field appearance="outline" class="col-sm-6">
-                                    <mat-label>Location</mat-label>
-                                    <mat-select #LocationId="ngModel" name="LocationId"
-                                        [(ngModel)]="Hotel.LocationId" required>
-                                        @for (list of LocationList; track list.LocationId) {
-                                        <mat-option [value]="list.LocationId">{{ list.LocationName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                    @if ((LocationId.dirty || LocationId.touched) ||
-                                    (LocationId.invalid && isSubmitted)) {
-                                    <mat-error>Location is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field> -->
-
 
                                 <!-- Location Dropdown acc to destination -->
                                 <div class="col-sm-3" style="position: relative;">
@@ -263,11 +282,11 @@
                                         required autofocus>
                                     @if ((HotelName.dirty || HotelName.touched) ||
                                     (HotelName.invalid && isSubmitted)) {
-                                    <mat-error>Hotel Type name is <strong>required</strong></mat-error>
+                                    <mat-error>Hotel name is <strong>required</strong></mat-error>
                                     }
                                 </mat-form-field>
 
-                                <mat-form-field appearance="outline" class="col-sm-3"  style="height:15px;">
+                                <mat-form-field appearance="outline" class="col-sm-3" style="height:15px;">
                                     <mat-label>Status</mat-label>
                                     <mat-select #Status="ngModel" name="Status" [(ngModel)]="Hotel.Status" required>
                                         @for (status of StatusList; track status.Key) {
@@ -282,13 +301,13 @@
 
                                 <div class="col-sm-3">
                                     <!-- <div class="card"> -->
-                                        <div class="card-body profile-card flex-column align-items-center">
-                                            <label>LOGO</label> <br>
-                                            <img [src]="LogoPhoto ? LogoPhoto:'assets/img/no-image.avif'" alt="Profile"
-                                                class="img-responsive" width="250">
-                                            <input type="file" accept="image/*" #LogoFile="ngModel" name="LogoFile"
-                                                (change)="setLogoFile($event)" [(ngModel)]="Hotel.HotelImage"
-                                                class="form-control mt-2 mb-4" placeholder="Enter Logo">
+                                    <div class="card-body profile-card flex-column align-items-center">
+                                        <label>LOGO</label> <br>
+                                        <img [src]="LogoPhoto ? LogoPhoto:'assets/img/no-image.avif'" alt="Profile"
+                                            class="img-responsive" width="250">
+                                        <input type="file" accept="image/*" #LogoFile="ngModel" name="LogoFile"
+                                            (change)="setLogoFile($event)" [(ngModel)]="Hotel.HotelImage"
+                                            class="form-control mt-2 mb-4" placeholder="Enter Logo">
                                         <!-- </div> -->
                                     </div>
                                 </div>
