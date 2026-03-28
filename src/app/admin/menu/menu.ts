@@ -54,7 +54,7 @@ export class Menu {
     private localService: LocalService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
@@ -133,35 +133,35 @@ export class Menu {
   }
   openMenus = new Set<number>();
 
-toggleOpen(menuId: number) {
-  if (this.openMenus.has(menuId)) {
-    this.openMenus.delete(menuId);
-  } else {
-    this.openMenus.add(menuId);
-  }
-}
-
-getMenuList() {
-  var obj: RequestModel = {
-    request: this.localService.encrypt(JSON.stringify({})).toString()
-  };
-  this.dataLoading = true;
-  this.service.getMenuList(obj).subscribe(r1 => {
-    let response = r1 as any;
-    if (response.Message == ConstantData.SuccessMessage) {
-      this.MenuList = response.MenuList;
-      // open all by default
-      this.MenuList.forEach((m: any) => this.openMenus.add(m.MenuId));
-      setTimeout(() => this.cdr.detectChanges(), 0);
+  toggleOpen(menuId: number) {
+    if (this.openMenus.has(menuId)) {
+      this.openMenus.delete(menuId);
     } else {
-      this.toastr.error(response.Message);
+      this.openMenus.add(menuId);
     }
-    this.dataLoading = false;
-  }, err => {
-    this.toastr.error("Error while fetching records");
-    this.dataLoading = false;
-  });
-}
+  }
+
+  getMenuList() {
+    var obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.dataLoading = true;
+    this.service.getMenuList(obj).subscribe(r1 => {
+      let response = r1 as any;
+      if (response.Message == ConstantData.SuccessMessage) {
+        this.MenuList = response.MenuList;
+        // open all by default
+        this.MenuList.forEach((m: any) => this.openMenus.add(m.MenuId));
+        setTimeout(() => this.cdr.detectChanges(), 0);
+      } else {
+        this.toastr.error(response.Message);
+      }
+      this.dataLoading = false;
+    }, err => {
+      this.toastr.error("Error while fetching records");
+      this.dataLoading = false;
+    });
+  }
 
   saveMenu() {
     this.formMenu.control.markAllAsTouched();
@@ -188,6 +188,7 @@ getMenuList() {
           this.formMenu.control.markAsPristine();
           this.formMenu.control.markAsUntouched();
         }
+        this.cdr.detectChanges();
         this.getMenuList();
       } else {
         this.toastr.error(response.Message);
@@ -196,6 +197,8 @@ getMenuList() {
     }, err => {
       this.toastr.error("Error occured while submitting data");
       this.dataLoading = false;
+      this.cdr.detectChanges();
+
     });
   }
 

@@ -168,6 +168,7 @@ export class RoleMenu {
       e1.CanEdit = false;
       e1.CanDelete = false;
       e1.CanCreate = false;
+
     }
   }
 
@@ -183,6 +184,7 @@ export class RoleMenu {
       let response = r1 as any;
       if (response.Message == ConstantData.SuccessMessage) {
         this.AllRoleMenuList = response.AllRoleMenuList;
+        this.cdr.detectChanges();
       } else {
         this.toastr.error(response.Message);
       }
@@ -217,6 +219,8 @@ export class RoleMenu {
           ? "Role Menu updated successfully"
           : "Role Menu added successfully");
         this.resetForm();
+      this.cdr.detectChanges();
+
       } else {
         this.toastr.error(response.Message);
       }
@@ -224,6 +228,8 @@ export class RoleMenu {
     }, err => {
       this.toastr.error("Error occured while submitting data");
       this.dataLoading = false;
+      this.cdr.detectChanges();
+
     });
   }
 }

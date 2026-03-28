@@ -147,7 +147,7 @@
   @if (showModal && (action.CanEdit || action.CanCreate)) {
     <div class="modal fade show d-block" tabindex="-1"
          style="background:rgba(0,0,0,0.5)">
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog">
         <div class="modal-content">
 
           <div class="modal-header">
@@ -162,7 +162,7 @@
               <div class="container">
                 <div class="row">
 
-                  <mat-form-field appearance="outline" class="col-sm-6" >
+                  <mat-form-field appearance="outline" class="col-sm-12" >
                     <mat-label>Destination Name</mat-label>
                     <input matInput #DestinationName="ngModel" name="DestinationName"
                       [(ngModel)]="Destination.DestinationName" required autofocus>
@@ -172,7 +172,7 @@
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="col-sm-6" >
+                  <mat-form-field appearance="outline" class="col-sm-12" >
                     <mat-label>Status</mat-label>
                     <mat-select #Status="ngModel" name="Status"
                       [(ngModel)]="Destination.Status" required>
