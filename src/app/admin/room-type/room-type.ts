@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -16,10 +16,12 @@ import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interfac
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
 import { LoadDataService } from '../../utils/load-data.service';
+
 @Component({
   selector: 'app-room-type',
   standalone: true,
-  imports: [  CommonModule,
+  imports: [
+    CommonModule,
     FormsModule,
     RouterModule,
     MatFormFieldModule,
@@ -28,33 +30,66 @@ import { LoadDataService } from '../../utils/load-data.service';
     MatButtonModule,
     NgxPaginationModule,
     FilterPipe,
-    OrderByPipe],
+    OrderByPipe
+  ],
   templateUrl: './room-type.html',
   styleUrl: './room-type.css',
 })
 export class RoomType {
-  dataLoading: boolean = false;
-  RoomTypeList: any = [];
-  RoomType: any = {};
-  isSubmitted = false;
-  loadData = inject(LoadDataService);
-  StatusList = this.loadData.GetEnumList(Status);
-  AllStatusList = Status;
-  PageSize = ConstantData.PageSizes;
-  p: number = 1;
-  Search: string = '';
-  reverse: boolean = false;
-  sortKey: string = '';
-  itemPerPage: number = this.PageSize[0];
-  action: ActionModel = {
+
+  // ── Signals ───────────────────────────────────────────────────────────
+  dataLoading       = signal(false);
+  RoomTypeList      = signal<any[]>([]);
+  HotelList         = signal<any[]>([]);
+  DestinationList   = signal<any[]>([]);
+  LocationList      = signal<any[]>([]);
+  FilteredHotelList = signal<any[]>([]);
+  FilterLocationList = signal<any[]>([]);
+  FilterHotelList   = signal<any[]>([]);
+  noLocationFound   = signal(false);
+  showModal         = signal(false);
+  action            = signal<ActionModel>({
     CanCreate: false,
     CanEdit: false,
     CanDelete: false,
     MenuTitle: '',
     ParentMenuTitle: ''
-  } as ActionModel;
+  } as ActionModel);
+
+  // ── Plain properties ──────────────────────────────────────────────────
+  RoomType: any     = {};
+  Hotel: any        = {};
+  isSubmitted       = false;
+  Search            = '';
+  reverse           = false;
+  sortKey           = '';
+  p                 = 1;
+  itemPerPage:      number;
+  FilterDestinationId: any = 0;
+  FilterLocationId: any    = 0;
+  FilterHotelId: any       = 0;
+
+  loadData      = inject(LoadDataService);
+  StatusList    = this.loadData.GetEnumList(Status);
+  AllStatusList = Status;
+  PageSize      = ConstantData.PageSizes;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
-  showModal: boolean = false;
+
+  constructor(
+    private service: AppService,
+    private toastr: ToastrService,
+    private localService: LocalService,
+    private router: Router,
+  ) {
+    this.itemPerPage = this.PageSize[0];
+  }
+
+  ngOnInit(): void {
+    this.staffLogin = this.localService.getEmployeeDetail();
+    this.validiateMenu();
+    this.getDestinationList();
+    this.resetForm();
+  }
 
   sort(key: any) {
     this.sortKey = key;
@@ -65,44 +100,35 @@ export class RoomType {
     this.p = p;
   }
 
-  constructor(
-    private service: AppService,
-    private toastr: ToastrService,
-    private localService: LocalService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
-
-  ngOnInit(): void {
-    this.staffLogin = this.localService.getEmployeeDetail();
-    this.validiateMenu();
-    this.getHotelList();
-    this.getRoomTypeList();
-    this.resetForm();
-  }
-
+  // ── Menu validation ───────────────────────────────────────────────────
   validiateMenu() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ Url: this.router.url, StaffLoginId: this.staffLogin.StaffLoginId })
       ).toString()
     };
-    this.dataLoading = true;
-    this.service.validiateMenu(obj).subscribe((response: any) => {
-      this.action = { ...this.loadData.validiateMenu(response, this.toastr, this.router) };
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
+    this.dataLoading.set(true);
+    this.service.validiateMenu(obj).subscribe({
+      next: (response: any) => {
+        this.action.set({ ...this.loadData.validiateMenu(response, this.toastr, this.router) });
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
+      }
     });
   }
 
   @ViewChild('formRoomType') formRoomType!: NgForm;
 
+  // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
-    this.RoomType = { Status: 1, HotelId: 0};
+    this.RoomType = { Status: 1, HotelId: 0 };
+    this.Hotel    = { DestinationId: 0, LocationId: 0 };
+    this.LocationList.set([]);
+    this.FilteredHotelList.set([]);
+    this.noLocationFound.set(false);
     if (this.formRoomType) {
       this.formRoomType.control.markAsPristine();
       this.formRoomType.control.markAsUntouched();
@@ -113,35 +139,40 @@ export class RoomType {
   openModal() {
     this.resetForm();
     this.getDestinationList();
-    this.showModal = true;
+    this.getHotelList();
+    this.showModal.set(true);
   }
 
   closeModal() {
     this.resetForm();
-    this.showModal = false;
+    this.showModal.set(false);
   }
 
+  // ── Room type list ────────────────────────────────────────────────────
   getRoomTypeList() {
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({})).toString()
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ HotelId: Number(this.FilterHotelId) || 0 })
+      ).toString()
     };
-    this.dataLoading = true;
-    this.service.getRoomTypeList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.RoomTypeList = response.RoomTypeList;
-      } else {
-        this.toastr.error(response.Message);
+    this.dataLoading.set(true);
+    this.service.getRoomTypeList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.RoomTypeList.set(r1.RoomTypeList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
       }
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
 
+  // ── Save ──────────────────────────────────────────────────────────────
   saveRoomType() {
     this.isSubmitted = true;
     this.formRoomType.control.markAllAsTouched();
@@ -149,174 +180,222 @@ export class RoomType {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify(this.RoomType)).toString()
     };
-    this.dataLoading = true;
-    this.service.saveRoomType(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.toastr.success(this.RoomType.RoomTypeId > 0
-          ? "RoomType updated successfully"
-          : "RoomType added successfully");
-        this.closeModal();
-        this.getRoomTypeList();
-      } else {
-        this.toastr.error(response.Message);
-        this.dataLoading = false;
-        this.cdr.detectChanges();
+    this.dataLoading.set(true);
+    this.service.saveRoomType(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.toastr.success(this.RoomType.RoomTypeId > 0
+            ? "Room Type updated successfully"
+            : "Room Type added successfully");
+          // reset only name field, keep hotel selected
+          this.RoomType.RoomTypeName = '';
+          this.RoomType.RoomTypeId   = 0;
+          const control = this.formRoomType.controls['RoomTypeName'];
+          control?.reset();
+          this.isSubmitted = false;
+          this.dataLoading.set(false);
+          // refresh list if hotel filter is active
+          if (this.FilterHotelId && this.FilterHotelId != 0) {
+            this.getRoomTypeList();
+          }
+        } else {
+          this.toastr.error(r1.Message);
+          this.dataLoading.set(false);
+        }
+      },
+      error: () => {
+        this.toastr.error("Error occurred while submitting data");
+        this.dataLoading.set(false);
       }
-    }, err => {
-      this.toastr.error("Error occured while submitting data");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
 
+  // ── Delete ────────────────────────────────────────────────────────────
   deleteRoomType(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
-      var request: RequestModel = {
+      const request: RequestModel = {
         request: this.localService.encrypt(JSON.stringify(obj)).toString()
       };
-      this.dataLoading = true;
-      this.service.deleteRoomType(request).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
-          this.toastr.success("Record deleted successfully");
-          this.getRoomTypeList();
-        } else {
-          this.toastr.error(response.Message);
-          this.dataLoading = false;
-          this.cdr.detectChanges();
+      this.dataLoading.set(true);
+      this.service.deleteRoomType(request).subscribe({
+        next: (r1: any) => {
+          if (r1.Message == ConstantData.SuccessMessage) {
+            this.toastr.success("Record deleted successfully");
+            this.RoomTypeList.update(list =>
+              list.filter(x => x.RoomTypeId !== obj.RoomTypeId)
+            );
+          } else {
+            this.toastr.error(r1.Message);
+          }
+          this.dataLoading.set(false);
+        },
+        error: () => {
+          this.toastr.error("Error occurred while deleting the record");
+          this.dataLoading.set(false);
         }
-      }, err => {
-        this.toastr.error("Error occured while deleting the record");
-        this.dataLoading = false;
-        this.cdr.detectChanges();
       });
     }
   }
 
+  // ── Edit ──────────────────────────────────────────────────────────────
   editRoomType(obj: any) {
     this.RoomType = { ...obj };
-    this.showModal = true;
+    this.getDestinationList();
+    const selectedHotel = this.HotelList().find(h => h.HotelId === obj.HotelId);
+    if (selectedHotel) {
+      this.Hotel.DestinationId = selectedHotel.DestinationId;
+      this.Hotel.LocationId    = selectedHotel.LocationId;
+      this.getLocationList(selectedHotel.DestinationId);
+      this.FilteredHotelList.set(
+        this.HotelList().filter(h => h.LocationId === selectedHotel.LocationId)
+      );
+    }
+    this.showModal.set(true);
   }
 
-HotelList : any[] = [];
-      getHotelList() {
-    var obj: RequestModel = {
+  // ── Hotel list ────────────────────────────────────────────────────────
+  getHotelList() {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    this.dataLoading = true;
-    this.service.getHotelList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.HotelList = response.HotelList;
-      } else {
-        this.toastr.error(response.Message);
+    this.dataLoading.set(true);
+    this.service.getHotelList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.HotelList.set(r1.HotelList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching hotel list");
+        this.dataLoading.set(false);
       }
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
-  DestinationList: any[] = [];
+
+  // ── Destination list ──────────────────────────────────────────────────
   getDestinationList() {
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    this.service.getDestinationList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.DestinationList = response.DestinationList;
-        console.log("des list", this.DestinationList);
-
-      } else {
-        this.toastr.error(response.Message);
+    this.service.getDestinationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.DestinationList.set(r1.DestinationList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+      },
+      error: () => {
+        this.toastr.error("Error while fetching destination list");
       }
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching destination list");
-      this.cdr.detectChanges();
     });
   }
 
-  LocationList: any[] = [];
- Hotel: any = {};
-FilteredHotelList: any[] = [];  // 👈 add this
-
-onDestinationChange() {
-    if (!this.Hotel.DestinationId) {
-        this.LocationList = [];
-        this.FilteredHotelList = [];  // 👈 clear hotels
-        this.RoomType.HotelId = 0;
-        return;
-    }
-    this.Hotel.LocationId = null;     // 👈 reset location
-    this.RoomType.HotelId = 0;        // 👈 reset hotel
-    this.FilteredHotelList = [];
-    this.getLocationList(this.Hotel.DestinationId);
-}
-
-onLocationChange() {
-    if (!this.Hotel.LocationId) {
-        this.FilteredHotelList = [];
-        this.RoomType.HotelId = 0;
-        return;
-    }
-    // Filter hotels by selected location
-    this.FilteredHotelList = this.HotelList.filter(
-        h => h.LocationId === this.Hotel.LocationId
-    );
-    this.RoomType.HotelId = 0;  // reset hotel when location changes
-    this.cdr.detectChanges();
-}
-  noLocationFound: boolean = false;
+  // ── Location list ─────────────────────────────────────────────────────
   getLocationList(destinationId: any = null) {
-
-    var obj: RequestModel = {
+    const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ DestinationId: destinationId })
       ).toString()
     };
-
-    this.dataLoading = true;
-
-    this.service.getLocationList(obj).subscribe(r1 => {
-
-      let response = r1 as any;
-
-      if (response.Message == ConstantData.SuccessMessage) {
-
-        this.LocationList = response.LocationList;
-
-        // ✅ Handle empty list WITHOUT timeout
-        this.noLocationFound = this.LocationList.length === 0;
-
-      } else {
-        this.toastr.error(response.Message);
+    this.dataLoading.set(true);
+    this.service.getLocationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.LocationList.set(r1.LocationList);
+          this.noLocationFound.set(r1.LocationList.length === 0);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching location list");
+        this.dataLoading.set(false);
       }
-
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-      this.cdr.detectChanges();
     });
   }
 
+  // ── Modal destination/location/hotel change ───────────────────────────
+  onDestinationChange() {
+    if (!this.Hotel.DestinationId) {
+      this.LocationList.set([]);
+      this.FilteredHotelList.set([]);
+      this.RoomType.HotelId = 0;
+      return;
+    }
+    this.Hotel.LocationId = null;
+    this.RoomType.HotelId = 0;
+    this.FilteredHotelList.set([]);
+    this.getLocationList(this.Hotel.DestinationId);
+  }
 
+  onLocationChange() {
+    if (!this.Hotel.LocationId) {
+      this.FilteredHotelList.set([]);
+      this.RoomType.HotelId = 0;
+      return;
+    }
+    this.FilteredHotelList.set(
+      this.HotelList().filter(h => h.LocationId === this.Hotel.LocationId)
+    );
+    this.RoomType.HotelId = 0;
+  }
 
+  // ── Filter bar changes ────────────────────────────────────────────────
+  onFilterDestinationChange() {
+    this.FilterLocationId = 0;
+    this.FilterHotelId    = 0;
+    this.FilterLocationList.set([]);
+    this.FilterHotelList.set([]);
+    this.RoomTypeList.set([]);
 
+    if (!this.FilterDestinationId || this.FilterDestinationId == 0) return;
 
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
+      ).toString()
+    };
+    this.service.getLocationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.FilterLocationList.set(r1.LocationList);
+        }
+      }
+    });
+  }
 
+  onFilterLocationChange() {
+    this.FilterHotelId = 0;
+    this.FilterHotelList.set([]);
+    this.RoomTypeList.set([]);
 
+    if (!this.FilterLocationId || this.FilterLocationId == 0) return;
 
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ LocationId: Number(this.FilterLocationId) })
+      ).toString()
+    };
+    this.service.getHotelList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.FilterHotelList.set(r1.HotelList);
+        }
+      }
+    });
+  }
 
-  
+  onFilterHotelChange() {
+    this.RoomTypeList.set([]);
+    if (!this.FilterHotelId || this.FilterHotelId == 0) return;
+    this.getRoomTypeList();
+  }
 }

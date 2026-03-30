@@ -66,6 +66,11 @@ export enum Status {
     Active = 1,
     Inactive = 2
 }
+export enum ChargeType {
+    AWEB = 1,
+    CWEB = 2,
+    CNB = 3
+}
 export enum BookletStatus {
     NotSale = 1,
     Sold = 2
