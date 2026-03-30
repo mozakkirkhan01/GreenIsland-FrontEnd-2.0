@@ -53,7 +53,7 @@
                                 </div>
 
                                 <!-- Filter by Hotel -->
-                                <div class="col-sm-12 d-flex justify-content-start col-md-4">
+                                <!-- <div class="col-sm-12 d-flex justify-content-start col-md-4">
                                     <mat-form-field appearance="outline" class="w-80">
                                         <mat-label>Select Hotel</mat-label>
                                         <mat-select name="HotelId" [(ngModel)]="SelectedHotelId"
@@ -64,8 +64,7 @@
                                             }
                                         </mat-select>
                                     </mat-form-field>
-                                </div>
-
+                                </div> -->
                                 <!-- Search -->
                                 <div class="col-sm-12 col-md-4 ms-auto">
                                     <div class="dataTables_filter d-flex justify-content-end">
@@ -75,6 +74,50 @@
                                         </label>
                                     </div>
                                 </div>
+
+                                <!-- Filter Row -->
+                                <div class="row mb-3">
+
+                                    <!-- Filter Destination -->
+                                    <div class="col-sm-12 col-md-3">
+                                        <label>Destination</label>
+                                        <select class="form-select" [(ngModel)]="FilterDestinationId"
+                                            (ngModelChange)="onFilterDestinationChange()">
+                                            <option value="0">-- All Destinations --</option>
+                                            @for (dest of DestinationList(); track dest.DestinationId) {
+                                            <option [value]="dest.DestinationId">{{ dest.DestinationName }}</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <!-- Filter Location -->
+                                    <div class="col-sm-12 col-md-3">
+                                        <label>Location</label>
+                                        <select class="form-select" [(ngModel)]="FilterLocationId"
+                                            (ngModelChange)="onFilterLocationChange()"
+                                            [disabled]="FilterLocationList().length === 0">
+                                            <option value="0">-- All Locations --</option>
+                                            @for (loc of FilterLocationList(); track loc.LocationId) {
+                                            <option [value]="loc.LocationId">{{ loc.LocationName }}</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <!-- Filter Hotel -->
+                                    <div class="col-sm-12 col-md-3">
+                                        <label>Hotel</label>
+                                        <select class="form-select" [(ngModel)]="FilterHotelId"
+                                            (ngModelChange)="onFilterHotelChange()"
+                                            [disabled]="FilterHotelList().length === 0">
+                                            <option value="0">-- All Hotels --</option>
+                                            @for (hotel of FilterHotelList(); track hotel.HotelId) {
+                                            <option [value]="hotel.HotelId">{{ hotel.HotelName }}</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                </div>
+
 
                             </div>
 
