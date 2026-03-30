@@ -82,8 +82,9 @@ export class HotelRate {
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.validiateMenu();
+    this.getDestinationList();  // 👈 add
     this.getHotelList();
-    this.getRoomTypeList();
+    // this.getRoomTypeList();
     this.resetForm();
 
     this.route.queryParams.subscribe(params => {
@@ -119,6 +120,10 @@ export class HotelRate {
   // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
     this.HotelRate = { Status: 1, DestinationId: null };
+    this.SelectedDestinationId = 0;
+    this.SelectedLocationId = 0;
+    this.LocationList.set([]);
+    this.FilteredHotelList.set([]);
     if (this.formHotelRate) {
       this.formHotelRate.control.markAsPristine();
       this.formHotelRate.control.markAsUntouched();
@@ -148,16 +153,34 @@ export class HotelRate {
     });
   }
 
+
   // ── Room type list ────────────────────────────────────────────────────
-  getRoomTypeList() {
+  getRoomTypeList(hotelId: any = 0) {
     const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({})).toString()
+      request: this.localService.encrypt(
+        JSON.stringify({ HotelId: Number(hotelId) })
+      ).toString()
     };
+
     this.dataLoading.set(true);
     this.service.getRoomTypeList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
           this.RoomTypeList.set(r1.RoomTypeList);
+          // ✅ 🔥 MOVE LOGIC HERE
+          if (r1.RoomTypeList.length === 0) {
+            this.showRoomTypeError.set(true);
+          } else {
+            this.showRoomTypeError.set(false);
+          }
+
+          // ✅ 🔥 room type available  LOGIC HERE
+          if (r1.RoomTypeList.length > 0) {
+            this.showRoomTypeErrorList.set(true);
+          } else {
+            this.showRoomTypeErrorList.set(false);
+          }
+
         } else {
           this.toastr.error(r1.Message);
         }
@@ -170,25 +193,48 @@ export class HotelRate {
     });
   }
 
+
+  showRoomTypeError = signal(false);
+  showRoomTypeErrorList = signal(false);
+
+
   // ── On hotel change ───────────────────────────────────────────────────
   onHotelChange() {
+    // 🔥 RESET ERROR FIRST (VERY IMPORTANT)
+    this.showRoomTypeError.set(false);
+    this.showRoomTypeErrorList.set(false);
+
+
     if (!this.HotelRate.HotelId) {
       this.HotelRate.HotelCategoryId = null;
       this.HotelRate.HotelCategoryName = '';
       this.HotelRateRows.set([]);
+      this.RoomTypeList.set([]); // 🔥 clear dropdown
       return;
     }
 
     const selectedHotel = this.HotelList().find(
       (h: any) => h.HotelId === this.HotelRate.HotelId
     );
+
     if (selectedHotel) {
       this.HotelRate.HotelCategoryId = selectedHotel.HotelCategoryId;
       this.HotelRate.HotelCategoryName = selectedHotel.HotelCategoryName;
     }
 
+    // 🔥 IMPORTANT: load room types for this hotel only
+    this.getRoomTypeList(this.HotelRate.HotelId);
+
     this.getHotelRatesByHotel(this.HotelRate.HotelId);
+
+
   }
+
+
+
+
+
+
 
   // ── Load rates by hotel ───────────────────────────────────────────────
   getHotelRatesByHotel(hotelId: any) {
@@ -214,7 +260,8 @@ export class HotelRate {
               ToDate: new Date(record.ToDate),
               CpRate: record.CpRate,
               MapRate: record.MapRate,
-              ApRate: record.ApRate
+              ApRate: record.ApRate,
+              Status: record.this.Status
             }))
           );
         } else {
@@ -230,49 +277,133 @@ export class HotelRate {
   }
 
   // ── Load single rate by ID (edit from another page) ───────────────────
+  // loadHotelRateById(hotelRateId: any) {
+  //   const obj: RequestModel = {
+  //     request: this.localService.encrypt(
+  //       JSON.stringify({ HotelRateId: Number(hotelRateId) })
+  //     ).toString()
+  //   };
+  //   this.dataLoading.set(true);
+  //   this.service.getHotelRateList(obj).subscribe({
+  //     next: (r1: any) => {
+  //       if (r1.Message == ConstantData.SuccessMessage) {
+  //         const record = r1.HotelRateList[0];
+  //         if (record) {
+  //           this.HotelRate = {
+  //             HotelRateId: record.HotelRateId,
+  //             HotelId: record.HotelId,
+  //             HotelCategoryId: record.HotelCategoryId,
+  //             HotelCategoryName: record.HotelCategoryName,
+  //             RoomTypeId: record.RoomTypeId,
+  //             FromDate: new Date(record.FromDate),
+  //             ToDate: new Date(record.ToDate),
+  //             CpRate: record.CpRate,
+  //             MapRate: record.MapRate,
+  //             ApRate: record.ApRate
+  //           };
+  //           this.onHotelChange();
+  //           this.HotelRateRows.set([{
+  //             ...this.HotelRate,
+  //             HotelName: record.HotelName,
+  //             RoomTypeName: record.RoomTypeName,
+  //           }]);
+  //         }
+  //       } else {
+  //         this.toastr.error(r1.Message);
+  //       }
+  //       this.dataLoading.set(false);
+  //     },
+  //     error: () => {
+  //       this.toastr.error("Error while fetching record");
+  //       this.dataLoading.set(false);
+  //     }
+  //   });
+  // }
+
+
   loadHotelRateById(hotelRateId: any) {
     const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ HotelRateId: Number(hotelRateId) })
       ).toString()
     };
+
     this.dataLoading.set(true);
+
     this.service.getHotelRateList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
+
           const record = r1.HotelRateList[0];
+
           if (record) {
-            this.HotelRate = {
-              HotelRateId: record.HotelRateId,
-              HotelId: record.HotelId,
-              HotelCategoryId: record.HotelCategoryId,
-              HotelCategoryName: record.HotelCategoryName,
-              RoomTypeId: record.RoomTypeId,
-              FromDate: new Date(record.FromDate),
-              ToDate: new Date(record.ToDate),
-              CpRate: record.CpRate,
-              MapRate: record.MapRate,
-              ApRate: record.ApRate
-            };
-            this.onHotelChange();
-            this.HotelRateRows.set([{
-              ...this.HotelRate,
-              HotelName: record.HotelName,
-              RoomTypeName: record.RoomTypeName,
-            }]);
+
+            // 🔍 Step 1: Find selected hotel
+            const selectedHotel = this.HotelList().find(
+              (h: any) => h.HotelId === record.HotelId
+            );
+
+            if (selectedHotel) {
+
+              // ✅ Step 2: Set Destination
+              this.SelectedDestinationId = selectedHotel.DestinationId;
+
+              // Load locations for this destination
+              this.onFormDestinationChange();
+
+              setTimeout(() => {
+
+                // ✅ Step 3: Set Location
+                this.SelectedLocationId = selectedHotel.LocationId;
+
+                // Load hotels for this location
+                this.onFormLocationChange();
+
+                setTimeout(() => {
+
+                  // ✅ Step 4: Set main form data
+                  this.HotelRate = {
+                    HotelRateId: record.HotelRateId,
+                    HotelId: record.HotelId,
+                    HotelCategoryId: record.HotelCategoryId,
+                    HotelCategoryName: record.HotelCategoryName,
+                    RoomTypeId: record.RoomTypeId,
+                    FromDate: new Date(record.FromDate),
+                    ToDate: new Date(record.ToDate),
+                    CpRate: record.CpRate,
+                    MapRate: record.MapRate,
+                    ApRate: record.ApRate
+                  };
+
+                  // ✅ Step 5: Load room types for selected hotel
+                  this.getRoomTypeList(record.HotelId);
+
+                  // ✅ Step 6: Show in table (optional preview)
+                  this.HotelRateRows.set([{
+                    ...this.HotelRate,
+                    HotelName: record.HotelName,
+                    RoomTypeName: record.RoomTypeName
+                  }]);
+
+                }, 200);
+
+              }, 200);
+            }
           }
+
         } else {
           this.toastr.error(r1.Message);
         }
+
         this.dataLoading.set(false);
       },
+
       error: () => {
         this.toastr.error("Error while fetching record");
         this.dataLoading.set(false);
       }
     });
   }
-
   // ── Add / update row in preview table ────────────────────────────────
   addToTable() {
     if (!this.HotelRate.HotelId || !this.HotelRate.RoomTypeId ||
@@ -301,7 +432,8 @@ export class HotelRate {
       ToDate: this.HotelRate.ToDate,
       CpRate: this.HotelRate.CpRate,
       MapRate: this.HotelRate.MapRate,
-      ApRate: this.HotelRate.ApRate
+      ApRate: this.HotelRate.ApRate,
+      Status: this.HotelRate.Status
     };
 
     if (this.editingRowIndex !== null) {
@@ -317,10 +449,12 @@ export class HotelRate {
 
     // reset rate fields only
     this.HotelRate.HotelRateId = 0;
-    this.HotelRate.RoomTypeId = 0;
+    // this.HotelRate.RoomTypeId = 0;
     this.HotelRate.CpRate = '';
     this.HotelRate.MapRate = '';
     this.HotelRate.ApRate = '';
+    this.HotelRate.FromDate = null;
+    this.HotelRate.ToDate = null;
   }
 
   // ── Edit row ──────────────────────────────────────────────────────────
@@ -411,4 +545,76 @@ export class HotelRate {
   onTableDataChange(p: any) {
     this.p = p;
   }
+
+  // Filter cascade for form
+  DestinationList = signal<any[]>([]);
+  LocationList = signal<any[]>([]);
+  SelectedDestinationId: any = 0;
+  SelectedLocationId: any = 0;
+  FilteredHotelList = signal<any[]>([]);
+
+  getDestinationList() {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.service.getDestinationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.DestinationList.set(r1.DestinationList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+      },
+      error: () => this.toastr.error("Error while fetching destinations")
+    });
+  }
+  onFormDestinationChange() {
+    this.SelectedLocationId = 0;
+    this.HotelRate.HotelId = null;
+    this.HotelRate.HotelCategoryId = null;
+    this.HotelRate.HotelCategoryName = '';
+    this.LocationList.set([]);
+    this.FilteredHotelList.set([]);
+    this.RoomTypeList.set([]);
+    this.HotelRateRows.set([]);
+
+    if (!this.SelectedDestinationId || this.SelectedDestinationId == 0) return;
+
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(this.SelectedDestinationId) })
+      ).toString()
+    };
+    this.service.getLocationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.LocationList.set(r1.LocationList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+      },
+      error: () => this.toastr.error("Error while fetching locations")
+    });
+  }
+
+  onFormLocationChange() {
+    this.HotelRate.HotelId = null;
+    this.HotelRate.HotelCategoryId = null;
+    this.HotelRate.HotelCategoryName = '';
+    this.FilteredHotelList.set([]);
+    this.RoomTypeList.set([]);
+    this.HotelRateRows.set([]);
+
+    if (!this.SelectedLocationId || this.SelectedLocationId == 0) return;
+
+    // Filter hotels by selected location
+    const filtered = this.HotelList().filter(
+      (h: any) => h.LocationId === this.SelectedLocationId
+    );
+    this.FilteredHotelList.set(filtered);
+  }
+
+
+
+
 }

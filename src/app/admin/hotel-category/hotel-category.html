@@ -158,7 +158,7 @@
             <div class="container">
               <div class="row">
 
-                <mat-form-field appearance="outline" class="col-sm-6">
+                <mat-form-field appearance="outline" class="col-sm-12">
                   <mat-label>Hotel Category Name</mat-label>
                   <input matInput #HotelCategoryName="ngModel" name="HotelCategoryName"
                     [(ngModel)]="HotelCategory.HotelCategoryName" required autofocus>
@@ -168,7 +168,7 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="col-sm-6">
+                <mat-form-field appearance="outline" class="col-sm-12">
                   <mat-label>Status</mat-label>
                   <mat-select #Status="ngModel" name="Status" [(ngModel)]="HotelCategory.Status" required>
                     @for (status of StatusList; track status.Key) {
