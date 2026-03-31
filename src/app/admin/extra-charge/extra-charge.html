@@ -1,283 +1,286 @@
 <div class="page-content">
     <div class="container-fluid">
 
-        <!-- Page Title & Breadcrumb -->
-        <div class="row">
+        <div class="row mb-3">
             <div class="col-12">
-                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item">
-                                <a routerLink="/admin/admin-dashboard">Dashboard</a>
-                            </li>
-                            <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
-                            <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
-                        </ol>
+                <div class="d-flex align-items-center justify-content-between bg-white p-3 rounded shadow-sm">
+                    <div>
+                        <h4 class="mb-1 text-primary">{{ action().MenuTitle }}</h4>
+                        <p class="text-muted mb-0 small">{{ action().ParentMenuTitle }} / {{ action().MenuTitle }}</p>
                     </div>
+                    <button mat-stroked-button color="primary" routerLink="/admin/admin-dashboard">
+                        <i class="bx bx-home-alt me-1"></i> Dashboard
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-body">
-                        <span>Set Extra Charge Rate</span>
-                        <!-- @if (ExtraCharge.HotelId && RoomTypeList().length === 0) { -->
-                        @if (showRoomTypeError()) {
-                        <span class=" text-danger text-center text-muted error fade-message">
-                            <span class="text-danger"> *No room type is available for this hotel. Please add room type
-                            </span>
-                        </span>
-                        }
-                        <!-- (ExtraCharge.HotelId && RoomTypeList().length > 0) -->
-                        @if (showRoomTypeErrorList()) {
-                        <span class="text-success text-center fade-message errors">
-                            Room type available
-                        </span>
-                        }
-                        <br>
-                        <form #formExtraCharge="ngForm">
-                            <div class="row d-flex align-items-center mt-2">
-
-
-
-
-
-
-
+        <form #formExtraCharge="ngForm">
+            <div class="row">
+                <div class="col-xl-4">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-transparent border-bottom">
+                            <h5 class="card-title mb-0"><i class="bx bx-cog me-2 text-primary"></i>Configuration</h5>
+                        </div>
+                        <div class="card-body px-3 py-3">
+                            <div class="row g-3">
 
                                 <!-- Destination -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>Destination</mat-label>
-                                    <mat-select name="SelectedDestinationId" [(ngModel)]="SelectedDestinationId"
-                                        (ngModelChange)="onFormDestinationChange()" required>
-                                        @for (dest of DestinationList(); track dest.DestinationId) {
-                                        <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                </mat-form-field>
-
-                                <!-- Location -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>Location</mat-label>
-                                    <mat-select name="SelectedLocationId" [(ngModel)]="SelectedLocationId"
-                                        (ngModelChange)="onFormLocationChange()" required>
-                                        @for (loc of LocationList(); track loc.LocationId) {
-                                        <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                </mat-form-field>
-
-                                <!-- Select Hotel — change HotelList() to FilteredHotelList() -->
-                                <mat-form-field appearance="outline" class="col-sm-4">
-                                    <mat-label>Select Hotel</mat-label>
-                                    <mat-select #HotelId="ngModel" name="HotelId" [(ngModel)]="ExtraCharge.HotelId"
-                                        (ngModelChange)="onHotelChange()" required>
-                                        @for (dest of FilteredHotelList(); track dest.HotelId) { <!-- 👈 changed -->
-                                        <mat-option [value]="dest.HotelId">{{ dest.HotelName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                    @if ((HotelId.dirty || HotelId.touched) || (HotelId.invalid && isSubmitted)) {
-                                    <mat-error>Hotel is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-
-
-
-
-
-
-
-
-                                <!-- Select Hotel -->
-                                <!-- <mat-form-field appearance="outline" class="col-sm-3">
-                                    <mat-label>Select Hotel</mat-label>
-                                    <mat-select #HotelId="ngModel" name="HotelId" [(ngModel)]="ExtraCharge.HotelId"
-                                        (ngModelChange)="onHotelChange()" required>
-                                        @for (dest of HotelList(); track dest.HotelId) {
-                                        <mat-option [value]="dest.HotelId">{{ dest.HotelName }}</mat-option>
-                                        }
-                                    </mat-select>
-                                    @if ((HotelId.dirty || HotelId.touched) || (HotelId.invalid && isSubmitted)) {
-                                    <mat-error>Hotel is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field> -->
-
-                                <!-- Hotel Category -->
-                                <mat-form-field appearance="outline" class="col-lg-2">
-                                    <mat-label>Hotel Category</mat-label>
-                                    <input matInput name="HotelCategoryName" [(ngModel)]="ExtraCharge.HotelCategoryName"
-                                        readonly="true" />
-                                </mat-form-field>
-
-
-                                <!-- Charge Type -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>Charge Type</mat-label>
-                                    <mat-select #ChargeType="ngModel" name="ChargeType"
-                                        [(ngModel)]="ExtraCharge.ChargeType" required>
-                                        @for (ChargeType of ChargeTypeList; track ChargeType.Key) {
-                                        <mat-option [value]="ChargeType.Key">{{ ChargeType.Value }}</mat-option>
-                                        }
-                                    </mat-select>
-                                    @if ((ChargeType.dirty || ChargeType.touched) ||
-                                    (ChargeType.invalid && isSubmitted)) {
-                                    <mat-error>Charge Type is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-
-                                <!-- From Date -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>From Date</mat-label>
-                                    <input matInput [matDatepicker]="fromPicker" #FromDate="ngModel" name="FromDate"
-                                        [(ngModel)]="ExtraCharge.FromDate" required>
-                                    <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
-                                    <mat-datepicker #fromPicker></mat-datepicker>
-                                    @if ((FromDate.dirty || FromDate.touched) || (FromDate.invalid && isSubmitted)) {
-                                    <mat-error>From Date is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- To Date -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>To Date</mat-label>
-                                    <input matInput [matDatepicker]="toPicker" #ToDate="ngModel" name="ToDate"
-                                        [(ngModel)]="ExtraCharge.ToDate" required [min]="ExtraCharge.FromDate">
-                                    <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
-                                    <mat-datepicker #toPicker></mat-datepicker>
-                                    @if ((ToDate.dirty || ToDate.touched) || (ToDate.invalid && isSubmitted)) {
-                                    <mat-error>To Date is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- CP Rate -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>CP Rate</mat-label>
-                                    <input matInput #CpRate="ngModel" name="CpRate" [(ngModel)]="ExtraCharge.CpRate"
-                                        type="number" required>
-                                    @if ((CpRate.dirty || CpRate.touched) || (CpRate.invalid && isSubmitted)) {
-                                    <mat-error>CP Rate is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- MAP Rate -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>MAP Rate</mat-label>
-                                    <input matInput #MapRate="ngModel" name="MapRate" [(ngModel)]="ExtraCharge.MapRate"
-                                        type="number" required>
-                                    @if ((MapRate.dirty || MapRate.touched) || (MapRate.invalid && isSubmitted)) {
-                                    <mat-error>MAP Rate is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- AP Rate -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>AP Rate</mat-label>
-                                    <input matInput #ApRate="ngModel" name="ApRate" [(ngModel)]="ExtraCharge.ApRate"
-                                        type="number" required>
-                                    @if ((ApRate.dirty || ApRate.touched) || (ApRate.invalid && isSubmitted)) {
-                                    <mat-error>AP Rate is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- Status -->
-                                <mat-form-field appearance="outline" class="col-sm-2">
-                                    <mat-label>Status</mat-label>
-                                    <mat-select #Status="ngModel" name="Status" [(ngModel)]="ExtraCharge.Status"
-                                        required>
-                                        @for (status of StatusList; track status.Key) {
-                                        <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
-                                        }
-                                    </mat-select>
-                                    @if ((Status.dirty || Status.touched) ||
-                                    (Status.invalid && isSubmitted)) {
-                                    <mat-error>Status is <strong>required</strong></mat-error>
-                                    }
-                                </mat-form-field>
-
-                                <!-- Add / Update Button -->
-                                <div class="col-sm-2 d-flex mb-4 align-items-center gap-2">
-                                    <button mat-raised-button color="primary" (click)="addToTable()">
-                                        <i class="bx bx-plus me-1"></i>
-                                        {{ editingRowIndex !== null ? 'Update' : 'Add' }}
-                                    </button>
-                                    @if (editingRowIndex !== null) {
-                                    <button mat-raised-button color="warn" class="ms-2" (click)="cancelEdit()">
-                                        Cancel
-                                    </button>
-                                    }
+                                <div class="col-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Destination</mat-label>
+                                        <mat-select name="SelectedDestinationId" [(ngModel)]="SelectedDestinationId"
+                                            (ngModelChange)="onFormDestinationChange()" required>
+                                            @for (dest of DestinationList(); track dest.DestinationId) {
+                                            <mat-option [value]="dest.DestinationId">{{ dest.DestinationName
+                                                }}</mat-option>
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
                                 </div>
 
-                                <hr>
+                                <!-- Location -->
+                                <div class="col-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Location</mat-label>
+                                        <mat-select name="SelectedLocationId" [(ngModel)]="SelectedLocationId"
+                                            (ngModelChange)="onFormLocationChange()" required>
+                                            @for (loc of LocationList(); track loc.LocationId) {
+                                            <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
 
-                                <!-- Preview Table -->
-                                <div class="col-sm-12">
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-sm nowrap w-100">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>S.No</th>
-                                                    <th>Hotel</th>
-                                                    <th>Category</th>
-                                                    <th>Charge Type</th> <!-- 👈 replaces Room Type -->
-                                                    <th>From Date</th>
-                                                    <th>To Date</th>
-                                                    <th>CP Rate</th>
-                                                    <th>MAP Rate</th>
-                                                    <th>AP Rate</th>
-                                                    <th>Status</th>
-                                                    <th>Edit</th>
-                                                    <th>Remove</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @for (row of ExtraChargeRows(); track $index; let i = $index) {
-                                                <tr>
-                                                    <td>{{ i + 1 }}</td>
-                                                    <td>{{ row.HotelName }}</td>
-                                                    <td>{{ row.HotelCategoryName }}</td>
-                                                    <td>{{ row.ChargeTypeName }}</td> <!-- 👈 -->
-                                                    <td>{{ row.FromDate | date:'dd-MM-yyyy' }}</td>
-                                                    <td>{{ row.ToDate | date:'dd-MM-yyyy' }}</td>
-                                                    <td>{{ row.CpRate }}</td>
-                                                    <td>{{ row.MapRate }}</td>
-                                                    <td>{{ row.ApRate }}</td>
-                                                    <td>{{ AllStatusList[row.Status] }}</td>
-                                                    <td>
-                                                        <a class="text-success" style="cursor:pointer"
-                                                            (click)="editRow(i)">
-                                                            <i class="bx bxs-edit-alt"></i>
-                                                        </a>
-                                                    </td>
-                                                    <td>
-                                                        <a class="text-danger" style="cursor:pointer"
-                                                            (click)="removeRow(i)">
-                                                            <i class="bx bxs-trash"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                                }
-                                            </tbody>
-                                        </table>
+                                <!-- Hotel -->
+                                <div class="col-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Select Hotel</mat-label>
+                                        <mat-select #HotelId="ngModel" name="HotelId" [(ngModel)]="ExtraCharge.HotelId"
+                                            (ngModelChange)="onHotelChange()" required>
+                                            @for (dest of FilteredHotelList(); track dest.HotelId) {
+                                            <mat-option [value]="dest.HotelId">{{ dest.HotelName }}</mat-option>
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+
+                                <!-- From & To Date -->
+                                <div class="col-6">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>From Date</mat-label>
+                                        <input matInput [matDatepicker]="fromPicker" name="FromDate"
+                                            [(ngModel)]="ExtraCharge.FromDate" required>
+                                        <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+                                        <mat-datepicker #fromPicker></mat-datepicker>
+                                    </mat-form-field>
+                                </div>
+
+                                <div class="col-6">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>To Date</mat-label>
+                                        <input matInput [matDatepicker]="toPicker" name="ToDate"
+                                            [(ngModel)]="ExtraCharge.ToDate" required [min]="ExtraCharge.FromDate">
+                                        <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+                                        <mat-datepicker #toPicker></mat-datepicker>
+                                    </mat-form-field>
+                                </div>
+
+                                <!-- Status -->
+                                <div class="col-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Status</mat-label>
+                                        <mat-select name="Status" [(ngModel)]="ExtraCharge.Status" required>
+                                            @for (status of StatusList; track status.Key) {
+                                            <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                                            }
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-8">
+                    @if (showRoomTypeError()) {
+                    <div class="alert alert-danger mb-3 border-0 shadow-sm d-flex align-items-center">
+                        <i class="bx bx-error-circle me-2 fs-4"></i>
+                        No room type available for this hotel.
+                    </div>
+                    }
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div
+                            class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0"><i class="bx bx-money me-2 text-success"></i>Define Rates</h5>
+                            <span class="badge bg-soft-info text-info p-2">{{ ExtraCharge.HotelCategoryName || 'No
+                                Category' }}</span>
+                        </div>
+                        <div class="card-body bg-light-subtle">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white border rounded shadow-sm">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">CWEB</h6>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2 small-input">
+                                            <mat-label>CP Rate</mat-label>
+                                            <input matInput name="CWeb_CpRate" [(ngModel)]="CWebRates.CpRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2">
+                                            <mat-label>MAP Rate</mat-label>
+                                            <input matInput name="CWeb_MapRate" [(ngModel)]="CWebRates.MapRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100">
+                                            <mat-label>AP Rate</mat-label>
+                                            <input matInput name="CWeb_ApRate" [(ngModel)]="CWebRates.ApRate"
+                                                type="number">
+                                        </mat-form-field>
                                     </div>
                                 </div>
 
-                                <!-- Save All Button -->
-                                @if (ExtraChargeRows().length > 0) {
-                                <div class="col-sm-12 mt-3">
-                                    <button mat-raised-button color="primary" (click)="saveExtraCharges()">
-                                        <i class="bx bx-save me-1"></i> Save All
-                                    </button>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white border rounded shadow-sm">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">AWEB</h6>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2">
+                                            <mat-label>CP Rate</mat-label>
+                                            <input matInput name="AWeb_CpRate" [(ngModel)]="AWebRates.CpRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2">
+                                            <mat-label>MAP Rate</mat-label>
+                                            <input matInput name="AWeb_MapRate" [(ngModel)]="AWebRates.MapRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100">
+                                            <mat-label>AP Rate</mat-label>
+                                            <input matInput name="AWeb_ApRate" [(ngModel)]="AWebRates.ApRate"
+                                                type="number">
+                                        </mat-form-field>
+                                    </div>
                                 </div>
-                                }
 
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white border rounded shadow-sm">
+                                        <h6 class="text-primary border-bottom pb-2 mb-3">CNB</h6>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2">
+                                            <mat-label>CP Rate</mat-label>
+                                            <input matInput name="CNB_CpRate" [(ngModel)]="CNBRates.CpRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100 mb-2">
+                                            <mat-label>MAP Rate</mat-label>
+                                            <input matInput name="CNB_MapRate" [(ngModel)]="CNBRates.MapRate"
+                                                type="number">
+                                        </mat-form-field>
+                                        <mat-form-field appearance="outline" class="w-100">
+                                            <mat-label>AP Rate</mat-label>
+                                            <input matInput name="CNB_ApRate" [(ngModel)]="CNBRates.ApRate"
+                                                type="number">
+                                        </mat-form-field>
+                                    </div>
+                                </div>
                             </div>
-                        </form>
 
+                            <div class="mt-4 d-flex justify-content-end gap-2">
+                                @if (editingRowIndex !== null) {
+                                <button mat-button color="warn" (click)="cancelEdit()">Cancel</button>
+                                }
+                                <button mat-raised-button color="primary" class="px-4" (click)="addToTable()">
+                                    <i class="bx {{ editingRowIndex !== null ? 'bx-check' : 'bx-plus' }} me-1"></i>
+                                    {{ editingRowIndex !== null ? 'Update Entry' : 'Add to Preview' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div
+                        class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Charge Summary List</h5>
+                        <!-- @if (ExtraChargeRows().length > 0) {
+                            <button mat-raised-button color="accent" (click)="saveExtraCharges()">
+                                <i class="bx bx-save me-1"></i> Finalize & Save All
+                            </button>
+                        } -->
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover border-light">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width: 50px;">#</th>
+                                        <th>Hotel / Category</th>
+                                        <th>Type</th>
+                                        <th>Validity</th>
+                                        <th class="text-center">CP</th>
+                                        <th class="text-center">MAP</th>
+                                        <th class="text-center">AP</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (row of ExtraChargeRows(); track $index; let i = $index) {
+                                    <tr>
+                                        <td class="text-center text-muted">{{ i + 1 }}</td>
+                                        <td>
+                                            <div class="fw-bold">{{ row.HotelName }}</div>
+                                            <small class="text-muted">{{ row.HotelCategoryName }}</small>
+                                        </td>
+                                        <td><span class="badge bg-soft-primary text-primary">{{ row.ChargeTypeName
+                                                }}</span></td>
+                                        <td>
+                                            <div class="small">
+                                                {{ row.FromDate | date:'dd MMM yy' }}
+                                                <br>
+                                                {{ row.ToDate |
+                                                date:'dd MMM yy' }}
+                                            </div>
+                                        </td>
+                                        <td class="text-center fw-medium">{{ row.CpRate }}</td>
+                                        <td class="text-center fw-medium">{{ row.MapRate }}</td>
+                                        <td class="text-center fw-medium">{{ row.ApRate }}</td>
+                                        <td>
+                                            <span class="badge"
+                                                [ngClass]="row.Status === 1 ? 'bg-success' : 'bg-danger'">
+                                                {{ AllStatusList[row.Status] }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button mat-icon-button class="text-success" (click)="editRow(i)">
+                                                <i class="bx bxs-edit-alt fs-5"></i>
+                                            </button>
+                                            <button mat-icon-button class="text-danger" (click)="removeRow(i)">
+                                                <i class="bx bxs-trash fs-5"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    } @empty {
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                                            No charges added to the list yet.
+                                        </td>
+                                    </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-sm-12 text-end">
+                            @if (ExtraChargeRows().length > 0) {
+                            <button mat-raised-button color="accent" (click)="saveExtraCharges()">
+                                <i class="bx bx-save me-1"></i> Finalize & Save All
+                            </button>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
