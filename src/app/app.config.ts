@@ -27,7 +27,13 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(),
     provideAnimationsAsync(),
-    provideToastr(),
+provideToastr({
+  // positionClass: 'toast-top-right',  // 👈 fixed to bottom-right viewport
+  // timeOut: 3000,
+  // progressBar: true,
+  // closeButton: true,
+  // preventDuplicates: true,
+}),
 
     importProvidersFrom(
       FormsModule,

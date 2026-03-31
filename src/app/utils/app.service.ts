@@ -100,6 +100,20 @@ export class AppService {
   }
   /* ---------------------------------------------------------------------- */
 
+  //Extra Charge
+  getExtraChargeList(obj: any) {
+    return this.http.post(this.apiUrl + "ExtraCharge/ExtraChargeList", obj, { headers: this.headers })
+  }
+
+  saveExtraCharge(obj: any) {
+    return this.http.post(this.apiUrl + "ExtraCharge/saveExtraCharge", obj, { headers: this.headers })
+  }
+
+  deleteExtraCharge(obj: any) {
+    return this.http.post(this.apiUrl + "ExtraCharge/deleteExtraCharge", obj, { headers: this.headers })
+  }
+  /* ---------------------------------------------------------------------- */
+
   //Department
   getDepartmentList(obj: any) {
     return this.http.post(this.apiUrl + "Department/DepartmentList", obj, { headers: this.headers })

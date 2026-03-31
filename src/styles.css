@@ -63,7 +63,7 @@ table.dataTable thead .sorting:before,table.dataTable thead .sorting:after,table
 
 /* Find the class for your toast container (often something like .ngx-toastr or .toast-container) */
 .toast-container {
-    position: absolute !important; /* Changes from 'fixed' to 'absolute' */
+    position: fixed !important; /* Changes from 'fixed' to 'absolute' */
     top: 20px; 
     right: 20px;
 }
