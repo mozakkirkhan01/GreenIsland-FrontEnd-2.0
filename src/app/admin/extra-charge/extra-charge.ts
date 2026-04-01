@@ -19,6 +19,8 @@ import { LoadDataService } from '../../utils/load-data.service';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { ActivatedRoute } from '@angular/router';
+import { Progress } from '../../component/progress/progress';
+
 
 @Component({
   selector: 'app-extra-charge',
@@ -34,6 +36,7 @@ import { ActivatedRoute } from '@angular/router';
     NgxPaginationModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    Progress,
   ],
   templateUrl: './extra-charge.html',
   styleUrl: './extra-charge.css',
@@ -561,6 +564,7 @@ export class ExtraCharge {
       return;
     }
 
+
     const dataToSave = this.ExtraChargeRows().map((row: any) => ({
       ExtraChargeId: row.ExtraChargeId || 0,
       HotelId: row.HotelId,
@@ -568,8 +572,8 @@ export class ExtraCharge {
       CpRate: row.CpRate,
       MapRate: row.MapRate,
       ApRate: row.ApRate,
-      FromDate: row.FromDate,
-      ToDate: row.ToDate,
+      FromDate: this.loadData.loadDateTime(row.FromDate),  // ✅ convert each row's date
+      ToDate: this.loadData.loadDateTime(row.ToDate),
       Status: row.Status
     }));
 
