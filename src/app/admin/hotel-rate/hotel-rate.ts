@@ -19,7 +19,8 @@ import { LoadDataService } from '../../utils/load-data.service';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { ActivatedRoute } from '@angular/router';
-
+import { Progress } from '../../component/progress/progress';
+declare var $: any;
 @Component({
   selector: 'app-hotel-rate',
   standalone: true,
@@ -34,9 +35,10 @@ import { ActivatedRoute } from '@angular/router';
     NgxPaginationModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    Progress,
   ],
   templateUrl: './hotel-rate.html',
-  styleUrl: './hotel-rate.css'
+  styleUrls: ['./hotel-rate.css']
 })
 export class HotelRate {
 
@@ -261,7 +263,7 @@ export class HotelRate {
               CpRate: record.CpRate,
               MapRate: record.MapRate,
               ApRate: record.ApRate,
-              Status: record.this.Status
+              Status: record.Status,
             }))
           );
         } else {
@@ -372,7 +374,8 @@ export class HotelRate {
                     ToDate: new Date(record.ToDate),
                     CpRate: record.CpRate,
                     MapRate: record.MapRate,
-                    ApRate: record.ApRate
+                    ApRate: record.ApRate,
+                    Status: record.Status,
                   };
 
                   // ✅ Step 5: Load room types for selected hotel
@@ -428,8 +431,10 @@ export class HotelRate {
       HotelCategoryName: this.HotelRate.HotelCategoryName,
       RoomTypeId: this.HotelRate.RoomTypeId,
       RoomTypeName: selectedRoom?.RoomTypeName,
-      FromDate: this.HotelRate.FromDate,
-      ToDate: this.HotelRate.ToDate,
+      FromDate : this.loadData.loadDateTime(this.HotelRate.FromDate),
+      ToDate : this.loadData.loadDateTime(this.HotelRate.ToDate),
+      // FromDate: this.HotelRate.FromDate,
+      // ToDate: this.HotelRate.ToDate,
       CpRate: this.HotelRate.CpRate,
       MapRate: this.HotelRate.MapRate,
       ApRate: this.HotelRate.ApRate,
@@ -513,11 +518,19 @@ export class HotelRate {
       this.toastr.error("Please add at least one row");
       return;
     }
+
+    const rowsToSave = this.HotelRateRows().map(row => ({
+      ...row,
+      FromDate: this.loadData.loadDateTime(row.FromDate),  // ✅ convert each row's date
+      ToDate: this.loadData.loadDateTime(row.ToDate),
+    }));
+
     const obj: RequestModel = {
       request: this.localService.encrypt(
-        JSON.stringify(this.HotelRateRows())
+        JSON.stringify(rowsToSave)  // ✅ use converted rows
       ).toString()
     };
+
     this.dataLoading.set(true);
     this.service.saveHotelRate(obj).subscribe({
       next: (r1: any) => {
@@ -537,6 +550,39 @@ export class HotelRate {
     });
   }
 
+//  saveHotelRates() {
+//     if (this.HotelRateRows().length === 0) {
+//       this.toastr.error("Please add at least one row");
+//       return;
+//     }
+//     const obj: RequestModel = {
+//       request: this.localService.encrypt(
+//         JSON.stringify(this.HotelRateRows())
+//       ).toString()
+//     };
+//     this.HotelRate.FromDate = this.loadData.loadDateTime(this.HotelRate.FromDate);
+//     this.HotelRate.ToDate = this.loadData.loadDateTime(this.HotelRate.ToDate);
+//     this.dataLoading.set(true);
+//     this.service.saveHotelRate(obj).subscribe({
+//       next: (r1: any) => {
+//         if (r1.Message == ConstantData.SuccessMessage) {
+//           this.toastr.success("Hotel rates saved successfully");
+//           this.HotelRateRows.set([]);
+//           this.resetForm();
+//         } else {
+//           this.toastr.error(r1.Message);
+//         }
+//         this.dataLoading.set(false);
+//       },
+//       error: () => {
+//         this.toastr.error("Error occurred while saving data");
+//         this.dataLoading.set(false);
+//       }
+//     });
+//   }
+
+
+  
   sort(key: any) {
     this.sortKey = key;
     this.reverse = !this.reverse;

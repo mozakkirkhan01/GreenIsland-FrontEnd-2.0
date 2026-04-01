@@ -16,6 +16,7 @@ import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interfac
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
 import { LoadDataService } from '../../utils/load-data.service';
+import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-hotel-ratelist',
@@ -30,7 +31,8 @@ import { LoadDataService } from '../../utils/load-data.service';
     MatButtonModule,
     NgxPaginationModule,
     FilterPipe,
-    OrderByPipe
+    OrderByPipe,
+    Progress,
   ],
   templateUrl: './hotel-ratelist.html',
   styleUrl: './hotel-ratelist.css',
@@ -198,20 +200,21 @@ export class HotelRatelist {
   FilterDestinationId: any = 0;
   FilterLocationId: any = 0;
   FilterHotelId: any = 0;
-  DestinationList   = signal<any[]>([]);
+  DestinationList = signal<any[]>([]);
   FilterLocationList = signal<any[]>([]);
   FilteredHotelList = signal<any[]>([]);
-  FilterHotelList   = signal<any[]>([]);
-  RoomTypeList      = signal<any[]>([]);
+  FilterHotelList = signal<any[]>([]);
+  RoomTypeList = signal<any[]>([]);
 
 
 
-    onFilterDestinationChange() {
+  onFilterDestinationChange() {
     this.FilterLocationId = 0;
-    this.FilterHotelId    = 0;
+    this.FilterHotelId = 0;
     this.FilterLocationList.set([]);
     this.FilterHotelList.set([]);
     this.RoomTypeList.set([]);
+    this.RateHotelList.set([]);  // ✅ clear rates on destination change
 
     if (!this.FilterDestinationId || this.FilterDestinationId == 0) return;
 
@@ -220,15 +223,18 @@ export class HotelRatelist {
         JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
       ).toString()
     };
+    this.dataLoading.set(true);
     this.service.getLocationList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
           this.FilterLocationList.set(r1.LocationList);
+          this.dataLoading.set(false);
+
         }
       }
     });
   }
-    // ── Destination list ──────────────────────────────────────────────────
+  // ── Destination list ──────────────────────────────────────────────────
   getDestinationList() {
     const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
@@ -246,10 +252,30 @@ export class HotelRatelist {
       }
     });
   }
+  // onFilterLocationChange() {
+  //   this.FilterHotelId = 0;
+  //   this.FilterHotelList.set([]);
+  //   this.RoomTypeList.set([]);
+
+  //   if (!this.FilterLocationId || this.FilterLocationId == 0) return;
+
+  //   const obj: RequestModel = {
+  //     request: this.localService.encrypt(
+  //       JSON.stringify({ LocationId: Number(this.FilterLocationId) })
+  //     ).toString()
+  //   };
+  //   this.service.getHotelList(obj).subscribe({
+  //     next: (r1: any) => {
+  //       if (r1.Message == ConstantData.SuccessMessage) {
+  //         this.FilterHotelList.set(r1.HotelList);
+  //       }
+  //     }
+  //   });
+  // }
   onFilterLocationChange() {
     this.FilterHotelId = 0;
     this.FilterHotelList.set([]);
-    this.RoomTypeList.set([]);
+    this.RateHotelList.set([]);
 
     if (!this.FilterLocationId || this.FilterLocationId == 0) return;
 
@@ -258,20 +284,61 @@ export class HotelRatelist {
         JSON.stringify({ LocationId: Number(this.FilterLocationId) })
       ).toString()
     };
+
+    this.dataLoading.set(true);
     this.service.getHotelList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
           this.FilterHotelList.set(r1.HotelList);
+
+          // ✅ Load rates for ALL hotels in this location
+          this.getHotelRateListByLocation();
         }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching hotel list");
+        this.dataLoading.set(false);
       }
     });
   }
-    onFilterHotelChange() {
+  getHotelRateListByLocation() {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ LocationId: Number(this.FilterLocationId) || 0 })
+      ).toString()
+    };
+    this.dataLoading.set(true);
+    this.service.getHotelRateList(obj).subscribe({
+      next: (r1: any) => {
+        console.log('Rate List Response:', r1.HotelRateList); // ← add this
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.RateHotelList.set(r1.HotelRateList);
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching hotel rates");
+        this.dataLoading.set(false);
+      }
+    });
+  }
+  onFilterHotelChange() {
     this.RateHotelList.set([]);
-    if (!this.FilterHotelId || this.FilterHotelId == 0) return;
+
+    if (!this.FilterHotelId || this.FilterHotelId == 0) {
+      // Show all hotels for selected location
+      if (this.FilterLocationId && this.FilterLocationId != 0) {
+        this.getHotelRateListByLocation();
+      }
+      return;
+    }
+
     this.getHotelRateList();
   }
-    // ── Room type list ────────────────────────────────────────────────────
+  // ── Room type list ────────────────────────────────────────────────────
   // getRoomTypeList() {
   //   const obj: RequestModel = {
   //     request: this.localService.encrypt(

@@ -1,3 +1,4 @@
+@if (dataLoading()) {<app-progress></app-progress>};
 <div class="page-content">
     <div class="container-fluid">
 
@@ -187,7 +188,7 @@
                                 </mat-form-field>
 
                                 <!-- Status -->
-                                <mat-form-field appearance="outline" class="col-sm-2" >
+                                <mat-form-field appearance="outline" class="col-sm-2">
                                     <mat-label>Status</mat-label>
                                     <mat-select #Status="ngModel" name="Status" [(ngModel)]="HotelRate.Status" required>
                                         @for (status of StatusList; track status.Key) {

@@ -1,3 +1,5 @@
+@if (dataLoading()) {<app-progress></app-progress>};
+
 <div class="page-content">
     <div class="container-fluid">
 
@@ -83,7 +85,7 @@
                                         <label>Destination</label>
                                         <select class="form-select" [(ngModel)]="FilterDestinationId"
                                             (ngModelChange)="onFilterDestinationChange()">
-                                            <option value="0">-- All Destinations --</option>
+                                            <option value="0">-- Select Destinations --</option>
                                             @for (dest of DestinationList(); track dest.DestinationId) {
                                             <option [value]="dest.DestinationId">{{ dest.DestinationName }}</option>
                                             }
@@ -96,7 +98,7 @@
                                         <select class="form-select" [(ngModel)]="FilterLocationId"
                                             (ngModelChange)="onFilterLocationChange()"
                                             [disabled]="FilterLocationList().length === 0">
-                                            <option value="0">-- All Locations --</option>
+                                            <option value="0">-- Select Locations --</option>
                                             @for (loc of FilterLocationList(); track loc.LocationId) {
                                             <option [value]="loc.LocationId">{{ loc.LocationName }}</option>
                                             }
@@ -122,13 +124,13 @@
                             </div>
 
                             <!-- Loading indicator -->
-                            @if (dataLoading()) {
-                            <div class="text-center my-3">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                                <!-- @if (dataLoading()) {
+                                <div class="text-center my-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
                                 </div>
-                            </div>
-                            }
+                                } -->
 
                             <!-- Table -->
                             <div class="row">
