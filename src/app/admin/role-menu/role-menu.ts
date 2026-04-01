@@ -17,6 +17,7 @@ import { Status } from '../../utils/enum';
 import { LoadDataService } from '../../utils/load-data.service';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { FilterPipe } from '../../utils/filter-pipe';
+import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-role-menu',
@@ -33,6 +34,7 @@ import { FilterPipe } from '../../utils/filter-pipe';
     MatIconModule,
     MatDividerModule,
     FilterPipe,
+    Progress,
   ],
   templateUrl: './role-menu.html',
   styleUrls: ['./role-menu.css']
