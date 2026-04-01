@@ -16,6 +16,7 @@ import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interfac
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
 import { LoadDataService } from '../../utils/load-data.service';
+import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-hotel-category',
@@ -30,7 +31,8 @@ import { LoadDataService } from '../../utils/load-data.service';
     MatButtonModule,
     NgxPaginationModule,
     FilterPipe,
-    OrderByPipe
+    OrderByPipe,
+    Progress
   ],
   templateUrl: './hotel-category.html',
   styleUrl: './hotel-category.css',
