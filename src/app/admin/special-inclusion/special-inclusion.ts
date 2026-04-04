@@ -15,6 +15,7 @@ import { Status } from '../../utils/enum';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LoadDataService } from '../../utils/load-data.service';
 import { Progress } from '../../component/progress/progress';
+// import { error } from 'jquery';
 
 @Component({
   selector: 'app-special-inclusion',
@@ -339,54 +340,60 @@ export class SpecialInclusion {
   }
 
   // ── Save all filled rows ──────────────────────────────────────────────
-  saveSpecialInclusions() {
-    if (!this.SpecialInclusion.HotelId) {
-      this.toastr.error("Please select a hotel first");
-      return;
-    }
-
-    const dataToSave = this.SpecialInclusionTypeList()
-      .filter((type: any) => {
-        const input = this.RateInputs[type.SpecialInclusionTypeId];
-        return input && input.Rate !== '' && input.Rate !== null && input.Rate !== undefined;
-      })
-      .map((type: any) => {
-        const input = this.RateInputs[type.SpecialInclusionTypeId];
-        return {
-          SpecialInclusionId: input.SpecialInclusionId || 0,
-          HotelId: this.SpecialInclusion.HotelId,
-          SpecialInclusionTypeId: type.SpecialInclusionTypeId,
-          Rate: input.Rate,
-          Status: input.Status ?? 1
-        };
-      });
-
-    if (dataToSave.length === 0) {
-      this.toastr.error("Please fill in at least one rate");
-      return;
-    }
-
-    const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(dataToSave)).toString()
-    };
-
-    this.dataLoading.set(true);
-    this.service.saveSpecialInclusion(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.toastr.success("Special inclusions saved successfully");
-          this.getSpecialInclusionsByHotel(this.SpecialInclusion.HotelId);
-        } else {
-          this.toastr.error(r1.Message);
-        }
-        this.dataLoading.set(false);
-      },
-      error: () => {
-        this.toastr.error("Error occurred while saving data");
-        this.dataLoading.set(false);
-      }
-    });
+saveSpecialInclusions() {
+  if (!this.SpecialInclusion.HotelId) {
+    this.toastr.error("Please select a hotel first");
+    return;
   }
+
+  const dataToSave = this.SpecialInclusionTypeList()
+    .filter((type: any) => {
+      const input = this.RateInputs[type.SpecialInclusionTypeId];
+      return input && input.Rate !== '' && input.Rate !== null && input.Rate !== undefined;
+    })
+    .map((type: any) => {
+      const input = this.RateInputs[type.SpecialInclusionTypeId];
+      return {
+        SpecialInclusionId: input.SpecialInclusionId || 0,
+        HotelId: this.SpecialInclusion.HotelId,
+        SpecialInclusionTypeId: type.SpecialInclusionTypeId,
+        Rate: input.Rate,
+        Status: input.Status ?? 1
+      };
+    });
+
+  if (dataToSave.length === 0) {
+    this.toastr.error("Please fill in at least one rate");
+    return;
+  }
+
+  const obj: RequestModel = {
+    request: this.localService.encrypt(JSON.stringify(dataToSave)).toString()
+  };
+
+  this.dataLoading.set(true);
+  this.service.saveSpecialInclusion(obj).subscribe({
+    next: (r1: any) => {
+      if (r1.Message == ConstantData.SuccessMessage) {
+        // 👇 message changes based on mode
+        this.toastr.success(this.isEditMode ? "Updated successfully" : "Saved successfully");
+        this.isEditMode = false;  // 👈 reset back to save mode after update
+        this.getSpecialInclusionsByHotel(this.SpecialInclusion.HotelId);
+        // ── Also refresh the filter table if same hotel is selected ──
+        if (this.FilterHotelId === this.SpecialInclusion.HotelId) {
+          this.loadFilteredData();
+        }
+      } else {
+        this.toastr.error(r1.Message);
+      }
+      this.dataLoading.set(false);
+    },
+    error: () => {
+      this.toastr.error("Error occurred while saving data");
+      this.dataLoading.set(false);
+    }
+  });
+}
 
   // ════════════════════════════════════════════════════════════════════
   //  FILTER SECTION cascade (for table listing below)
@@ -486,19 +493,79 @@ export class SpecialInclusion {
 
   onTableDataChange(p: any) { this.p = p; }
 
-  editRecord(row:any) {
-    //set destination and load locations
-    this.SelectedDestinationId = row.DestinationId; //
+  isEditMode = false;
+
+  editRecord(row: any) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // ── Look up hotel to get DestinationId and LocationId ──
+    const hotel = this.HotelList().find((h: any) => h.HotelId === row.HotelId);
+    if (!hotel) {
+      this.toastr.error("Hotel info not found");
+      return;
+    }
+
+    this.isEditMode = true; // switch to edit mode - button becomes "update"
+
+    // ── Step 1: Set destination and load locations ──
+    this.SelectedDestinationId = hotel.DestinationId;  // ✅ fixed — was using row.DestinationId
     this.onFormDestinationChange();
 
-    setTimeout(() =>{
-      this.SelectedDestinationId = row.LocationId;
+    // ── Step 2: Wait for location API to respond (server is slow → 800ms) ──
+    setTimeout(() => {
+      this.SelectedLocationId = hotel.LocationId;       // ✅ fixed — was setting SelectedDestinationId again
       this.onFormLocationChange();
 
+      // ── Step 3: Wait for hotel list to filter, then set hotel and load rates ──
       setTimeout(() => {
-        this.SpecialInclusion.HotelId = row.HotelId;
-        this.onHotelChange();
-      }, 300);
-    }, 300);
+        this.SpecialInclusion.HotelId = hotel.HotelId;
+        this.onHotelChange(); // this calls getSpecialInclusionsByHotel() which pre-fills all rate inputs
+      }, 800); // ← increase if rates still don't pre-fill
+    }, 800);   // ← increase if location dropdown is still empty when hotel tries to set
+  }
+
+  cancelEdit(){
+    this.isEditMode = false;
+    this.resetForm();
+  }
+
+deleteRecord(row: any) {
+  // ── Confirm before deleting ──
+  if (!confirm(`Are you sure you want to delete "${row.SpecialInclusionTypeName}" inclusion?`)) {
+    return;
+  }
+
+  const obj: RequestModel = {
+    request: this.localService.encrypt(
+      JSON.stringify({ SpecialInclusionId: row.SpecialInclusionId })
+    ).toString()
   };
+
+  this.filterDataLoading.set(true);
+  this.service.deleteSpecialInclusion(obj).subscribe({
+    next: (r1: any) => {
+      if (r1.Message == ConstantData.SuccessMessage) {
+        this.toastr.success(`"${row.SpecialInclusionTypeName}" deleted successfully`);
+
+        // ── Remove from table immediately without re-fetching ──
+        this.SpecialInclusionListData.update(rows =>
+          rows.filter(r => r.SpecialInclusionId !== row.SpecialInclusionId)
+        );
+
+        // ── If this hotel is open in the form above, refresh its rate inputs too ──
+        if (this.SpecialInclusion.HotelId === row.HotelId) {
+          this.getSpecialInclusionsByHotel(row.HotelId);
+        }
+      } else {
+        this.toastr.error(r1.Message);
+      }
+      this.filterDataLoading.set(false);
+    },
+    error: () => {
+      this.toastr.error("Error occurred while deleting");
+      this.filterDataLoading.set(false);
+    }
+  });
 }
+  }
+
