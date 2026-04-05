@@ -17,6 +17,7 @@ import { LoadDataService } from '../../utils/load-data.service';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
+import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-page',
@@ -33,6 +34,7 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
     NgxPaginationModule,
     FilterPipe,
     OrderByPipe,
+    Progress,
   ],
   templateUrl: './page.html',
   styleUrls: ['./page.css']
