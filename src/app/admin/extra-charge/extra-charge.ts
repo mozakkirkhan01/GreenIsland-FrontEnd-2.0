@@ -60,8 +60,8 @@ export class ExtraCharge {
   ExtraCharge: any = {};
 
   // 9 rate fields: CWeb, AWeb, CNB — each has CpRate, MapRate, ApRate
-  CWebRates: any = { CpRate: '', MapRate: '', ApRate: '' };
   AWebRates: any = { CpRate: '', MapRate: '', ApRate: '' };
+  CWebRates: any = { CpRate: '', MapRate: '', ApRate: '' };
   CNBRates: any = { CpRate: '', MapRate: '', ApRate: '' };
 
   isSubmitted = false;
@@ -129,8 +129,8 @@ export class ExtraCharge {
   // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
     this.ExtraCharge = { Status: 1, FromDate: null, ToDate: null };
-    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.AWebRates = { CpRate: '', MapRate: '', ApRate: '' };
+    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.CNBRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.SelectedDestinationId = 0;
     this.SelectedLocationId = 0;
@@ -145,8 +145,8 @@ export class ExtraCharge {
 
   // ── Reset only the rate fields (keep hotel/dates) ─────────────────────
   resetRateFields() {
-    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.AWebRates = { CpRate: '', MapRate: '', ApRate: '' };
+    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.CNBRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.ExtraCharge.FromDate = null;
     this.ExtraCharge.ToDate = null;
@@ -268,6 +268,7 @@ export class ExtraCharge {
                 Status: record.Status
               };
             })
+            // .sort((a: any, b: any) => a.ChargeType - b.ChargeType)  
           );
 
         } else {
@@ -414,8 +415,8 @@ export class ExtraCharge {
       return;
     }
 
-    const cwebFilled = this.CWebRates.CpRate !== '' && this.CWebRates.MapRate !== '' && this.CWebRates.ApRate !== '';
     const awebFilled = this.AWebRates.CpRate !== '' && this.AWebRates.MapRate !== '' && this.AWebRates.ApRate !== '';
+    const cwebFilled = this.CWebRates.CpRate !== '' && this.CWebRates.MapRate !== '' && this.CWebRates.ApRate !== '';
     const cnbFilled = this.CNBRates.CpRate !== '' && this.CNBRates.MapRate !== '' && this.CNBRates.ApRate !== '';
 
     if (!cwebFilled && !awebFilled && !cnbFilled) {
@@ -428,8 +429,8 @@ export class ExtraCharge {
     );
 
     const chargeGroups = [
-      { chargeTypeKey: ChargeType.CWEB, label: 'CWEB', rates: this.CWebRates },
       { chargeTypeKey: ChargeType.AWEB, label: 'AWEB', rates: this.AWebRates },
+      { chargeTypeKey: ChargeType.CWEB, label: 'CWEB', rates: this.CWebRates },
       { chargeTypeKey: ChargeType.CNB, label: 'CNB', rates: this.CNBRates },
     ];
 
@@ -506,15 +507,15 @@ export class ExtraCharge {
     this.ExtraCharge.Status = row.Status;
 
     // ── Clear all 9 rate fields first ──
-    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.AWebRates = { CpRate: '', MapRate: '', ApRate: '' };
+    this.CWebRates = { CpRate: '', MapRate: '', ApRate: '' };
     this.CNBRates = { CpRate: '', MapRate: '', ApRate: '' };
 
     const rates = { CpRate: row.CpRate, MapRate: row.MapRate, ApRate: row.ApRate };
 
     // ── Match by ChargeType enum value (number), not label string ──
-    if (row.ChargeType === ChargeType.CWEB) { this.CWebRates = { ...rates }; }
-    else if (row.ChargeType === ChargeType.AWEB) { this.AWebRates = { ...rates }; }
+    if(row.ChargeType === ChargeType.AWEB) { this.AWebRates = { ...rates }; }
+    else if  (row.ChargeType === ChargeType.CWEB) { this.CWebRates = { ...rates }; }
     else if (row.ChargeType === ChargeType.CNB) { this.CNBRates = { ...rates }; }
   }
 
