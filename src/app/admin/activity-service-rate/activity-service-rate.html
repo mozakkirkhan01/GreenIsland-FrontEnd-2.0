@@ -1,0 +1,340 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FORM                                                   -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <span class="fw-semibold">
+              {{ ActivityServiceRateModel.ActivityServiceRateId > 0 ? 'Update Activity Service Rate' : 'Add Activity Service Rate' }}
+            </span>
+            <br><br>
+
+            <form #formActivityServiceRate="ngForm">
+              <div class="row d-flex align-items-center">
+
+                <!-- Destination -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Destination</mat-label>
+                  <mat-select name="SelectedDestinationId"
+                    [(ngModel)]="SelectedDestinationId"
+                    (ngModelChange)="onFormDestinationChange()" required>
+                    @for (dest of DestinationList(); track dest.DestinationId) {
+                      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Location -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Location</mat-label>
+                  <mat-select name="SelectedLocationId"
+                    [(ngModel)]="SelectedLocationId"
+                    (ngModelChange)="onFormLocationChange()" required
+                    [disabled]="LocationList().length === 0">
+                    @for (loc of LocationList(); track loc.LocationId) {
+                      <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Activity Service -->
+                <mat-form-field appearance="outline" class="col-sm-3">
+                  <mat-label>Activity Service</mat-label>
+                  <mat-select #ActivityServiceId="ngModel" name="ActivityServiceId"
+                    [(ngModel)]="SelectedActivityServiceId"
+                    (ngModelChange)="onFormActivityServiceChange()" required
+                    [disabled]="ActivityServiceList().length === 0">
+                    @for (svc of ActivityServiceList(); track svc.ActivityServiceId) {
+                      <mat-option [value]="svc.ActivityServiceId">{{ svc.ActivityServiceName }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((ActivityServiceId.dirty || ActivityServiceId.touched) || (ActivityServiceId.invalid && isSubmitted)) {
+                    <mat-error>Activity Service is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- From Date -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>From Date</mat-label>
+                  <input matInput #FromDate="ngModel" name="FromDate" type="date"
+                    [(ngModel)]="ActivityServiceRateModel.FromDate" required>
+                  @if ((FromDate.dirty || FromDate.touched) || (FromDate.invalid && isSubmitted)) {
+                    <mat-error>From Date is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- To Date -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>To Date</mat-label>
+                  <input matInput #ToDate="ngModel" name="ToDate" type="date"
+                    [(ngModel)]="ActivityServiceRateModel.ToDate" required>
+                  @if ((ToDate.dirty || ToDate.touched) || (ToDate.invalid && isSubmitted)) {
+                    <mat-error>To Date is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Adult Rate -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Adult Rate</mat-label>
+                  <input matInput #AdultRate="ngModel" name="AdultRate" type="number"
+                    [(ngModel)]="ActivityServiceRateModel.AdultRate" required min="0">
+                  @if ((AdultRate.dirty || AdultRate.touched) || (AdultRate.invalid && isSubmitted)) {
+                    <mat-error>Adult Rate is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Child Above Two Year -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Child (Above 2 Yrs)</mat-label>
+                  <input matInput #ChildAboveTwoYear="ngModel" name="ChildAboveTwoYear" type="number"
+                    [(ngModel)]="ActivityServiceRateModel.ChildAboveTwoYear" required min="0">
+                  @if ((ChildAboveTwoYear.dirty || ChildAboveTwoYear.touched) || (ChildAboveTwoYear.invalid && isSubmitted)) {
+                    <mat-error>Child (Above 2 Yrs) is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Child Below Two Year -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Child (Below 2 Yrs)</mat-label>
+                  <input matInput #ChildBelowTwoYear="ngModel" name="ChildBelowTwoYear" type="number"
+                    [(ngModel)]="ActivityServiceRateModel.ChildBelowTwoYear" required min="0">
+                  @if ((ChildBelowTwoYear.dirty || ChildBelowTwoYear.touched) || (ChildBelowTwoYear.invalid && isSubmitted)) {
+                    <mat-error>Child (Below 2 Yrs) is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status"
+                    [(ngModel)]="ActivityServiceRateModel.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                    <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Save / Cancel Buttons -->
+                <div class="col-sm-2 d-flex mb-4 align-items-center gap-2">
+                  <button mat-raised-button color="primary" (click)="saveActivityServiceRate()">
+                    <i class="bx bx-save me-1"></i>
+                    {{ ActivityServiceRateModel.ActivityServiceRateId > 0 ? 'Update' : 'Save' }}
+                  </button>
+                  @if (ActivityServiceRateModel.ActivityServiceRateId > 0) {
+                    <button mat-raised-button color="warn" (click)="resetForm()">Cancel</button>
+                  }
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FILTER + LIST TABLE                                   -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+
+            <!-- Filter Row -->
+            <div class="row d-flex align-items-center mb-3">
+
+              <!-- Filter Destination -->
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Destination</mat-label>
+                <mat-select name="FilterDestinationId"
+                  [(ngModel)]="FilterDestinationId"
+                  (ngModelChange)="onFilterDestinationChange()">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (dest of DestinationList(); track dest.DestinationId) {
+                    <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Filter Location -->
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Location</mat-label>
+                <mat-select name="FilterLocationId"
+                  [(ngModel)]="FilterLocationId"
+                  (ngModelChange)="onFilterLocationChange()"
+                  [disabled]="FilterLocationList().length === 0">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (loc of FilterLocationList(); track loc.LocationId) {
+                    <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Filter Activity Service -->
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Activity Service</mat-label>
+                <mat-select name="FilterActivityServiceId"
+                  [(ngModel)]="FilterActivityServiceId"
+                  (ngModelChange)="onFilterActivityServiceChange()"
+                  [disabled]="FilterActivityServiceList().length === 0">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (svc of FilterActivityServiceList(); track svc.ActivityServiceId) {
+                    <mat-option [value]="svc.ActivityServiceId">{{ svc.ActivityServiceName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+            </div>
+
+            @if (!FilterActivityServiceId || FilterActivityServiceId == 0) {
+              <div class="text-center py-4 text-muted">
+                <i class="bx bx-filter-alt fs-1 d-block mb-2 opacity-25"></i>
+                <p class="mb-0">Select Destination → Location → Activity Service to view rates.</p>
+              </div>
+            }
+
+            @if (FilterActivityServiceId && FilterActivityServiceId != 0) {
+
+              <!-- Show entries + Search -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <div class="dataTables_length">
+                    <label>Show
+                      <select class="form-select form-select-sm d-inline-block w-auto"
+                        [(ngModel)]="itemPerPage">
+                        @for (option of PageSize; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select> entries
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-4 ms-auto">
+                  <div class="dataTables_filter d-flex justify-content-end">
+                    <label>Search:
+                      <input type="search" class="form-control form-control-sm d-inline-block w-auto ms-1"
+                        [(ngModel)]="Search">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle" style="font-size:13.5px;">
+                  <thead class="table-light">
+                    <tr>
+                      <th>S.No</th>
+                      <th style="cursor:pointer" (click)="sort('ActivityServiceName')">
+                        Activity Service <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th style="cursor:pointer" (click)="sort('FromDate')">
+                        From Date <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th style="cursor:pointer" (click)="sort('ToDate')">
+                        To Date <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th style="cursor:pointer" (click)="sort('AdultRate')">
+                        Adult Rate <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th>Child (Above 2 Yrs)</th>
+                      <th>Child (Below 2 Yrs)</th>
+                      <th style="cursor:pointer" (click)="sort('Status')">
+                        Status <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      @if (action().CanEdit)   { <th class="text-center">Edit</th> }
+                      @if (action().CanDelete) { <th class="text-center">Delete</th> }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (
+                      item of ActivityServiceRateList()
+                        | filter: Search
+                        | orderBy: sortKey : reverse
+                        | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                      track item.ActivityServiceRateId;
+                      let i = $index
+                    ) {
+                      <tr>
+                        <td class="text-muted">{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                        <td class="fw-semibold">{{ item.ActivityServiceName }}</td>
+                        <td>{{ item.FromDate | date: 'dd-MM-yyyy' }}</td>
+                        <td>{{ item.ToDate | date: 'dd-MM-yyyy' }}</td>
+                        <td>{{ item.AdultRate | number: '1.2-2' }}</td>
+                        <td>{{ item.ChildAboveTwoYear | number: '1.2-2' }}</td>
+                        <td>{{ item.ChildBelowTwoYear | number: '1.2-2' }}</td>
+                        <td>
+                          <span class="badge"
+                            [class.bg-success]="item.Status === 1"
+                            [class.bg-danger]="item.Status !== 1">
+                            {{ AllStatusList[item.Status] }}
+                          </span>
+                        </td>
+                        @if (action().CanEdit) {
+                          <td class="text-center">
+                            <a class="text-success" style="cursor:pointer" (click)="editActivityServiceRate(item)">
+                              <i class="bx bxs-edit-alt fs-5"></i>
+                            </a>
+                          </td>
+                        }
+                        @if (action().CanDelete) {
+                          <td class="text-center">
+                            <a class="text-danger" style="cursor:pointer" (click)="deleteActivityServiceRate(item)">
+                              <i class="bx bxs-trash fs-5"></i>
+                            </a>
+                          </td>
+                        }
+                      </tr>
+                    }
+                    @if (ActivityServiceRateList().length === 0 && !dataLoading()) {
+                      <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                          <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                          No records found
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <pagination-controls (pageChange)="onTableDataChange($event)"
+                class="my-pagination" style="float:right;">
+              </pagination-controls>
+
+            }
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
