@@ -22,6 +22,11 @@ import { Hotel } from './admin/hotel/hotel';
 import { HotelRate } from './admin/hotel-rate/hotel-rate';
 import { HotelRatelist } from './admin/hotel-ratelist/hotel-ratelist';
 import { ExtraCharge } from './admin/extra-charge/extra-charge';
+import { Progress } from './component/progress/progress';
+import { SpecialInclusionType } from './admin/special-inclusion-type/special-inclusion-type';
+import { SpecialInclusion } from './admin/special-inclusion/special-inclusion';
+import { ActivityService } from './admin/activity-service/activity-service';
+import { ActivityServiceRate } from './admin/activity-service-rate/activity-service-rate';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -54,7 +59,12 @@ export const routes: Routes = [
       { path: 'hotel', component: Hotel},
       { path: 'hotel-rate', component: HotelRate},
       { path: 'hotel-ratelist', component: HotelRatelist},
-      { path: 'extra-charge', component: ExtraCharge}
+      { path: 'extra-charge', component: ExtraCharge},
+      { path: 'progress', component: Progress},
+      { path: 'special-inclusion-type', component: SpecialInclusionType},
+      { path: 'special-inclusion', component: SpecialInclusion},
+      { path: 'activity-service', component: ActivityService},
+      { path: 'activity-service-rate', component: ActivityServiceRate},
     ]
   },
 
