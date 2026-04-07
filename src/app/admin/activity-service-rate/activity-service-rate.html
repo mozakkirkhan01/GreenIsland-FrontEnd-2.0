@@ -78,24 +78,47 @@
                 </mat-form-field>
 
                 <!-- From Date -->
-                <mat-form-field appearance="outline" class="col-sm-2">
+                <!-- <mat-form-field appearance="outline" class="col-sm-2">
                   <mat-label>From Date</mat-label>
                   <input matInput #FromDate="ngModel" name="FromDate" type="date"
                     [(ngModel)]="ActivityServiceRateModel.FromDate" required>
                   @if ((FromDate.dirty || FromDate.touched) || (FromDate.invalid && isSubmitted)) {
                     <mat-error>From Date is <strong>required</strong></mat-error>
                   }
-                </mat-form-field>
+                </mat-form-field> -->
 
                 <!-- To Date -->
-                <mat-form-field appearance="outline" class="col-sm-2">
+                <!-- <mat-form-field appearance="outline" class="col-sm-2">
                   <mat-label>To Date</mat-label>
                   <input matInput #ToDate="ngModel" name="ToDate" type="date"
                     [(ngModel)]="ActivityServiceRateModel.ToDate" required>
                   @if ((ToDate.dirty || ToDate.touched) || (ToDate.invalid && isSubmitted)) {
                     <mat-error>To Date is <strong>required</strong></mat-error>
                   }
-                </mat-form-field>
+                </mat-form-field> -->
+                    <!-- From Date -->
+                                <mat-form-field appearance="outline" class="col-sm-2">
+                                    <mat-label>From Date</mat-label>
+                                    <input matInput [matDatepicker]="fromPicker" #FromDate="ngModel" name="FromDate"
+                                        [(ngModel)]="ActivityServiceRateModel.FromDate" required>
+                                    <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #fromPicker></mat-datepicker>
+                                    @if ((FromDate.dirty || FromDate.touched) || (FromDate.invalid && isSubmitted)) {
+                                    <mat-error>From Date is <strong>required</strong></mat-error>
+                                    }
+                                </mat-form-field>
+
+                                <!-- To Date -->
+                                <mat-form-field appearance="outline" class="col-sm-2">
+                                    <mat-label>To Date</mat-label>
+                                    <input matInput [matDatepicker]="toPicker" #ToDate="ngModel" name="ToDate"
+                                        [(ngModel)]="ActivityServiceRateModel.ToDate" required [min]="ActivityServiceRateModel.FromDate">
+                                    <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #toPicker></mat-datepicker>
+                                    @if ((ToDate.dirty || ToDate.touched) || (ToDate.invalid && isSubmitted)) {
+                                    <mat-error>To Date is <strong>required</strong></mat-error>
+                                    }
+                                </mat-form-field>
 
                 <!-- Adult Rate -->
                 <mat-form-field appearance="outline" class="col-sm-2">
@@ -109,9 +132,9 @@
 
                 <!-- Child Above Two Year -->
                 <mat-form-field appearance="outline" class="col-sm-2">
-                  <mat-label>Child (Above 2 Yrs)</mat-label>
+                  <mat-label>Child ( 2 - 12 Yrs)</mat-label>
                   <input matInput #ChildAboveTwoYear="ngModel" name="ChildAboveTwoYear" type="number"
-                    [(ngModel)]="ActivityServiceRateModel.ChildAboveTwoYear" required min="0">
+                    [(ngModel)]="ActivityServiceRateModel.ChildAboveTwoYear">
                   @if ((ChildAboveTwoYear.dirty || ChildAboveTwoYear.touched) || (ChildAboveTwoYear.invalid && isSubmitted)) {
                     <mat-error>Child (Above 2 Yrs) is <strong>required</strong></mat-error>
                   }
@@ -119,9 +142,9 @@
 
                 <!-- Child Below Two Year -->
                 <mat-form-field appearance="outline" class="col-sm-2">
-                  <mat-label>Child (Below 2 Yrs)</mat-label>
+                  <mat-label>Child (1 - 2 Yrs)</mat-label>
                   <input matInput #ChildBelowTwoYear="ngModel" name="ChildBelowTwoYear" type="number"
-                    [(ngModel)]="ActivityServiceRateModel.ChildBelowTwoYear" required min="0">
+                    [(ngModel)]="ActivityServiceRateModel.ChildBelowTwoYear">
                   @if ((ChildBelowTwoYear.dirty || ChildBelowTwoYear.touched) || (ChildBelowTwoYear.invalid && isSubmitted)) {
                     <mat-error>Child (Below 2 Yrs) is <strong>required</strong></mat-error>
                   }
@@ -163,7 +186,7 @@
     <!-- ══════════════════════════════════════════════════════ -->
     <!-- FILTER + LIST TABLE                                   -->
     <!-- ══════════════════════════════════════════════════════ -->
-    <div class="row">
+<div class="row">
       <div class="col-lg-12">
         <div class="card">
           <div class="card-body">
@@ -177,7 +200,7 @@
                 <mat-select name="FilterDestinationId"
                   [(ngModel)]="FilterDestinationId"
                   (ngModelChange)="onFilterDestinationChange()">
-                  <mat-option [value]="0">-- All --</mat-option>
+                  <mat-option [value]="0">-- Select Destinaion --</mat-option>
                   @for (dest of DestinationList(); track dest.DestinationId) {
                     <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
                   }
@@ -191,7 +214,7 @@
                   [(ngModel)]="FilterLocationId"
                   (ngModelChange)="onFilterLocationChange()"
                   [disabled]="FilterLocationList().length === 0">
-                  <mat-option [value]="0">-- All --</mat-option>
+                  <mat-option [value]="0">-- Select Location --</mat-option>
                   @for (loc of FilterLocationList(); track loc.LocationId) {
                     <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
                   }
@@ -214,14 +237,15 @@
 
             </div>
 
-            @if (!FilterActivityServiceId || FilterActivityServiceId == 0) {
-              <div class="text-center py-4 text-muted">
-                <i class="bx bx-filter-alt fs-1 d-block mb-2 opacity-25"></i>
-                <p class="mb-0">Select Destination → Location → Activity Service to view rates.</p>
-              </div>
-            }
+<!-- update the "select filter" hint -->
+@if (!FilterLocationId || FilterLocationId == 0) {
+  <div class="text-center py-4 text-muted">
+    <i class="bx bx-filter-alt fs-1 d-block mb-2 opacity-25"></i>
+    <p class="mb-0">Select Destination → Location to view rates.</p>
+  </div>
+}
 
-            @if (FilterActivityServiceId && FilterActivityServiceId != 0) {
+            @if (FilterLocationId && FilterLocationId != 0) {
 
               <!-- Show entries + Search -->
               <div class="row mb-3">

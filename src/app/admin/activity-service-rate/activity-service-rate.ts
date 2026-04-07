@@ -14,9 +14,11 @@ import { LocalService } from '../../utils/local.service';
 import { Status } from '../../utils/enum';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LoadDataService } from '../../utils/load-data.service';
+import { Progress } from '../../component/progress/progress';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
-import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-activity-service-rate',
@@ -30,9 +32,11 @@ import { Progress } from '../../component/progress/progress';
     MatSelectModule,
     MatButtonModule,
     NgxPaginationModule,
+    Progress,
+    MatDatepickerModule,
+    MatNativeDateModule,
     FilterPipe,
-    OrderByPipe,
-    Progress
+    OrderByPipe
   ],
   templateUrl: './activity-service-rate.html',
   styleUrl: './activity-service-rate.css',
@@ -218,10 +222,10 @@ export class ActivityServiceRate {
       !this.ActivityServiceRateModel.ToDate ||
       this.ActivityServiceRateModel.AdultRate === null ||
       this.ActivityServiceRateModel.AdultRate === undefined ||
-      this.ActivityServiceRateModel.ChildAboveTwoYear === null ||
-      this.ActivityServiceRateModel.ChildAboveTwoYear === undefined ||
-      this.ActivityServiceRateModel.ChildBelowTwoYear === null ||
-      this.ActivityServiceRateModel.ChildBelowTwoYear === undefined ||
+      // this.ActivityServiceRateModel.ChildAboveTwoYear === null ||
+      // this.ActivityServiceRateModel.ChildAboveTwoYear === undefined ||
+      // this.ActivityServiceRateModel.ChildBelowTwoYear === null ||
+      // this.ActivityServiceRateModel.ChildBelowTwoYear === undefined ||
       this.ActivityServiceRateModel.Status === null ||
       this.ActivityServiceRateModel.Status === undefined
     ) {
@@ -232,8 +236,12 @@ export class ActivityServiceRate {
     this.ActivityServiceRateModel.CreatedBy = this.staffLogin.StaffLoginId;
     this.ActivityServiceRateModel.UpdatedBy = this.staffLogin.StaffLoginId;
 
-    // API expects an array
-    const payload = [this.ActivityServiceRateModel];
+    // ── Convert dates same as HotelRate ──────────────────────────────
+    const payload = [{
+      ...this.ActivityServiceRateModel,
+      FromDate: this.loadData.loadDateTime(this.ActivityServiceRateModel.FromDate),
+      ToDate: this.loadData.loadDateTime(this.ActivityServiceRateModel.ToDate),
+    }];
 
     const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify(payload)).toString()
@@ -248,10 +256,12 @@ export class ActivityServiceRate {
               ? 'Record updated successfully'
               : 'Record saved successfully'
           );
-          this.resetForm();
-          if (this.FilterActivityServiceId && this.FilterActivityServiceId != 0) {
-            this.loadActivityServiceRateList();
-          }
+          // this.resetForm();
+          this.resetRatesOnly();
+
+          // Refresh the list after successful save to show changes immediately
+          // Note: This will reload all visible records based on current filter
+          this.loadActivityServiceRateList();
         } else {
           this.toastr.error(r1.Message);
         }
@@ -293,8 +303,8 @@ export class ActivityServiceRate {
                 this.ActivityServiceRateModel = {
                   ActivityServiceRateId: item.ActivityServiceRateId,
                   ActivityServiceId: item.ActivityServiceId,
-                  FromDate: item.FromDate?.substring(0, 10),
-                  ToDate: item.ToDate?.substring(0, 10),
+                  FromDate: item.FromDate ? new Date(item.FromDate) : null,   // ← parse to Date
+                  ToDate: item.ToDate ? new Date(item.ToDate) : null,   // ← parse to Date
                   AdultRate: item.AdultRate,
                   ChildAboveTwoYear: item.ChildAboveTwoYear,
                   ChildBelowTwoYear: item.ChildBelowTwoYear,
@@ -390,18 +400,23 @@ export class ActivityServiceRate {
       },
       error: () => this.toastr.error('Error while fetching activity services')
     });
+      // ✅ load all rates for this location immediately
+  this.loadActivityServiceRateList();
   }
 
-  onFilterActivityServiceChange() {
-    this.ActivityServiceRateList.set([]);
-    if (!this.FilterActivityServiceId || this.FilterActivityServiceId == 0) return;
-    this.loadActivityServiceRateList();
-  }
+// ✅ fixed — always load when location is selected
+onFilterActivityServiceChange() {
+  this.ActivityServiceRateList.set([]);
+  if (!this.FilterLocationId || this.FilterLocationId == 0) return;
+  this.loadActivityServiceRateList();
+}
 
-  loadActivityServiceRateList() {
+ loadActivityServiceRateList() {
     const obj: RequestModel = {
       request: this.localService.encrypt(
-        JSON.stringify({ ActivityServiceId: Number(this.FilterActivityServiceId) })
+        JSON.stringify({ ActivityServiceId: Number(this.FilterActivityServiceId) || 0,
+        LocationId: Number(this.FilterLocationId) || 0  // ✅ add this
+        })
       ).toString()
     };
     this.dataLoading.set(true);
@@ -423,4 +438,28 @@ export class ActivityServiceRate {
 
   sort(key: any) { this.sortKey = key; this.reverse = !this.reverse; }
   onTableDataChange(p: any) { this.p = p; }
+  resetRatesOnly() {
+  // 1. Reset specific model properties
+  this.ActivityServiceRateModel.ActivityServiceRateId = 0;
+  this.SelectedActivityServiceId = 0;
+  this.ActivityServiceRateModel.AdultRate = null;
+  this.ActivityServiceRateModel.ChildAboveTwoYear = null;
+  this.ActivityServiceRateModel.ChildBelowTwoYear = null;
+
+  // 2. Clear submission state
+  this.isSubmitted = false;
+
+  // 3. Manually clear the validation state of those specific fields in the UI
+  if (this.formActivityServiceRate) {
+    const controlsToReset = ['AdultRate', 'ChildAboveTwoYear', 'ChildBelowTwoYear'];
+    
+    controlsToReset.forEach(controlName => {
+      const control = this.formActivityServiceRate.form.get(controlName);
+      if (control) {
+        control.markAsPristine();
+        control.markAsUntouched();
+      }
+    });
+  }
+}
 }
