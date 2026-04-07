@@ -185,36 +185,52 @@ export class Location {
     });
   }
 
-  saveLocation() {
-    this.isSubmitted = true;
-    this.formLocation.control.markAllAsTouched();
-    if (this.formLocation.invalid) {
-      this.toastr.error("Fill all the required fields !!");
-      return;
-    }
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(this.Location)).toString()
-    };
-    this.dataLoading = true;
-    this.service.saveLocation(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
+saveLocation() {
+  this.isSubmitted = true;
+  this.formLocation.control.markAllAsTouched();
+  
+  if (this.formLocation.invalid) {
+    this.toastr.error("Fill all the required fields !!");
+    return;
+  }
+
+  var obj: RequestModel = {
+    request: this.localService.encrypt(JSON.stringify(this.Location)).toString()
+  };
+
+  this.dataLoading = true; // Spinner starts
+
+  this.service.saveLocation(obj).subscribe({
+    next: (r1: any) => {
+      if (r1.Message == ConstantData.SuccessMessage) {
         this.toastr.success(this.Location.LocationId > 0
           ? "Location updated successfully"
           : "Location added successfully");
-        this.closeModal();
-        // this.getLocationList(Number(this.SelectedDestinationId) || 0); // 👈
+        
+        // Refresh the list if a destination is currently filtered in the background
+        if (this.SelectedDestinationId) {
+          this.getLocationList(this.SelectedDestinationId);
+        }
+
+        // Only clear the name field
+        this.resetAfterSave();
+        
+        // If you want to close the modal after save, keep this. 
+        // If you want to stay open to add more, comment this out:
+        // this.showModal = false; 
       } else {
-        this.toastr.error(response.Message);
-        this.dataLoading = false;
-        this.cdr.detectChanges();
+        this.toastr.error(r1.Message);
       }
-    }, err => {
-      this.toastr.error("Error occured while submitting data");
-      this.dataLoading = false;
+      this.dataLoading = false; // Spinner stops
       this.cdr.detectChanges();
-    });
-  }
+    },
+    error: (err) => {
+      this.toastr.error("Error occured while submitting data");
+      this.dataLoading = false; // Spinner stops
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   deleteLocation(obj: any) {
     if (confirm("Are you sure you want to delete this record?")) {
@@ -244,4 +260,19 @@ export class Location {
     this.Location = { ...obj };
     this.showModal = true;
   }
+
+  resetAfterSave() {
+  // Clear only the name and ID
+  this.Location.LocationName = '';
+  this.Location.LocationId = 0;
+  
+  // Keep DestinationId and Status as they are for convenience
+  this.isSubmitted = false;
+
+  // Reset the form validation state for the specific field
+  if (this.formLocation) {
+    this.formLocation.form.controls['LocationName']?.markAsPristine();
+    this.formLocation.form.controls['LocationName']?.markAsUntouched();
+  }
+}
 }
