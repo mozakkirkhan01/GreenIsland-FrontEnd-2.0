@@ -153,6 +153,14 @@ export class ActivityService {
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
           this.LocationList.set(r1.LocationList);
+                    // ── Message if no locations ──
+          console.log(this.FilterLocationList);
+          
+          if (this.FilterLocationList.length === 0) {
+            this.filterLocationMsg = 'No location found for this destination.';
+          } else {
+            this.filterLocationMsg = '';
+          }
         } else {
           this.toastr.error(r1.Message);
         }
@@ -195,7 +203,8 @@ export class ActivityService {
               ? 'Record updated successfully'
               : 'Record saved successfully'
           );
-          this.resetForm();
+          // CHANGE THIS LINE:
+          this.resetAfterSave();
           if (this.FilterLocationId && this.FilterLocationId != 0) {
             this.loadActivityServiceList();
           }
@@ -212,48 +221,48 @@ export class ActivityService {
   }
 
   // ── Edit ──────────────────────────────────────────────────────────────
-editActivityService(item: any) {
-  // ── Step 1: set destination ───────────────────────────────────────
-  this.SelectedDestinationId = item.DestinationId;
+  editActivityService(item: any) {
+    // ── Step 1: set destination ───────────────────────────────────────
+    this.SelectedDestinationId = item.DestinationId;
 
-  // ── Step 2: load locations for that destination ───────────────────
-  const obj: RequestModel = {
-    request: this.localService.encrypt(
-      JSON.stringify({ DestinationId: Number(item.DestinationId) })
-    ).toString()
-  };
+    // ── Step 2: load locations for that destination ───────────────────
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(item.DestinationId) })
+      ).toString()
+    };
 
-  this.dataLoading.set(true);
-  this.service.getLocationList(obj).subscribe({
-    next: (r1: any) => {
-      if (r1.Message == ConstantData.SuccessMessage) {
-        // ── Step 3: populate location dropdown ────────────────────
-        this.LocationList.set(r1.LocationList);
+    this.dataLoading.set(true);
+    this.service.getLocationList(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          // ── Step 3: populate location dropdown ────────────────────
+          this.LocationList.set(r1.LocationList);
 
-        // ── Step 4: set selected location ────────────────────────
-        this.SelectedLocationId = item.LocationId;
+          // ── Step 4: set selected location ────────────────────────
+          this.SelectedLocationId = item.LocationId;
 
-        // ── Step 5: fill form model ───────────────────────────────
-        this.ActivityServiceModel = {
-          ActivityServiceId: item.ActivityServiceId,
-          LocationId:        item.LocationId,
-          ActivityServiceName: item.ActivityServiceName,
-          ServiceType:       Number(item.ServiceType),
-          Status:            item.Status,
-        };
+          // ── Step 5: fill form model ───────────────────────────────
+          this.ActivityServiceModel = {
+            ActivityServiceId: item.ActivityServiceId,
+            LocationId: item.LocationId,
+            ActivityServiceName: item.ActivityServiceName,
+            ServiceType: Number(item.ServiceType),
+            Status: item.Status,
+          };
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        this.toastr.error(r1.Message);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error while fetching locations');
+        this.dataLoading.set(false);
       }
-      this.dataLoading.set(false);
-    },
-    error: () => {
-      this.toastr.error('Error while fetching locations');
-      this.dataLoading.set(false);
-    }
-  });
-}
+    });
+  }
 
   // ── Delete ────────────────────────────────────────────────────────────
   deleteActivityService(item: any) {
@@ -282,12 +291,19 @@ editActivityService(item: any) {
       }
     });
   }
+  // ── Empty state messages ──────────────────────────────────────────────
+  formLocationMsg = '';
+  formHotelMsg = '';
+  filterLocationMsg = '';
+  filterHotelMsg = '';
+
 
   // ── Filter cascade ────────────────────────────────────────────────────
   onFilterDestinationChange() {
     this.FilterLocationId = 0;
     this.FilterLocationList.set([]);
     this.ActivityServiceList.set([]);
+    this.filterLocationMsg = '';
     if (!this.FilterDestinationId || this.FilterDestinationId == 0) return;
     const obj: RequestModel = {
       request: this.localService.encrypt(
@@ -297,7 +313,7 @@ editActivityService(item: any) {
     this.service.getLocationList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
-          this.FilterLocationList.set(r1.LocationList);
+          this.FilterLocationList.set(r1.LocationList);        
         } else {
           this.toastr.error(r1.Message);
         }
@@ -337,4 +353,21 @@ editActivityService(item: any) {
 
   sort(key: any) { this.sortKey = key; this.reverse = !this.reverse; }
   onTableDataChange(p: any) { this.p = p; }
+
+
+  // Add this method to your class
+  resetAfterSave() {
+    // Only clear the name and the ID (so the next save is an 'Add' not an 'Update')
+    this.ActivityServiceModel.ActivityServiceName = '';
+    this.ActivityServiceModel.ActivityServiceId = 0;
+
+    // Keep LocationId and Status as they are (or reset Status to 1 if preferred)
+    this.isSubmitted = false;
+
+    // Reset the form validation state so the red error border disappears
+    if (this.formActivityService) {
+      this.formActivityService.form.controls['ActivityServiceName']?.markAsPristine();
+      this.formActivityService.form.controls['ActivityServiceName']?.markAsUntouched();
+    }
+  }
 }

@@ -46,6 +46,7 @@
                       <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
                     }
                   </mat-select>
+                  
                 </mat-form-field>
 
                 <!-- Location -->
@@ -62,6 +63,7 @@
                   @if ((LocationId.dirty || LocationId.touched) || (LocationId.invalid && isSubmitted)) {
                     <mat-error>Location is <strong>required</strong></mat-error>
                   }
+                  
                 </mat-form-field>
 
                 <!-- Activity Service Name -->
