@@ -70,6 +70,54 @@ export class AppService {
   deleteHotelCategory(obj: any) {
     return this.http.post(this.apiUrl + "HotelCategory/deleteHotelCategory", obj, { headers: this.headers })
   }
+  /* ---------------------------------------------------------------------- */
+
+  //SpecialInclusionType
+  getSpecialInclusionTypeList(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/SpecialInclusionTypeList", obj, { headers: this.headers })
+  }
+
+  saveSpecialInclusionType(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/saveSpecialInclusionType", obj, { headers: this.headers })
+  }
+
+  deleteSpecialInclusionType(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/deleteSpecialInclusionType", obj, { headers: this.headers })
+  }
+
+  //SpecialInclusion
+  getSpecialInclusionList(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/SpecialInclusionList", obj, { headers: this.headers })
+  }
+
+  saveSpecialInclusion(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/saveSpecialInclusion", obj, { headers: this.headers })
+  }
+
+  deleteSpecialInclusion(obj: any) {
+    return this.http.post(this.apiUrl + "SpecialInclusion/deleteSpecialInclusion", obj, { headers: this.headers })
+  }
+
+  getActivityServiceList(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/ActivityServiceList", obj, { headers: this.headers });
+}
+saveActivityService(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/saveActivityService", obj, { headers: this.headers });
+}
+deleteActivityService(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/deleteActivityService", obj, { headers: this.headers });
+}
+
+// ActivityServiceRate
+getActivityServiceRateList(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/ActivityServiceRateList", obj, { headers: this.headers });
+}
+saveActivityServiceRate(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/saveActivityServiceRate", obj, { headers: this.headers });
+}
+deleteActivityServiceRate(obj: any) {
+  return this.http.post(this.apiUrl + "ActivityService/deleteActivityServiceRate", obj, { headers: this.headers });
+}
 
   //Hotel
   getHotelList(obj: any) {
