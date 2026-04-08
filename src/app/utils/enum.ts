@@ -66,6 +66,10 @@ export enum Status {
     Active = 1,
     Inactive = 2
 }
+export enum Servicetype {
+    Ferry = 1,
+    Activities = 2
+}
 export enum ChargeType {
     AWEB = 1,
     CWEB = 2,
