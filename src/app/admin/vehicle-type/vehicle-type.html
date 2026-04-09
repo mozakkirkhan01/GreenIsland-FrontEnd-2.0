@@ -1,0 +1,238 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FORM CARD                                              -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <span class="fw-semibold">
+              {{ VehicleTypeModel.VehicleTypeId > 0 ? 'Update Vehicle Type' : 'Add Vehicle Type' }}
+            </span>
+            <br><br>
+
+            <form #formVehicleType="ngForm">
+              <div class="row d-flex align-items-center">
+
+                <!-- Destination -->
+                <mat-form-field appearance="outline" class="col-sm-3">
+                  <mat-label>Destination</mat-label>
+                  <mat-select #DestinationId="ngModel" name="SelectedDestinationId"
+                    [(ngModel)]="SelectedDestinationId"
+                    (ngModelChange)="onFormDestinationChange()" required>
+                    @for (dest of DestinationList(); track dest.DestinationId) {
+                      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((DestinationId.dirty || DestinationId.touched) || (DestinationId.invalid && isSubmitted)) {
+                    <mat-error>Destination is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Vehicle Type Name -->
+                <mat-form-field appearance="outline" class="col-sm-4">
+                  <mat-label>Vehicle Type Name</mat-label>
+                  <input matInput #VehicleTypeName="ngModel" name="VehicleTypeName"
+                    [(ngModel)]="VehicleTypeModel.VehicleTypeName"
+                    required maxlength="50" autofocus>
+                  @if ((VehicleTypeName.dirty || VehicleTypeName.touched) || (VehicleTypeName.invalid && isSubmitted)) {
+                    <mat-error>Vehicle Type Name is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status"
+                    [(ngModel)]="VehicleTypeModel.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                    <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Save / Cancel Buttons -->
+                <div class="col-sm-2 d-flex mb-4 align-items-center gap-2">
+                  <button mat-raised-button color="primary" (click)="saveVehicleType()">
+                    <i class="bx bx-save me-1"></i>
+                    {{ VehicleTypeModel.VehicleTypeId > 0 ? 'Update' : 'Save' }}
+                  </button>
+                  @if (VehicleTypeModel.VehicleTypeId > 0) {
+                    <button mat-raised-button color="warn" (click)="resetForm()">
+                      Cancel
+                    </button>
+                  }
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FILTER + LIST CARD                                     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+
+            <!-- Filter Row -->
+            <div class="row d-flex align-items-center mb-3">
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Destination</mat-label>
+                <mat-select name="FilterDestinationId"
+                  [(ngModel)]="FilterDestinationId"
+                  (ngModelChange)="onFilterDestinationChange()">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (dest of DestinationList(); track dest.DestinationId) {
+                    <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- @if (FilterDestinationId !== null && FilterDestinationId !== undefined) {
+              <div class="text-center py-4 text-muted">
+                <i class="bx bx-map-pin fs-1 d-block mb-2 opacity-25"></i>
+                <p class="mb-0">Select a destination to view vehicle types.</p>
+              </div>
+            } -->
+
+            @if (FilterDestinationId !== null && FilterDestinationId !== undefined){
+
+              <!-- Show entries + Search -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <div class="dataTables_length">
+                    <label>Show
+                      <select class="form-select form-select-sm d-inline-block w-auto"
+                        [(ngModel)]="itemPerPage">
+                        @for (option of PageSize; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select> entries
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-4 ms-auto">
+                  <div class="dataTables_filter d-flex justify-content-end">
+                    <label>Search:
+                      <input type="search"
+                        class="form-control form-control-sm d-inline-block w-auto ms-1"
+                        [(ngModel)]="Search">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle"
+                  style="font-size:13.5px;">
+                  <thead class="table-light">
+                    <tr>
+                      <th>S.No</th>
+                      <th style="cursor:pointer" (click)="sort('DestinationName')">
+                        Destination <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th style="cursor:pointer" (click)="sort('VehicleTypeName')">
+                        Vehicle Type Name <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      <th style="cursor:pointer" (click)="sort('Status')">
+                        Status <i class="bx bx-sort ms-1"></i>
+                      </th>
+                      @if (action().CanEdit)   { <th class="text-center">Edit</th> }
+                      @if (action().CanDelete) { <th class="text-center">Delete</th> }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (
+                      item of VehicleTypeList()
+                        | filter: Search
+                        | orderBy: sortKey : reverse
+                        | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                      track item.VehicleTypeId;
+                      let i = $index
+                    ) {
+                      <tr>
+                        <td class="text-muted">{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                        <td>{{ item.DestinationName }}</td>
+                        <td class="fw-semibold">{{ item.VehicleTypeName }}</td>
+                        <td>
+                          <span class="badge"
+                            [class.bg-success]="item.Status === 1"
+                            [class.bg-danger]="item.Status !== 1">
+                            {{ AllStatusList[item.Status] }}
+                          </span>
+                        </td>
+                        @if (action().CanEdit) {
+                          <td class="text-center">
+                            <a class="text-success" style="cursor:pointer"
+                              (click)="editVehicleType(item)">
+                              <i class="bx bxs-edit-alt fs-5"></i>
+                            </a>
+                          </td>
+                        }
+                        @if (action().CanDelete) {
+                          <td class="text-center">
+                            <a class="text-danger" style="cursor:pointer"
+                              (click)="deleteVehicleType(item)">
+                              <i class="bx bxs-trash fs-5"></i>
+                            </a>
+                          </td>
+                        }
+                      </tr>
+                    }
+                    @if (VehicleTypeList().length === 0 && !dataLoading()) {
+                      <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                          <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                          No records found
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <pagination-controls (pageChange)="onTableDataChange($event)"
+                class="my-pagination" style="float:right;">
+              </pagination-controls>
+
+            }
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
