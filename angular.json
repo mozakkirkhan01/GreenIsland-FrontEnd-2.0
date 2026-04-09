@@ -17,10 +17,11 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "assets": [
-              "src/assets",
-              "public"
-            ],
+          "assets": [
+  "src/favicon.ico", 
+  "src/assets",
+  "public"
+],
             "styles": [
                "@angular/material/prebuilt-themes/indigo-pink.css",
                "node_modules/ngx-toastr/toastr.css",
