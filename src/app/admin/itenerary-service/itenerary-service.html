@@ -373,114 +373,119 @@
 
 
 @if (showViewModal && viewItem()) {
-  <!-- Backdrop -->
-  <div class="modal-backdrop fade show" style="z-index:1040;" (click)="closeViewModal()"></div>
+  <div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter: blur(4px);" (click)="closeViewModal()"></div>
 
-  <!-- Modal -->
   <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content">
+      <div class="modal-content border-0 rounded-xl shadow-lg">
 
-        <!-- Header -->
-        <div class="modal-header bg-primary bg-opacity-10">
-          <h5 class="modal-title text-primary fw-semibold">
-            <i class="bx bxs-info-circle me-2"></i>Itinerary Service Details
-          </h5>
-          <button type="button" class="btn-close" (click)="closeViewModal()"></button>
-        </div>
-
-        <!-- Body -->
-        <div class="modal-body">
-
-          <!-- Main Info -->
-          <div class="row g-3 mb-4">
-            <div class="col-sm-3">
-              <div class="p-3 bg-light rounded">
-                <small class="text-muted d-block mb-1">Destination</small>
-                <span class="fw-semibold">{{ viewItem().DestinationName }}</span>
-              </div>
+        <div class="modal-header border-0 pb-0 px-4 pt-4">
+          <div class="d-flex align-items-center">
+            <div class="icon-box-md bg-soft-primary text-primary rounded-circle me-3">
+              <i class="bx bx-calendar-event fs-3"></i>
             </div>
-            <div class="col-sm-3">
-              <div class="p-3 bg-light rounded">
-                <small class="text-muted d-block mb-1">Location</small>
-                <span class="fw-semibold">{{ viewItem().LocationName }}</span>
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="p-3 bg-light rounded">
-                <small class="text-muted d-block mb-1">Service Name</small>
-                <span class="fw-semibold">{{ viewItem().IteneraryServiceName }}</span>
-              </div>
-            </div>
-            <div class="col-sm-2">
-              <div class="p-3 bg-light rounded text-center">
-                <small class="text-muted d-block mb-1">Status</small>
-                <span class="badge fs-6"
-                  [class.bg-success]="viewItem().Status === 1"
-                  [class.bg-danger]="viewItem().Status !== 1">
-                  {{ AllStatusList[viewItem().Status] }}
-                </span>
-              </div>
-            </div>
-            <div class="col-sm-12">
-              <div class="p-3 bg-light rounded">
-                <small class="text-muted d-block mb-1">Day Schedule</small>
-                <p class="mb-0" style="white-space: pre-wrap; line-height:1.7;">
-                  {{ viewItem().DaySchedule }}
-                </p>
-              </div>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Itinerary Event: #SRV-{{ viewItem().IteneraryServiceId }}</h5>
+              <small class="text-muted fw-medium">{{ viewItem().IteneraryServiceName }}</small>
             </div>
           </div>
-
-          <!-- Vehicle Rates -->
-          <h6 class="fw-semibold mb-3 border-bottom pb-2">
-            <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
-          </h6>
-
-          @if (viewRates.length > 0) {
-            <div class="table-responsive">
-              <table class="table table-bordered table-hover align-middle" style="font-size:13.5px;">
-                <thead class="table-primary">
-                  <tr>
-                    <th>Vehicle Type</th>
-                    <th>From Date</th>
-                    <th>To Date</th>
-                    <th class="text-end">Rate Amount</th>
-                    <th class="text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (rate of viewRates; track rate.VehicleTypeId) {
-                    <tr>
-                      <td class="fw-semibold">{{ rate.VehicleTypeName }}</td>
-                      <td>{{ rate.FromDate | date: 'dd MMM yyyy' }}</td>
-                      <td>{{ rate.ToDate | date: 'dd MMM yyyy' }}</td>
-                      <td class="text-end">{{ rate.RateAmount | number: '1.2-2' }}</td>
-                      <td class="text-center">
-                        <span class="badge"
-                          [class.bg-success]="rate.Status === 1"
-                          [class.bg-danger]="rate.Status !== 1">
-                          {{ AllStatusList[rate.Status] }}
-                        </span>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          } @else {
-            <div class="text-center text-muted py-4">
-              <i class="bx bx-car fs-1 d-block mb-2"></i>
-              No vehicle rates found
-            </div>
-          }
-
+          <button type="button" class="btn-close shadow-none" (click)="closeViewModal()"></button>
         </div>
 
-        <!-- Footer -->
-        <div class="modal-footer">
-          <button mat-raised-button color="warn" (click)="closeViewModal()">
-            <i class="bx bx-x me-1"></i> Close
+        <div class="modal-body p-4">
+          <div class="row g-4">
+            
+            <div class="col-lg-7">
+              <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <h6 class="text-uppercase fw-bold text-dark letter-spacing-1 mb-0">Activity Schedule</h6>
+                <span class="badge bg-soft-info text-info rounded-pill px-3 py-1 fw-semibold fs-8">
+                  <i class="bx bx-time-five me-1"></i> Day Event
+                </span>
+              </div>
+              
+              <div class="timeline-container px-3">
+                <div class="timeline-item">
+                  <div class="timeline-icon bg-soft-primary text-primary">
+                    <i class="bx bx-map-pin"></i>
+                  </div>
+                  <div class="timeline-content rounded-xl bg-light-gray p-3 shadow-sm">
+                    <p class="mb-0 text-muted small" style="white-space: pre-wrap; line-height: 1.7;">
+                      {{ viewItem().DaySchedule }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-5">
+              
+              <div class="card border-0 bg-white shadow-sm rounded-xl mb-4 elevation-1">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <small class="text-muted text-uppercase fw-semibold mb-0">Location Overview</small>
+                        <span class="dot-lg" [class.bg-success]="viewItem().Status === 1" [class.bg-danger]="viewItem().Status !== 1"></span>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted d-block small">Destination</small>
+                        <span class="fw-bold text-dark fs-6">{{ viewItem().DestinationName }}</span>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block small">Specific Location</small>
+                        <span class="fw-bold text-dark fs-6">{{ viewItem().LocationName }}</span>
+                    </div>
+                </div>
+              </div>
+
+              <div class="card border-0 bg-white shadow-sm rounded-xl elevation-1">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <small class="text-muted text-uppercase fw-semibold mb-0">Vehicle Rates</small>
+                        <span class="text-muted small fw-medium">{{ viewRates.length }} Assigned</span>
+                    </div>
+
+                    @if (viewRates.length > 0) {
+                        <div class="table-responsive" style="max-height: 250px;">
+                            <table class="table table-sm table-nowrap align-middle mb-0 fs-8">
+                                <thead class="text-muted text-uppercase">
+                                    <tr>
+                                        <th class="border-0 ps-0">Vehicle</th>
+                                        <th class="border-0">Dates</th>
+                                        <th class="border-0 text-end">Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (rate of viewRates; track rate.VehicleTypeId) {
+                                        <tr>
+                                            <td class="border-0 ps-0 fw-semibold text-dark">{{ rate.VehicleTypeName }}</td>
+                                            <td class="border-0 text-muted small">
+                                                {{ rate.FromDate | date: 'dd MMM' }} - {{ rate.ToDate | date: 'dd MMM' }}
+                                            </td>
+                                            <td class="border-0 text-end fw-bold text-primary fs-7">
+                                                {{ rate.RateAmount | number: '1.2-2' }}
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    } @else {
+                        <div class="text-center py-4 bg-light-gray rounded-3">
+                            <i class="bx bx-car fs-1 d-block mb-2 text-muted opacity-50"></i>
+                            <p class="text-muted small mb-0">No Pricing Data</p>
+                        </div>
+                    }
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-0 px-4 pb-4 pt-0">
+          <button type="button" class="btn btn-outline-danger px-4 fw-medium rounded-pill" (click)="closeViewModal()">Dismiss</button>
+          <button type="button" class="btn btn-primary px-4 fw-medium rounded-pill shadow-sm" (click)="editIteneraryService(viewItem())">
+             <i class="bx bx-edit-alt me-1"></i> Modify Service
           </button>
         </div>
 

@@ -1,0 +1,99 @@
+/* Core colors and typography */
+.letter-spacing-1 {
+    letter-spacing: 0.06rem;
+}
+.bg-light-gray {
+    background-color: #f7f8f9 !important;
+}
+
+/* Custom rounded corners */
+.rounded-xl {
+    border-radius: 12px !important;
+}
+
+/* Rounded Pill shape */
+.rounded-pill {
+    border-radius: 50rem !important;
+}
+
+/* Soft colors and icons */
+.bg-soft-primary {
+    background-color: rgba(85, 110, 230, 0.1) !important;
+}
+.bg-soft-info {
+    background-color: rgba(80, 165, 241, 0.1) !important;
+}
+
+/* Large Icon Box circle */
+.icon-box-md {
+    height: 3rem;
+    width: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Large Status Dot */
+.dot-lg {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Timeline specific styles */
+.timeline-container {
+    position: relative;
+    padding-left: 20px;
+    margin-top: 15px;
+}
+.timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 5px;
+    height: 100%;
+    width: 2px;
+    background-color: #e9ecef; /* Subtle Gray Line */
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: -19px; /* Centered on the gray line */
+    top: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.timeline-content {
+    margin-left: 15px; /* Spacing from the line */
+}
+
+/* Minimal Table styles */
+.table-nowrap td, .table-nowrap th {
+    white-space: nowrap;
+    padding: 0.75rem 0.5rem;
+}
+
+/* Visual depths/Shadow depth system */
+.elevation-1 {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Typography adjustments */
+.fs-7 {
+    font-size: 0.9rem;
+}
+.fs-8 {
+    font-size: 0.82rem;
+}

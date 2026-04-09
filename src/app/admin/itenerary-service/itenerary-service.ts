@@ -1,3 +1,4 @@
+
 import { Component, ViewChild, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -274,7 +275,7 @@ export class IteneraryService {
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
           this.toastr.success('Record saved successfully');
-          this.resetForm();
+          this.clearFormFieldsAfterSave();
           this.loadIteneraryServiceList();
         } else {
           this.toastr.error(r1.Message);
@@ -445,4 +446,23 @@ closeViewModal() {
   this.viewItem.set(null);
   this.viewRates = [];
 }
+  // Clear only itinerary service name, day schedule, and vehicle rate rows after save
+  clearFormFieldsAfterSave() {
+    if (this.IteneraryServiceModel) {
+      this.IteneraryServiceModel.IteneraryServiceName = '';
+      this.IteneraryServiceModel.DaySchedule = '';
+    }
+    this.VehicleRateRows = this.VehicleRateRows.map(row => ({
+      ...row,
+      VehicleServiceRateId: 0,
+      // Keep FromDate and ToDate unchanged
+      RateAmount: null,
+    }));
+    // Do NOT clear SharedFromDate and SharedToDate
+    this.isSubmitted = false;
+    if (this.formIteneraryService) {
+      this.formIteneraryService.control.markAsPristine();
+      this.formIteneraryService.control.markAsUntouched();
+    }
+  }
 }
