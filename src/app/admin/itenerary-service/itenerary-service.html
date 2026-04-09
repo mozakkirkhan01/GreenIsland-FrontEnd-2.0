@@ -1,0 +1,490 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FORM CARD                                              -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <span class="fw-semibold">
+              {{ IteneraryServiceModel.IteneraryServiceId > 0 ? 'Update Itenerary Service' : 'Add Itenerary Service' }}
+            </span>
+            <br><br>
+
+            <form #formIteneraryService="ngForm">
+              <div class="row g-3 align-items-start">
+
+                <!-- Destination -->
+                <div class="col-sm-3">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Destination</mat-label>
+                    <mat-select name="SelectedDestinationId"
+                      [(ngModel)]="SelectedDestinationId"
+                      (ngModelChange)="onFormDestinationChange()" required>
+                      @for (dest of DestinationList(); track dest.DestinationId) {
+                        <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <!-- Location -->
+                <div class="col-sm-3">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Location</mat-label>
+                    <mat-select #LocationId="ngModel" name="LocationId"
+                      [(ngModel)]="SelectedLocationId"
+                      (ngModelChange)="onFormLocationChange()" required
+                      [disabled]="LocationList().length === 0">
+                      @for (loc of LocationList(); track loc.LocationId) {
+                        <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                      }
+                    </mat-select>
+                    @if ((LocationId.dirty || LocationId.touched) || (LocationId.invalid && isSubmitted)) {
+                      <mat-error>Location is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+
+                <!-- Itenerary Service Name -->
+                <div class="col-sm-6">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Itenerary Service Name</mat-label>
+                    <input matInput #IteneraryServiceName="ngModel" name="IteneraryServiceName"
+                      [(ngModel)]="IteneraryServiceModel.IteneraryServiceName"
+                      required maxlength="550">
+                    @if ((IteneraryServiceName.dirty || IteneraryServiceName.touched) || (IteneraryServiceName.invalid && isSubmitted)) {
+                      <mat-error>Itenerary Service Name is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+
+                <!-- Day Schedule -->
+                <div class="col-sm-12">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Day Schedule</mat-label>
+                    <textarea matInput #DaySchedule="ngModel" name="DaySchedule"
+                      [(ngModel)]="IteneraryServiceModel.DaySchedule"
+                      required rows="4">
+                    </textarea>
+                    @if ((DaySchedule.dirty || DaySchedule.touched) || (DaySchedule.invalid && isSubmitted)) {
+                      <mat-error>Day Schedule is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+
+                <!-- Status -->
+                <div class="col-sm-2">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Status</mat-label>
+                    <mat-select #Status="ngModel" name="Status"
+                      [(ngModel)]="IteneraryServiceModel.Status" required>
+                      @for (status of StatusList; track status.Key) {
+                        <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                      }
+                    </mat-select>
+                    @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                      <mat-error>Status is <strong>required</strong></mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+
+                <!-- From Date -->
+                <div class="col-sm-2">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>From Date</mat-label>
+                    <input matInput [matDatepicker]="fromPicker" name="SharedFromDate"
+                      [(ngModel)]="SharedFromDate"
+                      (ngModelChange)="onSharedDateChange()" required>
+                    <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #fromPicker></mat-datepicker>
+                  </mat-form-field>
+                </div>
+
+                <!-- To Date -->
+                <div class="col-sm-2">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>To Date</mat-label>
+                    <input matInput [matDatepicker]="toPicker" name="SharedToDate"
+                      [(ngModel)]="SharedToDate"
+                      (ngModelChange)="onSharedDateChange()" required
+                      [min]="SharedFromDate">
+                    <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+                    <mat-datepicker #toPicker></mat-datepicker>
+                  </mat-form-field>
+                </div>
+
+              </div>
+
+              <!-- ── Vehicle Rate Table ─────────────────────────────── -->
+              @if (VehicleRateRows.length > 0) {
+                <div class="mt-4">
+                  <h6 class="fw-semibold mb-3">
+                    <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
+                  </h6>
+                  <div class="table-responsive">
+                    <table class="table table-bordered align-middle" style="font-size:13.5px;">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Vehicle Type</th>
+                          <th>Rate Amount</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of VehicleRateRows; track row.VehicleTypeId; let i = $index) {
+                          <tr>
+                            <td class="fw-semibold">{{ row.VehicleTypeName }}</td>
+                            <td style="width:200px">
+                              <mat-form-field appearance="outline" class="w-100 mb-0">
+                                <mat-label>Rate</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="VehicleRateRows[i].RateAmount"
+                                  [name]="'RateAmount_' + i">
+                              </mat-form-field>
+                            </td>
+                            <td style="width:160px">
+                              <mat-form-field appearance="outline" class="w-100 mb-0">
+                                <mat-label>Status</mat-label>
+                                <mat-select [(ngModel)]="VehicleRateRows[i].Status"
+                                  [name]="'VehicleStatus_' + i">
+                                  @for (status of StatusList; track status.Key) {
+                                    <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+
+              <!-- ── Action Buttons ─────────────────────────────────── -->
+              <div class="d-flex gap-2 mt-3">
+                <button mat-raised-button color="primary" (click)="saveIteneraryService()">
+                  <i class="bx bx-save me-1"></i>
+                  {{ IteneraryServiceModel.IteneraryServiceId > 0 ? 'Update' : 'Submit' }}
+                </button>
+
+                <!-- Submit and clear dates for next date range entry -->
+                @if (!IteneraryServiceModel.IteneraryServiceId || IteneraryServiceModel.IteneraryServiceId == 0) {
+                  <button mat-stroked-button color="accent" (click)="clearDatesOnly()"
+                    [disabled]="!SharedFromDate || !SharedToDate">
+                    <i class="bx bx-refresh me-1"></i> Clear Dates Only
+                  </button>
+                }
+
+                @if (IteneraryServiceModel.IteneraryServiceId > 0) {
+                  <button mat-raised-button color="warn" (click)="resetForm()">
+                    Cancel
+                  </button>
+                }
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FILTER + LIST CARD                                     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+
+            <!-- Filter Row -->
+            <div class="row d-flex align-items-center mb-3">
+
+              <!-- Filter Destination -->
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Destination</mat-label>
+                <mat-select name="FilterDestinationId"
+                  [(ngModel)]="FilterDestinationId"
+                  (ngModelChange)="onFilterDestinationChange()">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (dest of DestinationList(); track dest.DestinationId) {
+                    <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Filter Location -->
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Location</mat-label>
+                <mat-select name="FilterLocationId"
+                  [(ngModel)]="FilterLocationId"
+                  (ngModelChange)="onFilterLocationChange()"
+                  [disabled]="FilterLocationList().length === 0">
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (loc of FilterLocationList(); track loc.LocationId) {
+                    <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+            </div>
+
+            <!-- Show entries + Search -->
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <div class="dataTables_length">
+                  <label>Show
+                    <select class="form-select form-select-sm d-inline-block w-auto"
+                      [(ngModel)]="itemPerPage">
+                      @for (option of PageSize; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select> entries
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4 ms-auto">
+                <div class="dataTables_filter d-flex justify-content-end">
+                  <label>Search:
+                    <input type="search"
+                      class="form-control form-control-sm d-inline-block w-auto ms-1"
+                      [(ngModel)]="Search">
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover align-middle" style="font-size:13.5px;">
+                <thead class="table-light">
+                  <tr>
+                    <th>S.No</th>
+                    <th style="cursor:pointer" (click)="sort('DestinationName')">
+                      Destination <i class="bx bx-sort ms-1"></i>
+                    </th>
+                    <th style="cursor:pointer" (click)="sort('LocationName')">
+                      Location <i class="bx bx-sort ms-1"></i>
+                    </th>
+                    <th style="cursor:pointer" (click)="sort('IteneraryServiceName')">
+                      Service Name <i class="bx bx-sort ms-1"></i>
+                    </th>
+                    <th>Day Schedule</th>
+                    <th class="text-center">View</th>
+                    <th style="cursor:pointer" (click)="sort('Status')">
+                      Status <i class="bx bx-sort ms-1"></i>
+                    </th>
+                    @if (action().CanEdit)   { <th class="text-center">Edit</th> }
+                    @if (action().CanDelete) { <th class="text-center">Delete</th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (
+                    item of IteneraryServiceList()
+                      | filter: Search
+                      | orderBy: sortKey : reverse
+                      | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                    track item.IteneraryServiceId;
+                    let i = $index
+                  ) {
+                    <tr>
+                      <td class="text-muted">{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                      <td>{{ item.DestinationName }}</td>
+                      <td>{{ item.LocationName }}</td>
+                      <td class="fw-semibold">{{ item.IteneraryServiceName }}</td>
+                      <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        {{ item.DaySchedule }}
+                      </td>
+                      <td class="text-center">
+  <a class="text-primary" style="cursor:pointer" (click)="viewIteneraryService(item)">
+    <i class="bx bxs-show fs-5"></i>
+  </a>
+</td>
+                      <td>
+                        <span class="badge"
+                          [class.bg-success]="item.Status === 1"
+                          [class.bg-danger]="item.Status !== 1">
+                          {{ AllStatusList[item.Status] }}
+                        </span>
+                      </td>
+                      @if (action().CanEdit) {
+                        <td class="text-center">
+                          <a class="text-success" style="cursor:pointer"
+                            (click)="editIteneraryService(item)">
+                            <i class="bx bxs-edit-alt fs-5"></i>
+                          </a>
+                        </td>
+                      }
+                      @if (action().CanDelete) {
+                        <td class="text-center">
+                          <a class="text-danger" style="cursor:pointer"
+                            (click)="deleteIteneraryService(item)">
+                            <i class="bx bxs-trash fs-5"></i>
+                          </a>
+                        </td>
+                      }
+                    </tr>
+                  }
+                  @if (IteneraryServiceList().length === 0 && !dataLoading()) {
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                        No records found
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <pagination-controls (pageChange)="onTableDataChange($event)"
+              class="my-pagination" style="float:right;">
+            </pagination-controls>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+@if (showViewModal && viewItem()) {
+  <!-- Backdrop -->
+  <div class="modal-backdrop fade show" style="z-index:1040;" (click)="closeViewModal()"></div>
+
+  <!-- Modal -->
+  <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+
+        <!-- Header -->
+        <div class="modal-header bg-primary bg-opacity-10">
+          <h5 class="modal-title text-primary fw-semibold">
+            <i class="bx bxs-info-circle me-2"></i>Itinerary Service Details
+          </h5>
+          <button type="button" class="btn-close" (click)="closeViewModal()"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+
+          <!-- Main Info -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-3">
+              <div class="p-3 bg-light rounded">
+                <small class="text-muted d-block mb-1">Destination</small>
+                <span class="fw-semibold">{{ viewItem().DestinationName }}</span>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="p-3 bg-light rounded">
+                <small class="text-muted d-block mb-1">Location</small>
+                <span class="fw-semibold">{{ viewItem().LocationName }}</span>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="p-3 bg-light rounded">
+                <small class="text-muted d-block mb-1">Service Name</small>
+                <span class="fw-semibold">{{ viewItem().IteneraryServiceName }}</span>
+              </div>
+            </div>
+            <div class="col-sm-2">
+              <div class="p-3 bg-light rounded text-center">
+                <small class="text-muted d-block mb-1">Status</small>
+                <span class="badge fs-6"
+                  [class.bg-success]="viewItem().Status === 1"
+                  [class.bg-danger]="viewItem().Status !== 1">
+                  {{ AllStatusList[viewItem().Status] }}
+                </span>
+              </div>
+            </div>
+            <div class="col-sm-12">
+              <div class="p-3 bg-light rounded">
+                <small class="text-muted d-block mb-1">Day Schedule</small>
+                <p class="mb-0" style="white-space: pre-wrap; line-height:1.7;">
+                  {{ viewItem().DaySchedule }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vehicle Rates -->
+          <h6 class="fw-semibold mb-3 border-bottom pb-2">
+            <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
+          </h6>
+
+          @if (viewRates.length > 0) {
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover align-middle" style="font-size:13.5px;">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Vehicle Type</th>
+                    <th>From Date</th>
+                    <th>To Date</th>
+                    <th class="text-end">Rate Amount</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rate of viewRates; track rate.VehicleTypeId) {
+                    <tr>
+                      <td class="fw-semibold">{{ rate.VehicleTypeName }}</td>
+                      <td>{{ rate.FromDate | date: 'dd MMM yyyy' }}</td>
+                      <td>{{ rate.ToDate | date: 'dd MMM yyyy' }}</td>
+                      <td class="text-end">{{ rate.RateAmount | number: '1.2-2' }}</td>
+                      <td class="text-center">
+                        <span class="badge"
+                          [class.bg-success]="rate.Status === 1"
+                          [class.bg-danger]="rate.Status !== 1">
+                          {{ AllStatusList[rate.Status] }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="text-center text-muted py-4">
+              <i class="bx bx-car fs-1 d-block mb-2"></i>
+              No vehicle rates found
+            </div>
+          }
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button mat-raised-button color="warn" (click)="closeViewModal()">
+            <i class="bx bx-x me-1"></i> Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
