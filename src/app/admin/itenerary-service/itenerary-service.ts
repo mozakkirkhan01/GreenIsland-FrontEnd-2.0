@@ -313,6 +313,8 @@ public quillConfig = {
 
   // ── REFACTORED EDIT METHOD ─────────────────────────────────────────────
   editIteneraryService(item: any) {
+    // If edit is triggered from the details popup, close it first.
+    this.closeViewModal();
     this.dataLoading.set(true);
 
     // Prepare requests
