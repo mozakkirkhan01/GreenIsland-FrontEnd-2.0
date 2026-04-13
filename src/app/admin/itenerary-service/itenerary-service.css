@@ -97,3 +97,53 @@
 .fs-8 {
     font-size: 0.82rem;
 }
+::ng-deep .my-quill-editor .ql-container {
+  height: 300px !important;
+  /* width: 900px; */
+}
+
+::ng-deep .my-quill-editor .ql-editor {
+  min-height: 300px !important;
+}
+
+/* Card Hover Effect */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Cleanup Material appearance */
+::ng-deep .custom-field .mat-mdc-form-field-subscript-wrapper {
+  display: none; /* Removes the bottom space for errors/hints to keep cards tight */
+}
+
+::ng-deep .custom-field .mat-mdc-text-field-wrapper {
+  background-color: #fbfbfb !important;
+  border-radius: 10px !important;
+}
+
+/* Status Dot styling */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Label Spacing */
+.ls-1 {
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.icon-shape {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

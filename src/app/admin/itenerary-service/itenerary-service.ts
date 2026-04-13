@@ -21,6 +21,11 @@ import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
 import { Progress } from '../../component/progress/progress';
 import { forkJoin } from 'rxjs'; // ── Added for parallel loading ──
+// import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+// import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import { QuillModule } from 'ngx-quill';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+
 
 @Component({
   selector: 'app-itenerary-service',
@@ -40,11 +45,23 @@ import { forkJoin } from 'rxjs'; // ── Added for parallel loading ──
     OrderByPipe,
     Progress,
     DatePipe,
+    // CKEditorModule,
+    QuillModule,
   ],
   templateUrl: './itenerary-service.html',
   styleUrl: './itenerary-service.css',
 })
 export class IteneraryService {
+public quillConfig = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ 'color': [] }, { 'background': [] }], // 🎨 COLOR HERE
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    ['link'],
+    ['clean']
+  ]
+};
   // ── Signals ───────────────────────────────────────────────────────────
   dataLoading = signal(false);
   DestinationList = signal<any[]>([]);
@@ -67,7 +84,8 @@ export class IteneraryService {
   SelectedLocationId: any = 0;
 
   // ── Filter cascade ────────────────────────────────────────────────────
-  FilterDestinationId: any = 0;
+  // FilterDestinationId: any = 0;
+  FilterDestinationId: any = -1; // ← -1 means nothing selected yet
   FilterLocationId: any = 0;
 
   // ── Vehicle rate rows ─────────────────────────────────────────────────
@@ -95,6 +113,7 @@ export class IteneraryService {
     private toastr: ToastrService,
     private localService: LocalService,
     private router: Router,
+    private sanitizer: DomSanitizer,  // ← add this
   ) {
     this.itemPerPage = this.PageSize[0];
   }
@@ -104,7 +123,7 @@ export class IteneraryService {
     this.validiateMenu();
     this.getDestinationList();
     this.resetForm();
-    this.loadIteneraryServiceList();
+    // this.loadIteneraryServiceList();
   }
 
   @ViewChild('formIteneraryService') formIteneraryService!: NgForm;
@@ -128,6 +147,9 @@ export class IteneraryService {
       }
     });
   }
+  sanitize(html: string): SafeHtml {
+  return this.sanitizer.bypassSecurityTrustHtml(html);
+}
 
   resetForm() {
     this.IteneraryServiceModel = { Status: 1 };
@@ -374,44 +396,59 @@ export class IteneraryService {
     });
   }
 
-  onFilterDestinationChange() {
-    this.FilterLocationId = 0;
-    this.FilterLocationList.set([]);
-    this.loadIteneraryServiceList();
-    if (!this.FilterDestinationId || this.FilterDestinationId == 0) return;
+onFilterDestinationChange() {
+  this.FilterLocationId = 0;
+  this.FilterLocationList.set([]);
+  this.IteneraryServiceList.set([]);
 
-    const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })).toString()
-    };
-    this.service.getLocationList(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.FilterLocationList.set(r1.LocationList);
-        }
+  // ── Nothing selected yet — show empty list ──
+  if (this.FilterDestinationId === -1) return;
+
+  // ── Load list (0 = All, >0 = specific destination) ──
+  this.loadIteneraryServiceList();
+
+  // ── Load filter locations only for specific destination ──
+  if (this.FilterDestinationId == 0) return;
+
+  const obj: RequestModel = {
+    request: this.localService.encrypt(
+      JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
+    ).toString()
+  };
+  this.service.getLocationList(obj).subscribe({
+    next: (r1: any) => {
+      if (r1.Message == ConstantData.SuccessMessage) {
+        this.FilterLocationList.set(r1.LocationList);
       }
-    });
-  }
+    }
+  });
+}
 
-  onFilterLocationChange() {
-    this.loadIteneraryServiceList();
-  }
 
-  loadIteneraryServiceList() {
-    const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({ LocationId: Number(this.FilterLocationId) })).toString()
-    };
-    this.dataLoading.set(true);
-    this.service.getIteneraryServiceList(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.IteneraryServiceList.set(r1.IteneraryServiceList);
-        }
-        this.dataLoading.set(false);
-      },
-      error: () => this.dataLoading.set(false)
-    });
-  }
+onFilterLocationChange() {
+  this.loadIteneraryServiceList();
+}
 
+loadIteneraryServiceList() {
+  const obj: RequestModel = {
+    request: this.localService.encrypt(
+      JSON.stringify({
+        LocationId:    Number(this.FilterLocationId),
+        DestinationId: Number(this.FilterDestinationId), // ← add this
+      })
+    ).toString()
+  };
+  this.dataLoading.set(true);
+  this.service.getIteneraryServiceList(obj).subscribe({
+    next: (r1: any) => {
+      if (r1.Message == ConstantData.SuccessMessage) {
+        this.IteneraryServiceList.set(r1.IteneraryServiceList);
+      }
+      this.dataLoading.set(false);
+    },
+    error: () => this.dataLoading.set(false)
+  });
+}
   sort(key: any) { this.sortKey = key; this.reverse = !this.reverse; }
   onTableDataChange(p: any) { this.p = p; }
 

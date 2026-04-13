@@ -82,18 +82,24 @@
                 </div>
 
                 <!-- Day Schedule -->
-                <div class="col-sm-12">
-                  <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Day Schedule</mat-label>
-                    <textarea matInput #DaySchedule="ngModel" name="DaySchedule"
-                      [(ngModel)]="IteneraryServiceModel.DaySchedule"
-                      required rows="4">
-                    </textarea>
-                    @if ((DaySchedule.dirty || DaySchedule.touched) || (DaySchedule.invalid && isSubmitted)) {
-                      <mat-error>Day Schedule is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-                </div>
+                <label class="form-label fw-semibold">Day Schedule</label>
+<div class="col-sm-12">
+
+<quill-editor
+  class="my-quill-editor w-100"
+  [(ngModel)]="IteneraryServiceModel.DaySchedule"
+  [modules]="quillConfig"
+  name="DaySchedule"
+  #DaySchedule="ngModel"
+  required>
+</quill-editor>
+
+  <!-- @if ((DaySchedule.dirty || DaySchedule.touched) || (DaySchedule.invalid && isSubmitted)) {
+    <div class="text-danger mt-1">
+      Day Schedule is <strong>required</strong>
+    </div>
+  } -->
+</div>
 
                 <!-- Status -->
                 <div class="col-sm-2">
@@ -139,65 +145,62 @@
               </div>
 
               <!-- ── Vehicle Rate Table ─────────────────────────────── -->
-              @if (VehicleRateRows.length > 0) {
-                <div class="mt-4">
-                  <h6 class="fw-semibold mb-3">
-                    <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
-                  </h6>
-                  <div class="table-responsive">
-                    <table class="table table-bordered align-middle" style="font-size:13.5px;">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Vehicle Type</th>
-                          <th>Rate Amount</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (row of VehicleRateRows; track row.VehicleTypeId; let i = $index) {
-                          <tr>
-                            <td class="fw-semibold">{{ row.VehicleTypeName }}</td>
-                            <td style="width:200px">
-                              <mat-form-field appearance="outline" class="w-100 mb-0">
-                                <mat-label>Rate</mat-label>
-                                <input matInput type="number" min="0"
-                                  [(ngModel)]="VehicleRateRows[i].RateAmount"
-                                  [name]="'RateAmount_' + i">
-                              </mat-form-field>
-                            </td>
-                            <td style="width:160px">
-                              <mat-form-field appearance="outline" class="w-100 mb-0">
-                                <mat-label>Status</mat-label>
-                                <mat-select [(ngModel)]="VehicleRateRows[i].Status"
-                                  [name]="'VehicleStatus_' + i">
-                                  @for (status of StatusList; track status.Key) {
-                                    <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
-                                  }
-                                </mat-select>
-                              </mat-form-field>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              }
+             @if (VehicleRateRows.length > 0) {
+  <div class="mt-3">
+    <h6 class="fw-bold mb-2 small text-uppercase tracking-wider">
+      <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
+    </h6>
+    <div class="table-responsive border rounded">
+      <table class="table table-sm align-middle mb-3" style="font-size:13px;">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Vehicle Type</th>
+            <th style="width:160px">Rate Amount</th>
+            <th style="width:150px">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of VehicleRateRows; track row.VehicleTypeId; let i = $index) {
+            <tr>
+              <td class="fw-semibold ps-3 py-1">{{ row.VehicleTypeName }}</td>
+              <td class="py-1">
+                <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
+                  <input matInput type="number" min="0" 
+                         [(ngModel)]="VehicleRateRows[i].RateAmount" 
+                         [name]="'RateAmount_' + i">
+                </mat-form-field>
+              </td>
+              <td class="py-1 pe-2">
+                <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
+                  <mat-select [(ngModel)]="VehicleRateRows[i].Status" [name]="'VehicleStatus_' + i">
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
 
               <!-- ── Action Buttons ─────────────────────────────────── -->
               <div class="d-flex gap-2 mt-3">
                 <button mat-raised-button color="primary" (click)="saveIteneraryService()">
                   <i class="bx bx-save me-1"></i>
-                  {{ IteneraryServiceModel.IteneraryServiceId > 0 ? 'Update' : 'Submit' }}
+                  {{ IteneraryServiceModel.IteneraryServiceId > 0 ? 'Update' : 'Save' }}
                 </button>
 
                 <!-- Submit and clear dates for next date range entry -->
-                @if (!IteneraryServiceModel.IteneraryServiceId || IteneraryServiceModel.IteneraryServiceId == 0) {
+                <!-- @if (!IteneraryServiceModel.IteneraryServiceId || IteneraryServiceModel.IteneraryServiceId == 0) {
                   <button mat-stroked-button color="accent" (click)="clearDatesOnly()"
                     [disabled]="!SharedFromDate || !SharedToDate">
                     <i class="bx bx-refresh me-1"></i> Clear Dates Only
                   </button>
-                }
+                } -->
 
                 @if (IteneraryServiceModel.IteneraryServiceId > 0) {
                   <button mat-raised-button color="warn" (click)="resetForm()">
@@ -214,7 +217,7 @@
 
     <!-- ══════════════════════════════════════════════════════ -->
     <!-- FILTER + LIST CARD                                     -->
-    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════════════ //mozakkir-->
     <div class="row">
       <div class="col-lg-12">
         <div class="card">
@@ -224,17 +227,18 @@
             <div class="row d-flex align-items-center mb-3">
 
               <!-- Filter Destination -->
-              <mat-form-field appearance="outline" class="col-sm-3">
-                <mat-label>Destination</mat-label>
-                <mat-select name="FilterDestinationId"
-                  [(ngModel)]="FilterDestinationId"
-                  (ngModelChange)="onFilterDestinationChange()">
-                  <mat-option [value]="0">-- All --</mat-option>
-                  @for (dest of DestinationList(); track dest.DestinationId) {
-                    <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+             <mat-form-field appearance="outline" class="col-sm-3">
+  <mat-label>Destination</mat-label>
+  <mat-select name="FilterDestinationId"
+    [(ngModel)]="FilterDestinationId"
+    (ngModelChange)="onFilterDestinationChange()">
+    <mat-option [value]="-1" >-- Select Destination --</mat-option>
+    <mat-option [value]="0">-- All --</mat-option>
+    @for (dest of DestinationList(); track dest.DestinationId) {
+      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+    }
+  </mat-select>
+</mat-form-field>
 
               <!-- Filter Location -->
               <mat-form-field appearance="outline" class="col-sm-3">
@@ -291,7 +295,7 @@
                     <th style="cursor:pointer" (click)="sort('IteneraryServiceName')">
                       Service Name <i class="bx bx-sort ms-1"></i>
                     </th>
-                    <th>Day Schedule</th>
+                    <!-- <th>Day Schedule</th> -->
                     <th class="text-center">View</th>
                     <th style="cursor:pointer" (click)="sort('Status')">
                       Status <i class="bx bx-sort ms-1"></i>
@@ -314,11 +318,13 @@
                       <td>{{ item.DestinationName }}</td>
                       <td>{{ item.LocationName }}</td>
                       <td class="fw-semibold">{{ item.IteneraryServiceName }}</td>
-                      <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                        {{ item.DaySchedule }}
-                      </td>
+
+                     <!-- <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+  <div [innerHTML]="item.DaySchedule" style="pointer-events:none;"></div>
+</td> -->
                       <td class="text-center">
-  <a class="text-primary" style="cursor:pointer" (click)="viewIteneraryService(item)">
+                        <!-- (click)="viewIteneraryService(item)" -->
+  <a class="text-primary" style="cursor:pointer" (click)="viewIteneraryService(item)" >
     <i class="bx bxs-show fs-5"></i>
   </a>
 </td>
@@ -376,8 +382,8 @@
   <div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter: blur(4px);" (click)="closeViewModal()"></div>
 
   <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content border-0 rounded-xl shadow-lg">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width:900px;">
+      <div class="modal-content border-0 rounded-xl shadow-lg" style="overflow-x:hidden;">
 
         <div class="modal-header border-0 pb-0 px-4 pt-4">
           <div class="d-flex align-items-center">
@@ -392,89 +398,106 @@
           <button type="button" class="btn-close shadow-none" (click)="closeViewModal()"></button>
         </div>
 
-        <div class="modal-body p-4">
-          <div class="row g-4">
-            
-            <div class="col-lg-7">
+        <div class="modal-body p-4" style="overflow-x:hidden;">
+          <div class="row g-4" style="margin:0;">
+
+            <!-- ── Left: Activity Schedule ───────────────────────── -->
+            <div class="col-lg-7" style="min-width:0; overflow:hidden;">
               <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                 <h6 class="text-uppercase fw-bold text-dark letter-spacing-1 mb-0">Activity Schedule</h6>
                 <span class="badge bg-soft-info text-info rounded-pill px-3 py-1 fw-semibold fs-8">
                   <i class="bx bx-time-five me-1"></i> Day Event
                 </span>
               </div>
-              
-              <div class="timeline-container px-3">
+
+              <div class="timeline-container px-2">
                 <div class="timeline-item">
                   <div class="timeline-icon bg-soft-primary text-primary">
                     <i class="bx bx-map-pin"></i>
                   </div>
-                  <div class="timeline-content rounded-xl bg-light-gray p-3 shadow-sm">
-                    <p class="mb-0 text-muted small" style="white-space: pre-wrap; line-height: 1.7;">
-                      {{ viewItem().DaySchedule }}
-                    </p>
+                  <div class="timeline-content rounded-xl bg-light p-3 shadow-sm"
+                       style="overflow-y:auto; max-height:420px; overflow-x:hidden;">
+                    <div class="text-muted small"
+                         style="line-height:1.7;
+                                word-break:break-word;
+                                overflow-wrap:break-word;
+                                white-space:normal;
+                                max-width:100%;"
+                         [innerHTML]="sanitize(viewItem().DaySchedule)">
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="col-lg-5">
-              
+            <!-- ── Right: Location + Vehicle Rates ──────────────── -->
+            <div class="col-lg-5" style="min-width:0;">
+
+              <!-- Location Overview -->
               <div class="card border-0 bg-white shadow-sm rounded-xl mb-4 elevation-1">
                 <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                        <small class="text-muted text-uppercase fw-semibold mb-0">Location Overview</small>
-                        <span class="dot-lg" [class.bg-success]="viewItem().Status === 1" [class.bg-danger]="viewItem().Status !== 1"></span>
-                    </div>
-
-                    <div class="mb-2">
-                        <small class="text-muted d-block small">Destination</small>
-                        <span class="fw-bold text-dark fs-6">{{ viewItem().DestinationName }}</span>
-                    </div>
-                    <div>
-                        <small class="text-muted d-block small">Specific Location</small>
-                        <span class="fw-bold text-dark fs-6">{{ viewItem().LocationName }}</span>
-                    </div>
+                  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <small class="text-muted text-uppercase fw-semibold mb-0">Location Overview</small>
+                    <span class="dot-lg"
+                      [class.bg-success]="viewItem().Status === 1"
+                      [class.bg-danger]="viewItem().Status !== 1">
+                    </span>
+                  </div>
+                  <div class="mb-2">
+                    <small class="text-muted d-block small">Destination</small>
+                    <span class="fw-bold text-dark fs-6">{{ viewItem().DestinationName }}</span>
+                  </div>
+                  <div>
+                    <small class="text-muted d-block small">Specific Location</small>
+                    <span class="fw-bold text-dark fs-6">{{ viewItem().LocationName }}</span>
+                  </div>
                 </div>
               </div>
 
+              <!-- Vehicle Rates -->
               <div class="card border-0 bg-white shadow-sm rounded-xl elevation-1">
                 <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                        <small class="text-muted text-uppercase fw-semibold mb-0">Vehicle Rates</small>
-                        <span class="text-muted small fw-medium">{{ viewRates.length }} Assigned</span>
-                    </div>
+                  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <small class="text-muted text-uppercase fw-semibold mb-0">Vehicle Rates</small>
+                    <span class="text-muted small fw-medium">{{ viewRates.length }} Assigned</span>
+                  </div>
 
-                    @if (viewRates.length > 0) {
-                        <div class="table-responsive" style="max-height: 250px;">
-                            <table class="table table-sm table-nowrap align-middle mb-0 fs-8">
-                                <thead class="text-muted text-uppercase">
-                                    <tr>
-                                        <th class="border-0 ps-0">Vehicle</th>
-                                        <th class="border-0">Dates</th>
-                                        <th class="border-0 text-end">Rate</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (rate of viewRates; track rate.VehicleTypeId) {
-                                        <tr>
-                                            <td class="border-0 ps-0 fw-semibold text-dark">{{ rate.VehicleTypeName }}</td>
-                                            <td class="border-0 text-muted small">
-                                                {{ rate.FromDate | date: 'dd MMM' }} - {{ rate.ToDate | date: 'dd MMM' }}
-                                            </td>
-                                            <td class="border-0 text-end fw-bold text-primary fs-7">
-                                                {{ rate.RateAmount | number: '1.2-2' }}
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    } @else {
-                        <div class="text-center py-4 bg-light-gray rounded-3">
-                            <i class="bx bx-car fs-1 d-block mb-2 text-muted opacity-50"></i>
-                            <p class="text-muted small mb-0">No Pricing Data</p>
-                        </div>
-                    }
+                  @if (viewRates.length > 0) {
+                    <div style="max-height:250px; overflow-y:auto; overflow-x:hidden;">
+                      <table class="table table-sm align-middle mb-0" style="font-size:12px;">
+                        <thead class="text-muted text-uppercase">
+                          <tr>
+                            <th class="border-0 ps-0">Vehicle</th>
+                            <th class="border-0">Dates</th>
+                            <th class="border-0 text-end">Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (rate of viewRates; track rate.VehicleTypeId) {
+                            <tr>
+                              <td class="border-0 ps-0 fw-semibold text-dark"
+                                  style="word-break:break-word;">
+                                {{ rate.VehicleTypeName }}
+                              </td>
+                              <td class="border-0 text-muted small" style="white-space:nowrap;">
+                                {{ rate.FromDate | date: 'dd MMM' }} - {{ rate.ToDate | date: 'dd MMM' }}
+                              </td>
+                              <td class="border-0 text-end fw-bold text-primary"
+                                  style="white-space:nowrap;">
+                                {{ rate.RateAmount | number: '1.2-2' }}
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else {
+                    <div class="text-center py-4 bg-light rounded-3">
+                      <i class="bx bx-car fs-1 d-block mb-2 text-muted opacity-50"></i>
+                      <p class="text-muted small mb-0">No Pricing Data</p>
+                    </div>
+                  }
+
                 </div>
               </div>
 
@@ -483,9 +506,11 @@
         </div>
 
         <div class="modal-footer border-0 px-4 pb-4 pt-0">
-          <button type="button" class="btn btn-outline-danger px-4 fw-medium rounded-pill" (click)="closeViewModal()">Dismiss</button>
-          <button type="button" class="btn btn-primary px-4 fw-medium rounded-pill shadow-sm" (click)="editIteneraryService(viewItem())">
-             <i class="bx bx-edit-alt me-1"></i> Modify Service
+          <button type="button" class="btn btn-outline-danger px-4 fw-medium rounded-pill"
+            (click)="closeViewModal()">Dismiss</button>
+          <button type="button" class="btn btn-primary px-4 fw-medium rounded-pill shadow-sm"
+            (click)="editIteneraryService(viewItem())">
+            <i class="bx bx-edit-alt me-1"></i> Modify Service
           </button>
         </div>
 
