@@ -8,13 +8,17 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { NgxPaginationModule } from 'ngx-pagination';
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
 import { LocalService } from '../../utils/local.service';
 import { Status } from '../../utils/enum';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LoadDataService } from '../../utils/load-data.service';
+import { FilterPipe } from '../../utils/filter-pipe';
+// import { OrderByPipe } from '../../utils/orderby-pipe';
 import { Progress } from '../../component/progress/progress';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-inclusion-exclusion',
@@ -28,6 +32,9 @@ import { Progress } from '../../component/progress/progress';
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    NgxPaginationModule,
+    FilterPipe,
+    // OrderByPipe,
     Progress,
   ],
   templateUrl: './inclusion-exclusion.html',
@@ -38,24 +45,34 @@ export class InclusionExclusion {
   // ── Signals ───────────────────────────────────────────────────────────
   dataLoading = signal(false);
   DestinationList = signal<any[]>([]);
+  InclusionList = signal<any[]>([]);
+  ExclusionList = signal<any[]>([]);
 
   action = signal<ActionModel>({
     CanCreate: false, CanEdit: false, CanDelete: false,
     MenuTitle: '', ParentMenuTitle: ''
   } as ActionModel);
 
-  // ── Selected Destination ──────────────────────────────────────────────
-  SelectedDestinationId: any = 0;
+  // ── Filter ────────────────────────────────────────────────────────────
+  FilterDestinationId: any = -1;
 
-  // ── Inclusion rows ────────────────────────────────────────────────────
+  // ── Modal state ───────────────────────────────────────────────────────
+  showModal = false;
+  ModalDestinationId: any = 0;
   InclusionRows: any[] = [];
-
-  // ── Exclusion rows ────────────────────────────────────────────────────
   ExclusionRows: any[] = [];
+
+  // ── Table pagination ──────────────────────────────────────────────────
+  SearchInclusion = '';
+  SearchExclusion = '';
+  pInclusion = 1;
+  pExclusion = 1;
+  itemPerPage = 10;
 
   loadData = inject(LoadDataService);
   StatusList = this.loadData.GetEnumList(Status);
   AllStatusList = Status;
+  PageSize = ConstantData.PageSizes;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
   constructor(
@@ -109,36 +126,31 @@ export class InclusionExclusion {
     });
   }
 
-  // ── On destination change — load both lists ───────────────────────────
-  onDestinationChange() {
-    this.InclusionRows = [];
-    this.ExclusionRows = [];
+  // ── Filter destination change ─────────────────────────────────────────
+  onFilterDestinationChange() {
+    this.loadBothLists();
+  }
 
-    if (!this.SelectedDestinationId || this.SelectedDestinationId == 0) return;
-
+  loadBothLists() {
     this.loadInclusionList();
     this.loadExclusionList();
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // INCLUSION
+  // LOAD LISTS
   // ══════════════════════════════════════════════════════════════════════
 
   loadInclusionList() {
     const obj: RequestModel = {
       request: this.localService.encrypt(
-        JSON.stringify({ DestinationId: Number(this.SelectedDestinationId) })
+        JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
       ).toString()
     };
     this.dataLoading.set(true);
     this.service.getInclusionList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
-          // ── Map to editable rows ──
-          this.InclusionRows = r1.InclusionList.map((item: any) => ({
-            ...item,
-            isEditing: false,
-          }));
+          this.InclusionList.set(r1.InclusionList);
         } else {
           this.toastr.error(r1.Message);
         }
@@ -151,110 +163,17 @@ export class InclusionExclusion {
     });
   }
 
-  addInclusionRow() {
-    this.InclusionRows.push({
-      InclusionId:      0,
-      DestinationId:    Number(this.SelectedDestinationId),
-      InclusionDetails: '',
-      Status:           1,
-      isEditing:        true,
-      CreatedBy:        this.staffLogin.StaffLoginId,
-      UpdatedBy:        this.staffLogin.StaffLoginId,
-    });
-  }
-
-  removeInclusionRow(index: number) {
-    const row = this.InclusionRows[index];
-    if (row.InclusionId > 0) {
-      // ── Already saved — delete from DB ──
-      this.deleteInclusion(row, index);
-    } else {
-      // ── Not saved yet — just remove from array ──
-      this.InclusionRows.splice(index, 1);
-    }
-  }
-
-  deleteInclusion(row: any, index: number) {
-    if (!confirm('Are you sure you want to delete this inclusion?')) return;
-    const obj: RequestModel = {
-      request: this.localService.encrypt(
-        JSON.stringify({ InclusionId: row.InclusionId })
-      ).toString()
-    };
-    this.dataLoading.set(true);
-    this.service.deleteInclusion(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.toastr.success('Inclusion deleted successfully');
-          this.InclusionRows.splice(index, 1);
-        } else {
-          this.toastr.error(r1.Message);
-        }
-        this.dataLoading.set(false);
-      },
-      error: () => {
-        this.toastr.error('Error occurred while deleting');
-        this.dataLoading.set(false);
-      }
-    });
-  }
-
-  saveInclusionList() {
-    const invalid = this.InclusionRows.find(r => !r.InclusionDetails || r.InclusionDetails.trim() === '');
-    if (invalid) {
-      this.toastr.error('Please fill all inclusion details');
-      return;
-    }
-
-    const payload = this.InclusionRows.map(row => ({
-      InclusionId:      row.InclusionId,
-      DestinationId:    Number(this.SelectedDestinationId),
-      InclusionDetails: row.InclusionDetails,
-      Status:           row.Status,
-      CreatedBy:        this.staffLogin.StaffLoginId,
-      UpdatedBy:        this.staffLogin.StaffLoginId,
-    }));
-
-    const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(payload)).toString()
-    };
-
-    this.dataLoading.set(true);
-    this.service.saveInclusionList(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.toastr.success('Inclusions saved successfully');
-          this.loadInclusionList();
-        } else {
-          this.toastr.error(r1.Message);
-        }
-        this.dataLoading.set(false);
-      },
-      error: () => {
-        this.toastr.error('Error occurred while saving inclusions');
-        this.dataLoading.set(false);
-      }
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════════════════
-  // EXCLUSION
-  // ══════════════════════════════════════════════════════════════════════
-
   loadExclusionList() {
     const obj: RequestModel = {
       request: this.localService.encrypt(
-        JSON.stringify({ DestinationId: Number(this.SelectedDestinationId) })
+        JSON.stringify({ DestinationId: Number(this.FilterDestinationId) })
       ).toString()
     };
     this.dataLoading.set(true);
     this.service.getExclusionList(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
-          this.ExclusionRows = r1.ExclusionList.map((item: any) => ({
-            ...item,
-            isEditing: false,
-          }));
+          this.ExclusionList.set(r1.ExclusionList);
         } else {
           this.toastr.error(r1.Message);
         }
@@ -267,13 +186,124 @@ export class InclusionExclusion {
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // MODAL
+  // ══════════════════════════════════════════════════════════════════════
+
+  openModal() {
+    this.ModalDestinationId = this.FilterDestinationId > 0
+      ? this.FilterDestinationId : 0;
+    this.InclusionRows = [];
+    this.ExclusionRows = [];
+    this.showModal = true;
+
+    // ── If destination already selected, load existing rows ──
+    if (this.ModalDestinationId > 0) {
+      this.loadModalData(this.ModalDestinationId);
+    }
+  }
+
+  onModalDestinationChange() {
+    this.InclusionRows = [];
+    this.ExclusionRows = [];
+    if (!this.ModalDestinationId || this.ModalDestinationId == 0) return;
+    this.loadModalData(this.ModalDestinationId);
+  }
+
+  loadModalData(destinationId: number) {
+    const incObj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(destinationId) })
+      ).toString()
+    };
+    const excObj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ DestinationId: Number(destinationId) })
+      ).toString()
+    };
+
+    this.dataLoading.set(true);
+    forkJoin({
+      inclusions: this.service.getInclusionList(incObj),
+      exclusions: this.service.getExclusionList(excObj),
+    }).subscribe({
+      next: (res: any) => {
+        if (res.inclusions.Message == ConstantData.SuccessMessage) {
+          this.InclusionRows = res.inclusions.InclusionList.map((item: any) => ({ ...item }));
+        }
+        if (res.exclusions.Message == ConstantData.SuccessMessage) {
+          this.ExclusionRows = res.exclusions.ExclusionList.map((item: any) => ({ ...item }));
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error loading data');
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  closeModal() {
+    this.showModal = false;
+    this.InclusionRows = [];
+    this.ExclusionRows = [];
+    this.ModalDestinationId = 0;
+  }
+
+  // ── Inclusion row actions ─────────────────────────────────────────────
+  addInclusionRow() {
+    this.InclusionRows.push({
+      InclusionId:      0,
+      DestinationId:    Number(this.ModalDestinationId),
+      InclusionDetails: '',
+      Status:           1,
+      CreatedBy:        this.staffLogin.StaffLoginId,
+      UpdatedBy:        this.staffLogin.StaffLoginId,
+    });
+  }
+
+  removeInclusionRow(index: number) {
+    const row = this.InclusionRows[index];
+    if (row.InclusionId > 0) {
+      this.deleteInclusion(row, index);
+    } else {
+      this.InclusionRows.splice(index, 1);
+    }
+  }
+
+  deleteInclusion(row: any, index: number) {
+    if (!confirm('Delete this inclusion?')) return;
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ InclusionId: row.InclusionId })
+      ).toString()
+    };
+    this.dataLoading.set(true);
+    this.service.deleteInclusion(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.toastr.success('Inclusion deleted');
+          this.InclusionRows.splice(index, 1);
+          this.loadInclusionList();
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error deleting inclusion');
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  // ── Exclusion row actions ─────────────────────────────────────────────
   addExclusionRow() {
     this.ExclusionRows.push({
       ExclusionId:      0,
-      DestinationId:    Number(this.SelectedDestinationId),
+      DestinationId:    Number(this.ModalDestinationId),
       ExclusionDetails: '',
       Status:           1,
-      isEditing:        true,
       CreatedBy:        this.staffLogin.StaffLoginId,
       UpdatedBy:        this.staffLogin.StaffLoginId,
     });
@@ -289,7 +319,7 @@ export class InclusionExclusion {
   }
 
   deleteExclusion(row: any, index: number) {
-    if (!confirm('Are you sure you want to delete this exclusion?')) return;
+    if (!confirm('Delete this exclusion?')) return;
     const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ ExclusionId: row.ExclusionId })
@@ -299,45 +329,8 @@ export class InclusionExclusion {
     this.service.deleteExclusion(obj).subscribe({
       next: (r1: any) => {
         if (r1.Message == ConstantData.SuccessMessage) {
-          this.toastr.success('Exclusion deleted successfully');
+          this.toastr.success('Exclusion deleted');
           this.ExclusionRows.splice(index, 1);
-        } else {
-          this.toastr.error(r1.Message);
-        }
-        this.dataLoading.set(false);
-      },
-      error: () => {
-        this.toastr.error('Error occurred while deleting');
-        this.dataLoading.set(false);
-      }
-    });
-  }
-
-  saveExclusionList() {
-    const invalid = this.ExclusionRows.find(r => !r.ExclusionDetails || r.ExclusionDetails.trim() === '');
-    if (invalid) {
-      this.toastr.error('Please fill all exclusion details');
-      return;
-    }
-
-    const payload = this.ExclusionRows.map(row => ({
-      ExclusionId:      row.ExclusionId,
-      DestinationId:    Number(this.SelectedDestinationId),
-      ExclusionDetails: row.ExclusionDetails,
-      Status:           row.Status,
-      CreatedBy:        this.staffLogin.StaffLoginId,
-      UpdatedBy:        this.staffLogin.StaffLoginId,
-    }));
-
-    const obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify(payload)).toString()
-    };
-
-    this.dataLoading.set(true);
-    this.service.saveExclusionList(obj).subscribe({
-      next: (r1: any) => {
-        if (r1.Message == ConstantData.SuccessMessage) {
-          this.toastr.success('Exclusions saved successfully');
           this.loadExclusionList();
         } else {
           this.toastr.error(r1.Message);
@@ -345,7 +338,144 @@ export class InclusionExclusion {
         this.dataLoading.set(false);
       },
       error: () => {
-        this.toastr.error('Error occurred while saving exclusions');
+        this.toastr.error('Error deleting exclusion');
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  // ── Save both ─────────────────────────────────────────────────────────
+  saveAll() {
+    if (!this.ModalDestinationId || this.ModalDestinationId == 0) {
+      this.toastr.error('Please select a destination');
+      return;
+    }
+
+    const invalidInc = this.InclusionRows.find(
+      r => !r.InclusionDetails || r.InclusionDetails.trim() === ''
+    );
+    if (invalidInc) {
+      this.toastr.error('Please fill all inclusion details');
+      return;
+    }
+
+    const invalidExc = this.ExclusionRows.find(
+      r => !r.ExclusionDetails || r.ExclusionDetails.trim() === ''
+    );
+    if (invalidExc) {
+      this.toastr.error('Please fill all exclusion details');
+      return;
+    }
+
+    const incPayload = this.InclusionRows.map(row => ({
+      InclusionId:      row.InclusionId,
+      DestinationId:    Number(this.ModalDestinationId),
+      InclusionDetails: row.InclusionDetails,
+      Status:           row.Status,
+      CreatedBy:        this.staffLogin.StaffLoginId,
+      UpdatedBy:        this.staffLogin.StaffLoginId,
+    }));  
+
+    const excPayload = this.ExclusionRows.map(row => ({
+      ExclusionId:      row.ExclusionId,
+      DestinationId:    Number(this.ModalDestinationId),
+      ExclusionDetails: row.ExclusionDetails,
+      Status:           row.Status,
+      CreatedBy:        this.staffLogin.StaffLoginId,
+      UpdatedBy:        this.staffLogin.StaffLoginId,
+    }));
+
+    const incObj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify(incPayload)).toString()
+    };
+    const excObj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify(excPayload)).toString()
+    };
+
+    this.dataLoading.set(true);
+
+    const saves: any[] = [];
+    if (incPayload.length > 0) saves.push(this.service.saveInclusionList(incObj));
+    if (excPayload.length > 0) saves.push(this.service.saveExclusionList(excObj));
+
+    if (saves.length === 0) {
+      this.toastr.warning('Nothing to save');
+      this.dataLoading.set(false);
+      return;
+    }
+
+    forkJoin(saves).subscribe({
+      next: (results: any[]) => {
+        const allSuccess = results.every(r => r.Message == ConstantData.SuccessMessage);
+        if (allSuccess) {
+          this.toastr.success('Saved successfully');
+          this.closeModal();
+          this.FilterDestinationId = this.ModalDestinationId || this.FilterDestinationId;
+          this.loadBothLists();
+        } else {
+          results.forEach(r => {
+            if (r.Message != ConstantData.SuccessMessage) this.toastr.error(r.Message);
+          });
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error occurred while saving');
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  // ── Table delete shortcuts ────────────────────────────────────────────
+  deleteInclusionFromTable(item: any) {
+    if (!confirm('Delete this inclusion?')) return;
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ InclusionId: item.InclusionId })
+      ).toString()
+    };
+    this.dataLoading.set(true);
+    this.service.deleteInclusion(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.toastr.success('Deleted successfully');
+          this.InclusionList.update(rows =>
+            rows.filter(x => x.InclusionId !== item.InclusionId)
+          );
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error occurred');
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  deleteExclusionFromTable(item: any) {
+    if (!confirm('Delete this exclusion?')) return;
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ ExclusionId: item.ExclusionId })
+      ).toString()
+    };
+    this.dataLoading.set(true);
+    this.service.deleteExclusion(obj).subscribe({
+      next: (r1: any) => {
+        if (r1.Message == ConstantData.SuccessMessage) {
+          this.toastr.success('Deleted successfully');
+          this.ExclusionList.update(rows =>
+            rows.filter(x => x.ExclusionId !== item.ExclusionId)
+          );
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error occurred');
         this.dataLoading.set(false);
       }
     });

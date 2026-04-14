@@ -1,0 +1,33 @@
+.inclusion-row,
+.exclusion-row {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.inclusion-row:last-of-type,
+.exclusion-row:last-of-type {
+  border-bottom: none;
+}
+
+.form-floating textarea.form-control {
+  padding-top: 1.625rem;
+}
+.custom-modal-width {
+  max-width: 90% !important; /* Adjust percentage as needed */
+  width: 90%;
+}
+
+/* Or for a specific ultra-wide pixel value */
+@media (min-width: 1200px) {
+  .custom-modal-width {
+    max-width: 1400px !important;
+  }
+}
+
+
+
+
+
+
+
+
