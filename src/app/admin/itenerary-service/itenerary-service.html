@@ -40,11 +40,10 @@
                 <div class="col-sm-3">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>Destination</mat-label>
-                    <mat-select name="SelectedDestinationId"
-                      [(ngModel)]="SelectedDestinationId"
+                    <mat-select name="SelectedDestinationId" [(ngModel)]="SelectedDestinationId"
                       (ngModelChange)="onFormDestinationChange()" required>
                       @for (dest of DestinationList(); track dest.DestinationId) {
-                        <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
                       }
                     </mat-select>
                   </mat-form-field>
@@ -54,16 +53,14 @@
                 <div class="col-sm-3">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>Location</mat-label>
-                    <mat-select #LocationId="ngModel" name="LocationId"
-                      [(ngModel)]="SelectedLocationId"
-                      (ngModelChange)="onFormLocationChange()" required
-                      [disabled]="LocationList().length === 0">
+                    <mat-select #LocationId="ngModel" name="LocationId" [(ngModel)]="SelectedLocationId"
+                      (ngModelChange)="onFormLocationChange()" required [disabled]="LocationList().length === 0">
                       @for (loc of LocationList(); track loc.LocationId) {
-                        <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                      <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
                       }
                     </mat-select>
                     @if ((LocationId.dirty || LocationId.touched) || (LocationId.invalid && isSubmitted)) {
-                      <mat-error>Location is <strong>required</strong></mat-error>
+                    <mat-error>Location is <strong>required</strong></mat-error>
                     }
                   </mat-form-field>
                 </div>
@@ -73,46 +70,40 @@
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>Itenerary Service Name</mat-label>
                     <input matInput #IteneraryServiceName="ngModel" name="IteneraryServiceName"
-                      [(ngModel)]="IteneraryServiceModel.IteneraryServiceName"
-                      required maxlength="550">
-                    @if ((IteneraryServiceName.dirty || IteneraryServiceName.touched) || (IteneraryServiceName.invalid && isSubmitted)) {
-                      <mat-error>Itenerary Service Name is <strong>required</strong></mat-error>
+                      [(ngModel)]="IteneraryServiceModel.IteneraryServiceName" required maxlength="550">
+                    @if ((IteneraryServiceName.dirty || IteneraryServiceName.touched) || (IteneraryServiceName.invalid
+                    && isSubmitted)) {
+                    <mat-error>Itenerary Service Name is <strong>required</strong></mat-error>
                     }
                   </mat-form-field>
                 </div>
 
                 <!-- Day Schedule -->
                 <label class="form-label fw-semibold">Day Schedule</label>
-<div class="col-sm-12">
+                <div class="col-sm-12">
 
-<quill-editor
-  class="my-quill-editor w-100"
-  [(ngModel)]="IteneraryServiceModel.DaySchedule"
-  [modules]="quillConfig"
-  name="DaySchedule"
-  #DaySchedule="ngModel"
-  required>
-</quill-editor>
+                  <quill-editor class="my-quill-editor w-100" [(ngModel)]="IteneraryServiceModel.DaySchedule"
+                    [modules]="quillConfig" name="DaySchedule" #DaySchedule="ngModel" required>
+                  </quill-editor>
 
-  <!-- @if ((DaySchedule.dirty || DaySchedule.touched) || (DaySchedule.invalid && isSubmitted)) {
+                  <!-- @if ((DaySchedule.dirty || DaySchedule.touched) || (DaySchedule.invalid && isSubmitted)) {
     <div class="text-danger mt-1">
       Day Schedule is <strong>required</strong>
     </div>
   } -->
-</div>
+                </div>
 
                 <!-- Status -->
                 <div class="col-sm-2">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>Status</mat-label>
-                    <mat-select #Status="ngModel" name="Status"
-                      [(ngModel)]="IteneraryServiceModel.Status" required>
+                    <mat-select #Status="ngModel" name="Status" [(ngModel)]="IteneraryServiceModel.Status" required>
                       @for (status of StatusList; track status.Key) {
-                        <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
                       }
                     </mat-select>
                     @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
-                      <mat-error>Status is <strong>required</strong></mat-error>
+                    <mat-error>Status is <strong>required</strong></mat-error>
                     }
                   </mat-form-field>
                 </div>
@@ -121,8 +112,7 @@
                 <div class="col-sm-2">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>From Date</mat-label>
-                    <input matInput [matDatepicker]="fromPicker" name="SharedFromDate"
-                      [(ngModel)]="SharedFromDate"
+                    <input matInput [matDatepicker]="fromPicker" name="SharedFromDate" [(ngModel)]="SharedFromDate"
                       (ngModelChange)="onSharedDateChange()" required>
                     <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
                     <mat-datepicker #fromPicker></mat-datepicker>
@@ -133,10 +123,8 @@
                 <div class="col-sm-2">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>To Date</mat-label>
-                    <input matInput [matDatepicker]="toPicker" name="SharedToDate"
-                      [(ngModel)]="SharedToDate"
-                      (ngModelChange)="onSharedDateChange()" required
-                      [min]="SharedFromDate">
+                    <input matInput [matDatepicker]="toPicker" name="SharedToDate" [(ngModel)]="SharedToDate"
+                      (ngModelChange)="onSharedDateChange()" required [min]="SharedFromDate">
                     <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
                     <mat-datepicker #toPicker></mat-datepicker>
                   </mat-form-field>
@@ -145,51 +133,50 @@
               </div>
 
               <!-- ── Vehicle Rate Table ─────────────────────────────── -->
-             @if (VehicleRateRows.length > 0) {
-  <div class="mt-3">
-    <h6 class="fw-bold mb-2 small text-uppercase tracking-wider">
-      <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
-    </h6>
-    <div class="table-responsive border rounded">
-      <table class="table table-sm align-middle mb-3" style="font-size:13px;">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-3">Vehicle Type</th>
-            <th style="width:160px">Rate Amount</th>
-            <th style="width:150px">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of VehicleRateRows; track row.VehicleTypeId; let i = $index) {
-            <tr>
-              <td class="fw-semibold ps-3 py-1">{{ row.VehicleTypeName }}</td>
-              <td class="py-1">
-                <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
-                  <input matInput type="number" min="0" 
-                         [(ngModel)]="VehicleRateRows[i].RateAmount" 
-                         [name]="'RateAmount_' + i">
-                </mat-form-field>
-              </td>
-              <td class="py-1 pe-2">
-                <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
-                  <mat-select [(ngModel)]="VehicleRateRows[i].Status" [name]="'VehicleStatus_' + i">
-                    @for (status of StatusList; track status.Key) {
-                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </div>
-}
+              @if (VehicleRateRows.length > 0) {
+              <div class="mt-3">
+                <h6 class="fw-bold mb-2 small text-uppercase tracking-wider">
+                  <i class="bx bx-car me-1 text-primary"></i>Vehicle Rates
+                </h6>
+                <div class="table-responsive border rounded">
+                  <table class="table table-sm align-middle mb-3" style="font-size:13px;">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3">Vehicle Type</th>
+                        <th style="width:160px">Rate Amount</th>
+                        <th style="width:150px">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of VehicleRateRows; track row.VehicleTypeId; let i = $index) {
+                      <tr>
+                        <td class="fw-semibold ps-3 py-1">{{ row.VehicleTypeName }}</td>
+                        <td class="py-1">
+                          <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
+                            <input matInput type="number" min="0" [(ngModel)]="VehicleRateRows[i].RateAmount"
+                              [name]="'RateAmount_' + i">
+                          </mat-form-field>
+                        </td>
+                        <td class="py-1 pe-2">
+                          <mat-form-field appearance="outline" class="w-100 density-compact" subscriptSizing="dynamic">
+                            <mat-select [(ngModel)]="VehicleRateRows[i].Status" [name]="'VehicleStatus_' + i">
+                              @for (status of StatusList; track status.Key) {
+                              <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              }
 
               <!-- ── Action Buttons ─────────────────────────────────── -->
               <div class="d-flex gap-2 mt-3">
-                <button mat-raised-button color="primary" (click)="saveIteneraryService()">
+                <button mat-raised-button color="primary" class="px-4" (click)="saveIteneraryService()">
                   <i class="bx bx-save me-1"></i>
                   {{ IteneraryServiceModel.IteneraryServiceId > 0 ? 'Update' : 'Save' }}
                 </button>
@@ -203,9 +190,9 @@
                 } -->
 
                 @if (IteneraryServiceModel.IteneraryServiceId > 0) {
-                  <button mat-raised-button color="warn" (click)="resetForm()">
-                    Cancel
-                  </button>
+                <button mat-raised-button color="warn" (click)="resetForm()">
+                  Cancel
+                </button>
                 }
               </div>
 
@@ -227,29 +214,26 @@
             <div class="row d-flex align-items-center mb-3">
 
               <!-- Filter Destination -->
-             <mat-form-field appearance="outline" class="col-sm-3">
-  <mat-label>Destination</mat-label>
-  <mat-select name="FilterDestinationId"
-    [(ngModel)]="FilterDestinationId"
-    (ngModelChange)="onFilterDestinationChange()">
-    <mat-option [value]="-1" >-- Select Destination --</mat-option>
-    <mat-option [value]="0">-- All --</mat-option>
-    @for (dest of DestinationList(); track dest.DestinationId) {
-      <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
-    }
-  </mat-select>
-</mat-form-field>
+              <mat-form-field appearance="outline" class="col-sm-3">
+                <mat-label>Destination</mat-label>
+                <mat-select name="FilterDestinationId" [(ngModel)]="FilterDestinationId"
+                  (ngModelChange)="onFilterDestinationChange()">
+                  <mat-option [value]="-1">-- Select Destination --</mat-option>
+                  <mat-option [value]="0">-- All --</mat-option>
+                  @for (dest of DestinationList(); track dest.DestinationId) {
+                  <mat-option [value]="dest.DestinationId">{{ dest.DestinationName }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
 
               <!-- Filter Location -->
               <mat-form-field appearance="outline" class="col-sm-3">
                 <mat-label>Location</mat-label>
-                <mat-select name="FilterLocationId"
-                  [(ngModel)]="FilterLocationId"
-                  (ngModelChange)="onFilterLocationChange()"
-                  [disabled]="FilterLocationList().length === 0">
+                <mat-select name="FilterLocationId" [(ngModel)]="FilterLocationId"
+                  (ngModelChange)="onFilterLocationChange()" [disabled]="FilterLocationList().length === 0">
                   <mat-option [value]="0">-- All --</mat-option>
                   @for (loc of FilterLocationList(); track loc.LocationId) {
-                    <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
+                  <mat-option [value]="loc.LocationId">{{ loc.LocationName }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -261,10 +245,9 @@
               <div class="col-md-4">
                 <div class="dataTables_length">
                   <label>Show
-                    <select class="form-select form-select-sm d-inline-block w-auto"
-                      [(ngModel)]="itemPerPage">
+                    <select class="form-select form-select-sm d-inline-block w-auto" [(ngModel)]="itemPerPage">
                       @for (option of PageSize; track option) {
-                        <option [value]="option">{{ option }}</option>
+                      <option [value]="option">{{ option }}</option>
                       }
                     </select> entries
                   </label>
@@ -273,8 +256,7 @@
               <div class="col-md-4 ms-auto">
                 <div class="dataTables_filter d-flex justify-content-end">
                   <label>Search:
-                    <input type="search"
-                      class="form-control form-control-sm d-inline-block w-auto ms-1"
+                    <input type="search" class="form-control form-control-sm d-inline-block w-auto ms-1"
                       [(ngModel)]="Search">
                   </label>
                 </div>
@@ -300,73 +282,68 @@
                     <th style="cursor:pointer" (click)="sort('Status')">
                       Status <i class="bx bx-sort ms-1"></i>
                     </th>
-                    @if (action().CanEdit)   { <th class="text-center">Edit</th> }
+                    @if (action().CanEdit) { <th class="text-center">Edit</th> }
                     @if (action().CanDelete) { <th class="text-center">Delete</th> }
                   </tr>
                 </thead>
                 <tbody>
                   @for (
-                    item of IteneraryServiceList()
-                      | filter: Search
-                      | orderBy: sortKey : reverse
-                      | paginate: { itemsPerPage: itemPerPage, currentPage: p };
-                    track item.IteneraryServiceId;
-                    let i = $index
+                  item of IteneraryServiceList()
+                  | filter: Search
+                  | orderBy: sortKey : reverse
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                  track item.IteneraryServiceId;
+                  let i = $index
                   ) {
-                    <tr>
-                      <td class="text-muted">{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
-                      <td>{{ item.DestinationName }}</td>
-                      <td>{{ item.LocationName }}</td>
-                      <td class="fw-semibold">{{ item.IteneraryServiceName }}</td>
+                  <tr>
+                    <td class="text-muted">{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                    <td>{{ item.DestinationName }}</td>
+                    <td>{{ item.LocationName }}</td>
+                    <td class="fw-semibold">{{ item.IteneraryServiceName }}</td>
 
-                     <!-- <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    <!-- <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
   <div [innerHTML]="item.DaySchedule" style="pointer-events:none;"></div>
 </td> -->
-                      <td class="text-center">
-                        <!-- (click)="viewIteneraryService(item)" -->
-  <a class="text-primary" style="cursor:pointer" (click)="viewIteneraryService(item)" >
-    <i class="bx bxs-show fs-5"></i>
-  </a>
-</td>
-                      <td>
-                        <span class="badge"
-                          [class.bg-success]="item.Status === 1"
-                          [class.bg-danger]="item.Status !== 1">
-                          {{ AllStatusList[item.Status] }}
-                        </span>
-                      </td>
-                      @if (action().CanEdit) {
-                        <td class="text-center">
-                          <a class="text-success" style="cursor:pointer"
-                            (click)="editIteneraryService(item)">
-                            <i class="bx bxs-edit-alt fs-5"></i>
-                          </a>
-                        </td>
-                      }
-                      @if (action().CanDelete) {
-                        <td class="text-center">
-                          <a class="text-danger" style="cursor:pointer"
-                            (click)="deleteIteneraryService(item)">
-                            <i class="bx bxs-trash fs-5"></i>
-                          </a>
-                        </td>
-                      }
-                    </tr>
+                    <td class="text-center">
+                      <!-- (click)="viewIteneraryService(item)" -->
+                      <a class="text-primary" style="cursor:pointer" (click)="viewIteneraryService(item)">
+                        <i class="bx bxs-show fs-5"></i>
+                      </a>
+                    </td>
+                    <td>
+                      <span class="badge" [class.bg-success]="item.Status === 1" [class.bg-danger]="item.Status !== 1">
+                        {{ AllStatusList[item.Status] }}
+                      </span>
+                    </td>
+                    @if (action().CanEdit) {
+                    <td class="text-center">
+                      <a class="text-success" style="cursor:pointer" (click)="editIteneraryService(item)">
+                        <i class="bx bxs-edit-alt fs-5"></i>
+                      </a>
+                    </td>
+                    }
+                    @if (action().CanDelete) {
+                    <td class="text-center">
+                      <a class="text-danger" style="cursor:pointer" (click)="deleteIteneraryService(item)">
+                        <i class="bx bxs-trash fs-5"></i>
+                      </a>
+                    </td>
+                    }
+                  </tr>
                   }
                   @if (IteneraryServiceList().length === 0 && !dataLoading()) {
-                    <tr>
-                      <td colspan="8" class="text-center text-muted py-4">
-                        <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
-                        No records found
-                      </td>
-                    </tr>
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                      <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                      No records found
+                    </td>
+                  </tr>
                   }
                 </tbody>
               </table>
             </div>
 
-            <pagination-controls (pageChange)="onTableDataChange($event)"
-              class="my-pagination" style="float:right;">
+            <pagination-controls (pageChange)="onTableDataChange($event)" class="my-pagination" style="float:right;">
             </pagination-controls>
 
           </div>
@@ -379,142 +356,139 @@
 
 
 @if (showViewModal && viewItem()) {
-  <div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter: blur(4px);" (click)="closeViewModal()"></div>
+<div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter: blur(4px);" (click)="closeViewModal()">
+</div>
 
-  <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width:900px;">
-      <div class="modal-content border-0 rounded-xl shadow-lg" style="overflow-x:hidden;">
+<div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width:900px;">
+    <div class="modal-content border-0 rounded-xl shadow-lg" style="overflow-x:hidden;">
 
-        <div class="modal-header border-0 pb-0 px-4 pt-4">
-          <div class="d-flex align-items-center">
-            <div class="icon-box-md bg-soft-primary text-primary rounded-circle me-3">
-              <i class="bx bx-calendar-event fs-3"></i>
-            </div>
-            <div>
-              <h5 class="modal-title fw-bold text-dark mb-0">Itinerary Event: #SRV-{{ viewItem().IteneraryServiceId }}</h5>
-              <small class="text-muted fw-medium">{{ viewItem().IteneraryServiceName }}</small>
-            </div>
+      <div class="modal-header border-0 pb-0 px-4 pt-4">
+        <div class="d-flex align-items-center">
+          <div class="icon-box-md bg-soft-primary text-primary rounded-circle me-3">
+            <i class="bx bx-calendar-event fs-3"></i>
           </div>
-          <button type="button" class="btn-close shadow-none" (click)="closeViewModal()"></button>
+          <div>
+            <h5 class="modal-title fw-bold text-dark mb-0">Itinerary Event: #SRV-{{ viewItem().IteneraryServiceId }}
+            </h5>
+            <small class="text-muted fw-medium">{{ viewItem().IteneraryServiceName }}</small>
+          </div>
         </div>
+        <button type="button" class="btn-close shadow-none" (click)="closeViewModal()"></button>
+      </div>
 
-        <div class="modal-body p-4" style="overflow-x:hidden;">
-          <div class="row g-4" style="margin:0;">
+      <div class="modal-body p-4" style="overflow-x:hidden;">
+        <div class="row g-4" style="margin:0;">
 
-            <!-- ── Left: Activity Schedule ───────────────────────── -->
-            <div class="col-lg-7" style="min-width:0; overflow:hidden;">
-              <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                <h6 class="text-uppercase fw-bold text-dark letter-spacing-1 mb-0">Activity Schedule</h6>
-                <span class="badge bg-soft-info text-info rounded-pill px-3 py-1 fw-semibold fs-8">
-                  <i class="bx bx-time-five me-1"></i> Day Event
-                </span>
-              </div>
+          <!-- ── Left: Activity Schedule ───────────────────────── -->
+          <div class="col-lg-7" style="min-width:0; overflow:hidden;">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+              <h6 class="text-uppercase fw-bold text-dark letter-spacing-1 mb-0">Activity Schedule</h6>
+              <span class="badge bg-soft-info text-info rounded-pill px-3 py-1 fw-semibold fs-8">
+                <i class="bx bx-time-five me-1"></i> Day Event
+              </span>
+            </div>
 
-              <div class="timeline-container px-2">
-                <div class="timeline-item">
-                  <div class="timeline-icon bg-soft-primary text-primary">
-                    <i class="bx bx-map-pin"></i>
-                  </div>
-                  <div class="timeline-content rounded-xl bg-light p-3 shadow-sm"
-                       style="overflow-y:auto; max-height:420px; overflow-x:hidden;">
-                    <div class="text-muted small"
-                         style="line-height:1.7;
+            <div class="timeline-container px-2">
+              <div class="timeline-item">
+                <div class="timeline-icon bg-soft-primary text-primary">
+                  <i class="bx bx-map-pin"></i>
+                </div>
+                <div class="timeline-content rounded-xl bg-light p-3 shadow-sm"
+                  style="overflow-y:auto; max-height:420px; overflow-x:hidden;">
+                  <div class="text-muted small" style="line-height:1.7;
                                 word-break:break-word;
                                 overflow-wrap:break-word;
                                 white-space:normal;
-                                max-width:100%;"
-                         [innerHTML]="sanitize(viewItem().DaySchedule)">
-                    </div>
+                                max-width:100%;" [innerHTML]="sanitize(viewItem().DaySchedule)">
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- ── Right: Location + Vehicle Rates ──────────────── -->
-            <div class="col-lg-5" style="min-width:0;">
-
-              <!-- Location Overview -->
-              <div class="card border-0 bg-white shadow-sm rounded-xl mb-4 elevation-1">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                    <small class="text-muted text-uppercase fw-semibold mb-0">Location Overview</small>
-                    <span class="dot-lg"
-                      [class.bg-success]="viewItem().Status === 1"
-                      [class.bg-danger]="viewItem().Status !== 1">
-                    </span>
-                  </div>
-                  <div class="mb-2">
-                    <small class="text-muted d-block small">Destination</small>
-                    <span class="fw-bold text-dark fs-6">{{ viewItem().DestinationName }}</span>
-                  </div>
-                  <div>
-                    <small class="text-muted d-block small">Specific Location</small>
-                    <span class="fw-bold text-dark fs-6">{{ viewItem().LocationName }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Vehicle Rates -->
-              <div class="card border-0 bg-white shadow-sm rounded-xl elevation-1">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                    <small class="text-muted text-uppercase fw-semibold mb-0">Vehicle Rates</small>
-                    <span class="text-muted small fw-medium">{{ viewRates.length }} Assigned</span>
-                  </div>
-
-                  @if (viewRates.length > 0) {
-                    <div style="max-height:250px; overflow-y:auto; overflow-x:hidden;">
-                      <table class="table table-sm align-middle mb-0" style="font-size:12px;">
-                        <thead class="text-muted text-uppercase">
-                          <tr>
-                            <th class="border-0 ps-0">Vehicle</th>
-                            <th class="border-0">Dates</th>
-                            <th class="border-0 text-end">Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (rate of viewRates; track rate.VehicleTypeId) {
-                            <tr>
-                              <td class="border-0 ps-0 fw-semibold text-dark"
-                                  style="word-break:break-word;">
-                                {{ rate.VehicleTypeName }}
-                              </td>
-                              <td class="border-0 text-muted small" style="white-space:nowrap;">
-                                {{ rate.FromDate | date: 'dd MMM' }} - {{ rate.ToDate | date: 'dd MMM' }}
-                              </td>
-                              <td class="border-0 text-end fw-bold text-primary"
-                                  style="white-space:nowrap;">
-                                {{ rate.RateAmount | number: '1.2-2' }}
-                              </td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  } @else {
-                    <div class="text-center py-4 bg-light rounded-3">
-                      <i class="bx bx-car fs-1 d-block mb-2 text-muted opacity-50"></i>
-                      <p class="text-muted small mb-0">No Pricing Data</p>
-                    </div>
-                  }
-
-                </div>
-              </div>
-
             </div>
           </div>
-        </div>
 
-        <div class="modal-footer border-0 px-4 pb-4 pt-0">
-          <button type="button" class="btn btn-outline-danger px-4 fw-medium rounded-pill"
-            (click)="closeViewModal()">Dismiss</button>
-          <button type="button" class="btn btn-primary px-4 fw-medium rounded-pill shadow-sm"
-            (click)="editIteneraryService(viewItem())">
-            <i class="bx bx-edit-alt me-1"></i> Modify Service
-          </button>
-        </div>
+          <!-- ── Right: Location + Vehicle Rates ──────────────── -->
+          <div class="col-lg-5" style="min-width:0;">
 
+            <!-- Location Overview -->
+            <div class="card border-0 bg-white shadow-sm rounded-xl mb-4 elevation-1">
+              <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                  <small class="text-muted text-uppercase fw-semibold mb-0">Location Overview</small>
+                  <span class="dot-lg" [class.bg-success]="viewItem().Status === 1"
+                    [class.bg-danger]="viewItem().Status !== 1">
+                  </span>
+                </div>
+                <div class="mb-2">
+                  <small class="text-muted d-block small">Destination</small>
+                  <span class="fw-bold text-dark fs-6">{{ viewItem().DestinationName }}</span>
+                </div>
+                <div>
+                  <small class="text-muted d-block small">Specific Location</small>
+                  <span class="fw-bold text-dark fs-6">{{ viewItem().LocationName }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vehicle Rates -->
+            <div class="card border-0 bg-white shadow-sm rounded-xl elevation-1">
+              <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                  <small class="text-muted text-uppercase fw-semibold mb-0">Vehicle Rates</small>
+                  <span class="text-muted small fw-medium">{{ viewRates.length }} Assigned</span>
+                </div>
+
+                @if (viewRates.length > 0) {
+                <div style="max-height:250px; overflow-y:auto; overflow-x:hidden;">
+                  <table class="table table-sm align-middle mb-0" style="font-size:12px;">
+                    <thead class="text-muted text-uppercase">
+                      <tr>
+                        <th class="border-0 ps-0">Vehicle</th>
+                        <th class="border-0">Dates</th>
+                        <th class="border-0 text-end">Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (rate of viewRates; track rate.VehicleTypeId) {
+                      <tr>
+                        <td class="border-0 ps-0 fw-semibold text-dark" style="word-break:break-word;">
+                          {{ rate.VehicleTypeName }}
+                        </td>
+                        <td class="border-0 text-muted small" style="white-space:nowrap;">
+                          {{ rate.FromDate | date: 'dd MMM' }} - {{ rate.ToDate | date: 'dd MMM' }}
+                        </td>
+                        <td class="border-0 text-end fw-bold text-primary" style="white-space:nowrap;">
+                          {{ rate.RateAmount | number: '1.2-2' }}
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                } @else {
+                <div class="text-center py-4 bg-light rounded-3">
+                  <i class="bx bx-car fs-1 d-block mb-2 text-muted opacity-50"></i>
+                  <p class="text-muted small mb-0">No Pricing Data</p>
+                </div>
+                }
+
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
+
+      <div class="modal-footer border-0 px-4 pb-4 pt-0">
+        <button type="button" class="btn btn-outline-danger px-4 fw-medium rounded-pill"
+          (click)="closeViewModal()">Dismiss</button>
+        <button type="button" class="btn btn-primary px-4 fw-medium rounded-pill shadow-sm"
+          (click)="editIteneraryService(viewItem())">
+          <i class="bx bx-edit-alt me-1"></i> Modify Service
+        </button>
+      </div>
+
     </div>
   </div>
+</div>
 }
