@@ -1,0 +1,121 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FORM CARD                                              -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <span class="fw-semibold">
+              {{ TermAndConditionModel.TermAndConditionId > 0 ? 'Update Term & Condition' : 'Add Term & Condition' }}
+            </span>
+            <br><br>
+
+            <form #formTermCondition="ngForm">
+              <div class="row">
+
+               <!-- Destination -->
+<mat-form-field appearance="outline" class="col-sm-3">
+  <mat-label>Destination</mat-label>
+  <mat-select #DestinationId="ngModel" name="SelectedDestinationId"
+    [(ngModel)]="SelectedDestinationId"
+    (ngModelChange)="onFormDestinationChange()" required>
+    @for (dest of DestinationList(); track dest.DestinationId) {
+      <mat-option [value]="dest.DestinationId"><i class="bx bx-map-pin me-2 text-muted"></i>{{ dest.DestinationName }}</mat-option>
+    }
+  </mat-select>
+  @if ((DestinationId.dirty || DestinationId.touched) || (DestinationId.invalid && isSubmitted)) {
+    <mat-error>Destination is <strong>required</strong></mat-error>
+  }
+</mat-form-field>
+
+<!-- Badge shown when an existing record is auto-loaded -->
+<!-- @if (TermAndConditionModel.TermAndConditionId > 0) {
+  <div class="col-sm-auto d-flex align-items-center mb-4">
+    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+      <i class="bx bx-edit me-1"></i> Editing Existing Record
+    </span>
+  </div>
+} -->
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status"
+                    [(ngModel)]="TermAndConditionModel.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                    <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Save / Cancel Buttons -->
+                <div class="col-sm-2 d-flex mb-4 align-items-center gap-2">
+                  <button mat-raised-button color="primary" class="px-6" (click)="saveTermAndCondition()">
+                    <i class="bx bx-save me-1"></i>
+                    {{ TermAndConditionModel.TermAndConditionId > 0 ? 'Update' : 'Save' }}
+                  </button>
+                  @if (TermAndConditionModel.TermAndConditionId > 0) {
+                    <button mat-raised-button color="warn" (click)="resetForm()">
+                      Cancel
+                    </button>
+                  }
+                </div>
+
+                <!-- Quill Editor — full width below -->
+                <div class="col-12 mb-3">
+                  <label class="form-label fw-semibold">
+                    Term & Condition Content <span class="text-danger">*</span>
+                  </label>
+                  <quill-editor classes="my-quill-editor"
+                    name="TermAndConditionName"
+                    [(ngModel)]="TermAndConditionModel.TermAndConditionName"
+                    [modules]="quillModules"
+                    placeholder="Enter terms and conditions here..."
+                    style="min-height: 250px; display: block;">
+                  </quill-editor>
+                  @if (isSubmitted && !TermAndConditionModel.TermAndConditionName) {
+                    <div class="text-danger mt-1" style="font-size: 12px;">
+                      Term & Condition content is <strong>required</strong>
+                    </div>
+                  }
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FILTER + LIST CARD                                     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+
+  </div>
+</div>
