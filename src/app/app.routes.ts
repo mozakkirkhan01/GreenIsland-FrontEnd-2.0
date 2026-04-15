@@ -27,6 +27,10 @@ import { SpecialInclusionType } from './admin/special-inclusion-type/special-inc
 import { SpecialInclusion } from './admin/special-inclusion/special-inclusion';
 import { ActivityService } from './admin/activity-service/activity-service';
 import { ActivityServiceRate } from './admin/activity-service-rate/activity-service-rate';
+import { VehicleType } from './admin/vehicle-type/vehicle-type';
+import { IteneraryService } from './admin/itenerary-service/itenerary-service';
+import { InclusionExclusion } from './admin/inclusion-exclusion/inclusion-exclusion';
+import { TermCondition } from './admin/term-condition/term-condition';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -65,6 +69,10 @@ export const routes: Routes = [
       { path: 'special-inclusion', component: SpecialInclusion},
       { path: 'activity-service', component: ActivityService},
       { path: 'activity-service-rate', component: ActivityServiceRate},
+      { path: 'vehicle-type', component: VehicleType},
+      { path: 'itenerary-service', component: IteneraryService},
+      { path: 'inclusion-exclusion', component: InclusionExclusion},
+      { path: 'term-condition', component: TermCondition},
     ]
   },
 

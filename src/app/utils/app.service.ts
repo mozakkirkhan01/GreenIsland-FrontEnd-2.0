@@ -99,25 +99,82 @@ export class AppService {
   }
 
   getActivityServiceList(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/ActivityServiceList", obj, { headers: this.headers });
-}
-saveActivityService(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/saveActivityService", obj, { headers: this.headers });
-}
-deleteActivityService(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/deleteActivityService", obj, { headers: this.headers });
-}
+    return this.http.post(this.apiUrl + "ActivityService/ActivityServiceList", obj, { headers: this.headers });
+  }
+  saveActivityService(obj: any) {
+    return this.http.post(this.apiUrl + "ActivityService/saveActivityService", obj, { headers: this.headers });
+  }
+  deleteActivityService(obj: any) {
+    return this.http.post(this.apiUrl + "ActivityService/deleteActivityService", obj, { headers: this.headers });
+  }
 
-// ActivityServiceRate
-getActivityServiceRateList(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/ActivityServiceRateList", obj, { headers: this.headers });
-}
-saveActivityServiceRate(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/saveActivityServiceRate", obj, { headers: this.headers });
-}
-deleteActivityServiceRate(obj: any) {
-  return this.http.post(this.apiUrl + "ActivityService/deleteActivityServiceRate", obj, { headers: this.headers });
-}
+  // ActivityServiceRate
+  getActivityServiceRateList(obj: any) {
+    return this.http.post(this.apiUrl + "ActivityService/ActivityServiceRateList", obj, { headers: this.headers });
+  }
+  saveActivityServiceRate(obj: any) {
+    return this.http.post(this.apiUrl + "ActivityService/saveActivityServiceRate", obj, { headers: this.headers });
+  }
+  deleteActivityServiceRate(obj: any) {
+    return this.http.post(this.apiUrl + "ActivityService/deleteActivityServiceRate", obj, { headers: this.headers });
+  }
+  // VehicleType
+  getVehicleTypeList(obj: any) {
+    return this.http.post(this.apiUrl + "VehicleType/VehicleTypeList", obj, { headers: this.headers });
+  }
+  saveVehicleType(obj: any) {
+    return this.http.post(this.apiUrl + "VehicleType/saveVehicleType", obj, { headers: this.headers });
+  }
+  deleteVehicleType(obj: any) {
+    return this.http.post(this.apiUrl + "VehicleType/deleteVehicleType", obj, { headers: this.headers });
+  }
+
+  // IteneraryService
+  getIteneraryServiceList(obj: any) {
+    return this.http.post(this.apiUrl + "IteneraryService/IteneraryServiceList", obj, { headers: this.headers });
+  }
+  saveIteneraryService(obj: any) {
+    return this.http.post(this.apiUrl + "IteneraryService/saveIteneraryService", obj, { headers: this.headers });
+  }
+  deleteIteneraryService(obj: any) {
+    return this.http.post(this.apiUrl + "IteneraryService/deleteIteneraryService", obj, { headers: this.headers });
+  }
+  getVehicleServiceRateList(obj: any) {
+    return this.http.post(this.apiUrl + "IteneraryService/VehicleServiceRateList", obj, { headers: this.headers });
+  }
+  // ── Inclusion ─────────────────────────────────────────────────────────
+  getInclusionList(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/InclusionList", obj, { headers: this.headers });
+  }
+  saveInclusionList(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/saveInclusionList", obj, { headers: this.headers });
+  }
+  deleteInclusion(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/deleteInclusion", obj, { headers: this.headers });
+  }
+
+  // ─ Exclusion ─────────────────────────────────────────────────────────
+  getExclusionList(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/ExclusionList", obj, { headers: this.headers });
+  }
+  saveExclusionList(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/saveExclusionList", obj, { headers: this.headers });
+  }
+  deleteExclusion(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/deleteExclusion", obj, { headers: this.headers });
+  }
+
+  //────────term-condition
+  getTermAndConditionList(obj: any) {
+    return this.http.post(this.apiUrl + "TermAndCondition/TermAndConditionList", obj, { headers: this.headers });
+  }
+  saveTermAndCondition(obj: any) {
+    return this.http.post(this.apiUrl + "TermAndCondition/saveTermAndCondition", obj, { headers: this.headers });
+  }
+  deleteTermAndCondition(obj: any) {
+    return this.http.post(this.apiUrl + "TermAndCondition/deleteTermAndCondition", obj, { headers: this.headers });
+  }
+  
 
   //Hotel
   getHotelList(obj: any) {
