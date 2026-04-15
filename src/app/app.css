@@ -6,3 +6,12 @@
   padding: 4px !important;
 }
 
+/* quill editor */
+::ng-deep .my-quill-editor .ql-container {
+  height: 300px !important;
+  /* width: 900px; */
+}
+
+::ng-deep .my-quill-editor .ql-editor {
+  min-height: 300px !important;
+}
