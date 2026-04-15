@@ -1,0 +1,96 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- FORM CARD                                              -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-body">
+            <span class="fw-semibold">
+              {{ TemplateModel.TemplateId > 0 ? 'Update Template' : 'Add Template' }}
+            </span>
+            <br><br>
+
+            <form #formTemplate="ngForm">
+              <div class="row">
+
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-2">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status"
+                    [(ngModel)]="TemplateModel.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                    <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Save / Cancel Buttons -->
+                <div class="col-sm-2 d-flex mb-4 align-items-center gap-2">
+                  <button mat-raised-button color="primary" class="px-6" (click)="saveTemplate()">
+                    <i class="bx bx-save me-1"></i>
+                    {{ TemplateModel.TemplateId > 0 ? 'Update' : 'Save' }}
+                  </button>
+                  <!-- @if (TemplateModel.TemplateId > 0) {
+                    <button mat-raised-button color="warn" (click)="resetForm()">
+                      Cancel
+                    </button>
+                  } -->
+                </div>
+
+                <!-- Quill Editor — full width below -->
+                <div class="col-12 mb-3">
+                  <label class="form-label fw-semibold">
+                    Greetings <span class="text-danger">*</span>
+                  </label>
+                  <!-- classes="my-quill-editorr" -->
+                  <quill-editor
+                    name="Greetings"
+                    [(ngModel)]="TemplateModel.Greetings"
+                    [modules]="quillModules"
+                    placeholder="Enter greetings here..."
+                    style="min-height: 250px; display: block;">
+                  </quill-editor>
+                  @if (isSubmitted && !TemplateModel.Greetings) {
+                    <div class="text-danger mt-1" style="font-size: 12px;">
+                      Greetings is <strong>required</strong>
+                    </div>
+                  }
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</div>
