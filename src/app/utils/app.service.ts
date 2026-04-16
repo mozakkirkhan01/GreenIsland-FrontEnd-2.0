@@ -174,6 +174,16 @@ export class AppService {
   deleteTermAndCondition(obj: any) {
     return this.http.post(this.apiUrl + "TermAndCondition/deleteTermAndCondition", obj, { headers: this.headers });
   }
+  //────────term-condition
+  getTemplateList(obj: any) {
+    return this.http.post(this.apiUrl + "Template/TemplateList", obj, { headers: this.headers });
+  }
+  saveTemplate(obj: any) {
+    return this.http.post(this.apiUrl + "Template/saveTemplate", obj, { headers: this.headers });
+  }
+  deleteTemplate(obj: any) {
+    return this.http.post(this.apiUrl + "Template/deleteTemplate", obj, { headers: this.headers });
+  }
   
 
   //Hotel
