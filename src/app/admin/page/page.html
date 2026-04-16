@@ -1,231 +1,261 @@
-@if (dataLoading) {<app-progress></app-progress>}
+@if (dataLoading()) { <app-progress></app-progress> }
 
 <div class="page-content">
-    <div class="container-fluid">
+  <div class="container-fluid">
 
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item"><a routerLink="/admin/admin-dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0 font-size-18">{{action.MenuTitle}}</h4>
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a routerLink="/admin/admin-dashboard">Dashboard</a></li>
-                            <li class="breadcrumb-item active">{{action.ParentMenuTitle}}</li>
-                            <li class="breadcrumb-item">{{action.MenuTitle}}</li>
-                        </ol>
-                    </div>
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- LIST CARD                                              -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
 
+            <div class="row mb-2">
+
+              <!-- New Page Button -->
+              <div class="col-12 d-flex justify-content-end mb-2">
+                @if (action().CanCreate) {
+                  <button mat-raised-button color="primary" (click)="openModal()">
+                    New Page
+                  </button>
+                }
+              </div>
+
+              <!-- Show Entries -->
+              <div class="col-sm-12 col-md-4">
+                <div class="dataTables_length">
+                  <label>Show
+                    <select class="form-select form-select-sm d-inline-block w-auto"
+                      [(ngModel)]="itemPerPage">
+                      @for (option of PageSize; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select> entries
+                  </label>
                 </div>
+              </div>
+
+              <!-- Debounced Search -->
+              <div class="col-sm-12 col-md-4 ms-auto">
+                <div class="dataTables_filter d-flex justify-content-end">
+                  <label>Search:
+                    <input type="search" class="form-control form-control-sm"
+                      (input)="onSearchChange($any($event.target).value)">
+                  </label>
+                </div>
+              </div>
+
             </div>
+
+            <!-- Table -->
+            <div class="card">
+              <div class="card-body">
+                <div class="table-container overflow-auto">
+                  <table class="table table-bordered table-hover">
+                    <thead>
+                      <tr>
+                        <th>S.No</th>
+                        <th style="cursor:pointer" (click)="sort('PageName')">
+                          Page Name
+                          @if (sortKey === 'PageName') {
+                            <i class="bx" [ngClass]="reverse ? 'bx-sort-up' : 'bx-sort-down'"></i>
+                          }
+                        </th>
+                        <th style="cursor:pointer" (click)="sort('PageUrl')">
+                          Page URL
+                          @if (sortKey === 'PageUrl') {
+                            <i class="bx" [ngClass]="reverse ? 'bx-sort-up' : 'bx-sort-down'"></i>
+                          }
+                        </th>
+                        <th style="cursor:pointer" (click)="sort('PageGroupName')">
+                          Page Group
+                          @if (sortKey === 'PageGroupName') {
+                            <i class="bx" [ngClass]="reverse ? 'bx-sort-up' : 'bx-sort-down'"></i>
+                          }
+                        </th>
+                        <th style="cursor:pointer" (click)="sort('Status')">
+                          Status
+                          @if (sortKey === 'Status') {
+                            <i class="bx" [ngClass]="reverse ? 'bx-sort-up' : 'bx-sort-down'"></i>
+                          }
+                        </th>
+                        @if (action().CanEdit)   { <th>Edit</th>   }
+                        @if (action().CanDelete) { <th>Delete</th> }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (
+                        item of filteredPageList()
+                          | orderBy: sortKey : reverse
+                          | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                        track item.PageId;
+                        let i = $index
+                      ) {
+                        <tr>
+                          <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
+                          <td>{{ item.PageName }}</td>
+                          <td>{{ item.PageUrl }}</td>
+                          <td>{{ item.PageGroupName }}</td>
+                          <td>
+                            <span class="p-1"
+                              [ngClass]="item.Status == 1 ? 'badge text-bg-success' : 'badge text-bg-danger'">
+                              {{ AllStatusList[item.Status] }}
+                            </span>
+                          </td>
+                          @if (action().CanEdit) {
+                            <td>
+                              <a class="text-success p-1" style="cursor:pointer" (click)="editPage(item)">
+                                <i class="bx bxs-edit-alt"></i>
+                              </a>
+                            </td>
+                          }
+                          @if (action().CanDelete) {
+                            <td>
+                              <a class="text-danger p-1" style="cursor:pointer" (click)="deletePage(item)">
+                                <i class="bx bxs-trash"></i>
+                              </a>
+                            </td>
+                          }
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td [attr.colspan]="4 + (action().CanEdit ? 1 : 0) + (action().CanDelete ? 1 : 0)"
+                            class="text-center text-muted py-3">
+                            No records found
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="dataTable-bottom">
+                  <pagination-controls (pageChange)="onTableDataChange($event)"
+                    style="float:right;" class="my-pagination">
+                  </pagination-controls>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL                                                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+@if (showModal() && (action().CanEdit || action().CanCreate)) {
+  <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h1 class="modal-title fs-5">
+            {{ Page.PageId > 0 ? 'Update' : 'New' }} Page
+          </h1>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
+        <div class="modal-body">
+          <form #formPage="ngForm">
+            <div class="container">
 
+              <div class="row">
+                <!-- Group Autocomplete -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Group</mat-label>
+                  <input matInput #PageGroupName="ngModel" name="PageGroupName"
+                    [(ngModel)]="Page.PageGroupName"
+                    (ngModelChange)="filterPageGroupList(Page.PageGroupName)"
+                    [matAutocomplete]="autoPageGroupName"
+                    required autofocus>
+                  <mat-autocomplete #autoPageGroupName="matAutocomplete"
+                    (optionSelected)="Page.PageGroupId = $event.option.id">
+                    @for (option of filterPageGroup; track option.PageGroupId) {
+                      <mat-option [id]="option.PageGroupId" [value]="option.PageGroupName">
+                        {{ option.PageGroupName }}
+                      </mat-option>
+                    }
+                  </mat-autocomplete>
+                  @if ((PageGroupName.dirty || PageGroupName.touched) || (PageGroupName.invalid && isSubmitted)) {
+                    <mat-error>Group is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
 
-                        <div class="row mb-2">
-                            <!-- New Page Button -->
-                            <div class="col-12 d-flex justify-content-end mb-2">
-                                @if (action.CanCreate) {
-                                <button mat-raised-button color="primary" (click)="openModal()">
-                                    New Page
-                                </button>
-                                }
-                            </div>
+                <!-- Page Name -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Page Name</mat-label>
+                  <input matInput #PageName="ngModel" name="PageName"
+                    [(ngModel)]="Page.PageName" required>
+                  @if ((PageName.dirty || PageName.touched) || (PageName.invalid && isSubmitted)) {
+                    <mat-error>Page name is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+              </div>
 
-                            <!-- Show Entries -->
-                            <div class="col-sm-12 col-md-4">
-                                <div class="dataTables_length">
-                                    <label>Show
-                                        <select class="form-select form-select-sm d-inline-block w-auto"
-                                            [(ngModel)]="itemPerPage">
-                                            @for (option of PageSize; track option) {
-                                            <option [value]="option">{{ option }}</option>
-                                            }
-                                        </select> entries
-                                    </label>
-                                </div>
-                            </div>
+              <div class="row">
+                <!-- Page URL -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Page Url</mat-label>
+                  <input matInput #PageUrl="ngModel" name="PageUrl"
+                    [(ngModel)]="Page.PageUrl" required>
+                  @if ((PageUrl.dirty || PageUrl.touched) || (PageUrl.invalid && isSubmitted)) {
+                    <mat-error>Page Url is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
 
-                            <!-- Search -->
-                            <div class="col-sm-12 col-md-4 ms-auto">
-                                <div class="dataTables_filter d-flex justify-content-end">
-                                    <label>Search:
-                                        <input type="search" class="form-control form-control-sm" [(ngModel)]="Search">
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="col-sm-6">
+                  <mat-label>Status</mat-label>
+                  <mat-select #Status="ngModel" name="Status"
+                    [(ngModel)]="Page.Status" required>
+                    @for (status of StatusList; track status.Key) {
+                      <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
+                    }
+                  </mat-select>
+                  @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
+                    <mat-error>Status is <strong>required</strong></mat-error>
+                  }
+                </mat-form-field>
+              </div>
 
+            </div>
+          </form>
+        </div>
 
-                        <div class="card">
-                            <div class="card-body">
+        <div class="modal-footer mt-2">
+          <button type="button" mat-raised-button color="warn" class="me-2" (click)="closeModal()">
+            Cancel
+          </button>
+          <button mat-raised-button color="primary" (click)="savePage()">
+            {{ Page.PageId > 0 ? 'Update' : 'Submit' }}
+          </button>
+        </div>
 
-                                <div class="table-container overflow-auto">
-                                    <table class="table table-bordered table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>S.No</th>
-                                                <th style="cursor:pointer" (click)="sort('PageName')">Page Name</th>
-                                                <th style="cursor:pointer" (click)="sort('PageUrl')">Page URL</th>
-                                                <th style="cursor:pointer" (click)="sort('PageGroupName')">Page
-                                                    Group</th>
-                                                <th style="cursor:pointer" (click)="sort('Status')">Status</th>
-                                                @if (action.CanEdit) { <th>Edit</th> }
-                                                @if (action.CanDelete) { <th>Delete</th> }
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (
-                                            item of PageList
-                                            | filter: Search
-                                            | orderBy: sortKey : reverse
-                                            | paginate: { itemsPerPage: itemPerPage, currentPage: p };
-                                            track item.PageId;
-                                            let i = $index
-                                            ) {
-                                            <tr>
-                                                <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
-                                                <td>{{ item.PageName }}</td>
-                                                <td>{{ item.PageUrl }}</td>
-                                                <td>{{ item.PageGroupName }}</td>
-                                                <td>
-                                                    <span class="p-1" [ngClass]="item.Status == 1
-                      ? 'badge text-bg-success'
-                      : 'badge text-bg-danger'">
-                                                        {{ AllStatusList[item.Status] }}
-                                                    </span>
-                                                </td>
-                                                @if (action.CanEdit) {
-                                                <td>
-                                                    <a class="text-success p-1" style="cursor:pointer"
-                                                        (click)="editPage(item)">
-                                                        <i class="bx bxs-edit-alt"></i>
-                                                    </a>
-                                                </td>
-                                                }
-                                                @if (action.CanDelete) {
-                                                <td>
-                                                    <a class="text-danger p-1" style="cursor:pointer"
-                                                        (click)="deletePage(item)">
-                                                        <i class="bx bxs-trash"></i>
-                                                    </a>
-                                                </td>
-                                                }
-                                            </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Pagination -->
-                                <div class="dataTable-bottom">
-                                    <pagination-controls (pageChange)="onTableDataChange($event)" style="float:right;"
-                                        class="my-pagination">
-                                    </pagination-controls>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- Modal -->
-                        @if (showModal && (action.CanEdit || action.CanCreate)) {
-                        <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-
-                                    <div class="modal-header">
-                                        <h1 class="modal-title fs-5">
-                                            {{ Page.PageId > 0 ? 'Update' : 'New' }} Page
-                                        </h1>
-                                        <button type="button" class="btn-close" (click)="closeModal()"></button>
-                                    </div>
-
-                                    <div class="modal-body">
-                                        <form #formPage="ngForm">
-                                            <div class="container">
-
-                                                <div class="row">
-                                                    <mat-form-field appearance="outline" class="col-sm-6"
-                                                        >
-                                                        <mat-label>Group</mat-label>
-                                                        <input matInput #PageGroupName="ngModel" name="PageGroupName"
-                                                            (ngModelChange)="filterPageGroupList(Page.PageGroupName)"
-                                                            [(ngModel)]="Page.PageGroupName"
-                                                            [matAutocomplete]="autoPageGroupName" required autofocus>
-                                                        <mat-autocomplete #autoPageGroupName="matAutocomplete"
-                                                            (optionSelected)="Page.PageGroupId = $event.option.id">
-                                                            @for (option of filterPageGroup; track option.PageGroupId) {
-                                                            <mat-option [id]="option.PageGroupId"
-                                                                [value]="option.PageGroupName">
-                                                                {{ option.PageGroupName }}
-                                                            </mat-option>
-                                                            }
-                                                        </mat-autocomplete>
-                                                        @if ((PageGroupName.dirty || PageGroupName.touched) ||
-                                                        (PageGroupName.invalid && isSubmitted)) {
-                                                        <mat-error>Group is <strong>required</strong></mat-error>
-                                                        }
-                                                    </mat-form-field>
-
-                                                    <mat-form-field appearance="outline" class="col-sm-6"
-                                                        >
-                                                        <mat-label>Page Name</mat-label>
-                                                        <input matInput #PageName="ngModel" name="PageName"
-                                                            [(ngModel)]="Page.PageName" required>
-                                                        @if ((PageName.dirty || PageName.touched) ||
-                                                        (PageName.invalid && isSubmitted)) {
-                                                        <mat-error>Page name is <strong>required</strong></mat-error>
-                                                        }
-                                                    </mat-form-field>
-                                                </div>
-
-                                                <div class="row">
-                                                    <mat-form-field appearance="outline" class="col-sm-6"
-                                                        >
-                                                        <mat-label>Page Url</mat-label>
-                                                        <input matInput #PageUrl="ngModel" name="PageUrl"
-                                                            [(ngModel)]="Page.PageUrl" required>
-                                                        @if ((PageUrl.dirty || PageUrl.touched) ||
-                                                        (PageUrl.invalid && isSubmitted)) {
-                                                        <mat-error>Page Url is <strong>required</strong></mat-error>
-                                                        }
-                                                    </mat-form-field>
-
-                                                    <mat-form-field appearance="outline" class="col-sm-6"
-                                                        >
-                                                        <mat-label>Status</mat-label>
-                                                        <mat-select #Status="ngModel" name="Status"
-                                                            [(ngModel)]="Page.Status" required>
-                                                            @for (status of StatusList; track status.Key) {
-                                                            <mat-option [value]="status.Key">{{ status.Value
-                                                                }}</mat-option>
-                                                            }
-                                                        </mat-select>
-                                                        @if ((Status.dirty || Status.touched) ||
-                                                        (Status.invalid && isSubmitted)) {
-                                                        <mat-error>Status is <strong>required</strong></mat-error>
-                                                        }
-                                                    </mat-form-field>
-                                                </div>
-
-                                            </div>
-                                        </form>
-                                    </div>
-
-                                    <div class="modal-footer mt-2">
-                                        <button type="button" mat-raised-button color="warn" class="me-2"
-                                            (click)="closeModal()">Cancel</button>
-                                        <button mat-raised-button color="primary" (click)="savePage()">
-                                            {{ Page.PageId > 0 ? 'Update' : 'Submit' }}
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-                        }
-                    </div>
+      </div>
+    </div>
+  </div>
+}
