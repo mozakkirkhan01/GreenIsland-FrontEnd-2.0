@@ -1,0 +1,47 @@
+/* Row hover */
+.trip-row:hover {
+  background-color: #f5f7ff;
+  cursor: pointer;
+}
+
+/* Sticky header shadow */
+.mat-mdc-header-row {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Remove mat-paginator extra margin */
+.mat-mdc-paginator {
+  background: transparent !important;
+}
+
+/* Sidebar button hover */
+.btn-link:hover {
+  background-color: rgba(59, 130, 246, 0.06) !important;
+}
+
+/* Remove page-content default max-width if any */
+.page-content {
+  padding: 0 !important;
+}
+:host {
+  display: contents;
+}
+
+:host ::ng-deep .page-content {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}:host ::ng-deep .card {
+  z-index: auto !important;
+  position: relative;
+  z-index: 0 !important;
+}
+
+:host ::ng-deep .mat-mdc-table {
+  z-index: 0 !important;
+  position: relative;
+}
+
+:host ::ng-deep .card-body {
+  z-index: 0 !important;
+  overflow: visible !important;
+}
