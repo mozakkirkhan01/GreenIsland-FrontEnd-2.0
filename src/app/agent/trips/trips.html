@@ -70,9 +70,16 @@
             </mat-form-field> -->
 
             @if (action().CanCreate) {
-              <button mat-raised-button color="primary" class="px-4">
-                <mat-icon>add</mat-icon> New Query
-              </button>
+             @if (action().CanCreate) {
+  <button 
+    mat-raised-button 
+    color="primary" 
+    class="px-4"
+    [routerLink]="'/agent/query-stepone'">
+
+    <mat-icon>add</mat-icon> New Query
+  </button>
+}
             }
 
           </div>

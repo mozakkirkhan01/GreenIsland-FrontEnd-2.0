@@ -1,0 +1,476 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+  <div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <div class="row">
+      <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+          <div class="page-title-right">
+            <ol class="breadcrumb m-0">
+              <li class="breadcrumb-item">
+                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+              </li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form #queryForm="ngForm">
+      <div class="row g-4">
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- SECTION 1: Query Source                        -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="row">
+
+                <!-- Left label -->
+                <div class="col-lg-3 mb-3">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bx bx-search-alt text-primary fs-5"></i>
+                    <span class="fw-bold">Query Source</span>
+                  </div>
+                  <p class="text-muted small mb-0">
+                    Please specify the query source, e.g., whether it came
+                    via B2B or from another source.
+                  </p>
+                </div>
+
+                <!-- Right fields -->
+                <div class="col-lg-9">
+                  <div class="row g-3">
+
+                    <!-- Agency autocomplete -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Query Source</mat-label>
+                        <input matInput
+                               name="AgencyName"
+                               [(ngModel)]="Model.AgencyName"
+                               [matAutocomplete]="agencyAuto"
+                               (ngModelChange)="onAgencySearch($event)"
+                               placeholder="Search agency…"
+                               required>
+                        <mat-autocomplete #agencyAuto="matAutocomplete"
+                                          (optionSelected)="onAgencySelected($event.option.value)"
+                                          [displayWith]="displayAgency">
+                          @for (agency of filteredAgencies; track agency.AgencyId) {
+                            <mat-option [value]="agency">
+                              <div class="fw-semibold">{{ agency.AgencyName }}</div>
+                              <div class="text-muted small">{{ agency.CityName }}</div>
+                            </mat-option>
+                          }
+                        </mat-autocomplete>
+                        @if (isSubmitted && !Model.AgencyId) {
+                          <mat-error>Agency is <strong>required</strong></mat-error>
+                        }
+                      </mat-form-field>
+                      <!-- City shown below -->
+                      @if (Model.AgencyCity) {
+                        <div class="text-muted small ms-1" style="margin-top:-12px;">
+                          {{ Model.AgencyCity }}
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Guest / Enquiry Person autocomplete -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Contact / Enquiry Person</mat-label>
+                        <input matInput
+                               name="ContactName"
+                               [(ngModel)]="Model.ContactName"
+                               [matAutocomplete]="guestAuto"
+                               (ngModelChange)="onGuestSearch($event)"
+                               placeholder="Search or type name…"
+                               required>
+                        <mat-autocomplete #guestAuto="matAutocomplete"
+                                          (optionSelected)="onGuestSelected($event.option.value)"
+                                          [displayWith]="displayGuest">
+                          @for (guest of filteredGuests; track guest.GuestId) {
+                            <mat-option [value]="guest">
+                              {{ guest.ContactName }} — {{ guest.Phone }}
+                            </mat-option>
+                          }
+                        </mat-autocomplete>
+                        @if (isSubmitted && !Model.ContactName) {
+                          <mat-error>Contact is <strong>required</strong></mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Reference ID -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Reference ID <span class="text-muted">(optional)</span></mat-label>
+                        <input matInput name="ReferenceId"
+                               [(ngModel)]="Model.ReferenceId"
+                               placeholder="1231231">
+                        <mat-hint>A custom id for your reference regarding the query</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Sales Team -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Sales Team</mat-label>
+                        <mat-select name="AssignedToLoginId"
+                                    [(ngModel)]="Model.AssignedToLoginId">
+                          @for (staff of StaffList(); track staff.StaffLoginId) {
+                            <mat-option [value]="staff.StaffLoginId">
+                              {{ staff.StaffName }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Tags multi-select chips -->
+                    <div class="col-12">
+                      <label class="form-label text-muted small mb-2">
+                        Tags <span class="text-muted">(optional)</span>
+                      </label>
+                      <div class="d-flex flex-wrap gap-2">
+                        @for (tag of TagList(); track tag.TagId) {
+                          <span class="badge border fw-normal px-3 py-2"
+                                style="cursor:pointer; font-size:13px;"
+                                [class.bg-primary]="isTagSelected(tag.TagId)"
+                                [class.text-white]="isTagSelected(tag.TagId)"
+                                [class.bg-light]="!isTagSelected(tag.TagId)"
+                                [class.text-dark]="!isTagSelected(tag.TagId)"
+                                (click)="toggleTag(tag.TagId)">
+                            {{ tag.TagName }}
+                          </span>
+                        }
+                        @if (TagList().length === 0) {
+                          <input type="text" class="form-control"
+                                 placeholder="Search & select tags(s)..."
+                                 style="max-width:300px;">
+                        }
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- SECTION 2: Destination and Duration            -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="row">
+
+                <!-- Left label -->
+                <div class="col-lg-3 mb-3">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bx bx-map-pin text-primary fs-5"></i>
+                    <span class="fw-bold">Destination and Duration</span>
+                  </div>
+                  <p class="text-muted small mb-0">
+                    Please provide basic details such as destination, duration etc.
+                    along with number of adults and children with ages.
+                  </p>
+                </div>
+
+                <!-- Right fields -->
+                <div class="col-lg-9">
+                  <div class="row g-3">
+
+                    <!-- Destination -->
+                    <div class="col-sm-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Destinations</mat-label>
+                        <mat-select name="DestinationId"
+                                    [(ngModel)]="Model.DestinationId"
+                                    required>
+                          <mat-option [value]="0">Type to search…</mat-option>
+                          @for (dest of DestinationList(); track dest.DestinationId) {
+                            <mat-option [value]="dest.DestinationId">
+                              {{ dest.DestinationName }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                        @if (isSubmitted && !Model.DestinationId) {
+                          <mat-error>Destination is <strong>required</strong></mat-error>
+                        }
+                      </mat-form-field>
+                      <!-- Chip showing selected destination -->
+                      @if (Model.DestinationId) {
+                        <div class="mt-1">
+                          <span class="badge bg-primary bg-opacity-10
+                                       text-primary border border-primary
+                                       px-3 py-2" style="font-size:12px;">
+                            ✓ {{ getDestinationName(Model.DestinationId) }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="col-sm-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Start Date</mat-label>
+                        <input matInput [matDatepicker]="startPicker"
+                               name="StartDate"
+                               [(ngModel)]="Model.StartDate"
+                               placeholder="April 30, 2026"
+                               required>
+                        <mat-datepicker-toggle matIconSuffix
+                                               [for]="startPicker">
+                        </mat-datepicker-toggle>
+                        <mat-datepicker #startPicker></mat-datepicker>
+                        @if (isSubmitted && !Model.StartDate) {
+                          <mat-error>Start Date is <strong>required</strong></mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
+
+                    <!-- No of Nights -->
+                    <div class="col-sm-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>No. of Nights</mat-label>
+                        <input matInput type="number" name="NoOfNights"
+                               [(ngModel)]="Model.NoOfNights"
+                               min="1" required>
+                        <mat-hint>{{ nightsLabel }}</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <!-- No of Adults + Children -->
+                    <div class="col-12">
+                      <div class="d-flex align-items-end flex-wrap gap-3">
+
+                        <!-- Adults -->
+                        <mat-form-field appearance="outline" style="width:120px;">
+                          <mat-label>No. of Adults</mat-label>
+                          <input matInput type="number" name="NoOfAdults"
+                                 [(ngModel)]="Model.NoOfAdults" min="1" required>
+                        </mat-form-field>
+
+                        <!-- Children age dropdowns -->
+                        @for (age of childAgeSelections; track $index; let i = $index) {
+                          <div class="d-flex align-items-center gap-1">
+                            <mat-form-field appearance="outline" style="width:90px;">
+                              <mat-label>Child {{ i + 1 }}</mat-label>
+                              <mat-select [(ngModel)]="childAgeSelections[i]"
+                                          [name]="'childAge_' + i">
+                                @for (opt of ageOptions; track opt) {
+                                  <mat-option [value]="opt">{{ opt }}</mat-option>
+                                }
+                              </mat-select>
+                            </mat-form-field>
+                            <button mat-icon-button color="warn"
+                                    type="button"
+                                    (click)="removeChild(i)">
+                              <mat-icon>remove_circle_outline</mat-icon>
+                            </button>
+                          </div>
+                        }
+
+                        <!-- Add child button -->
+                        <button mat-icon-button color="primary"
+                                type="button"
+                                (click)="addChild()"
+                                matTooltip="Add child">
+                          <mat-icon>add_circle_outline</mat-icon>
+                        </button>
+                        @if (childAgeSelections.length > 0) {
+                          <button mat-icon-button color="warn"
+                                  type="button"
+                                  (click)="removeChild(childAgeSelections.length - 1)"
+                                  matTooltip="Remove last child">
+                            <mat-icon>remove_circle_outline</mat-icon>
+                          </button>
+                        }
+
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- SECTION 3: Guest Details (optional)            -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="row">
+
+                <!-- Left label -->
+                <div class="col-lg-3 mb-3">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bx bx-user text-primary fs-5"></i>
+                    <span class="fw-bold">Guest Details <span class="text-muted fw-normal">(optional)</span></span>
+                  </div>
+                  <p class="text-muted small mb-0">
+                    Please provide name and phone number(s).
+                  </p>
+                </div>
+
+                <!-- Right fields -->
+                <div class="col-lg-9">
+                  <div class="row g-3">
+
+                    <!-- Salutation -->
+                    <div class="col-sm-3">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Salutation</mat-label>
+                        <mat-select name="Salutation" [(ngModel)]="Model.Salutation">
+                          <mat-option value="Mr.">Mr.</mat-option>
+                          <mat-option value="Mrs.">Mrs.</mat-option>
+                          <mat-option value="Ms.">Ms.</mat-option>
+                          <mat-option value="Dr.">Dr.</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Name -->
+                    <div class="col-sm-9">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Name</mat-label>
+                        <input matInput name="GuestName"
+                               [(ngModel)]="Model.ContactName"
+                               placeholder="Guest name">
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="col-sm-6">
+                      <div class="d-flex gap-2">
+                        <mat-form-field appearance="outline" style="width:110px;">
+                          <mat-label>Code</mat-label>
+                          <mat-select name="CountryCode"
+                                      [(ngModel)]="Model.CountryCode">
+                            @for (cc of countryCodes; track cc.code) {
+                              <mat-option [value]="cc.code">{{ cc.label }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" class="flex-grow-1">
+                          <mat-label>Phone Number(s)</mat-label>
+                          <input matInput name="Phone"
+                                 [(ngModel)]="Model.Phone"
+                                 placeholder="918804791446">
+                          <mat-icon matSuffix style="cursor:pointer;"
+                                    matTooltip="Add another number">
+                            add_circle_outline
+                          </mat-icon>
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Email <span class="text-muted">(optional)</span></mat-label>
+                        <input matInput type="email" name="Email"
+                               [(ngModel)]="Model.Email"
+                               placeholder="user@domain.com">
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Origin City -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Origin City/State</mat-label>
+                        <input matInput name="OriginCity"
+                               [(ngModel)]="Model.OriginCity"
+                               placeholder="e.g. City, State, Country">
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Nationality -->
+                    <div class="col-sm-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Nationality</mat-label>
+                        <input matInput name="Nationality"
+                               [(ngModel)]="Model.Nationality"
+                               placeholder="e.g. India">
+                      </mat-form-field>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- SECTION 4: Comments or Notes                   -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="row">
+
+                <!-- Left label -->
+                <div class="col-lg-3 mb-3">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bx bx-comment-detail text-primary fs-5"></i>
+                    <span class="fw-bold">Comments or Notes</span>
+                  </div>
+                  <p class="text-muted small mb-0">
+                    Please provide any comments or notes regarding this query
+                    which may be useful for sales process.
+                  </p>
+                </div>
+
+                <!-- Right field -->
+                <div class="col-lg-9">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Comments <span class="text-muted">(optional)</span></mat-label>
+                    <textarea matInput name="Comments"
+                              [(ngModel)]="Model.Comments"
+                              rows="4"
+                              placeholder="Enter any notes...">
+                    </textarea>
+                  </mat-form-field>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- Save / Cancel Buttons                          -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div class="col-12 d-flex justify-content-center gap-3 pb-4">
+          <button mat-raised-button color="primary"
+                  type="button"
+                  (click)="saveDetails()"
+                  style="min-width:140px;">
+            Save Details
+          </button>
+          <button mat-stroked-button
+                  type="button"
+                  (click)="cancel()"
+                  style="min-width:100px;">
+            Cancel
+          </button>
+        </div>
+
+      </div>
+    </form>
+
+  </div>
+</div>
