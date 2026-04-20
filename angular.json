@@ -63,18 +63,22 @@
           },
           "defaultConfiguration": "development"
         },
-        "serve": {
-          "builder": "@angular/build:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "GreenIsland-Online:build:production"
-            },
-            "development": {
-              "buildTarget": "GreenIsland-Online:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
+"serve": {
+  "builder": "@angular/build:dev-server",
+  "options": {
+    "poll": 500,
+    "liveReload": true
+  },
+  "configurations": {
+    "production": {
+      "buildTarget": "GreenIsland-Online:build:production"
+    },
+    "development": {
+      "buildTarget": "GreenIsland-Online:build:development"
+    }
+  },
+  "defaultConfiguration": "development"
+},
         "test": {
           "builder": "@angular/build:unit-test"
         }
