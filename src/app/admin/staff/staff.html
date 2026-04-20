@@ -1,18 +1,27 @@
 <div class="page-content">
   <div class="container-fluid">
 
+    <!-- Loading Spinner -->
+    @if (dataLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    }
+
     <!-- Page Title & Breadcrumb -->
     <div class="row">
       <div class="col-12">
         <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-          <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+          <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
           <div class="page-title-right">
             <ol class="breadcrumb m-0">
               <li class="breadcrumb-item">
-                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+                <a routerLink="/admin/admin-dashboard">Dash</a>
               </li>
-              <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
-              <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+              <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+              <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
             </ol>
           </div>
         </div>
@@ -31,10 +40,10 @@
 
                 <!-- New Staff Button -->
                 <div class="col-12 d-flex justify-content-end mb-2">
-                  @if (action.CanCreate) {
-                    <button mat-raised-button color="primary" (click)="openModal()">
-                      New Staff
-                    </button>
+                  @if (action().CanCreate) {
+                  <button mat-raised-button color="primary" (click)="openModal()">
+                    <i class="bx bx-plus me-1"></i> New Staff
+                  </button>
                   }
                 </div>
 
@@ -44,9 +53,9 @@
                     <label>Show
                       <select
                         class="custom-select custom-select-sm form-control form-control-sm form-select form-select-sm"
-                        [(ngModel)]="itemPerPage">
+                        [ngModel]="itemPerPage()" (ngModelChange)="onItemsPerPageChange($event)">
                         @for (option of PageSize; track option) {
-                          <option [value]="option">{{ option }}</option>
+                        <option [value]="option">{{ option }}</option>
                         }
                       </select> entries
                     </label>
@@ -57,8 +66,8 @@
                 <div class="col-sm-12 col-md-4 ms-auto">
                   <div class="dataTables_filter d-flex justify-content-end">
                     <label>Search:
-                      <input type="search" class="form-control form-control-sm"
-                        placeholder="" [(ngModel)]="Search">
+                      <input type="search" class="form-control form-control-sm" placeholder="Search staff..."
+                        [ngModel]="Search()" (ngModelChange)="Search.set($event); p.set(1)">
                     </label>
                   </div>
                 </div>
@@ -69,81 +78,124 @@
               <div class="row">
                 <div class="col-sm-12">
                   <div class="table-responsive">
-                    <table
-                      class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
+                    <table class="table table-bordered dt-responsive nowrap w-100 dataTable no-footer dtr-inline"
                       role="grid">
                       <thead>
                         <tr role="row">
-                          <th>S.No</th>
-                          <th style="cursor:pointer" (click)="sort('StaffName')">Staff Name</th>
-                          <th style="cursor:pointer" (click)="sort('StaffCode')">Staff Code</th>
-                          <th style="cursor:pointer" (click)="sort('DesignationName')">Designation</th>
-                          <th style="cursor:pointer" (click)="sort('StaffType')">Staff Type</th>
-                          <th style="cursor:pointer" (click)="sort('FatherName')">Father's Name</th>
-                          <th style="cursor:pointer" (click)="sort('MobileNo')">Mobile No</th>
-                          <th style="cursor:pointer" (click)="sort('AlternateNo')">Alternate No</th>
-                          <th style="cursor:pointer" (click)="sort('Email')">Email</th>
-                          <th style="cursor:pointer" (click)="sort('DOB')">DOB</th>
-                          <th style="cursor:pointer" (click)="sort('Gender')">Gender</th>
-                          <th style="cursor:pointer" (click)="sort('Qualification')">Qualification</th>
-                          <th style="cursor:pointer" (click)="sort('FullAddress')">Full Address</th>
-                          <th style="cursor:pointer" (click)="sort('JoinDate')">Join Date</th>
-                          <th style="cursor:pointer" (click)="sort('DepartmentName')">Department</th>
-                          <th style="cursor:pointer" (click)="sort('Status')">Status</th>
-                          @if (action.CanEdit) { <th>Edit</th> }
-                          @if (action.CanDelete) { <th>Delete</th> }
+                          <th style="width: 60px;">S.No</th>
+                          <th style="cursor:pointer" (click)="sort('CompanyName')">
+                            Company Name
+                            @if (sortKey() === 'CompanyName') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('StaffName')">
+                            Staff/Agent Name
+                            @if (sortKey() === 'StaffName') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('DesignationName')">
+                            Designation
+                            @if (sortKey() === 'DesignationName') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('StaffType')">
+                            Staff/Agent Type
+                            @if (sortKey() === 'StaffType') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('MobileNo')">
+                            Mobile No
+                            @if (sortKey() === 'MobileNo') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('AlternateNo')">
+                            Alternate No
+                            @if (sortKey() === 'AlternateNo') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('Email')">
+                            Email
+                            @if (sortKey() === 'Email') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('Gender')">
+                            Gender
+                            @if (sortKey() === 'Gender') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('GstinNumber')">
+                            GSTIN Number
+                            @if (sortKey() === 'GstinNumber') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('FullAddress')">
+                            Full Address
+                            @if (sortKey() === 'FullAddress') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('DepartmentName')">
+                            Department
+                            @if (sortKey() === 'DepartmentName') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          <th style="cursor:pointer" (click)="sort('Status')">
+                            Status
+                            @if (sortKey() === 'Status') {
+                            <i class="bx" [ngClass]="reverse() ? 'bx-chevron-up' : 'bx-chevron-down'"></i>}
+                          </th>
+                          @if (action().CanEdit) { <th style="width: 60px;">Edit</th> }
+                          @if (action().CanDelete) { <th style="width: 60px;">Delete</th> }
                         </tr>
                       </thead>
                       <tbody>
                         @for (
-                          item of StaffList
-                            | filter: Search
-                            | orderBy: sortKey : reverse
-                            | paginate: { itemsPerPage: itemPerPage, currentPage: p };
-                          track item.StaffId;
-                          let i = $index
+                        item of paginatedStaff();
+                        track item.StaffId;
+                        let i = $index
                         ) {
-                          <tr>
-                            <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
-                            <td>{{ item.StaffName }}</td>
-                            <td>{{ item.StaffCode }}</td>
-                            <td>{{ item.DesignationName }}</td>
-                            <td>{{ AllStaffTypeList[item.StaffType] }}</td>
-                            <td>{{ item.FatherName }}</td>
-                            <td>{{ item.MobileNo }}</td>
-                            <td>{{ item.AlternateNo }}</td>
-                            <td>{{ item.Email }}</td>
-                            <td style="white-space:nowrap">{{ item.DOB | date: 'dd-MM-yy' }}</td>
-                            <td>{{ AllGenderList[item.Gender] }}</td>
-                            <td>{{ item.Qualification }}</td>
-                            <td>{{ item.FullAddress }}</td>
-                            <td style="white-space:nowrap">{{ item.JoinDate | date: 'dd-MM-yy' }}</td>
-                            <td>{{ item.DepartmentName }}</td>
-                            <td>
-                              <span class="p-1"
-                                [ngClass]="item.Status == 1
+                        <tr>
+                          <td>{{ (itemPerPage() * (p() - 1)) + i + 1 }}</td>
+                          <td>{{ item.CompanyName }}</td>
+                          <td>{{ item.StaffName }}</td>
+                          <td>{{ item.DesignationName }}</td>
+                          <td>{{ AllStaffTypeList[item.StaffType] }}</td>
+                          <td>{{ item.MobileNo }}</td>
+                          <td>{{ item.AlternateNo }}</td>
+                          <td>{{ item.Email }}</td>
+                          <td>{{ AllGenderList[item.Gender] }}</td>
+                          <td>{{ item.GstinNumber }}</td>
+                          <td>{{ item.FullAddress }}</td>
+                          <td>{{ item.DepartmentName }}</td>
+                          <td>
+                            <span class="p-1" [ngClass]="item.Status == 1
                                   ? 'badge text-bg-success'
                                   : 'badge text-bg-danger'">
-                                {{ AllStatusList[item.Status] }}
-                              </span>
-                            </td>
-                            @if (action.CanEdit) {
-                              <td>
-                                <a class="text-success p-1" style="cursor:pointer"
-                                   (click)="editStaff(item)">
-                                  <i class="bx bxs-edit-alt"></i>
-                                </a>
-                              </td>
-                            }
-                            @if (action.CanDelete) {
-                              <td>
-                                <a class="text-danger p-1" style="cursor:pointer"
-                                   (click)="deleteStaff(item)">
-                                  <i class="bx bxs-trash"></i>
-                                </a>
-                              </td>
-                            }
-                          </tr>
+                              {{ AllStatusList[item.Status] }}
+                            </span>
+                          </td>
+                          @if (action().CanEdit) {
+                          <td>
+                            <a class="text-success p-1" style="cursor:pointer" (click)="editStaff(item)">
+                              <i class="bx bxs-edit-alt"></i>
+                            </a>
+                          </td>
+                          }
+                          @if (action().CanDelete) {
+                          <td>
+                            <a class="text-danger p-1" style="cursor:pointer" (click)="deleteStaff(item)">
+                              <i class="bx bxs-trash"></i>
+                            </a>
+                          </td>
+                          }
+                        </tr>
+                        }
+                        @empty {
+                        <tr>
+                          <td colspan="20" class="text-center py-4">
+                            <i class="bx bx-folder-open fs-1 text-muted"></i>
+                            <p class="mt-2 mb-0">No staff/Agent records found</p>
+                          </td>
+                        </tr>
                         }
                       </tbody>
                     </table>
@@ -151,12 +203,25 @@
                 </div>
 
                 <!-- Pagination -->
-                <div>
-                  <pagination-controls
-                    (pageChange)="onTableDataChange($event)"
-                    style="float:right;"
-                    class="my-pagination">
-                  </pagination-controls>
+                @if (filteredStaff().length > itemPerPage()) {
+                <div class="row mt-3">
+                  <div class="col-12">
+                    <pagination-controls (pageChange)="onTableDataChange($event)" style="float:right;"
+                      class="my-pagination">
+                    </pagination-controls>
+                  </div>
+                </div>
+                }
+
+                <!-- Showing entries info -->
+                <div class="row mt-2">
+                  <div class="col-12">
+                    <small class="text-muted">
+                      Showing {{ (p() - 1) * itemPerPage() + 1 }} to
+                      {{ Math.min(p() * itemPerPage(), filteredStaff().length) }} of
+                      {{ filteredStaff().length }} entries
+                    </small>
+                  </div>
                 </div>
 
               </div>
@@ -169,187 +234,296 @@
 
   </div>
 
-  <!-- Modal -->
-  @if (showModal && (action.CanEdit || action.CanCreate)) {
-    <div class="modal fade show d-block" tabindex="-1"
-         style="background:rgba(0,0,0,0.5)">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
+<!-- Modal -->
+@if (showModal() && (action().CanEdit || action().CanCreate)) {
+<div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
 
-          <div class="modal-header">
-            <h1 class="modal-title fs-5">
-              {{ Staff.StaffId > 0 ? 'Update' : 'New' }} Staff
-            </h1>
-            <button type="button" class="btn-close" (click)="closeModal()"></button>
-          </div>
+      <div class="modal-header" style="background: linear-gradient(135deg, #eef0f8 0%, #dcd9de 100%);">
+        <h1 class="modal-title fs-5 text-black">
+          <i class="bx bx-user-plus me-2"></i>
+          {{ Staff().StaffId > 0 ? 'Update' : 'New' }} Staff/Agent
+        </h1>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
 
-          <div class="modal-body">
-            <form #formStaff="ngForm">
-              <div class="container">
-                <div class="row">
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <form #formStaff="ngForm">
+          
+          <!-- Basic Details Section -->
+          <div class="card mb-4">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #667eea;">
+              <h5 class="mb-0">
+                <i class="bx bx-building me-2"></i>
+                Basic Details
+              </h5>
+              <small class="text-muted">Provide basic details such as company name and staff information</small>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    Company Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" 
+                         class="form-control" 
+                         placeholder="e.g. ABC Travel Agency Pvt. Ltd."
+                         name="CompanyName" 
+                         [(ngModel)]="Staff().CompanyName" 
+                         required>
+                </div>
 
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Staff Name</mat-label>
-                    <input matInput #StaffName="ngModel" name="StaffName"
-                      [(ngModel)]="Staff.StaffName" required autofocus>
-                    @if ((StaffName.dirty || StaffName.touched) ||
-                         (StaffName.invalid && isSubmitted)) {
-                      <mat-error>Staff name is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Staff Code</mat-label>
-                    <input matInput #StaffCode="ngModel" name="StaffCode"
-                      [(ngModel)]="Staff.StaffCode" required>
-                    @if ((StaffCode.dirty || StaffCode.touched) ||
-                         (StaffCode.invalid && isSubmitted)) {
-                      <mat-error>Staff Code is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Designation</mat-label>
-                    <mat-select #DesignationId="ngModel" name="DesignationId"
-                      [(ngModel)]="Staff.DesignationId" required>
-                      @for (option of DesignationList; track option.DesignationId) {
-                        <mat-option [value]="option.DesignationId">
-                          {{ option.DesignationName }}
-                        </mat-option>
-                      }
-                    </mat-select>
-                    @if ((DesignationId.dirty || DesignationId.touched) ||
-                         (DesignationId.invalid && isSubmitted)) {
-                      <mat-error>Designation is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Department</mat-label>
-                    <mat-select #DepartmentId="ngModel" name="DepartmentId"
-                      [(ngModel)]="Staff.DepartmentId" required>
-                      @for (option of DepartmentList; track option.DepartmentId) {
-                        <mat-option [value]="option.DepartmentId">
-                          {{ option.DepartmentName }}
-                        </mat-option>
-                      }
-                    </mat-select>
-                    @if ((DepartmentId.dirty || DepartmentId.touched) ||
-                         (DepartmentId.invalid && isSubmitted)) {
-                      <mat-error>Department is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Staff Type</mat-label>
-                    <mat-select #StaffType="ngModel" name="StaffType"
-                      [(ngModel)]="Staff.StaffType" required>
-                      @for (staffType of StaffTypeList; track staffType.Key) {
-                        <mat-option [value]="staffType.Key">{{ staffType.Value }}</mat-option>
-                      }
-                    </mat-select>
-                    @if ((StaffType.dirty || StaffType.touched) ||
-                         (StaffType.invalid && isSubmitted)) {
-                      <mat-error>Staff Type is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Father Name</mat-label>
-                    <input matInput name="FatherName" [(ngModel)]="Staff.FatherName">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>DOB</mat-label>
-                    <input matInput name="DOB" [(ngModel)]="Staff.DOB"
-                      [matDatepicker]="DOBPicker">
-                    <mat-datepicker-toggle matIconSuffix [for]="DOBPicker"></mat-datepicker-toggle>
-                    <mat-datepicker #DOBPicker></mat-datepicker>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Mobile No</mat-label>
-                    <input type="number" matInput #MobileNo="ngModel" name="MobileNo"
-                      [(ngModel)]="Staff.MobileNo" required>
-                    @if ((MobileNo.dirty || MobileNo.touched) ||
-                         (MobileNo.invalid && isSubmitted)) {
-                      <mat-error>Mobile No is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Alternate No</mat-label>
-                    <input type="number" matInput name="AlternateNo"
-                      [(ngModel)]="Staff.AlternateNo">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Email</mat-label>
-                    <input type="email" matInput name="Email" [(ngModel)]="Staff.Email">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Gender</mat-label>
-                    <mat-select name="Gender" [(ngModel)]="Staff.Gender">
-                      @for (gender of GenderList; track gender.Key) {
-                        <mat-option [value]="gender.Key">{{ gender.Value }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Qualification</mat-label>
-                    <input matInput name="Qualification" [(ngModel)]="Staff.Qualification">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Full Address</mat-label>
-                    <input matInput name="FullAddress" [(ngModel)]="Staff.FullAddress">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Join Date</mat-label>
-                    <input matInput #JoinDate="ngModel" name="JoinDate"
-                      [(ngModel)]="Staff.JoinDate" required
-                      [matDatepicker]="JoinDatePicker">
-                    <mat-datepicker-toggle matIconSuffix [for]="JoinDatePicker"></mat-datepicker-toggle>
-                    <mat-datepicker #JoinDatePicker></mat-datepicker>
-                    @if ((JoinDate.dirty || JoinDate.touched) ||
-                         (JoinDate.invalid && isSubmitted)) {
-                      <mat-error>Join Date is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="col-sm-3" >
-                    <mat-label>Status</mat-label>
-                    <mat-select #Status="ngModel" name="Status"
-                      [(ngModel)]="Staff.Status" required>
-                      @for (status of StatusList; track status.Key) {
-                        <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
-                      }
-                    </mat-select>
-                    @if ((Status.dirty || Status.touched) ||
-                         (Status.invalid && isSubmitted)) {
-                      <mat-error>Status is <strong>required</strong></mat-error>
-                    }
-                  </mat-form-field>
-
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    Staff/Agent Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" 
+                         class="form-control" 
+                         placeholder="e.g. John Doe"
+                         #StaffName="ngModel"
+                         name="StaffName" 
+                         [(ngModel)]="Staff().StaffName" 
+                         autofocus
+                         required>
+                  @if ((StaffName.dirty || StaffName.touched) || (StaffName.invalid && isSubmitted())) {
+                    <div class="text-danger small mt-1">Staff/Agent name is required</div>
+                  }
                 </div>
               </div>
-            </form>
+            </div>
           </div>
 
-          <div class="modal-footer mt-2">
-            <button type="button" mat-raised-button color="warn"
-              class="me-2" (click)="closeModal()">Cancel</button>
-            <button mat-raised-button color="primary" (click)="saveStaff()">
-              {{ Staff.StaffId > 0 ? 'Update' : 'Submit' }}
-            </button>
+          <!-- Employment Details Section -->
+          <div class="card mb-4">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #667eea;">
+              <h5 class="mb-0">
+                <i class="bx bx-briefcase me-2"></i>
+                Employment Details
+              </h5>
+              <small class="text-muted">Designation, department and staff type information</small>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">
+                    Designation <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" 
+                          #DesignationId="ngModel"
+                          name="DesignationId" 
+                          [(ngModel)]="Staff().DesignationId"
+                          required>
+                    <option value="">Select Designation</option>
+                    @for (option of DesignationList(); track option.DesignationId) {
+                      <option [value]="option.DesignationId">
+                        {{ option.DesignationName }}
+                      </option>
+                    }
+                  </select>
+                  @if ((DesignationId.dirty || DesignationId.touched) || (DesignationId.invalid && isSubmitted())) {
+                    <div class="text-danger small mt-1">Designation is required</div>
+                  }
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">
+                    Department <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" 
+                          #DepartmentId="ngModel"
+                          name="DepartmentId" 
+                          [(ngModel)]="Staff().DepartmentId"
+                          required>
+                    <option value="">Select Department</option>
+                    @for (option of DepartmentList(); track option.DepartmentId) {
+                      <option [value]="option.DepartmentId">
+                        {{ option.DepartmentName }}
+                      </option>
+                    }
+                  </select>
+                  @if ((DepartmentId.dirty || DepartmentId.touched) || (DepartmentId.invalid && isSubmitted())) {
+                    <div class="text-danger small mt-1">Department is required</div>
+                  }
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">
+                    Staff/Agent Type <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" 
+                          #StaffType="ngModel"
+                          name="StaffType" 
+                          [(ngModel)]="Staff().StaffType"
+                          required>
+                    <option value="">Select Type</option>
+                    @for (staffType of StaffTypeList; track staffType.Key) {
+                      <option [value]="staffType.Key">{{ staffType.Value }}</option>
+                    }
+                  </select>
+                  @if ((StaffType.dirty || StaffType.touched) || (StaffType.invalid && isSubmitted())) {
+                    <div class="text-danger small mt-1">Staff/Agent Type is required</div>
+                  }
+                </div>
+              </div>
+            </div>
           </div>
 
-        </div>
+          <!-- Contact Information Section -->
+          <div class="card mb-4">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #667eea;">
+              <h5 class="mb-0">
+                <i class="bx bx-phone-call me-2"></i>
+                Contact Information
+              </h5>
+              <small class="text-muted">Please provide contact details</small>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">
+                    Mobile Number <span class="text-danger">*</span>
+                  </label>
+                  <input type="tel" 
+                         class="form-control" 
+                         placeholder="e.g. 9876543210"
+                         #MobileNo="ngModel"
+                         name="MobileNo" 
+                         [(ngModel)]="Staff().MobileNo"
+                         required>
+                  @if ((MobileNo.dirty || MobileNo.touched) || (MobileNo.invalid && isSubmitted())) {
+                    <div class="text-danger small mt-1">Mobile number is required</div>
+                  }
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Alternate Number</label>
+                  <input type="tel" 
+                         class="form-control" 
+                         placeholder="e.g. 9876543210"
+                         name="AlternateNo" 
+                         [(ngModel)]="Staff().AlternateNo">
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Email Address</label>
+                  <input type="email" 
+                         class="form-control" 
+                         placeholder="e.g. user@domain.com"
+                         name="Email" 
+                         [(ngModel)]="Staff().Email">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Details Section -->
+          <div class="card mb-4">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #667eea;">
+              <h5 class="mb-0">
+                <i class="bx bx-map-pin me-2"></i>
+                Address Details
+              </h5>
+              <small class="text-muted">Please provide address details</small>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Full Address</label>
+                  <textarea class="form-control" 
+                            rows="3" 
+                            placeholder="Flat / House No. / Floor / Building, Colony / Street / Locality"
+                            name="FullAddress" 
+                            [(ngModel)]="Staff().FullAddress"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">GSTIN Number</label>
+                  <input type="text" 
+                         class="form-control" 
+                         placeholder="e.g. 22AAAAA0000A1Z"
+                         name="GstinNumber" 
+                         [(ngModel)]="Staff().GstinNumber" 
+                         maxlength="15">
+                  <small class="text-muted">Format: 15 characters alphanumeric</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information Section -->
+          <div class="card mb-4">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #667eea;">
+              <h5 class="mb-0">
+                <i class="bx bx-info-circle me-2"></i>
+                Additional Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Gender</label>
+                  <div class="d-flex gap-3">
+                    @for (gender of GenderList; track gender.Key) {
+                      <div class="form-check">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="Gender" 
+                               [value]="gender.Key"
+                               [(ngModel)]="Staff().Gender"
+                               [id]="'gender_' + gender.Key">
+                        <label class="form-check-label" [for]="'gender_' + gender.Key">
+                          {{ gender.Value }}
+                        </label>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">
+                    Status <span class="text-danger">*</span>
+                  </label>
+                  <div class="d-flex gap-3">
+                    @for (status of StatusList; track status.Key) {
+                      <div class="form-check">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="Status" 
+                               [value]="status.Key"
+                               [(ngModel)]="Staff().Status"
+                               [id]="'status_' + status.Key"
+                               required>
+                        <label class="form-check-label" [for]="'status_' + status.Key">
+                          {{ status.Value }}
+                        </label>
+                      </div>
+                    }
+                  </div>
+                  @if (isSubmitted() && !Staff().Status) {
+                    <div class="text-danger small mt-1">Status is required</div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
       </div>
+
+      <div class="modal-footer" style="background-color: #f8f9fa;">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          <i class="bx bx-x me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" (click)="saveStaff()">
+          <i class="bx bx-save me-1"></i>
+          {{ Staff().StaffId > 0 ? 'Update' : 'Save Details' }}
+        </button>
+      </div>
+
     </div>
-  }
+  </div>
+</div>
+}
 
 </div>

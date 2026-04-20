@@ -24,7 +24,6 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-
                         <div id="datatable_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
 
                             <div class="row mb-2">
@@ -79,7 +78,9 @@
                                                     <th style="cursor:pointer" (click)="sort('UserName')">User Name</th>
                                                     <th>Roles</th>
                                                     <th style="cursor:pointer" (click)="sort('Status')">Status</th>
-                                                    @if (action.CanEdit || action.CanDelete) { <th>Action</th> }
+                                                    @if (action.CanEdit || action.CanDelete) {
+                                                    <th>Action</th>
+                                                    }
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -97,15 +98,14 @@
                                                     <td>{{ item.UserName }}</td>
                                                     <td>
                                                         <ul style="margin:0;">
-                                                            @for (m1 of item.StaffLoginRoleList; track m1.RoleId) {
-                                                            <li>{{ m1.RoleTitle }}</li>
+                                                            @for (role of item.StaffLoginRoleList; track role.RoleId) {
+                                                            <li>{{ role.RoleTitle }}</li>
                                                             }
                                                         </ul>
                                                     </td>
                                                     <td>
-                                                        <span class="p-1" [ngClass]="item.Status == 1
-                                  ? 'badge text-bg-success'
-                                  : 'badge text-bg-danger'">
+                                                        <span class="p-1"
+                                                            [ngClass]="item.Status == 1 ? 'badge text-bg-success' : 'badge text-bg-danger'">
                                                             {{ AllStatusList[item.Status] }}
                                                         </span>
                                                     </td>
@@ -140,7 +140,6 @@
                                 </div>
 
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -148,9 +147,9 @@
         </div>
 
     </div>
-
-
 </div>
+
+<!-- Modal -->
 @if (showModal && (action.CanEdit || action.CanCreate)) {
 <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
     <div class="modal-dialog modal-xl">
@@ -158,7 +157,7 @@
 
             <div class="modal-header">
                 <h1 class="modal-title fs-5">
-                    @if (StaffLogin.StaffLoginId > 0) { Update } @else { New } Staff Login
+                    {{ StaffLogin.StaffLoginId > 0 ? 'Update' : 'New' }} Staff Login
                 </h1>
                 <button type="button" class="btn-close" (click)="closeModal()"></button>
             </div>
@@ -168,12 +167,11 @@
 
                     <form #formStaffLogin="ngForm">
                         <div class="row">
-
-                            <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                            <!-- subscriptSizing="dynamic" -->
+                            <mat-form-field appearance="outline" class="col-sm-3">
                                 <mat-label>Staff</mat-label>
-                                <input matInput #StaffName="ngModel" name="StaffName"
-                                    (ngModelChange)="filterStaffList(StaffLogin.StaffName)"
-                                    [(ngModel)]="StaffLogin.StaffName" [matAutocomplete]="autoStaffName" required
+                                <input matInput #StaffName="ngModel" name="StaffName" [(ngModel)]="StaffLogin.StaffName"
+                                    (ngModelChange)="filterStaffList($event)" [matAutocomplete]="autoStaffName" required
                                     autofocus>
                                 <mat-autocomplete #autoStaffName="matAutocomplete">
                                     @for (option of filterStaff; track option.StaffId) {
@@ -183,44 +181,41 @@
                                     </mat-option>
                                     }
                                 </mat-autocomplete>
-                                @if ((StaffName.dirty || StaffName.touched) ||
-                                (StaffName.invalid && isSubmitted)) {
+                                @if ((StaffName.dirty || StaffName.touched) || (StaffName.invalid && isSubmitted)) {
                                 <mat-error>Staff Name is <strong>required</strong></mat-error>
                                 }
                             </mat-form-field>
 
-                            <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                            <mat-form-field appearance="outline" class="col-sm-3">
                                 <mat-label>Username</mat-label>
                                 <input matInput #UserName="ngModel" name="UserName" [(ngModel)]="StaffLogin.UserName"
                                     required>
-                                @if ((UserName.dirty || UserName.touched) ||
-                                (UserName.invalid && isSubmitted)) {
+                                @if ((UserName.dirty || UserName.touched) || (UserName.invalid && isSubmitted)) {
                                 <mat-error>User Name is <strong>required</strong></mat-error>
                                 }
                             </mat-form-field>
 
-                            <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                            <mat-form-field appearance="outline" class="col-sm-3">
                                 <mat-label>Login Password</mat-label>
                                 <input [type]="hide ? 'password' : 'text'" matInput #LoginPassword="ngModel"
                                     name="LoginPassword" [(ngModel)]="StaffLogin.LoginPassword" required>
                                 <button mat-icon-button matSuffix type="button" (click)="hide = !hide">
                                     <mat-icon>{{ hide ? 'visibility_off' : 'visibility' }}</mat-icon>
                                 </button>
-                                @if ((LoginPassword.dirty || LoginPassword.touched) ||
-                                (LoginPassword.invalid && isSubmitted)) {
+                                @if ((LoginPassword.dirty || LoginPassword.touched) || (LoginPassword.invalid &&
+                                isSubmitted)) {
                                 <mat-error>Login Password is <strong>required</strong></mat-error>
                                 }
                             </mat-form-field>
 
-                            <mat-form-field appearance="outline" class="col-sm-3" subscriptSizing="dynamic">
+                            <mat-form-field appearance="outline" class="col-sm-3">
                                 <mat-label>Status</mat-label>
                                 <mat-select #Status="ngModel" name="Status" [(ngModel)]="StaffLogin.Status" required>
                                     @for (status of StatusList; track status.Key) {
                                     <mat-option [value]="status.Key">{{ status.Value }}</mat-option>
                                     }
                                 </mat-select>
-                                @if ((Status.dirty || Status.touched) ||
-                                (Status.invalid && isSubmitted)) {
+                                @if ((Status.dirty || Status.touched) || (Status.invalid && isSubmitted)) {
                                 <mat-error>Status is <strong>required</strong></mat-error>
                                 }
                             </mat-form-field>
@@ -230,23 +225,19 @@
 
                     <!-- Staff Roles -->
                     <div class="row mt-3">
-
                         <div class="col-12">
                             <h3 class="header-text">Staff Roles</h3>
                             <hr style="border:2px solid rgb(19, 25, 97);">
                         </div>
-
-                        @for (r1 of StaffLoginRoleList; track r1.RoleId) {
+                        @for (role of StaffLoginRoleList; track role.RoleId) {
                         <div class="col-6 col-sm-2">
-                            <input [id]="'id' + r1.RoleId" [(ngModel)]="r1.IsSelected" class="form-check-input me-2"
+                            <input [id]="'id' + role.RoleId" [(ngModel)]="role.IsSelected" class="form-check-input me-2"
                                 type="checkbox">
-
-                            <label [for]="'id' + r1.RoleId" class="form-check-label text-link">
-                                {{ r1.RoleTitle }}
+                            <label [for]="'id' + role.RoleId" class="form-check-label text-link">
+                                {{ role.RoleTitle }}
                             </label>
                         </div>
                         }
-
                     </div>
 
                 </div>
@@ -255,7 +246,7 @@
             <div class="modal-footer mt-4">
                 <button type="button" mat-raised-button color="warn" class="me-2" (click)="closeModal()">Cancel</button>
                 <button mat-raised-button color="primary" (click)="saveStaffLogin()">
-                    @if (StaffLogin.StaffLoginId > 0) { Update } @else { Submit }
+                    {{ StaffLogin.StaffLoginId > 0 ? 'Update' : 'Submit' }}
                 </button>
             </div>
 

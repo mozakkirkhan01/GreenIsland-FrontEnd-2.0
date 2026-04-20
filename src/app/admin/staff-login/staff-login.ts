@@ -1,4 +1,4 @@
-import { Component, ViewChild,inject, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -40,238 +40,247 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
   styleUrls: ['./staff-login.css']
 })
 export class StaffLogin {
-  dataLoading: boolean = false;
-  StaffLoginList: any = [];
-  StaffLogin: any = {};
+  @ViewChild('formStaffLogin') formStaffLogin!: NgForm;
+
+  // State
+  dataLoading = false;
+  showModal = false;
+  hide = true;
   isSubmitted = false;
+
+  // Pagination & Table
+  PageSize = ConstantData.PageSizes;
+  p = 1;
+  Search = '';
+  sortKey = '';
+  reverse = false;
+  itemPerPage: number = this.PageSize[0];
+
+  // Data
+  StaffLoginList: any[] = [];
+  StaffLogin: any = {};
   StaffList: any[] = [];
   filterStaff: any[] = [];
-  hide = true;
-  PageSize = ConstantData.PageSizes;
-  p: number = 1;
-  Search: string = '';
-  reverse: boolean = false;
-  sortKey: string = '';
-  itemPerPage: number = this.PageSize[0];
-  loadData = inject(LoadDataService);
-  StatusList = this.loadData.GetEnumList(Status);
-  AllStatusList = Status;
   StaffLoginRoleList: any[] = [];
+
+  // Auth & Actions
   action: ActionModel = {} as ActionModel;
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
-  showModal: boolean = false;
 
-  sort(key: any) {
-    this.sortKey = key;
-    this.reverse = !this.reverse;
-  }
-
-  onTableDataChange(p: any) {
-    this.p = p;
-  }
+  // Lookup
+  private loadData = inject(LoadDataService);
+  StatusList = this.loadData.GetEnumList(Status);
+  AllStatusList = Status;
 
   constructor(
     private service: AppService,
     private toastr: ToastrService,
     private localService: LocalService,
-    // private loadData: LoadDataService,
     private router: Router,
-    private cdr : ChangeDetectorRef,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
-    this.validiateMenu();
+    this.validateMenu();
     this.getStaffLoginList();
     this.getStaffList();
     this.getRoleList();
   }
 
-  validiateMenu() {
-    var obj: RequestModel = {
-      request: this.localService.encrypt(
-        JSON.stringify({ Url: this.router.url, StaffLoginId: this.staffLogin.StaffLoginId })
-      ).toString()
-    };
-    this.dataLoading = true;
-    this.service.validiateMenu(obj).subscribe((response: any) => {
-      this.action = this.loadData.validiateMenu(response, this.toastr, this.router);
-      this.dataLoading = false;
-      this.cdr.detectChanges();
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
-    });
+  // ─── Table Helpers ───────────────────────────────────────────────
+
+  sort(key: string): void {
+    this.sortKey = key;
+    this.reverse = !this.reverse;
   }
 
-  @ViewChild('formStaffLogin') formStaffLogin!: NgForm;
+  onTableDataChange(page: number): void {
+    this.p = page;
+  }
 
-  resetForm() {
+  // ─── Modal ───────────────────────────────────────────────────────
+
+  private resetForm(): void {
     this.StaffLogin = { Status: 1 };
+    this.isSubmitted = false;
     if (this.formStaffLogin) {
       this.formStaffLogin.control.markAsPristine();
       this.formStaffLogin.control.markAsUntouched();
     }
-    this.isSubmitted = false;
   }
 
-  newStaffLogin() {
+  newStaffLogin(): void {
     this.resetForm();
-    this.StaffLoginRoleList.forEach(e1 => {
-      e1.IsSelected = false;
-      e1.StaffLoginRoleId = null;
+    this.StaffLoginRoleList.forEach(role => {
+      role.IsSelected = false;
+      role.StaffLoginRoleId = null;
     });
     this.showModal = true;
   }
 
-  closeModal() {
+  closeModal(): void {
     this.resetForm();
     this.showModal = false;
   }
 
-  editStaffLogin(obj: any) {
+  editStaffLogin(obj: any): void {
     this.resetForm();
     this.StaffLogin = { ...obj };
-    this.StaffLoginRoleList.forEach(e1 => {
-      var staffloginRole: any = obj.StaffLoginRoleList.filter((x1: any) => x1.RoleId == e1.RoleId);
-      if (staffloginRole.length > 0) {
-        e1.IsSelected = true;
-        e1.StaffLoginRoleId = staffloginRole[0].StaffLoginRoleId ?? 0;
-      } else {
-        e1.IsSelected = false;
-        e1.StaffLoginRoleId = 0;
-      }
+    this.StaffLoginRoleList.forEach(role => {
+      const match = obj.StaffLoginRoleList.find((x: any) => x.RoleId === role.RoleId);
+      role.IsSelected = !!match;
+      role.StaffLoginRoleId = match?.StaffLoginRoleId ?? 0;
     });
     this.showModal = true;
   }
 
-  filterStaffList(value: any) {
-    if (value) {
-      const filterValue = value.toLowerCase();
-      this.filterStaff = this.StaffList.filter((option: any) =>
-        option.StaffName.toLowerCase().includes(filterValue)
-      );
-    } else {
-      this.filterStaff = this.StaffList;
-    }
+  // ─── Autocomplete ─────────────────────────────────────────────────
+
+  filterStaffList(value: string): void {
+    const lower = value?.toLowerCase() ?? '';
+    this.filterStaff = lower
+      ? this.StaffList.filter(s => s.StaffName.toLowerCase().includes(lower))
+      : [...this.StaffList];
   }
 
-  getRoleList() {
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({})).toString()
-    };
+  // ─── API Calls ────────────────────────────────────────────────────
+
+  private encrypt(data: object): RequestModel {
+    return { request: this.localService.encrypt(JSON.stringify(data)).toString() };
+  }
+
+  private validateMenu(): void {
     this.dataLoading = true;
-    this.service.getRoleList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.StaffLoginRoleList = response.RoleList;
-      } else {
-        this.toastr.error(response.Message);
+    this.service.validiateMenu(this.encrypt({
+      Url: this.router.url,
+      StaffLoginId: this.staffLogin.StaffLoginId
+    })).subscribe({
+      next: (response: any) => {
+        this.action = this.loadData.validiateMenu(response, this.toastr, this.router);
+        this.dataLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading = false;
       }
-      this.dataLoading = false;
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
     });
   }
 
-  getStaffList() {
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({})).toString()
-    };
+  getRoleList(): void {
     this.dataLoading = true;
-    this.service.getStaffList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.StaffList = response.StaffList;
-        this.filterStaff = response.StaffList;
-      } else {
-        this.toastr.error(response.Message);
+    this.service.getRoleList(this.encrypt({})).subscribe({
+      next: (r1: any) => {
+        if (r1.Message === ConstantData.SuccessMessage) {
+          this.StaffLoginRoleList = r1.RoleList;
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading = false;
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading = false;
       }
-      this.dataLoading = false;
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
     });
   }
 
-  getStaffLoginList() {
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({})).toString()
-    };
+  getStaffList(): void {
     this.dataLoading = true;
-    this.service.getStaffLoginList(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.StaffLoginList = response.StaffLoginList;
-      } else {
-        this.toastr.error(response.Message);
+    this.service.getStaffList(this.encrypt({})).subscribe({
+      next: (r1: any) => {
+        if (r1.Message === ConstantData.SuccessMessage) {
+          this.StaffList = r1.StaffList;
+          this.filterStaff = [...r1.StaffList];
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading = false;
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading = false;
       }
-      this.dataLoading = false;
-    }, err => {
-      this.toastr.error("Error while fetching records");
-      this.dataLoading = false;
     });
   }
 
-  saveStaffLogin() {
+  getStaffLoginList(): void {
+    this.dataLoading = true;
+    this.service.getStaffLoginList(this.encrypt({})).subscribe({
+      next: (r1: any) => {
+        if (r1.Message === ConstantData.SuccessMessage) {
+          this.StaffLoginList = r1.StaffLoginList;
+        } else {
+          this.toastr.error(r1.Message);
+        }
+        this.dataLoading = false;
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading = false;
+      }
+    });
+  }
+
+  saveStaffLogin(): void {
     this.isSubmitted = true;
     this.formStaffLogin.control.markAllAsTouched();
     if (this.formStaffLogin.invalid) {
       this.toastr.error("Fill all the required fields !!");
       return;
     }
+
     this.StaffLoginRoleList.forEach(role => {
       if (role.IsSelected && role.StaffLoginRoleId == null) {
         role.StaffLoginRoleId = 0;
       }
     });
-    var obj: RequestModel = {
-      request: this.localService.encrypt(JSON.stringify({
-        StaffLogin: this.StaffLogin,
-        StaffLoginRoleList: this.StaffLoginRoleList.filter((x1: any) => x1.IsSelected),
-        StaffClassList: [],
-        StaffLoginId: this.staffLogin.StaffLoginId
-      })).toString()
-    };
+
     this.dataLoading = true;
-    this.service.saveStaffLogin(obj).subscribe(r1 => {
-      let response = r1 as any;
-      if (response.Message == ConstantData.SuccessMessage) {
-        this.toastr.success(this.StaffLogin.StaffLoginId > 0
-          ? "Staff Login updated successfully"
-          : "Staff Login added successfully");
-        this.closeModal();
-        this.getStaffLoginList();
-      } else {
-        this.toastr.error(response.Message);
+    this.service.saveStaffLogin(this.encrypt({
+      StaffLogin: this.StaffLogin,
+      StaffLoginRoleList: this.StaffLoginRoleList.filter(r => r.IsSelected),
+      StaffClassList: [],
+      StaffLoginId: this.staffLogin.StaffLoginId
+    })).subscribe({
+      next: (r1: any) => {
+        if (r1.Message === ConstantData.SuccessMessage) {
+          this.toastr.success(this.StaffLogin.StaffLoginId > 0
+            ? "Staff Login updated successfully"
+            : "Staff Login added successfully");
+          this.closeModal();
+          this.getStaffLoginList();
+        } else {
+          this.toastr.error(r1.Message);
+          this.dataLoading = false;
+        }
+      },
+      error: () => {
+        this.toastr.error("Error occurred while submitting data");
         this.dataLoading = false;
       }
-    }, err => {
-      this.toastr.error("Error occurred while submitting data");
-      this.dataLoading = false;
     });
   }
 
-  deleteStaffLogin(obj: any) {
-    if (confirm("Are you sure you want to delete this record?")) {
-      var request: RequestModel = {
-        request: this.localService.encrypt(JSON.stringify(obj)).toString()
-      };
-      this.dataLoading = true;
-      this.service.deleteStaffLogin(request).subscribe(r1 => {
-        let response = r1 as any;
-        if (response.Message == ConstantData.SuccessMessage) {
+  deleteStaffLogin(obj: any): void {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+
+    this.dataLoading = true;
+    this.service.deleteStaffLogin(this.encrypt(obj)).subscribe({
+      next: (r1: any) => {
+        if (r1.Message === ConstantData.SuccessMessage) {
           this.toastr.success("Record deleted successfully");
           this.getStaffLoginList();
         } else {
-          this.toastr.error(response.Message);
-          this.dataLoading = false;
+          this.toastr.error(r1.Message);
         }
-      }, err => {
-        this.toastr.error("Error occured while deleting the record");
         this.dataLoading = false;
-      });
-    }
+      },
+      error: () => {
+        this.toastr.error("Error occurred while deleting the record");
+        this.dataLoading = false;
+      }
+    });
   }
 }
