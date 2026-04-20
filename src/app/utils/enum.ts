@@ -33,10 +33,10 @@ export enum Gender {
     Other = 3
 }
 export enum StaffType {
-    SuperAdmin = 1,
-    Admin = 2,
-    TeachingStaff = 3,
-    NonTeachingStaff = 4
+    Agent = 3,
+    OfficeStaff = 2,
+    Admin = 1,
+
 }
 export enum BookBy {
     Agent = 1,

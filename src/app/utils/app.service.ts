@@ -325,6 +325,56 @@ export class AppService {
 
   /* ---------------------------------------------------------------------- */
 
+
+/* ---------------------------------------------------------------------- */
+
+//Agency
+getAgencyList(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/AgencyList", obj, { headers: this.headers })
+}
+
+/* ---------------------------------------------------------------------- */
+
+//Guest
+getGuestByAgency(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/GuestByAgency", obj, { headers: this.headers })
+}
+
+/* ---------------------------------------------------------------------- */
+
+//Tag
+getTagList(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/TagList", obj, { headers: this.headers })
+}
+
+/* ---------------------------------------------------------------------- */
+
+//QueryStepOne
+getQueryStepOneList(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/QueryStepOneList", obj, { headers: this.headers })
+}
+
+saveQueryStepOne(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/saveQueryStepOne", obj, { headers: this.headers })
+}
+
+deleteQueryStepOne(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/deleteQueryStepOne", obj, { headers: this.headers })
+}
+
+updateTripStatus(obj: any) {
+  return this.http.post(this.apiUrl + "QueryStepOne/updateTripStatus", obj, { headers: this.headers })
+}
+
+
+
+
+
+
+
+
+
+  
   //PageGroup
   getPageGroupList(obj: any) {
     return this.http.post(this.apiUrl + "PageGroup/PageGroupList", obj, { headers: this.headers })
