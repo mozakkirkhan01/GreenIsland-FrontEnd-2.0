@@ -46,10 +46,10 @@
 
                 <!-- Right fields -->
                 <div class="col-lg-9">
-                  <div class="row g-3">
+                  <div class="row">
 
                     <!-- Agency autocomplete -->
-                    <div class="col-sm-6">
+                    <div class="col-sm-6 mb-0">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Query Source</mat-label>
                         <input matInput
@@ -80,35 +80,10 @@
                         </div>
                       }
                     </div>
-
-                    <!-- Guest / Enquiry Person autocomplete -->
-                    <div class="col-sm-6">
-                      <mat-form-field appearance="outline" class="w-100">
-                        <mat-label>Contact / Enquiry Person</mat-label>
-                        <input matInput
-                               name="ContactName"
-                               [(ngModel)]="Model.ContactName"
-                               [matAutocomplete]="guestAuto"
-                               (ngModelChange)="onGuestSearch($event)"
-                               placeholder="Search or type name…"
-                               required>
-                        <mat-autocomplete #guestAuto="matAutocomplete"
-                                          (optionSelected)="onGuestSelected($event.option.value)"
-                                          [displayWith]="displayGuest">
-                          @for (guest of filteredGuests; track guest.GuestId) {
-                            <mat-option [value]="guest">
-                              {{ guest.ContactName }} — {{ guest.Phone }}
-                            </mat-option>
-                          }
-                        </mat-autocomplete>
-                        @if (isSubmitted && !Model.ContactName) {
-                          <mat-error>Contact is <strong>required</strong></mat-error>
-                        }
-                      </mat-form-field>
-                    </div>
+<hr>
 
                     <!-- Reference ID -->
-                    <div class="col-sm-6">
+                    <div class="col-sm-6" mt-n4>
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Reference ID <span class="text-muted">(optional)</span></mat-label>
                         <input matInput name="ReferenceId"
@@ -119,22 +94,23 @@
                     </div>
 
                     <!-- Sales Team -->
-                    <div class="col-sm-6">
+                    <div class="col-sm-3">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Sales Team</mat-label>
                         <mat-select name="AssignedToLoginId"
+                                    [compareWith]="compareStaffId"
                                     [(ngModel)]="Model.AssignedToLoginId">
-                          @for (staff of StaffList(); track staff.StaffLoginId) {
-                            <mat-option [value]="staff.StaffLoginId">
-                              {{ staff.StaffName }}
-                            </mat-option>
-                          }
+                         @for (staff of StaffList(); track $index) {
+  <mat-option [value]="+staff.StaffLoginId">
+    {{ staff.StaffName }}
+  </mat-option>
+}
                         </mat-select>
                       </mat-form-field>
                     </div>
 
                     <!-- Tags multi-select chips -->
-                    <div class="col-12">
+                    <div class="col-12 mt-2">
                       <label class="form-label text-muted small mb-2">
                         Tags <span class="text-muted">(optional)</span>
                       </label>
@@ -220,7 +196,7 @@
                     </div>
 
                     <!-- Start Date -->
-                    <div class="col-sm-4">
+                    <div class="col-sm-2">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Start Date</mat-label>
                         <input matInput [matDatepicker]="startPicker"
@@ -239,8 +215,8 @@
                     </div>
 
                     <!-- No of Nights -->
-                    <div class="col-sm-4">
-                      <mat-form-field appearance="outline" class="w-100">
+                    <div class="col-sm-3">
+                      <mat-form-field appearance="outline" class="w-50">
                         <mat-label>No. of Nights</mat-label>
                         <input matInput type="number" name="NoOfNights"
                                [(ngModel)]="Model.NoOfNights"
@@ -330,7 +306,7 @@
                   <div class="row g-3">
 
                     <!-- Salutation -->
-                    <div class="col-sm-3">
+                    <div class="col-sm-1">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Salutation</mat-label>
                         <mat-select name="Salutation" [(ngModel)]="Model.Salutation">
@@ -343,7 +319,7 @@
                     </div>
 
                     <!-- Name -->
-                    <div class="col-sm-9">
+                    <div class="col-sm-3">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Name</mat-label>
                         <input matInput name="GuestName"
@@ -368,7 +344,7 @@
                           <mat-label>Phone Number(s)</mat-label>
                           <input matInput name="Phone"
                                  [(ngModel)]="Model.Phone"
-                                 placeholder="918804791446">
+                                 >
                           <mat-icon matSuffix style="cursor:pointer;"
                                     matTooltip="Add another number">
                             add_circle_outline

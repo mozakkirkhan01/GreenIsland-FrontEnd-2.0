@@ -131,7 +131,7 @@ export class QueryStepone implements OnInit {
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
-    this.Model.AssignedToLoginId = this.staffLogin.StaffLoginId;
+    this.Model.AssignedToLoginId = Number(this.staffLogin?.StaffLoginId) || 0;
     this.validateMenu();
     this.loadDropdowns();
   }
@@ -184,56 +184,91 @@ export class QueryStepone implements OnInit {
     });
   }
 
-  getStaffList(): void {
-    const obj: RequestModel = { request: this.localService.encrypt(JSON.stringify({})).toString() };
-    this.service.getStaffLoginList(obj).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage)
-          this.StaffList.set(r.StaffList);
-        console.log((this.StaffList()));
-        
-      }
-    });
-  }
+getStaffList(): void {
+  const obj: RequestModel = {
+    request: this.localService.encrypt(JSON.stringify({})).toString()
+  };
 
-  getTagList(): void {
-    const obj: RequestModel = { request: this.localService.encrypt(JSON.stringify({})).toString() };
-    this.service.getTagList(obj).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage)
-          this.TagList.set(r.TagList);
+  this.dataLoading.set(true);
+
+  this.service.getStaffList(obj).subscribe({
+    next: (response: any) => {
+      console.log('FULL RESPONSE:', response);
+
+      if (response.Message === ConstantData.SuccessMessage) {
+
+        // ✅ FIXED PROPERTY NAME
+        // Normalize id type so mat-select can match selected value consistently.
+        const staffList = (response.StaffList ?? []).map((staff: any) => ({
+          ...staff,
+          StaffLoginId: Number(staff.StaffLoginId),
+        }));
+        this.StaffList.set(staffList);
+
+        console.log('StaffList:', this.StaffList());
+
+      } else {
+        this.toastr.error(response.Message);
       }
-    });
-  }
+
+      this.dataLoading.set(false);
+    },
+
+    error: (err) => {
+      console.error(err);
+      this.toastr.error("Error while fetching records");
+      this.dataLoading.set(false);
+    }
+  });
+}
+
+getTagList(): void {
+  const obj: RequestModel = {
+    request: this.localService.encrypt(JSON.stringify({})).toString()
+  };
+  this.service.getTagList(obj).subscribe({
+    next: (r: any) => {
+      console.log('TagList response:', r);   // ← add this to debug
+      if (r.Message === ConstantData.SuccessMessage) {
+        this.TagList.set(r.TagList);
+      }
+    },
+    error: (e) => console.error('TagList error', e)
+  });
+}
 
   // ── Agency autocomplete ───────────────────────────────
-  onAgencySearch(value: string): void {
-    const q = value?.toLowerCase() ?? '';
-    this.filteredAgencies = this.AgencyList().filter(a =>
-      a.AgencyName.toLowerCase().includes(q)
-    );
-  }
+onAgencySearch(value: string): void {
+  this.Model.AgencyName = value;
+  this.Model.AgencyId   = 0;      // ← reset to 0 so API creates new
+  this.Model.AgencyCity = '';
 
-  onAgencySelected(agency: any): void {
-    this.Model.AgencyId   = agency.AgencyId;
-    this.Model.AgencyName = agency.AgencyName;
-    this.Model.AgencyCity = agency.CityName ?? '';
-    // Load guests for this agency
-    const obj: RequestModel = {
-      request: this.localService.encrypt(
-        JSON.stringify({ AgencyId: agency.AgencyId })
-      ).toString()
-    };
-    this.service.getGuestByAgency(obj).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          this.GuestList.set(r.GuestList);
-          this.filteredGuests = r.GuestList;
-        }
+  const q = value?.toLowerCase() ?? '';
+  this.filteredAgencies = this.AgencyList().filter(a =>
+    a.AgencyName.toLowerCase().includes(q)
+  );
+}
+
+// When user picks from dropdown → set existing AgencyId
+onAgencySelected(agency: any): void {
+  this.Model.AgencyId   = agency.AgencyId;
+  this.Model.AgencyName = agency.AgencyName;
+  this.Model.AgencyCity = agency.CityName ?? '';
+
+  const obj: RequestModel = {
+    request: this.localService.encrypt(
+      JSON.stringify({ AgencyId: agency.AgencyId })
+    ).toString()
+  };
+  this.service.getGuestByAgency(obj).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        this.GuestList.set(r.GuestList);
+        this.filteredGuests = r.GuestList;
       }
-    });
-  }
-
+    }
+  });
+}
   // ── Guest autocomplete ────────────────────────────────
   onGuestSearch(value: string): void {
     const q = value?.toLowerCase() ?? '';
@@ -285,25 +320,39 @@ displayAgency(agency: any): string {
 displayGuest(guest: any): string {
   return guest?.ContactName ?? '';
 }
+
+compareStaffId = (a: any, b: any): boolean => {
+  return Number(a) === Number(b);
+};
   // ── Save ──────────────────────────────────────────────
   saveDetails(): void {
     this.isSubmitted = true;
 
-    if (!this.Model.AgencyId || this.Model.AgencyId === 0) {
-      this.toastr.error('Please select a Query Source (Agency)'); return;
-    }
-    if (!this.Model.ContactName?.trim()) {
-      this.toastr.error('Contact / Enquiry Person is required'); return;
-    }
-    if (!this.Model.Phone?.trim()) {
-      this.toastr.error('Phone number is required'); return;
-    }
-    if (!this.Model.DestinationId || this.Model.DestinationId === 0) {
-      this.toastr.error('Please select a Destination'); return;
-    }
-    if (!this.Model.StartDate) {
-      this.toastr.error('Start Date is required'); return;
-    }
+  // ← change this: check AgencyName not AgencyId
+  if (!this.Model.AgencyName?.trim()) {
+    this.toastr.error('Please enter a Query Source (Agency)');
+    return;
+  }
+
+  if (!this.Model.ContactName?.trim()) {
+    this.toastr.error('Contact / Enquiry Person is required');
+    return;
+  }
+
+  if (!this.Model.Phone?.trim()) {
+    this.toastr.error('Phone number is required');
+    return;
+  }
+
+  if (!this.Model.DestinationId || this.Model.DestinationId === 0) {
+    this.toastr.error('Please select a Destination');
+    return;
+  }
+
+  if (!this.Model.StartDate) {
+    this.toastr.error('Start Date is required');
+    return;
+  }
 
     // Convert children ages array → JSON string
     const childrenAgesJson = JSON.stringify(
@@ -323,7 +372,7 @@ displayGuest(guest: any): string {
       Email:             this.Model.Email,
       QuerySource:       this.Model.QuerySource,
       ReferenceId:       this.Model.ReferenceId,
-      AssignedToLoginId: this.Model.AssignedToLoginId,
+      AssignedToLoginId: Number(this.Model.AssignedToLoginId) || 0,
       DestinationId:     this.Model.DestinationId,
       StartDate:         this.Model.StartDate,
       NoOfNights:        this.Model.NoOfNights,
@@ -347,7 +396,7 @@ displayGuest(guest: any): string {
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           this.toastr.success('Query saved successfully');
-          this.router.navigate(['/admin/trips']);
+          this.router.navigate(['/agent/trips']);
         } else {
           this.toastr.error(r.Message);
         }
