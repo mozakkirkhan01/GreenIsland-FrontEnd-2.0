@@ -1,0 +1,247 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+    <div class="container-fluid">
+
+        <!-- Breadcrumb -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item">
+                                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+                            <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Filter + Add ──────────────────────────────── -->
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+
+                            <div class="col-sm-4 pb-3">
+                                @if (action().CanCreate) {
+                                <button mat-raised-button color="primary" (click)="openModal()">
+                                    <i class="bx bx-plus me-1"></i> Add Agency
+                                </button>
+                                }
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Table ─────────────────────────────────────── -->
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card border-0 shadow-sm">
+
+                    <!-- Card Header -->
+                    <div class="card-header bg-transparent border-bottom py-3
+                      d-flex align-items-center justify-content-between">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bx bx-buildings me-1 text-primary"></i>Agency List
+                        </h6>
+                        <div class="dataTables_filter">
+                            <label class="mb-0">Search:
+                                <input type="search" class="form-control form-control-sm
+                              d-inline-block w-auto ms-1" [(ngModel)]="Search">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size:13.5px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">S.No</th>
+                                        <th>Agency Name</th>
+                                        <th>City</th>
+                                        <th>State</th>
+                                        <th>GSTIN</th>
+                                        <th>Status</th>
+                                        @if (action().CanEdit) {
+                                        <th class="text-center">Edit</th>
+                                        }
+                                        @if (action().CanDelete) {
+                                        <th class="text-center">Delete</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (
+                                    item of AgencyList()
+                                    | filter: Search
+                                    | paginate: { itemsPerPage: itemPerPage, currentPage: p };
+                                    track item.AgencyId;
+                                    let i = $index
+                                    ) {
+                                    <tr>
+                                        <td class="ps-3 text-muted">
+                                            {{ (itemPerPage * (p - 1)) + i + 1 }}
+                                        </td>
+                                        <td class="fw-semibold">{{ item.AgencyName }}</td>
+                                        <td>{{ item.CityName || '—' }}</td>
+                                        <td>{{ item.StateName || '—' }}</td>
+                                        <td>{{ item.GstinNumber || '—' }}</td>
+                                        <td>
+                                            <span class="badge" [class.bg-success]="item.Status === 1"
+                                                [class.bg-danger]="item.Status !== 1">
+                                                {{ AllStatusList[item.Status] }}
+                                            </span>
+                                        </td>
+                                        @if (action().CanEdit) {
+                                        <td class="text-center">
+                                            <a class="text-primary" style="cursor:pointer;" (click)="openModal(item)">
+                                                <i class="bx bxs-edit fs-5"></i>
+                                            </a>
+                                        </td>
+                                        }
+                                        @if (action().CanDelete) {
+                                        <td class="text-center">
+                                            <a class="text-danger" style="cursor:pointer;" (click)="deleteAgency(item)">
+                                                <i class="bx bxs-trash fs-5"></i>
+                                            </a>
+                                        </td>
+                                        }
+                                    </tr>
+                                    }
+
+                                    @if (AgencyList().length === 0 && !dataLoading()) {
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-5">
+                                            <i class="bx bx-buildings fs-1 d-block mb-2 opacity-25"></i>
+                                            No agencies found
+                                        </td>
+                                    </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="px-3 py-2">
+                            <pagination-controls (pageChange)="onTableDataChange($event)" class="my-pagination"
+                                style="float:right;">
+                            </pagination-controls>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL                                                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+@if (showModal) {
+<div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter:blur(4px);" (click)="closeModal()">
+</div>
+
+<div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+
+            <!-- Header -->
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="bx bx-buildings me-2 text-primary"></i>
+                    {{ AgencyModel.AgencyId > 0 ? 'Update Agency' : 'Add Agency' }}
+                </h5>
+                <button type="button" class="btn-close" (click)="closeModal()">
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-4">
+                <div class="row g-3">
+
+                    <!-- Agency Name -->
+                    <div class="col-12">
+                        <mat-form-field appearance="outline" class="w-100">
+                            <mat-label>Agency Name *</mat-label>
+                            <input matInput name="AgencyName" [(ngModel)]="AgencyModel.AgencyName"
+                                placeholder="Enter agency name" maxlength="250">
+                            @if (isSubmitted && !AgencyModel.AgencyName.trim()) {
+                            <mat-error>Agency Name is <strong>required</strong></mat-error>
+                            }
+                        </mat-form-field>
+                    </div>
+
+                    <!-- City -->
+                    <div class="col-sm-6">
+                        <mat-form-field appearance="outline" class="w-100">
+                            <mat-label>City</mat-label>
+                            <input matInput name="CityName" [(ngModel)]="AgencyModel.CityName"
+                                placeholder="e.g. Kolkata" maxlength="150">
+                        </mat-form-field>
+                    </div>
+
+                    <!-- State -->
+                    <div class="col-sm-6">
+                        <mat-form-field appearance="outline" class="w-100">
+                            <mat-label>State</mat-label>
+                            <input matInput name="StateName" [(ngModel)]="AgencyModel.StateName"
+                                placeholder="e.g. West Bengal" maxlength="150">
+                        </mat-form-field>
+                    </div>
+
+                    <!-- GSTIN -->
+                    <div class="col-sm-6">
+                        <mat-form-field appearance="outline" class="w-100">
+                            <mat-label>GSTIN Number</mat-label>
+                            <input matInput name="GstinNumber" [(ngModel)]="AgencyModel.GstinNumber"
+                                placeholder="e.g. 22AAAAA0000A1Z5" maxlength="15">
+                        </mat-form-field>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-sm-6">
+                        <mat-form-field appearance="outline" class="w-100">
+                            <mat-label>Status</mat-label>
+                            <mat-select name="Status" [(ngModel)]="AgencyModel.Status">
+                                @for (status of StatusList; track status.Key) {
+                                <mat-option [value]="status.Key"> <!-- status.Key must also be number -->
+                                    {{ status.Value }}
+                                </mat-option>
+                                }
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer border-top px-4 py-3">
+                <p class="text-muted small me-auto mb-0">
+                    <i class="bx bx-info-circle me-1"></i>
+                    Fields marked * are required.
+                </p>
+                <button type="button" class="btn btn-outline-secondary px-4" (click)="closeModal()">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary px-4 fw-medium" (click)="saveAgency()">
+                    <i class="bx bx-save me-1"></i>
+                    {{ AgencyModel.AgencyId > 0 ? 'Update' : 'Save' }}
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+}
