@@ -52,16 +52,22 @@
                     <!-- Agency autocomplete -->
                     <div class="col-sm-6 mb-0">
                       <mat-form-field appearance="outline" class="w-100">
+                        @if (Model.AgencyName) {
+                        <button mat-icon-button matSuffix type="button" (click)="clearAgency()" tabindex="-1">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                        }
                         <mat-label>Query Source</mat-label>
                         <input matInput name="AgencyName" [(ngModel)]="Model.AgencyName" [matAutocomplete]="agencyAuto"
                           (input)="onAgencySearch(Model.AgencyName)" placeholder="Search agency…" required>
                         <mat-autocomplete #agencyAuto="matAutocomplete">
-                          @for (agency of filteredAgencies; track agency.AgencyId) {
+                          @for (agency of visibleAgencies; track agency.AgencyId) {
                           <mat-option [value]="agency.AgencyName" (onSelectionChange)="onAgencySelected(agency)">
                             <div class="fw-semibold">{{ agency.AgencyName }}</div>
                             <div class="text-muted small">{{ agency.CityName }}</div>
                           </mat-option>
                           }
+
                         </mat-autocomplete>
                         @if (isSubmitted && !Model.AgencyName) {
                         <mat-error>Agency is <strong>required</strong></mat-error>

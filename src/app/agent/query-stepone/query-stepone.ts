@@ -81,6 +81,7 @@ export class QueryStepone implements OnInit {
 
   // Autocomplete filtered lists
   filteredAgencies: any[] = [];
+  visibleAgencies: any[] = [];
   filteredGuests: any[] = [];
 
   // Child age options
@@ -173,7 +174,7 @@ export class QueryStepone implements OnInit {
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           this.AgencyList.set(r.AgencyList);
-          this.filteredAgencies = r.AgencyList;
+          this.updateAgencySearch('');
         }
       }
     });
@@ -266,10 +267,15 @@ export class QueryStepone implements OnInit {
   onAgencySearch(value: string): void {
     this.Model.AgencyId = 0;
     this.Model.AgencyCity = '';
-    const q = value?.toLowerCase() ?? '';
+    this.updateAgencySearch(value);
+  }
+
+  private updateAgencySearch(value: string): void {
+    const q = value?.toLowerCase().trim() ?? '';
     this.filteredAgencies = this.AgencyList().filter(a =>
-      a.AgencyName.toLowerCase().includes(q)
+      a.AgencyName?.toLowerCase().includes(q)
     );
+    this.visibleAgencies = this.filteredAgencies.slice(0, 4);
   }
   // ── Guest autocomplete ────────────────────────────────
   onGuestSearch(value: string): void {
@@ -414,4 +420,13 @@ export class QueryStepone implements OnInit {
   cancel(): void {
     this.router.navigate(['/admin/trips']);
   }
+
+  clearAgency(): void {
+  this.Model.AgencyName = '';
+  this.Model.AgencyId = 0;
+  this.Model.AgencyCity = '';
+
+  // optional: reset dropdown list
+  this.visibleAgencies = this.AgencyList();
+}
 }
