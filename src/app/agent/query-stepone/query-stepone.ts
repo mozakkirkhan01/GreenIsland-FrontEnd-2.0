@@ -65,69 +65,70 @@ export class QueryStepone implements OnInit {
   dataLoading = signal(false);
   action = signal<ActionModel>({
     CanCreate: false, CanEdit: false, CanDelete: false,
-    MenuTitle: 'Add New Query', ParentMenuTitle: 'Trips'
+    MenuTitle: 'Trips',        // ← set actual default
+    ParentMenuTitle: 'Trips'   // ← set actual default
   } as ActionModel);
 
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
   isSubmitted = false;
 
   // ── Dropdowns ─────────────────────────────────────────
-  AgencyList   = signal<any[]>([]);
-  GuestList    = signal<any[]>([]);
+  AgencyList = signal<any[]>([]);
+  GuestList = signal<any[]>([]);
   DestinationList = signal<any[]>([]);
-  StaffList    = signal<any[]>([]);
-  TagList      = signal<any[]>([]);
+  StaffList = signal<any[]>([]);
+  TagList = signal<any[]>([]);
 
   // Autocomplete filtered lists
   filteredAgencies: any[] = [];
-  filteredGuests:   any[] = [];
+  filteredGuests: any[] = [];
 
   // Child age options
-  ageOptions = ['<1y','1y','2y','3y','4y','5y','6y','7y','8y','9y','10y','11y','12y'];
+  ageOptions = ['<1y', '1y', '2y', '3y', '4y', '5y', '6y', '7y', '8y', '9y', '10y', '11y', '12y'];
   childAgeSelections: string[] = [];  // each entry = one child's age
 
   // Country codes
   countryCodes = [
     { code: '91-IN', label: '🇮🇳 +91' },
-    { code: '1-US',  label: '🇺🇸 +1'  },
+    { code: '1-US', label: '🇺🇸 +1' },
     { code: '44-GB', label: '🇬🇧 +44' },
-    { code: '971-AE',label: '🇦🇪 +971'},
+    { code: '971-AE', label: '🇦🇪 +971' },
     { code: '65-SG', label: '🇸🇬 +65' },
   ];
 
   // ── Model ─────────────────────────────────────────────
   Model: QueryStepOneModel = {
-    QueryStepOneId:    0,
-    AgencyId:          0,
-    AgencyName:        '',
-    AgencyCity:        '',
-    GuestId:           0,
-    Salutation:        'Mr.',
-    ContactName:       '',
-    CountryCode:       '91-IN',
-    Phone:             '',
-    Email:             '',
-    QuerySource:       '',
-    ReferenceId:       '',
+    QueryStepOneId: 0,
+    AgencyId: 0,
+    AgencyName: '',
+    AgencyCity: '',
+    GuestId: 0,
+    Salutation: 'Mr.',
+    ContactName: '',
+    CountryCode: '91-IN',
+    Phone: '',
+    Email: '',
+    QuerySource: '',
+    ReferenceId: '',
     AssignedToLoginId: 0,
-    DestinationId:     0,
-    StartDate:         null,
-    NoOfNights:        1,
-    NoOfAdults:        1,
-    ChildrenAges:      [],
-    OriginCity:        '',
-    Nationality:       '',
-    Comments:          '',
-    TagIds:            [],
-    TripStatus:        1,
+    DestinationId: 0,
+    StartDate: null,
+    NoOfNights: 1,
+    NoOfAdults: 1,
+    ChildrenAges: [],
+    OriginCity: '',
+    Nationality: '',
+    Comments: '',
+    TagIds: [],
+    TripStatus: 1,
   };
 
   constructor(
-    private service:      AppService,
-    private toastr:       ToastrService,
+    private service: AppService,
+    private toastr: ToastrService,
     private localService: LocalService,
-    private router:       Router,
-  ) {}
+    private router: Router,
+  ) { }
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
@@ -184,91 +185,88 @@ export class QueryStepone implements OnInit {
     });
   }
 
-getStaffList(): void {
-  const obj: RequestModel = {
-    request: this.localService.encrypt(JSON.stringify({})).toString()
-  };
+  getStaffList(): void {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
 
-  this.dataLoading.set(true);
+    this.dataLoading.set(true);
 
-  this.service.getStaffList(obj).subscribe({
-    next: (response: any) => {
-      console.log('FULL RESPONSE:', response);
+    this.service.getStaffList(obj).subscribe({
+      next: (response: any) => {
+        console.log('FULL RESPONSE:', response);
 
-      if (response.Message === ConstantData.SuccessMessage) {
+        if (response.Message === ConstantData.SuccessMessage) {
 
-        // ✅ FIXED PROPERTY NAME
-        // Normalize id type so mat-select can match selected value consistently.
-        const staffList = (response.StaffList ?? []).map((staff: any) => ({
-          ...staff,
-          StaffLoginId: Number(staff.StaffLoginId),
-        }));
-        this.StaffList.set(staffList);
+          // ✅ FIXED PROPERTY NAME
+          // Normalize id type so mat-select can match selected value consistently.
+          const staffList = (response.StaffList ?? []).map((staff: any) => ({
+            ...staff,
+            StaffLoginId: Number(staff.StaffLoginId),
+          }));
+          this.StaffList.set(staffList);
 
-        console.log('StaffList:', this.StaffList());
+          console.log('StaffList:', this.StaffList());
 
-      } else {
-        this.toastr.error(response.Message);
+        } else {
+          this.toastr.error(response.Message);
+        }
+
+        this.dataLoading.set(false);
+      },
+
+      error: (err) => {
+        console.error(err);
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
       }
+    });
+  }
 
-      this.dataLoading.set(false);
-    },
-
-    error: (err) => {
-      console.error(err);
-      this.toastr.error("Error while fetching records");
-      this.dataLoading.set(false);
-    }
-  });
-}
-
-getTagList(): void {
-  const obj: RequestModel = {
-    request: this.localService.encrypt(JSON.stringify({})).toString()
-  };
-  this.service.getTagList(obj).subscribe({
-    next: (r: any) => {
-      console.log('TagList response:', r);   // ← add this to debug
-      if (r.Message === ConstantData.SuccessMessage) {
-        this.TagList.set(r.TagList);
-      }
-    },
-    error: (e) => console.error('TagList error', e)
-  });
-}
+  getTagList(): void {
+    const obj: RequestModel = {
+      request: this.localService.encrypt(JSON.stringify({})).toString()
+    };
+    this.service.getTagList(obj).subscribe({
+      next: (r: any) => {
+        console.log('TagList response:', r);   // ← add this to debug
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.TagList.set(r.TagList);
+        }
+      },
+      error: (e) => console.error('TagList error', e)
+    });
+  }
 
   // ── Agency autocomplete ───────────────────────────────
-onAgencySearch(value: string): void {
-  this.Model.AgencyName = value;
-  this.Model.AgencyId   = 0;      // ← reset to 0 so API creates new
-  this.Model.AgencyCity = '';
+  onAgencySelected(agency: any): void {
+    // No need to set AgencyName here — mat-option value already sets it
+    this.Model.AgencyId = agency.AgencyId;
+    this.Model.AgencyCity = agency.CityName ?? '';
 
-  const q = value?.toLowerCase() ?? '';
-  this.filteredAgencies = this.AgencyList().filter(a =>
-    a.AgencyName.toLowerCase().includes(q)
-  );
-}
-
-// When user picks from dropdown → set existing AgencyId
-onAgencySelected(agency: any): void {
-  this.Model.AgencyId   = agency.AgencyId;
-  this.Model.AgencyName = agency.AgencyName;
-  this.Model.AgencyCity = agency.CityName ?? '';
-
-  const obj: RequestModel = {
-    request: this.localService.encrypt(
-      JSON.stringify({ AgencyId: agency.AgencyId })
-    ).toString()
-  };
-  this.service.getGuestByAgency(obj).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        this.GuestList.set(r.GuestList);
-        this.filteredGuests = r.GuestList;
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ AgencyId: agency.AgencyId })
+      ).toString()
+    };
+    this.service.getGuestByAgency(obj).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.GuestList.set(r.GuestList);
+          this.filteredGuests = r.GuestList;
+        }
       }
-    }
-  });
-}
+    });
+  }
+
+  onAgencySearch(value: string): void {
+    this.Model.AgencyId = 0;
+    this.Model.AgencyCity = '';
+    const q = value?.toLowerCase() ?? '';
+    this.filteredAgencies = this.AgencyList().filter(a =>
+      a.AgencyName.toLowerCase().includes(q)
+    );
+  }
   // ── Guest autocomplete ────────────────────────────────
   onGuestSearch(value: string): void {
     const q = value?.toLowerCase() ?? '';
@@ -278,12 +276,12 @@ onAgencySelected(agency: any): void {
   }
 
   onGuestSelected(guest: any): void {
-    this.Model.GuestId     = guest.GuestId;
+    this.Model.GuestId = guest.GuestId;
     this.Model.ContactName = guest.ContactName;
-    this.Model.Salutation  = guest.Salutation ?? 'Mr.';
+    this.Model.Salutation = guest.Salutation ?? 'Mr.';
     this.Model.CountryCode = guest.CountryCode ?? '91-IN';
-    this.Model.Phone       = guest.Phone;
-    this.Model.Email       = guest.Email ?? '';
+    this.Model.Phone = guest.Phone;
+    this.Model.Email = guest.Email ?? '';
   }
 
   // ── Children ──────────────────────────────────────────
@@ -311,48 +309,48 @@ onAgencySelected(agency: any): void {
     else this.Model.TagIds.splice(idx, 1);
   }
   getDestinationName(id: number): string {
-  return this.DestinationList().find(d => d.DestinationId === id)?.DestinationName ?? '';
-}
-displayAgency(agency: any): string {
-  return agency?.AgencyName ?? '';
-}
+    return this.DestinationList().find(d => d.DestinationId === id)?.DestinationName ?? '';
+  }
+  displayAgency(agency: any): string {
+    return agency?.AgencyName ?? '';
+  }
 
-displayGuest(guest: any): string {
-  return guest?.ContactName ?? '';
-}
+  displayGuest(guest: any): string {
+    return guest?.ContactName ?? '';
+  }
 
-compareStaffId = (a: any, b: any): boolean => {
-  return Number(a) === Number(b);
-};
+  compareStaffId = (a: any, b: any): boolean => {
+    return Number(a) === Number(b);
+  };
   // ── Save ──────────────────────────────────────────────
   saveDetails(): void {
     this.isSubmitted = true;
 
-  // ← change this: check AgencyName not AgencyId
-  if (!this.Model.AgencyName?.trim()) {
-    this.toastr.error('Please enter a Query Source (Agency)');
-    return;
-  }
+    // ← change this: check AgencyName not AgencyId
+    if (!this.Model.AgencyName?.trim()) {
+      this.toastr.error('Please enter a Query Source (Agency)');
+      return;
+    }
 
-  if (!this.Model.ContactName?.trim()) {
-    this.toastr.error('Contact / Enquiry Person is required');
-    return;
-  }
+    if (!this.Model.ContactName?.trim()) {
+      this.toastr.error('Contact / Enquiry Person is required');
+      return;
+    }
 
-  if (!this.Model.Phone?.trim()) {
-    this.toastr.error('Phone number is required');
-    return;
-  }
+    if (!this.Model.Phone?.trim()) {
+      this.toastr.error('Phone number is required');
+      return;
+    }
 
-  if (!this.Model.DestinationId || this.Model.DestinationId === 0) {
-    this.toastr.error('Please select a Destination');
-    return;
-  }
+    if (!this.Model.DestinationId || this.Model.DestinationId === 0) {
+      this.toastr.error('Please select a Destination');
+      return;
+    }
 
-  if (!this.Model.StartDate) {
-    this.toastr.error('Start Date is required');
-    return;
-  }
+    if (!this.Model.StartDate) {
+      this.toastr.error('Start Date is required');
+      return;
+    }
 
     // Convert children ages array → JSON string
     const childrenAgesJson = JSON.stringify(
@@ -360,31 +358,31 @@ compareStaffId = (a: any, b: any): boolean => {
     );
 
     const payload = {
-      QueryStepOneId:    this.Model.QueryStepOneId,
-      AgencyId:          this.Model.AgencyId,
-      AgencyName:        this.Model.AgencyName,
-      AgencyCity:        this.Model.AgencyCity,
-      GuestId:           this.Model.GuestId,
-      Salutation:        this.Model.Salutation,
-      ContactName:       this.Model.ContactName,
-      CountryCode:       this.Model.CountryCode,
-      Phone:             this.Model.Phone,
-      Email:             this.Model.Email,
-      QuerySource:       this.Model.QuerySource,
-      ReferenceId:       this.Model.ReferenceId,
+      QueryStepOneId: this.Model.QueryStepOneId,
+      AgencyId: this.Model.AgencyId,
+      AgencyName: this.Model.AgencyName,
+      AgencyCity: this.Model.AgencyCity,
+      GuestId: this.Model.GuestId,
+      Salutation: this.Model.Salutation,
+      ContactName: this.Model.ContactName,
+      CountryCode: this.Model.CountryCode,
+      Phone: this.Model.Phone,
+      Email: this.Model.Email,
+      QuerySource: this.Model.QuerySource,
+      ReferenceId: this.Model.ReferenceId,
       AssignedToLoginId: Number(this.Model.AssignedToLoginId) || 0,
-      DestinationId:     this.Model.DestinationId,
-      StartDate:         this.Model.StartDate,
-      NoOfNights:        this.Model.NoOfNights,
-      NoOfAdults:        this.Model.NoOfAdults,
-      ChildrenAges:      childrenAgesJson,
-      OriginCity:        this.Model.OriginCity,
-      Nationality:       this.Model.Nationality,
-      Comments:          this.Model.Comments,
-      TagIds:            this.Model.TagIds.join(','),
-      TripStatus:        1,
-      CreatedBy:         this.staffLogin.StaffLoginId,
-      UpdatedBy:         this.staffLogin.StaffLoginId,
+      DestinationId: this.Model.DestinationId,
+      StartDate: this.Model.StartDate,
+      NoOfNights: this.Model.NoOfNights,
+      NoOfAdults: this.Model.NoOfAdults,
+      ChildrenAges: childrenAgesJson,
+      OriginCity: this.Model.OriginCity,
+      Nationality: this.Model.Nationality,
+      Comments: this.Model.Comments,
+      TagIds: this.Model.TagIds.join(','),
+      TripStatus: 1,
+      CreatedBy: this.staffLogin.StaffLoginId,
+      UpdatedBy: this.staffLogin.StaffLoginId,
     };
 
     const obj: RequestModel = {

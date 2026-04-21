@@ -49,46 +49,37 @@
                   <div class="row">
 
                     <!-- Agency autocomplete -->
+                    <!-- Agency autocomplete -->
                     <div class="col-sm-6 mb-0">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Query Source</mat-label>
-                        <input matInput
-                               name="AgencyName"
-                               [(ngModel)]="Model.AgencyName"
-                               [matAutocomplete]="agencyAuto"
-                               (ngModelChange)="onAgencySearch($event)"
-                               placeholder="Search agency…"
-                               required>
-                        <mat-autocomplete #agencyAuto="matAutocomplete"
-                                          (optionSelected)="onAgencySelected($event.option.value)"
-                                          [displayWith]="displayAgency">
+                        <input matInput name="AgencyName" [(ngModel)]="Model.AgencyName" [matAutocomplete]="agencyAuto"
+                          (input)="onAgencySearch(Model.AgencyName)" placeholder="Search agency…" required>
+                        <mat-autocomplete #agencyAuto="matAutocomplete">
                           @for (agency of filteredAgencies; track agency.AgencyId) {
-                            <mat-option [value]="agency">
-                              <div class="fw-semibold">{{ agency.AgencyName }}</div>
-                              <div class="text-muted small">{{ agency.CityName }}</div>
-                            </mat-option>
+                          <mat-option [value]="agency.AgencyName" (onSelectionChange)="onAgencySelected(agency)">
+                            <div class="fw-semibold">{{ agency.AgencyName }}</div>
+                            <div class="text-muted small">{{ agency.CityName }}</div>
+                          </mat-option>
                           }
                         </mat-autocomplete>
-                        @if (isSubmitted && !Model.AgencyId) {
-                          <mat-error>Agency is <strong>required</strong></mat-error>
+                        @if (isSubmitted && !Model.AgencyName) {
+                        <mat-error>Agency is <strong>required</strong></mat-error>
                         }
                       </mat-form-field>
-                      <!-- City shown below -->
                       @if (Model.AgencyCity) {
-                        <div class="text-muted small ms-1" style="margin-top:-12px;">
-                          {{ Model.AgencyCity }}
-                        </div>
+                      <div class="text-muted small ms-1" style="margin-top:-12px;">
+                        {{ Model.AgencyCity }}
+                      </div>
                       }
                     </div>
-<hr>
+                    <hr>
 
                     <!-- Reference ID -->
                     <div class="col-sm-6" mt-n4>
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Reference ID <span class="text-muted">(optional)</span></mat-label>
-                        <input matInput name="ReferenceId"
-                               [(ngModel)]="Model.ReferenceId"
-                               placeholder="1231231">
+                        <input matInput name="ReferenceId" [(ngModel)]="Model.ReferenceId" placeholder="1231231">
                         <mat-hint>A custom id for your reference regarding the query</mat-hint>
                       </mat-form-field>
                     </div>
@@ -97,14 +88,13 @@
                     <div class="col-sm-3">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Sales Team</mat-label>
-                        <mat-select name="AssignedToLoginId"
-                                    [compareWith]="compareStaffId"
-                                    [(ngModel)]="Model.AssignedToLoginId">
-                         @for (staff of StaffList(); track $index) {
-  <mat-option [value]="+staff.StaffLoginId">
-    {{ staff.StaffName }}
-  </mat-option>
-}
+                        <mat-select name="AssignedToLoginId" [compareWith]="compareStaffId"
+                          [(ngModel)]="Model.AssignedToLoginId">
+                          @for (staff of StaffList(); track $index) {
+                          <mat-option [value]="+staff.StaffLoginId">
+                            {{ staff.StaffName }}
+                          </mat-option>
+                          }
                         </mat-select>
                       </mat-form-field>
                     </div>
@@ -116,20 +106,16 @@
                       </label>
                       <div class="d-flex flex-wrap gap-2">
                         @for (tag of TagList(); track tag.TagId) {
-                          <span class="badge border fw-normal px-3 py-2"
-                                style="cursor:pointer; font-size:13px;"
-                                [class.bg-primary]="isTagSelected(tag.TagId)"
-                                [class.text-white]="isTagSelected(tag.TagId)"
-                                [class.bg-light]="!isTagSelected(tag.TagId)"
-                                [class.text-dark]="!isTagSelected(tag.TagId)"
-                                (click)="toggleTag(tag.TagId)">
-                            {{ tag.TagName }}
-                          </span>
+                        <span class="badge border fw-normal px-3 py-2" style="cursor:pointer; font-size:13px;"
+                          [class.bg-primary]="isTagSelected(tag.TagId)" [class.text-white]="isTagSelected(tag.TagId)"
+                          [class.bg-light]="!isTagSelected(tag.TagId)" [class.text-dark]="!isTagSelected(tag.TagId)"
+                          (click)="toggleTag(tag.TagId)">
+                          {{ tag.TagName }}
+                        </span>
                         }
                         @if (TagList().length === 0) {
-                          <input type="text" class="form-control"
-                                 placeholder="Search & select tags(s)..."
-                                 style="max-width:300px;">
+                        <input type="text" class="form-control" placeholder="Search & select tags(s)..."
+                          style="max-width:300px;">
                         }
                       </div>
                     </div>
@@ -169,29 +155,27 @@
                     <div class="col-sm-4">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Destinations</mat-label>
-                        <mat-select name="DestinationId"
-                                    [(ngModel)]="Model.DestinationId"
-                                    required>
+                        <mat-select name="DestinationId" [(ngModel)]="Model.DestinationId" required>
                           <mat-option [value]="0">Type to search…</mat-option>
                           @for (dest of DestinationList(); track dest.DestinationId) {
-                            <mat-option [value]="dest.DestinationId">
-                              {{ dest.DestinationName }}
-                            </mat-option>
+                          <mat-option [value]="dest.DestinationId">
+                            {{ dest.DestinationName }}
+                          </mat-option>
                           }
                         </mat-select>
                         @if (isSubmitted && !Model.DestinationId) {
-                          <mat-error>Destination is <strong>required</strong></mat-error>
+                        <mat-error>Destination is <strong>required</strong></mat-error>
                         }
                       </mat-form-field>
                       <!-- Chip showing selected destination -->
                       @if (Model.DestinationId) {
-                        <div class="mt-1">
-                          <span class="badge bg-primary bg-opacity-10
+                      <div class="mt-1">
+                        <span class="badge bg-primary bg-opacity-10
                                        text-primary border border-primary
                                        px-3 py-2" style="font-size:12px;">
-                            ✓ {{ getDestinationName(Model.DestinationId) }}
-                          </span>
-                        </div>
+                          ✓ {{ getDestinationName(Model.DestinationId) }}
+                        </span>
+                      </div>
                       }
                     </div>
 
@@ -199,17 +183,13 @@
                     <div class="col-sm-2">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Start Date</mat-label>
-                        <input matInput [matDatepicker]="startPicker"
-                               name="StartDate"
-                               [(ngModel)]="Model.StartDate"
-                               placeholder="April 30, 2026"
-                               required>
-                        <mat-datepicker-toggle matIconSuffix
-                                               [for]="startPicker">
+                        <input matInput [matDatepicker]="startPicker" name="StartDate" [(ngModel)]="Model.StartDate"
+                          placeholder="April 30, 2026" required>
+                        <mat-datepicker-toggle matIconSuffix [for]="startPicker">
                         </mat-datepicker-toggle>
                         <mat-datepicker #startPicker></mat-datepicker>
                         @if (isSubmitted && !Model.StartDate) {
-                          <mat-error>Start Date is <strong>required</strong></mat-error>
+                        <mat-error>Start Date is <strong>required</strong></mat-error>
                         }
                       </mat-form-field>
                     </div>
@@ -218,59 +198,54 @@
                     <div class="col-sm-3">
                       <mat-form-field appearance="outline" class="w-50">
                         <mat-label>No. of Nights</mat-label>
-                        <input matInput type="number" name="NoOfNights"
-                               [(ngModel)]="Model.NoOfNights"
-                               min="1" required>
+                        <input matInput type="number" name="NoOfNights" [(ngModel)]="Model.NoOfNights" min="1" required>
                         <mat-hint>{{ nightsLabel }}</mat-hint>
                       </mat-form-field>
                     </div>
+                    <div class="d-flex align-items-center gap-3" style="margin-left: 150px;">
+                      <label class="mb-n3 fw-normal">
+                        Add Children and their Ages
+                      </label>
+                    </div>
 
-                    <!-- No of Adults + Children -->
                     <div class="col-12">
-                      <div class="d-flex align-items-end flex-wrap gap-3">
+                      <div class="d-flex align-items-center flex-wrap gap-3">
 
                         <!-- Adults -->
                         <mat-form-field appearance="outline" style="width:120px;">
                           <mat-label>No. of Adults</mat-label>
-                          <input matInput type="number" name="NoOfAdults"
-                                 [(ngModel)]="Model.NoOfAdults" min="1" required>
+                          <input matInput type="number" name="NoOfAdults" [(ngModel)]="Model.NoOfAdults" min="1"
+                            required>
                         </mat-form-field>
 
-                        <!-- Children age dropdowns -->
-                        @for (age of childAgeSelections; track $index; let i = $index) {
-                          <div class="d-flex align-items-center gap-1">
-                            <mat-form-field appearance="outline" style="width:90px;">
-                              <mat-label>Child {{ i + 1 }}</mat-label>
-                              <mat-select [(ngModel)]="childAgeSelections[i]"
-                                          [name]="'childAge_' + i">
-                                @for (opt of ageOptions; track opt) {
-                                  <mat-option [value]="opt">{{ opt }}</mat-option>
-                                }
-                              </mat-select>
-                            </mat-form-field>
-                            <button mat-icon-button color="warn"
-                                    type="button"
-                                    (click)="removeChild(i)">
-                              <mat-icon>remove_circle_outline</mat-icon>
-                            </button>
-                          </div>
-                        }
 
-                        <!-- Add child button -->
-                        <button mat-icon-button color="primary"
-                                type="button"
-                                (click)="addChild()"
-                                matTooltip="Add child">
-                          <mat-icon>add_circle_outline</mat-icon>
-                        </button>
-                        @if (childAgeSelections.length > 0) {
-                          <button mat-icon-button color="warn"
-                                  type="button"
-                                  (click)="removeChild(childAgeSelections.length - 1)"
-                                  matTooltip="Remove last child">
+
+                        <!-- Children Section -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                          @for (age of childAgeSelections; track $index; let i = $index) {
+                          <mat-form-field appearance="outline" style="width:90px;">
+                            <mat-select [(ngModel)]="childAgeSelections[i]" [name]="'childAge_' + i" placeholder="Age">
+                              @for (opt of ageOptions; track opt) {
+                              <mat-option [value]="opt">{{ opt }}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                          }
+
+                          <!-- Buttons -->
+                          <button mat-icon-button type="button" class="mb-5 ms-3" (click)="addChild()">
+                            <mat-icon>add_circle_outline</mat-icon>
+                          </button>
+
+                          @if (childAgeSelections.length > 0) {
+                          <button mat-icon-button type="button" class="mb-5"
+                            (click)="removeChild(childAgeSelections.length - 1)">
                             <mat-icon>remove_circle_outline</mat-icon>
                           </button>
-                        }
+                          }
+
+                        </div>
 
                       </div>
                     </div>
@@ -322,9 +297,7 @@
                     <div class="col-sm-3">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Name</mat-label>
-                        <input matInput name="GuestName"
-                               [(ngModel)]="Model.ContactName"
-                               placeholder="Guest name">
+                        <input matInput name="GuestName" [(ngModel)]="Model.ContactName" placeholder="Guest name">
                       </mat-form-field>
                     </div>
 
@@ -333,20 +306,16 @@
                       <div class="d-flex gap-2">
                         <mat-form-field appearance="outline" style="width:110px;">
                           <mat-label>Code</mat-label>
-                          <mat-select name="CountryCode"
-                                      [(ngModel)]="Model.CountryCode">
+                          <mat-select name="CountryCode" [(ngModel)]="Model.CountryCode">
                             @for (cc of countryCodes; track cc.code) {
-                              <mat-option [value]="cc.code">{{ cc.label }}</mat-option>
+                            <mat-option [value]="cc.code">{{ cc.label }}</mat-option>
                             }
                           </mat-select>
                         </mat-form-field>
                         <mat-form-field appearance="outline" class="flex-grow-1">
                           <mat-label>Phone Number(s)</mat-label>
-                          <input matInput name="Phone"
-                                 [(ngModel)]="Model.Phone"
-                                 >
-                          <mat-icon matSuffix style="cursor:pointer;"
-                                    matTooltip="Add another number">
+                          <input matInput name="Phone" [(ngModel)]="Model.Phone">
+                          <mat-icon matSuffix style="cursor:pointer;" matTooltip="Add another number">
                             add_circle_outline
                           </mat-icon>
                         </mat-form-field>
@@ -357,9 +326,8 @@
                     <div class="col-sm-6">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Email <span class="text-muted">(optional)</span></mat-label>
-                        <input matInput type="email" name="Email"
-                               [(ngModel)]="Model.Email"
-                               placeholder="user@domain.com">
+                        <input matInput type="email" name="Email" [(ngModel)]="Model.Email"
+                          placeholder="user@domain.com">
                       </mat-form-field>
                     </div>
 
@@ -367,9 +335,8 @@
                     <div class="col-sm-6">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Origin City/State</mat-label>
-                        <input matInput name="OriginCity"
-                               [(ngModel)]="Model.OriginCity"
-                               placeholder="e.g. City, State, Country">
+                        <input matInput name="OriginCity" [(ngModel)]="Model.OriginCity"
+                          placeholder="e.g. City, State, Country">
                       </mat-form-field>
                     </div>
 
@@ -377,9 +344,7 @@
                     <div class="col-sm-6">
                       <mat-form-field appearance="outline" class="w-100">
                         <mat-label>Nationality</mat-label>
-                        <input matInput name="Nationality"
-                               [(ngModel)]="Model.Nationality"
-                               placeholder="e.g. India">
+                        <input matInput name="Nationality" [(ngModel)]="Model.Nationality" placeholder="e.g. India">
                       </mat-form-field>
                     </div>
 
@@ -414,10 +379,8 @@
                 <div class="col-lg-9">
                   <mat-form-field appearance="outline" class="w-100">
                     <mat-label>Comments <span class="text-muted">(optional)</span></mat-label>
-                    <textarea matInput name="Comments"
-                              [(ngModel)]="Model.Comments"
-                              rows="4"
-                              placeholder="Enter any notes...">
+                    <textarea matInput name="Comments" [(ngModel)]="Model.Comments" rows="4"
+                      placeholder="Enter any notes...">
                     </textarea>
                   </mat-form-field>
                 </div>
@@ -431,16 +394,10 @@
         <!-- Save / Cancel Buttons                          -->
         <!-- ══════════════════════════════════════════════ -->
         <div class="col-12 d-flex justify-content-center gap-3 pb-4">
-          <button mat-raised-button color="primary"
-                  type="button"
-                  (click)="saveDetails()"
-                  style="min-width:140px;">
+          <button mat-raised-button color="primary" type="button" (click)="saveDetails()" style="min-width:140px;">
             Save Details
           </button>
-          <button mat-stroked-button
-                  type="button"
-                  (click)="cancel()"
-                  style="min-width:100px;">
+          <button mat-stroked-button type="button" (click)="cancel()" style="min-width:100px;">
             Cancel
           </button>
         </div>

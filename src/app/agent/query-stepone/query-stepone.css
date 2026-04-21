@@ -1,0 +1,48 @@
+/* Label styling to match the image */
+.form-label-custom {
+  font-size: 14px;
+  font-weight: 600;
+  color: #002d5b; /* Dark navy color from your image */
+  margin-bottom: 4px;
+}
+
+/* Compact the Material Form Field */
+.compact-field {
+  width: 100px;
+}
+
+.age-dropdown {
+  width: 130px;
+}
+
+/* Remove extra bottom padding/subscript wrapper that Material adds by default */
+::ng-deep .compact-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+::ng-deep .compact-field .mat-mdc-text-field-wrapper {
+  background-color: transparent !important;
+  height: 45px !important; /* Adjust height to match image */
+}
+
+/* Button Group Styling */
+.button-group {
+  display: flex;
+  background: #e9ecef; /* Light grey background like the image */
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  height: 45px;
+  align-items: center;
+}
+
+.action-btn {
+  color: #002d5b !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.action-btn mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
