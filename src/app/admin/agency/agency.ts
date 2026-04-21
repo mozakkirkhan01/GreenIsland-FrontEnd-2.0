@@ -135,10 +135,14 @@ export class Agency implements OnInit {
       ).toString()
     };
     this.dataLoading.set(true);
-    this.service.getAgencyList(obj).subscribe({
+    this.service.getAdminAgencyList(obj).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
-          this.AgencyList.set(r.AgencyList);
+          const list = (r.AgencyList ?? []).map((item: any) => ({
+            ...item,
+            Status: Number(item.Status) || 2,
+          }));
+          this.AgencyList.set(list);
         } else {
           this.toastr.error(r.Message);
         }

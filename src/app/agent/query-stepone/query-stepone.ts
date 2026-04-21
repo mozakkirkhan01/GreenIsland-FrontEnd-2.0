@@ -164,8 +164,12 @@ export class QueryStepone implements OnInit {
   }
 
   getAgencyList(): void {
-    const obj: RequestModel = { request: this.localService.encrypt(JSON.stringify({})).toString() };
-    this.service.getAgencyList(obj).subscribe({
+    const obj: RequestModel = {
+      request: this.localService.encrypt(
+        JSON.stringify({ AgencyId: 0, Status: 0 })
+      ).toString()
+    };
+    this.service.getAdminAgencyList(obj).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           this.AgencyList.set(r.AgencyList);
