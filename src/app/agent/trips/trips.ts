@@ -103,10 +103,11 @@ export class Trips implements OnInit, AfterViewInit {
   // ── Signals ────────────────────────────────────────────
   loading    = signal(false);
   allTrips   = signal<Trip[]>([]);
-  action     = signal<ActionModel>({
-    CanCreate: false, CanEdit: false, CanDelete: false,
-    MenuTitle: 'Trips', ParentMenuTitle: 'Management'
-  } as ActionModel);
+action = signal<ActionModel>({
+  CanCreate: false, CanEdit: false, CanDelete: false,
+  MenuTitle: 'Trips',        // ← set actual default
+  ParentMenuTitle: 'Trips'   // ← set actual default
+} as ActionModel);
 
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
