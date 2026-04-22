@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { QuerySteponetwo } from './query-steponetwo';
+import { QuerySteptwo } from './query-steptwo';
 
-describe('QuerySteponetwo', () => {
-  let component: QuerySteponetwo;
-  let fixture: ComponentFixture<QuerySteponetwo>;
+describe('QuerySteptwo', () => {
+  let component: QuerySteptwo;
+  let fixture: ComponentFixture<QuerySteptwo>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QuerySteponetwo],
+      imports: [QuerySteptwo],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(QuerySteponetwo);
+    fixture = TestBed.createComponent(QuerySteptwo);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

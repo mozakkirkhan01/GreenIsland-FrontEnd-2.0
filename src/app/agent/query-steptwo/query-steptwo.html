@@ -1,0 +1,312 @@
+@if (dataLoading()) { <app-progress></app-progress> }
+
+<div class="page-content">
+    <div class="d-flex flex-column" style="min-height:100vh; background:#f5f6fa;">
+
+        <!-- ── Breadcrumb ─────────────────────────────────────────────── -->
+        <div class="px-4 pt-3 pb-0">
+            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item">
+                            <a routerLink="/admin/admin-dashboard">Dashboard</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a routerLink="/admin/trips">Trips</a>
+                        </li>
+                        <li class="breadcrumb-item active">
+                            @if (tripDetail(); as trip) {
+                            #{{ trip.QueryStepOneId }} · {{ trip.ContactName }}
+                            } @else {
+                            Trip Details
+                            }
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Top Header Bar ─────────────────────────────────────────── -->
+        <div class="bg-white border-bottom border-top px-4 py-3 mt-2">
+
+            <!-- Row 1: Back + Trip ID + Agency + Status + Menu -->
+            <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+
+                <button mat-icon-button (click)="goBack()" matTooltip="Back to Trips">
+                    <mat-icon>arrow_back</mat-icon>
+                </button>
+
+                @if (tripDetail(); as trip) {
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="mb-0 fw-bold" style="font-size:16px;">
+                        <span class="text-muted fw-normal me-1">#</span>
+                        {{ trip.QueryStepOneId }}
+                    </h5>
+                    <span class="text-muted">•</span>
+                    <span class="fw-semibold">{{ trip.Salutation }} {{ trip.ContactName }}</span>
+                    <span class="text-muted">•</span>
+                    <span class="fw-semibold">{{ trip.DestinationName }}</span>
+                    <span class="text-muted">•</span>
+                    <span class="text-muted" style="font-size:13px;">{{ trip.AgencyName }}</span>
+                    @if (trip.ReferenceId) {
+                    <span class="text-muted">•</span>
+                    <span class="text-muted small">Ref: {{ trip.ReferenceId }}</span>
+                    }
+                    <span class="text-muted">•</span>
+                    <span class="badge rounded-pill px-3 py-1"
+                        style="font-size:11.5px; background:#e8f4ff; color:#1a73e8;">
+                        {{ getStatusLabel(trip.TripStatus) }}
+                    </span>
+                </div>
+                }
+
+                <span class="flex-grow-1"></span>
+
+                <button mat-icon-button [matMenuTriggerFor]="headerMenu">
+                    <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #headerMenu="matMenu">
+                    <button mat-menu-item (click)="editTrip()">
+                        <mat-icon>edit</mat-icon> Edit Query
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item>
+                        <mat-icon>share</mat-icon> Share
+                    </button>
+                </mat-menu>
+            </div>
+
+            <!-- Row 2: Trip Meta Info -->
+            @if (tripDetail(); as trip) {
+            <div class="d-flex align-items-center gap-4 flex-wrap ps-5" style="font-size:13px; color:#444;">
+
+                <span class="d-flex align-items-center gap-1 text-muted">
+                    <i class="bx bx-calendar"></i>
+                    {{ trip.StartDate }} &bull; {{ nightsDaysLabel }}
+                </span>
+
+                <span class="d-flex align-items-center gap-1 text-muted">
+                    <i class="bx bx-user"></i>
+                    {{ trip.NoOfAdults }} Adult{{ trip.NoOfAdults > 1 ? 's' : '' }}{{ childrenLabel }}
+                </span>
+
+                <span class="d-flex align-items-center gap-1">
+                    <i class="bx bx-user-circle text-muted"></i>
+                    <span class="fw-medium">{{ trip.Salutation }} {{ trip.ContactName }}</span>
+                    <span class="badge bg-light text-muted border ms-1" style="font-size:10px;">
+                        {{ trip.NoOfAdults }}A
+                    </span>
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;" matTooltip="Edit guest">
+                        <mat-icon style="font-size:13px;width:13px;height:13px;">edit</mat-icon>
+                    </button>
+                </span>
+
+                <span class="d-flex align-items-center gap-1 text-muted">
+                    <i class="bx bx-right-arrow-alt"></i>
+                    {{ trip.AgencyName }}
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
+                        <mat-icon style="font-size:13px;width:13px;height:13px;">phone</mat-icon>
+                    </button>
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
+                        <mat-icon style="font-size:13px;width:13px;height:13px;">mail</mat-icon>
+                    </button>
+                </span>
+
+            </div>
+
+            <!-- Row 3: Tags + Sales Team -->
+            <div class="d-flex align-items-center justify-content-between
+                  flex-wrap ps-5 mt-2" style="font-size:13px;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">Tags</span>
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
+                        <mat-icon style="font-size:13px;width:13px;height:13px;">edit</mat-icon>
+                    </button>
+                    @if (trip.Tags && trip.Tags.length > 0) {
+                    @for (tag of trip.Tags; track tag) {
+                    <span class="badge border border-secondary text-secondary fw-normal px-2"
+                        style="font-size:11px; background:#f3f4f6;">
+                        {{ tag }}
+                    </span>
+                    }
+                    } @else {
+                    <span class="text-muted small fst-italic">No Tags</span>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-2 text-muted">
+                    <span>Sales Team</span>
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
+                        <mat-icon style="font-size:13px;width:13px;height:13px;">edit</mat-icon>
+                    </button>
+                    <span class="fw-medium text-dark">{{ trip.AssigneeName || 'Unassigned' }}</span>
+                </div>
+            </div>
+            }
+
+        </div>
+
+        <!-- ── Body: Main + Right Sidebar ────────────────────────────── -->
+        <div class="d-flex flex-grow-1 overflow-hidden">
+
+            <!-- ── Left / Main Content ──────────────────────────────── -->
+            <div class="flex-grow-1 overflow-auto p-4">
+
+                <p class="text-muted mb-3" style="font-size:13.5px;">
+                    To Create Quote you can start with below suggestions.
+                </p>
+
+                <div class="mb-4" style="max-width:500px; margin:0 auto;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bx bx-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0"
+                            placeholder="Search by trip id or guest name" [(ngModel)]="searchQuery"
+                            style="font-size:13px;">
+                    </div>
+                </div>
+
+                @for (suggestion of suggestions(); track suggestion.IteneraryServiceId) {
+                <div class="card border shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-bottom px-3 py-2
+                      d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted small">
+                                {{ suggestion.IteneraryServiceId }} &bull; {{ suggestion.LocationName }}
+                            </span>
+                            <div class="d-flex gap-2">
+                                @for (day of getLocationNights(suggestion); track day.LocationName) {
+                                <span>
+                                    <span class="text-muted small me-1">{{ day.LocationName }}</span>
+                                    <span class="badge bg-light text-dark border" style="font-size:11px;">
+                                        {{ day.Nights }}N
+                                    </span>
+                                </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <mat-tab-group [(selectedIndex)]="activeTabIndex" class="query-tabs">
+
+                            <mat-tab label="Itinerary">
+                                <div class="p-3">
+                                    @if (suggestion.Days && suggestion.Days.length > 0) {
+                                    @for (day of suggestion.Days; track day.DayNumber) {
+                                    <div class="d-flex gap-3 mb-3">
+                                        <div class="flex-shrink-0">
+                                            <span class="badge bg-light text-dark border px-2 py-1"
+                                                style="font-size:11.5px; min-width:50px;">
+                                                Day {{ day.DayNumber }}
+                                            </span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            @for (svc of day.Services; track svc.IteneraryServiceId) {
+                                            <div class="rounded px-3 py-1 mb-1 d-flex align-items-center gap-2"
+                                                [class.bg-warning]="svc.ServiceType === 1"
+                                                [class.bg-opacity-25]="svc.ServiceType === 1"
+                                                [class.bg-success]="svc.ServiceType === 2"
+                                                [class.bg-opacity-10]="svc.ServiceType === 2" style="font-size:12.5px;">
+                                                @if (svc.ServiceType === 1) {
+                                                <i class="bx bx-car text-warning"></i>
+                                                } @else {
+                                                <i class="bx bx-walk text-success"></i>
+                                                }
+                                                {{ svc.IteneraryServiceName }}
+                                            </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    }
+                                    } @else {
+                                    <div class="p-2" style="font-size:13px;" [innerHTML]="suggestion.DaySchedule">
+                                    </div>
+                                    }
+                                </div>
+                            </mat-tab>
+
+                            <mat-tab label="Hotels">
+                                <div class="p-3 text-muted small">Hotel details will appear here.</div>
+                            </mat-tab>
+
+                            <mat-tab label="Details">
+                                <div class="p-3 text-muted small">Additional details will appear here.</div>
+                            </mat-tab>
+
+                        </mat-tab-group>
+
+                        <div class="px-3 pb-3">
+                            <button class="btn btn-outline-primary w-100" style="font-size:13px;"
+                                (click)="useThisQuote(suggestion)">
+                                Use this Quote
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+                }
+
+                @if (suggestions().length === 0 && !dataLoading()) {
+                <div class="text-center text-muted py-5">
+                    <i class="bx bx-file-blank fs-1 d-block mb-2 opacity-25"></i>
+                    <p class="mb-0">No itinerary suggestions available for this destination.</p>
+                </div>
+                }
+
+            </div>
+
+            <!-- ── Right Sidebar: Tasks & Comments ────────────────── -->
+            <div class="border-start bg-white d-flex flex-column" style="width:320px; min-width:320px;">
+
+                <div class="px-3 py-3 border-bottom">
+                    <h6 class="fw-bold mb-0">Tasks & Comments</h6>
+                </div>
+
+                <div class="flex-grow-1 overflow-auto px-3 py-2">
+                    @for (comment of comments(); track comment.TripCommentId) {
+                    <div class="mb-3">
+                        <p class="mb-1" style="font-size:13px;">{{ comment.Comment }}</p>
+                        <span class="text-muted" style="font-size:11px;">
+                            {{ timeAgo(comment.CreatedOn) }} by {{ comment.CreatedByName }}
+                        </span>
+                    </div>
+                    <hr class="my-2">
+                    }
+                    @if (comments().length === 0) {
+                    <p class="text-muted small text-center mt-3">No comments yet.</p>
+                    }
+                </div>
+
+                <div class="px-3 py-3 border-top">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white">
+                            <i class="bx bx-plus text-primary"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Add a comment…" [(ngModel)]="newComment"
+                            (keyup.enter)="addComment()" style="font-size:13px;">
+                        <button class="btn btn-primary btn-sm" (click)="addComment()" [disabled]="!newComment.trim()">
+                            Add
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ── Bottom: Create Custom Quotation ── medium size ────────── -->
+        <div class="border-top bg-white px-4 py-3 d-flex justify-content-center">
+            <button mat-raised-button color="primary" style="min-width:180px; font-size:13px; padding: 6px 24px;"
+                (click)="createCustomQuotation()">
+                <mat-icon class="me-1" style="font-size:18px;vertical-align:middle;">
+                    receipt_long
+                </mat-icon>
+                Create Custom Quotation
+            </button>
+        </div>
+
+    </div>
+</div>
