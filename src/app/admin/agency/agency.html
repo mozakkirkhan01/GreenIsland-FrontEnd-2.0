@@ -26,52 +26,88 @@
             <div class="col-lg-12">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <div class="row align-items-center">
+<div class="card-body">
 
-                            <div class="col-sm-4 pb-3">
-                                @if (action().CanCreate) {
-                                <button mat-raised-button color="primary" (click)="openModal()">
-                                    <i class="bx bx-plus me-1"></i> Add Agency
-                                </button>
-                                }
-                            </div>
+  <!-- Header + Button in one line -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap">
 
-                        </div>
+    <!-- Left: Title -->
+    <div class="card-header bg-transparent border-bottom py-3 p-0 border-0">
+      <h6 class="mb-0 fw-bold">
+        <i class="bx bx-buildings me-1 text-primary"></i>Agency List
+      </h6>
+    </div>
+
+    <!-- Right: Button -->
+    @if (action().CanCreate) {
+      <button mat-raised-button color="primary" (click)="openModal()">
+        <i class="bx bx-plus me-1"></i> Add Agency
+      </button>
+    }
+
+  </div>
+
+</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ── Table ─────────────────────────────────────── -->
+        <!-- ── Table ─────────────────────────────────────── -->
         <div class="row">
             <div class="col-lg-12">
                 <div class="card border-0 shadow-sm">
 
-                    <!-- Card Header -->
-                    <div class="card-header bg-transparent border-bottom py-3
-                      d-flex align-items-center justify-content-between">
-                        <h6 class="mb-0 fw-bold">
-                            <i class="bx bx-buildings me-1 text-primary"></i>Agency List
-                        </h6>
-                        <div class="dataTables_filter">
-                            <label class="mb-0">Search:
-                                <input type="search" class="form-control form-control-sm
-                              d-inline-block w-auto ms-1" [(ngModel)]="Search">
-                            </label>
-                        </div>
-                    </div>
 
-                    <div class="card-body p-0">
+
+                    <div class="card-body">
+                        <!-- Show entries + Search (inspired by first table) -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="dataTables_length">
+                                    <label>Show
+                                        <select class="form-select form-select-sm d-inline-block w-auto"
+                                            [(ngModel)]="itemPerPage" (ngModelChange)="onTableDataChange(1)">
+                                            @for (option of PageSize; track option) {
+                                            <option [value]="option">{{ option }}</option>
+                                            }
+                                        </select> entries
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 ms-auto">
+                                <div class="dataTables_filter d-flex justify-content-end">
+                                    <label>Search:
+                                        <input type="search"
+                                            class="form-control form-control-sm d-inline-block w-auto ms-1"
+                                            [(ngModel)]="Search" (ngModelChange)="onTableDataChange(1)">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0" style="font-size:13.5px;">
                                 <thead class="table-light">
                                     <tr>
                                         <th class="ps-3">S.No</th>
-                                        <th>Agency Name</th>
-                                        <th>City</th>
-                                        <th>State</th>
-                                        <th>GSTIN</th>
-                                        <th>Status</th>
+                                        <th style="cursor:pointer" (click)="sort('AgencyName')">
+                                            Agency Name <i class="bx bx-sort ms-1"></i>
+                                        </th>
+                                        <th style="cursor:pointer" (click)="sort('CityName')">
+                                            City / state <i class="bx bx-sort ms-1"></i>
+                                        </th>
+                                        <!-- <th style="cursor:pointer" (click)="sort('StateName')">
+                                            State <i class="bx bx-sort ms-1"></i>
+                                        </th> -->
+                                        <th style="cursor:pointer" (click)="sort('GstinNumber')">
+                                            GSTIN <i class="bx bx-sort ms-1"></i>
+                                        </th>
+                                        <th style="cursor:pointer" (click)="sort('Status')">
+                                            Status <i class="bx bx-sort ms-1"></i>
+                                        </th>
                                         @if (action().CanEdit) {
                                         <th class="text-center">Edit</th>
                                         }
@@ -84,6 +120,7 @@
                                     @for (
                                     item of AgencyList()
                                     | filter: Search
+                                    | orderBy: sortKey : reverse
                                     | paginate: { itemsPerPage: itemPerPage, currentPage: p };
                                     track item.AgencyId;
                                     let i = $index
@@ -94,7 +131,7 @@
                                         </td>
                                         <td class="fw-semibold">{{ item.AgencyName }}</td>
                                         <td>{{ item.CityName || '—' }}</td>
-                                        <td>{{ item.StateName || '—' }}</td>
+                                        <!-- <td>{{ item.StateName || '—' }}</td> -->
                                         <td>{{ item.GstinNumber || '—' }}</td>
                                         <td>
                                             <span class="badge" [class.bg-success]="item.Status === 1"
@@ -121,9 +158,9 @@
 
                                     @if (AgencyList().length === 0 && !dataLoading()) {
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted py-5">
-                                            <i class="bx bx-buildings fs-1 d-block mb-2 opacity-25"></i>
-                                            No agencies found
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            <i class="bx bx-file-blank fs-1 d-block mb-2"></i>
+                                            No records found
                                         </td>
                                     </tr>
                                     }
@@ -131,11 +168,15 @@
                             </table>
                         </div>
 
-                        <div class="px-3 py-2">
-                            <pagination-controls (pageChange)="onTableDataChange($event)" class="my-pagination"
-                                style="float:right;">
-                            </pagination-controls>
+                        <!-- Pagination Controls -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <pagination-controls (pageChange)="onTableDataChange($event)" class="my-pagination"
+                                    style="float:right;">
+                                </pagination-controls>
+                            </div>
                         </div>
+
                     </div>
 
                 </div>
@@ -185,20 +226,20 @@
                     <!-- City -->
                     <div class="col-sm-6">
                         <mat-form-field appearance="outline" class="w-100">
-                            <mat-label>City</mat-label>
+                            <mat-label>City / State</mat-label>
                             <input matInput name="CityName" [(ngModel)]="AgencyModel.CityName"
                                 placeholder="e.g. Kolkata" maxlength="150">
                         </mat-form-field>
                     </div>
 
                     <!-- State -->
-                    <div class="col-sm-6">
+                    <!-- <div class="col-sm-6">
                         <mat-form-field appearance="outline" class="w-100">
                             <mat-label>State</mat-label>
                             <input matInput name="StateName" [(ngModel)]="AgencyModel.StateName"
                                 placeholder="e.g. West Bengal" maxlength="150">
                         </mat-form-field>
-                    </div>
+                    </div> -->
 
                     <!-- GSTIN -->
                     <div class="col-sm-6">

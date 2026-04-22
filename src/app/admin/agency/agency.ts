@@ -19,6 +19,7 @@ import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interfac
 import { LoadDataService } from '../../utils/load-data.service';
 import { FilterPipe } from '../../utils/filter-pipe';
 import { Progress } from '../../component/progress/progress';
+import { OrderByPipe } from '../../utils/orderby-pipe';
 
 export interface AgencyModel {
   AgencyId:    number;
@@ -46,6 +47,7 @@ export interface AgencyModel {
     NgxPaginationModule,
     FilterPipe,
     Progress,
+    OrderByPipe,
   ],
   templateUrl: './agency.html',
   styleUrl: './agency.css',
@@ -154,6 +156,20 @@ export class Agency implements OnInit {
       }
     });
   }
+// Add these to your component
+PageSize = [5, 10, 25, 50, 100];
+sortKey = '';
+reverse = false;
+
+sort(column: string) {
+    if (this.sortKey === column) {
+        this.reverse = !this.reverse;
+    } else {
+        this.sortKey = column;
+        this.reverse = false;
+    }
+}
+
 
   // ── Modal ─────────────────────────────────────────────
   openModal(item?: any): void {
@@ -207,7 +223,8 @@ export class Agency implements OnInit {
               ? 'Agency updated successfully'
               : 'Agency added successfully'
           );
-          this.closeModal();
+          // this.closeModal();
+          this.openModal();
           this.loadAgencyList();
         } else {
           this.toastr.error(r.Message);
