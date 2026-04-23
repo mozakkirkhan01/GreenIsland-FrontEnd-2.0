@@ -325,13 +325,47 @@ export class AppService {
 
   /* ---------------------------------------------------------------------- */
 
+  //Agency (Admin module)
+  getAdminAgencyList(obj: any) {
+    return this.http.post(this.apiUrl + "Agency/AgencyList", obj, { headers: this.headers })
+  }
 
-/* ---------------------------------------------------------------------- */
+  saveAgency(obj: any) {
+    return this.http.post(this.apiUrl + "Agency/saveAgency", obj, { headers: this.headers })
+  }
 
-//Agency
-getAgencyList(obj: any) {
-  return this.http.post(this.apiUrl + "QueryStepOne/AgencyList", obj, { headers: this.headers })
+  deleteAgency(obj: any) {
+    return this.http.post(this.apiUrl + "Agency/deleteAgency", obj, { headers: this.headers })
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------- */
+
+// TripComment
+getTripCommentList(obj: any) {
+  return this.http.post(this.apiUrl + "TripComment/TripCommentList", obj, { headers: this.headers })
 }
+
+saveTripComment(obj: any) {
+  return this.http.post(this.apiUrl + "TripComment/saveTripComment", obj, { headers: this.headers })
+}
+  /* ---------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------- */
+
+// Guest
+// getGuestByAgency(obj: any) {
+//   return this.http.post(this.apiUrl + "Guest/GuestByAgency", obj, { headers: this.headers })
+// }
+
+saveGuestList(obj: any) {
+  return this.http.post(this.apiUrl + "Guest/saveGuestList", obj, { headers: this.headers })
+}
+  /* ---------------------------------------------------------------------- */
+
+  //Agency (QueryStepOne module)
+  getQueryAgencyList(obj: any) {
+    return this.http.post(this.apiUrl + "QueryStepOne/AgencyList", obj, { headers: this.headers })
+  }
 
 /* ---------------------------------------------------------------------- */
 

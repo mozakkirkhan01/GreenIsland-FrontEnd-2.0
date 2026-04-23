@@ -34,6 +34,8 @@ import { TermCondition } from './admin/term-condition/term-condition';
 import { Trips } from './agent/trips/trips';
 import { Template } from './admin/template/template';
 import { QueryStepone } from './agent/query-stepone/query-stepone';
+import { Agency } from './admin/agency/agency';
+import { QuerySteptwo } from './agent/query-steptwo/query-steptwo';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -76,9 +78,8 @@ export const routes: Routes = [
       { path: 'itenerary-service', component: IteneraryService},
       { path: 'inclusion-exclusion', component: InclusionExclusion},
       { path: 'term-condition', component: TermCondition},
-      { path: 'trips', component: Trips},
       { path: 'template', component: Template},
-      { path:  'query-stepone', component: QueryStepone},
+      { path: 'agency', component: Agency},
     ]
   },
     // 👉 agnet Area
@@ -88,6 +89,7 @@ export const routes: Routes = [
     children: [
       { path: 'trips', component: Trips},
       { path: 'query-stepone', component: QueryStepone},
+      { path: 'query-steptwo/:id', component: QuerySteptwo }
     ]
   },
 
