@@ -330,7 +330,7 @@ action = signal<ActionModel>({
 
   // ── Row actions ───────────────────────────────────────
   openTripDetail(row: Trip): void {
-    this.router.navigate(['/agent/trips', row.id]);
+    this.router.navigate(['/agent/query-steptwo', row.id]);
   }
 
   editTrip(row: Trip): void {
@@ -394,7 +394,7 @@ action = signal<ActionModel>({
   }
   // ── Missing methods referenced in HTML ────────────────
 createQuote(row: Trip): void {
-  this.router.navigate(['/agent/trips/quote', row.id]);
+  this.router.navigate(['/agent/query-steptwo', row.id]);
 }
 
 updateStatus(row: Trip, statusKey: string): void {
