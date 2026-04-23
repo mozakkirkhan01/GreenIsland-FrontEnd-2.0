@@ -19,9 +19,27 @@ import { ConstantData } from '../../utils/constant-data';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LoadDataService } from '../../utils/load-data.service';
 import { Progress } from '../../component/progress/progress';
+// ── Add these interfaces at the top ──────────────────────────
+export interface TouristRow {
+  GuestId: number;
+  AgencyId: number;
+  Salutation: string;
+  ContactName: string;
+  CountryCode: string;
+  Phone: string;
+  Email: string;
+  IsPrimary: boolean;
+  Status: number;
+  CreatedBy: number;
+  UpdatedBy: number;
+  // UI only
+  IsExpanded: boolean;
+  IsNew: boolean;
+}
 
 export interface TripDetail {
   QueryStepOneId: number;
+  AgencyId: number;   // ← add this line
   AgencyName: string;
   CityName: string;
   ContactName: string;
@@ -33,7 +51,7 @@ export interface TripDetail {
   StartDate: string;
   NoOfNights: number;
   NoOfAdults: number;
-  ChildrenAges: string;   // JSON string "[2,5]"
+  ChildrenAges: string;
   OriginCity: string;
   Nationality: string;
   Comments: string;
@@ -163,6 +181,7 @@ export class QuerySteptwo implements OnInit {
             const item = list[0];
             this.tripDetail.set({
               QueryStepOneId: item.QueryStepOneId,
+              AgencyId: item.AgencyId ?? 0,   // ← add this line
               AgencyName: item.AgencyName ?? '',
               CityName: item.CityName ?? '',
               ContactName: item.ContactName ?? '',
@@ -310,9 +329,9 @@ export class QuerySteptwo implements OnInit {
     this.router.navigate(['/admin/trips']);
   }
 
-  editTrip(): void {
-    this.router.navigate(['/admin/query-stepone/edit', this.QueryStepOneId]);
-  }
+  // editTrip(): void {
+  //   this.router.navigate(['/admin/query-stepone/edit', this.QueryStepOneId]);
+  // }
 
   useThisQuote(suggestion: ItinerarySuggestion): void {
     this.router.navigate(['/admin/query-stepthree', this.QueryStepOneId], {
@@ -335,4 +354,159 @@ export class QuerySteptwo implements OnInit {
     if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     return `${days} day${days > 1 ? 's' : ''} ago`;
   }
+  // ── Add these properties inside the class ────────────────────
+
+  showTouristModal = signal(false);
+  touristRows = signal<TouristRow[]>([]);
+  touristTab = 0;   // 0=Tourists, 1=Tourist Groups
+  savingTourists = signal(false);
+
+  readonly countryCodes = [
+    { code: '91-IN', label: '91-IN' },
+    { code: '1-US', label: '1-US' },
+    { code: '44-GB', label: '44-GB' },
+    { code: '971-AE', label: '971-AE' },
+    { code: '65-SG', label: '65-SG' },
+  ];
+
+  // ── Replace editTrip() with this ─────────────────────────────
+  editGuest(): void {
+    this.openTouristModal();
+  }
+
+  openTouristModal(): void {
+    this.loadTouristsForTrip();
+    this.showTouristModal.set(true);
+  }
+
+  closeTouristModal(): void {
+    this.showTouristModal.set(false);
+    this.touristRows.set([]);
+  }
+
+  loadTouristsForTrip(): void {
+    const trip = this.tripDetail();
+    if (!trip) return;
+
+    const obj: RequestModel = {
+      request: this.local.encrypt(
+        JSON.stringify({ AgencyId: trip.AgencyId ?? 0 })
+      ).toString()
+    };
+    this.service.getGuestByAgency(obj).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          const rows: TouristRow[] = (r.GuestList ?? []).map((g: any) => ({
+            GuestId: g.GuestId,
+            AgencyId: g.AgencyId,
+            Salutation: g.Salutation ?? 'Mr.',
+            ContactName: g.ContactName ?? '',
+            CountryCode: g.CountryCode ?? '91-IN',
+            Phone: g.Phone ?? '',
+            Email: g.Email ?? '',
+            IsPrimary: g.IsPrimary ?? false,
+            Status: g.Status ?? 1,
+            CreatedBy: this.staffLogin.StaffLoginId,
+            UpdatedBy: this.staffLogin.StaffLoginId,
+            IsExpanded: false,
+            IsNew: false,
+          }));
+          // Expand first row by default
+          if (rows.length > 0) rows[0].IsExpanded = false;
+          this.touristRows.set(rows);
+        }
+      },
+      error: () => this.toastr.error('Error loading tourists')
+    });
+  }
+
+  addTouristRow(): void {
+    const trip = this.tripDetail();
+    this.touristRows.update(rows => [
+      ...rows,
+      {
+        GuestId: 0,
+        AgencyId: trip?.AgencyId ?? 0,
+        Salutation: 'Mr.',
+        ContactName: '',
+        CountryCode: '91-IN',
+        Phone: '',
+        Email: '',
+        IsPrimary: false,
+        Status: 1,
+        CreatedBy: this.staffLogin.StaffLoginId,
+        UpdatedBy: this.staffLogin.StaffLoginId,
+        IsExpanded: true,
+        IsNew: true,
+      }
+    ]);
+  }
+
+  removeTouristRow(index: number): void {
+    const rows = this.touristRows();
+    const row = rows[index];
+    if (row.GuestId > 0) {
+      // soft delete — just remove from UI for now
+      // wire to deleteGuest API if needed
+    }
+    this.touristRows.update(r => r.filter((_, i) => i !== index));
+  }
+
+  toggleExpand(index: number): void {
+    this.touristRows.update(rows =>
+      rows.map((r, i) => i === index ? { ...r, IsExpanded: !r.IsExpanded } : r)
+    );
+  }
+
+  saveTourists(): void {
+    const rows = this.touristRows();
+
+    const invalid = rows.find(r => !r.ContactName?.trim() || !r.Phone?.trim());
+    if (invalid) {
+      this.toastr.error('Please fill Name and Phone for all tourists');
+      return;
+    }
+
+    this.savingTourists.set(true);
+
+    const obj: RequestModel = {
+      request: this.local.encrypt(
+        JSON.stringify(rows.map(r => ({
+          GuestId: r.GuestId,
+          AgencyId: r.AgencyId,
+          Salutation: r.Salutation,
+          ContactName: r.ContactName,
+          CountryCode: r.CountryCode,
+          Phone: r.Phone,
+          Email: r.Email,
+          IsPrimary: r.IsPrimary,
+          Status: 1,
+          CreatedBy: r.CreatedBy,
+          UpdatedBy: r.UpdatedBy,
+        })))
+      ).toString()
+    };
+
+    this.service.saveGuestList(obj).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.toastr.success('Tourists saved successfully');
+          this.closeTouristModal();
+          this.loadTripDetail();
+        } else {
+          this.toastr.error(r.Message);
+        }
+        this.savingTourists.set(false);
+      },
+      error: () => {
+        this.toastr.error('Error saving tourists');
+        this.savingTourists.set(false);
+      }
+    });
+  }
+
+  get touristCount(): number {
+    return this.touristRows().length;
+  }
+
 }

@@ -3,71 +3,44 @@
 <div class="page-content">
     <div class="d-flex flex-column" style="min-height:100vh; background:#f5f6fa;">
 
-        <!-- ── Breadcrumb ─────────────────────────────────────────────── -->
-        <div class="px-4 pt-3 pb-0">
-            <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item">
-                            <a routerLink="/admin/admin-dashboard">Dashboard</a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a routerLink="/admin/trips">Trips</a>
-                        </li>
-                        <li class="breadcrumb-item active">
-                            @if (tripDetail(); as trip) {
-                            #{{ trip.QueryStepOneId }} · {{ trip.ContactName }}
-                            } @else {
-                            Trip Details
-                            }
-                        </li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
+        
         <!-- ── Top Header Bar ─────────────────────────────────────────── -->
-        <div class="bg-white border-bottom border-top px-4 py-3 mt-2">
-
+        <div class="bg-white border-bottom border-top px-4 py-3 mt-0">
+            
             <!-- Row 1: Back + Trip ID + Agency + Status + Menu -->
             <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
-
+                
                 <button mat-icon-button (click)="goBack()" matTooltip="Back to Trips">
                     <mat-icon>arrow_back</mat-icon>
                 </button>
-
+                
                 @if (tripDetail(); as trip) {
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h5 class="mb-0 fw-bold" style="font-size:16px;">
-                        <span class="text-muted fw-normal me-1">#</span>
-                        {{ trip.QueryStepOneId }}
-                    </h5>
-                    <span class="text-muted">•</span>
-                    <span class="fw-semibold">{{ trip.Salutation }} {{ trip.ContactName }}</span>
-                    <span class="text-muted">•</span>
-                    <span class="fw-semibold">{{ trip.DestinationName }}</span>
-                    <span class="text-muted">•</span>
-                    <span class="text-muted" style="font-size:13px;">{{ trip.AgencyName }}</span>
-                    @if (trip.ReferenceId) {
-                    <span class="text-muted">•</span>
-                    <span class="text-muted small">Ref: {{ trip.ReferenceId }}</span>
-                    }
-                    <span class="text-muted">•</span>
-                    <span class="badge rounded-pill px-3 py-1"
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h5 class="mb-0 fw-bold" style="font-size:16px;">
+                            <span class="text-muted fw-normal me-1">#</span>
+                            {{ trip.QueryStepOneId }}
+                        </h5>
+                        <span class="text-muted">•</span>
+                        <span class="fw-semibold">{{ trip.Salutation }} {{ trip.ContactName }}</span>
+                        <span class="text-muted">•</span>
+                        <span class="fw-semibold">{{ trip.DestinationName }}</span>
+                        <span class="text-muted">•</span>
+                        <span class="text-muted" style="font-size:13px;">{{ trip.AgencyName }}</span>
+                        @if (trip.ReferenceId) {
+                            <span class="text-muted">•</span>
+                            <span class="text-muted small">Ref: {{ trip.ReferenceId }}</span>
+                        }
+                        <span class="text-muted">•</span>
+                        <span class="badge rounded-pill px-3 py-1"
                         style="font-size:11.5px; background:#e8f4ff; color:#1a73e8;">
                         {{ getStatusLabel(trip.TripStatus) }}
+                        
                     </span>
-                </div>
-                }
-
-                <span class="flex-grow-1"></span>
-
-                <button mat-icon-button [matMenuTriggerFor]="headerMenu">
+                                    <button mat-icon-button [matMenuTriggerFor]="headerMenu">
                     <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #headerMenu="matMenu">
-                    <button mat-menu-item (click)="editTrip()">
+                    <button mat-menu-item >
                         <mat-icon>edit</mat-icon> Edit Query
                     </button>
                     <mat-divider></mat-divider>
@@ -75,6 +48,35 @@
                         <mat-icon>share</mat-icon> Share
                     </button>
                 </mat-menu>
+                </div>
+            }
+            
+            <span class="flex-grow-1"></span>
+            <!-- ── Breadcrumb ─────────────────────────────────────────────── -->
+            <div class="px-4 pt-3 pb-0 mt-0">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item">
+                                <a routerLink="/admin/admin-dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a routerLink="/admin/trips">Trips</a>
+                            </li>
+                            <li class="breadcrumb-item active">
+                                @if (tripDetail(); as trip) {
+                                #{{ trip.QueryStepOneId }} · {{ trip.ContactName }}
+                                } @else {
+                                Trip Details
+                                }
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+
             </div>
 
             <!-- Row 2: Trip Meta Info -->
@@ -97,7 +99,7 @@
                     <span class="badge bg-light text-muted border ms-1" style="font-size:10px;">
                         {{ trip.NoOfAdults }}A
                     </span>
-                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;" matTooltip="Edit guest">
+                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;" (click)="editGuest()" matTooltip="Edit guest">
                         <mat-icon style="font-size:13px;width:13px;height:13px;">edit</mat-icon>
                     </button>
                 </span>
@@ -105,12 +107,6 @@
                 <span class="d-flex align-items-center gap-1 text-muted">
                     <i class="bx bx-right-arrow-alt"></i>
                     {{ trip.AgencyName }}
-                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
-                        <mat-icon style="font-size:13px;width:13px;height:13px;">phone</mat-icon>
-                    </button>
-                    <button mat-icon-button style="width:20px;height:20px;line-height:20px;">
-                        <mat-icon style="font-size:13px;width:13px;height:13px;">mail</mat-icon>
-                    </button>
                 </span>
 
             </div>
@@ -156,7 +152,7 @@
                     To Create Quote you can start with below suggestions.
                 </p>
 
-                <div class="mb-4" style="max-width:500px; margin:0 auto;">
+                <!-- <div class="mb-4" style="max-width:500px; margin:0 auto;">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bx bx-search text-muted"></i>
@@ -165,9 +161,9 @@
                             placeholder="Search by trip id or guest name" [(ngModel)]="searchQuery"
                             style="font-size:13px;">
                     </div>
-                </div>
+                </div> -->
 
-                @for (suggestion of suggestions(); track suggestion.IteneraryServiceId) {
+                <!-- @for (suggestion of suggestions(); track suggestion.IteneraryServiceId) {
                 <div class="card border shadow-sm mb-4">
 
                     <div class="card-header bg-white border-bottom px-3 py-2
@@ -247,7 +243,7 @@
                     </div>
 
                 </div>
-                }
+                } -->
 
                 @if (suggestions().length === 0 && !dataLoading()) {
                 <div class="text-center text-muted py-5">
@@ -259,7 +255,7 @@
             </div>
 
             <!-- ── Right Sidebar: Tasks & Comments ────────────────── -->
-            <div class="border-start bg-white d-flex flex-column" style="width:320px; min-width:320px;">
+            <!-- <div class="border-start bg-white d-flex flex-column" style="width:320px; min-width:320px;">
 
                 <div class="px-3 py-3 border-bottom">
                     <h6 class="fw-bold mb-0">Tasks & Comments</h6>
@@ -293,7 +289,7 @@
                     </div>
                 </div>
 
-            </div>
+            </div> -->
 
         </div>
 
@@ -310,3 +306,275 @@
 
     </div>
 </div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- TOURIST MANAGEMENT MODAL                                       -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+@if (showTouristModal()) {
+
+  <!-- Backdrop -->
+  <div class="modal-backdrop fade show"
+       style="z-index:1040; backdrop-filter:blur(3px);"
+       (click)="closeTouristModal()">
+  </div>
+
+  <!-- Dialog -->
+  <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg">
+
+        <!-- ── Header ──────────────────────────────────────── -->
+        <div class="modal-header border-bottom px-4 py-3">
+          <h5 class="modal-title fw-bold">Trip Tourists Management</h5>
+          <button type="button" class="btn-close"
+                  (click)="closeTouristModal()">
+          </button>
+        </div>
+
+        <!-- ── Tabs ────────────────────────────────────────── -->
+        <div class="border-bottom px-4 pt-2">
+          <ul class="nav nav-underline mb-0">
+            <li class="nav-item">
+              <button class="nav-link fw-medium px-0 me-4"
+                      [class.active]="touristTab === 0"
+                      [class.text-primary]="touristTab === 0"
+                      [class.text-muted]="touristTab !== 0"
+                      style="border:none; background:none; font-size:14px;"
+                      (click)="touristTab = 0">
+                Tourists
+              </button>
+            <!-- </li>
+            <li class="nav-item">
+              <button class="nav-link fw-medium px-0"
+                      [class.active]="touristTab === 1"
+                      [class.text-primary]="touristTab === 1"
+                      [class.text-muted]="touristTab !== 1"
+                      style="border:none; background:none; font-size:14px;"
+                      (click)="touristTab = 1">
+                Tourist Groups
+              </button>
+            </li> -->
+          </ul>
+        </div>
+
+        <!-- ── Body ────────────────────────────────────────── -->
+        <div class="modal-body px-4 py-3">
+
+          @if (touristTab === 0) {
+
+            <!-- Tourist count -->
+            <p class="text-muted small mb-3">
+              Showing {{ touristCount }} tourist{{ touristCount !== 1 ? 's' : '' }}
+              <i class="bx bx-refresh ms-1" style="cursor:pointer;"
+                 (click)="loadTouristsForTrip()"></i>
+            </p>
+
+            <!-- Tourist rows -->
+            @for (row of touristRows(); track $index; let i = $index) {
+              <div class="border rounded mb-3"
+                   style="overflow:hidden;">
+
+                <!-- Row header (collapsed view) -->
+                <div class="d-flex align-items-center px-3 py-2 bg-light">
+
+                  <!-- Index + icon -->
+                  <span class="text-muted me-2" style="font-size:13px; min-width:20px;">
+                    {{ i + 1 }}.
+                  </span>
+                  <i class="bx bx-user-circle text-muted fs-5 me-2"></i>
+
+                  <!-- Name + type badge -->
+                  <div class="flex-grow-1 d-flex align-items-center gap-2">
+                    @if (row.ContactName) {
+                      <span class="fw-semibold" style="font-size:13.5px;">
+                        {{ row.Salutation }} {{ row.ContactName }}
+                      </span>
+                    } @else {
+                      <span class="text-muted fst-italic" style="font-size:13px;">
+                        New Tourist
+                      </span>
+                    }
+                    <span class="badge border border-secondary text-secondary fw-normal"
+                          style="font-size:11px; background:#f3f4f6;">
+                      adult
+                    </span>
+                    @if (row.Phone) {
+                      <!-- <span class="text-muted small">
+                        <i class="bx bx-phone me-1"></i>
+                        +{{ getCountryDialCode(row.CountryCode) }}-{{ row.Phone }}
+                      </span> -->
+                    }
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="d-flex align-items-center gap-1">
+                    <!-- <button mat-icon-button
+                            style="width:30px;height:30px;line-height:30px;"
+                            matTooltip="Flag">
+                      <mat-icon style="font-size:16px;">flag</mat-icon>
+                    </button> -->
+                    <button mat-icon-button
+                            style="width:30px;height:30px;line-height:30px;"
+                            matTooltip="Remove tourist"
+                            (click)="removeTouristRow(i)">
+                      <mat-icon style="font-size:16px;" color="warn">delete</mat-icon>
+                    </button>
+                    <button mat-icon-button
+                            style="width:30px;height:30px;line-height:30px;"
+                            (click)="toggleExpand(i)">
+                      <mat-icon style="font-size:16px;">
+                        {{ row.IsExpanded ? 'expand_less' : 'expand_more' }}
+                      </mat-icon>
+                    </button>
+                  </div>
+
+                </div>
+
+                <!-- Expanded form -->
+                @if (row.IsExpanded) {
+                  <div class="p-3 border-top bg-white">
+                    <div class="row g-3">
+
+                      <!-- Type -->
+                      <div class="col-sm-2">
+                        <label class="form-label small text-muted mb-1">Type</label>
+                        <select class="form-select form-select-sm"
+                                [disabled]="row.GuestId > 0">
+                          <option value="adult">Adult</option>
+                          <option value="child">Child</option>
+                          <option value="infant">Infant</option>
+                        </select>
+                        @if (row.GuestId > 0) {
+                          <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                            Cannot change type once created
+                          </div>
+                        }
+                      </div>
+
+                      <!-- Salutation -->
+                      <div class="col-sm-2">
+                        <label class="form-label small text-muted mb-1">Salutation</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               [(ngModel)]="row.Salutation"
+                               placeholder="e.g. Mr."
+                               maxlength="10">
+                      </div>
+
+                      <!-- Name -->
+                      <div class="col-sm-4">
+                        <label class="form-label small text-muted mb-1">Name *</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               [(ngModel)]="row.ContactName"
+                               placeholder="e.g. Guest Name">
+                      </div>
+
+                      <!-- Nationality -->
+                      <div class="col-sm-4">
+                        <label class="form-label small text-muted mb-1">Nationality</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               placeholder="e.g. India">
+                      </div>
+
+                      <!-- Phone -->
+                      <div class="col-sm-6">
+                        <label class="form-label small text-muted mb-1">Phone Number(s) *</label>
+                        <div class="d-flex gap-2">
+                          <select class="form-select form-select-sm flex-shrink-0"
+                                  style="width:90px;"
+                                  [(ngModel)]="row.CountryCode">
+                            @for (cc of countryCodes; track cc.code) {
+                              <option [value]="cc.code">{{ cc.label }}</option>
+                            }
+                          </select>
+                          <input type="text"
+                                 class="form-control form-control-sm"
+                                 [(ngModel)]="row.Phone"
+                                 placeholder="e.g. 9779212232">
+                          <button mat-icon-button
+                                  style="width:30px;height:30px;line-height:30px;"
+                                  matTooltip="Add another phone">
+                            <mat-icon style="font-size:16px;">add_circle_outline</mat-icon>
+                          </button>
+                          <button mat-icon-button
+                                  style="width:30px;height:30px;line-height:30px;"
+                                  matTooltip="Send message">
+                            <mat-icon style="font-size:16px;">mail_outline</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Email -->
+                      <div class="col-sm-6">
+                        <label class="form-label small text-muted mb-1">Email</label>
+                        <input type="email"
+                               class="form-control form-control-sm"
+                               [(ngModel)]="row.Email"
+                               placeholder="e.g. user@domain.com">
+                      </div>
+
+                      <!-- Extra actions -->
+                      <div class="col-12 d-flex gap-3 mt-1">
+                        <button class="btn btn-link btn-sm text-muted p-0"
+                                style="font-size:12px; text-decoration:none;">
+                          <i class="bx bx-plus me-1"></i> Add Remarks/Comments
+                        </button>
+                        <button class="btn btn-link btn-sm text-muted p-0"
+                                style="font-size:12px; text-decoration:none;">
+                          <i class="bx bx-file me-1"></i> Add Documents
+                        </button>
+                        <button class="btn btn-link btn-sm text-muted p-0"
+                                style="font-size:12px; text-decoration:none;">
+                          <i class="bx bx-home me-1"></i> Add Address/Billing
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                }
+
+              </div>
+            }
+
+            <!-- Add Tourist button -->
+            <button class="btn btn-outline-secondary btn-sm mt-1"
+                    style="font-size:13px;"
+                    (click)="addTouristRow()">
+              <i class="bx bx-plus me-1"></i> Add Tourist
+            </button>
+
+          }
+
+          <!-- @if (touristTab === 1) {
+            <div class="text-center text-muted py-5">
+              <i class="bx bx-group fs-1 d-block mb-2 opacity-25"></i>
+              <p class="mb-0">Tourist Groups coming soon.</p>
+            </div>
+          } -->
+
+        </div>
+
+        <!-- ── Footer ──────────────────────────────────────── -->
+        <div class="modal-footer border-top px-4 py-3">
+          <button type="button"
+                  class="btn btn-outline-secondary px-4"
+                  (click)="closeTouristModal()">
+            Cancel
+          </button>
+          <button type="button"
+                  class="btn btn-primary px-4 fw-medium"
+                  [disabled]="savingTourists()"
+                  (click)="saveTourists()">
+            <i class="bx bx-save me-1"></i>
+            {{ savingTourists() ? 'Saving…' : 'Save Tourists' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+}
