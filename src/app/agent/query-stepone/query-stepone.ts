@@ -1,12 +1,13 @@
 import {
-  Component, OnInit, signal, inject, DestroyRef, ChangeDetectionStrategy,
+  Component, OnInit, signal, inject, DestroyRef,
+  ChangeDetectionStrategy, ChangeDetectorRef, ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators, AbstractControl } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { forkJoin, Subject, BehaviorSubject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { forkJoin, BehaviorSubject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,10 +15,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocomplete, MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AppService } from '../../utils/app.service';
 import { LocalService } from '../../utils/local.service';
@@ -62,6 +64,13 @@ export interface CountryCode {
   label: string;
 }
 
+/**
+ * Sentinel object placed as [value] on the "Add new" mat-option.
+ * Using an object (not a string) ensures it never accidentally matches
+ * a real agency name.
+ */
+const ADD_NEW_SENTINEL = { __addNew: true } as const;
+
 interface AgencyListResponse  { Message: string; AgencyList: Agency[]; }
 interface GuestListResponse   { Message: string; GuestList: Guest[]; }
 interface StaffListResponse   { Message: string; StaffList: Staff[]; }
@@ -76,10 +85,10 @@ interface SaveResponse        { Message: string; QueryStepOneId?: number; }
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
+    CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatButtonModule, MatIconModule, MatAutocompleteModule,
-    MatDatepickerModule, MatNativeDateModule, MatChipsModule,
+    MatDatepickerModule, MatNativeDateModule, MatChipsModule, MatTooltipModule,
     Progress,
   ],
   templateUrl: './query-stepone.html',
@@ -87,17 +96,20 @@ interface SaveResponse        { Message: string; QueryStepOneId?: number; }
 })
 export class QueryStepone implements OnInit {
 
-  // ── DI ──────────────────────────────────────────────────────────────────────
-  private readonly fb          = inject(FormBuilder);
-  private readonly service     = inject(AppService);
-  private readonly toastr      = inject(ToastrService);
+  // ── DI ───────────────────────────────────────────────────────────────────────
+  private readonly fb           = inject(FormBuilder);
+  private readonly service      = inject(AppService);
+  private readonly toastr       = inject(ToastrService);
   private readonly localService = inject(LocalService);
-  private readonly router      = inject(Router);
-  private readonly destroyRef  = inject(DestroyRef);
+  private readonly router       = inject(Router);
+  private readonly destroyRef   = inject(DestroyRef);
+  private readonly cdr          = inject(ChangeDetectorRef);
 
-  // ── State signals ────────────────────────────────────────────────────────────
-  dataLoading = signal(false);
+  // ── State signals ─────────────────────────────────────────────────────────────
+  dataLoading      = signal(false);
   dropdownsLoading = signal(false);
+  showModal        = signal(false);  // ✅ signal so OnPush detects it
+
   action = signal<ActionModel>({
     CanCreate: false, CanEdit: false, CanDelete: false,
     MenuTitle: 'Trips', ParentMenuTitle: 'Trips',
@@ -105,21 +117,24 @@ export class QueryStepone implements OnInit {
 
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
-  // ── Dropdown data ────────────────────────────────────────────────────────────
-  agencyList    = signal<Agency[]>([]);
-  guestList     = signal<Guest[]>([]);
+  // ── Dropdown signals ──────────────────────────────────────────────────────────
+  agencyList      = signal<Agency[]>([]);
+  guestList       = signal<Guest[]>([]);
   destinationList = signal<Destination[]>([]);
-  staffList     = signal<Staff[]>([]);
-  tagList       = signal<Tag[]>([]);
-  selectedTagIds = signal<number[]>([]);
+  staffList       = signal<Staff[]>([]);
+  tagList         = signal<Tag[]>([]);
+  selectedTagIds  = signal<number[]>([]);
 
-  // Autocomplete
+  // Autocomplete visible lists (plain arrays, updated by filter methods)
   visibleAgencies: Agency[] = [];
-  filteredGuests: Guest[] = [];
+  filteredGuests:  Guest[]  = [];
 
   private readonly agencySearch$ = new BehaviorSubject<string>('');
 
-  // ── Static data ──────────────────────────────────────────────────────────────
+  // ── Sentinel exposed to template ──────────────────────────────────────────────
+  readonly ADD_NEW = ADD_NEW_SENTINEL;
+
+  // ── Static data ───────────────────────────────────────────────────────────────
   readonly ageOptions: string[] = [
     '<1y', '1y', '2y', '3y', '4y', '5y', '6y',
     '7y', '8y', '9y', '10y', '11y', '12y',
@@ -133,7 +148,13 @@ export class QueryStepone implements OnInit {
     { code: '65-SG',  label: '🇸🇬 +65'  },
   ];
 
-  // ── Reactive form ────────────────────────────────────────────────────────────
+  readonly StatusList = ConstantData.StatusList;
+
+  // ── Modal model ───────────────────────────────────────────────────────────────
+  isModalSubmitted = false;
+  AgencyModel      = this.emptyAgencyModel();
+
+  // ── Reactive form ─────────────────────────────────────────────────────────────
   form!: FormGroup;
 
   get childrenFormArray(): FormArray {
@@ -145,7 +166,14 @@ export class QueryStepone implements OnInit {
     return `${n} Night${n !== 1 ? 's' : ''}, ${n + 1} Day${n !== 1 ? 's' : ''}`;
   }
 
-  // ── Lifecycle ────────────────────────────────────────────────────────────────
+  /** Show "Add new" row only when typed text doesn't exactly match any existing agency */
+  get showAddNewOption(): boolean {
+    const value = this.form.get('AgencyName')?.value?.toLowerCase()?.trim();
+    if (!value) return false;
+    return !this.agencyList().some(a => a.AgencyName.toLowerCase() === value);
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
     this.buildForm();
@@ -154,35 +182,35 @@ export class QueryStepone implements OnInit {
     this.loadAllDropdowns();
   }
 
-  // ─── Form setup ──────────────────────────────────────────────────────────────
+  // ── Form ──────────────────────────────────────────────────────────────────────
   private buildForm(): void {
     this.form = this.fb.group({
-      QueryStepOneId:    [0],
-      AgencyId:          [0],
-      AgencyName:        ['', Validators.required],
-      AgencyCity:        [''],
-      GuestId:           [0],
-      Salutation:        ['Mr.'],
-      ContactName:       ['', Validators.required],
-      CountryCode:       ['91-IN'],
-      Phone:             ['', Validators.required],
-      Email:             ['', Validators.email],
-      QuerySource:       [''],
-      ReferenceId:       [''],
-      AssignedToLoginId: [Number(this.staffLogin?.StaffLoginId) || 0],
-      DestinationId:     [0, [Validators.required, Validators.min(1)]],
-      StartDate:         [null, Validators.required],
-      NoOfNights:        [1,  [Validators.required, Validators.min(1)]],
-      NoOfAdults:        [1,  [Validators.required, Validators.min(1)]],
+      QueryStepOneId:     [0],
+      AgencyId:           [0],
+      AgencyName:         ['', Validators.required],
+      AgencyCity:         [''],
+      GuestId:            [0],
+      Salutation:         ['Mr.'],
+      ContactName:        ['', Validators.required],
+      CountryCode:        ['91-IN'],
+      Phone:              ['', Validators.required],
+      Email:              ['', Validators.email],
+      QuerySource:        [''],
+      ReferenceId:        [''],
+      AssignedToLoginId:  [Number(this.staffLogin?.StaffLoginId) || 0],
+      DestinationId:      [0, [Validators.required, Validators.min(1)]],
+      StartDate:          [null, Validators.required],
+      NoOfNights:         [1,  [Validators.required, Validators.min(1)]],
+      NoOfAdults:         [1,  [Validators.required, Validators.min(1)]],
       childAgeSelections: this.fb.array([]),
-      OriginCity:        [''],
-      Nationality:       [''],
-      Comments:          [''],
-      TripStatus:        [1],
+      OriginCity:         [''],
+      Nationality:        [''],
+      Comments:           [''],
+      TripStatus:         [1],
     });
   }
 
-  // ── Agency search with debounce ───────────────────────────────────────────────
+  // ── Agency search debounce ────────────────────────────────────────────────────
   private setupAgencySearch(): void {
     this.agencySearch$.pipe(
       debounceTime(250),
@@ -197,6 +225,7 @@ export class QueryStepone implements OnInit {
       a.AgencyName?.toLowerCase().includes(q)
     );
     this.visibleAgencies = filtered.slice(0, 6);
+    this.cdr.markForCheck();
   }
 
   // ── Menu validation ───────────────────────────────────────────────────────────
@@ -222,11 +251,11 @@ export class QueryStepone implements OnInit {
     });
   }
 
-  // ── Load all dropdowns at once ────────────────────────────────────────────────
+  // ── Load all dropdowns ────────────────────────────────────────────────────────
   private loadAllDropdowns(): void {
-    const enc = (data: object) => ({
+    const enc = (data: object): RequestModel => ({
       request: this.localService.encrypt(JSON.stringify(data)).toString(),
-    } as RequestModel);
+    });
 
     this.dropdownsLoading.set(true);
 
@@ -253,8 +282,7 @@ export class QueryStepone implements OnInit {
         }
         if (staffRes.Message === ConstantData.SuccessMessage) {
           const normalised = (staffRes.StaffList ?? []).map(s => ({
-            ...s,
-            StaffLoginId: Number(s.StaffLoginId),
+            ...s, StaffLoginId: Number(s.StaffLoginId),
           }));
           this.staffList.set(normalised);
         }
@@ -271,12 +299,44 @@ export class QueryStepone implements OnInit {
   }
 
   // ── Agency autocomplete ───────────────────────────────────────────────────────
+
   onAgencyInputChange(value: string): void {
     this.form.patchValue({ AgencyId: 0, AgencyCity: '' });
-    this.agencySearch$.next(value);
+    this.agencySearch$.next(value ?? '');
   }
 
-  onAgencySelected(agency: Agency): void {
+  /**
+   * ✅ CORE FIX — single (optionSelected) on <mat-autocomplete>.
+   *
+   * Problem with the old approach:
+   *   - Using (click) on mat-option is unreliable: the panel closes on mousedown,
+   *     which fires before (click), so the handler sometimes never runs.
+   *   - Using (onSelectionChange) inside mat-option fires per-option but
+   *     Angular still writes the [value] to the input first.
+   *   - With ChangeDetectionStrategy.OnPush, a plain boolean `showModal`
+   *     toggled inside a click handler won't trigger re-render.
+   *
+   * Solution:
+   *   - One (optionSelected) on the <mat-autocomplete> element catches ALL
+   *     selections after Angular has processed them.
+   *   - The "Add new" option carries the ADD_NEW sentinel object as its value.
+   *   - We detect it here, restore the typed text, and call openAddAgencyModal().
+   *   - showModal is a signal() so OnPush sees the change immediately.
+   */
+  onAgencyOptionSelected(event: MatAutocompleteSelectedEvent): void {
+    if (event.option.value === ADD_NEW_SENTINEL) {
+      // Angular already wrote the sentinel to the input — restore typed text
+      const typedName = this.agencySearch$.getValue();
+      this.form.patchValue({ AgencyName: typedName, AgencyId: 0, AgencyCity: '' });
+      this.openAddAgencyModal(typedName);
+    } else {
+      // Normal agency selected
+      const agency = event.option.value as Agency;
+      this.selectAgency(agency);
+    }
+  }
+
+  private selectAgency(agency: Agency): void {
     this.form.patchValue({
       AgencyId:   agency.AgencyId,
       AgencyName: agency.AgencyName,
@@ -295,6 +355,7 @@ export class QueryStepone implements OnInit {
         if (res.Message === ConstantData.SuccessMessage) {
           this.guestList.set(res.GuestList ?? []);
           this.filteredGuests = res.GuestList ?? [];
+          this.cdr.markForCheck();
         }
       },
       error: () => this.toastr.error('Failed to load guests for this agency'),
@@ -307,8 +368,6 @@ export class QueryStepone implements OnInit {
     this.filteredGuests = [];
     this.agencySearch$.next('');
   }
-
-  displayAgencyFn = (value: string): string => value ?? '';
 
   // ── Guest autocomplete ────────────────────────────────────────────────────────
   onGuestInputChange(value: string): void {
@@ -332,10 +391,6 @@ export class QueryStepone implements OnInit {
   // ── Children FormArray ────────────────────────────────────────────────────────
   addChild(): void {
     this.childrenFormArray.push(this.fb.control('2y'));
-  }
-
-  removeChild(index: number): void {
-    this.childrenFormArray.removeAt(index);
   }
 
   removeLastChild(): void {
@@ -374,7 +429,6 @@ export class QueryStepone implements OnInit {
     }
 
     const v = this.form.getRawValue();
-
     const childrenAgesJson = JSON.stringify(
       (v.childAgeSelections as string[]).map(a => a.replace('y', '').replace('<1', '0'))
     );
@@ -419,7 +473,7 @@ export class QueryStepone implements OnInit {
         const res = r as SaveResponse;
         if (res.Message === ConstantData.SuccessMessage) {
           this.toastr.success('Query saved successfully');
-          this.router.navigate(['/agent/trips']);
+          this.router.navigate(['/agent/query-steptwo']);
         } else {
           this.toastr.error(res.Message);
         }
@@ -436,34 +490,102 @@ export class QueryStepone implements OnInit {
     this.router.navigate(['/agent/trips']);
   }
 
-  get showAddNewOption(): boolean {
-    const value = this.form.get('AgencyName')?.value?.toLowerCase()?.trim();
-    if(!value) return false;
-
-    return !this.agencyList().some(a =>
-      a.AgencyName.toLowerCase() === value
-    );
+  // ── Add Agency Modal ──────────────────────────────────────────────────────────
+  private emptyAgencyModel() {
+    return {
+      AgencyId:    0,
+      AgencyName:  '',
+      CityName:    '',
+      StateName:   '',
+      GstinNumber: '',
+      Status:      1,
+      CreatedBy:   Number(this.staffLogin?.StaffLoginId) || 0,
+      UpdatedBy:   Number(this.staffLogin?.StaffLoginId) || 0,
+    };
   }
-  showModal = false;
-AgencyModel: any = {
-  AgencyId: 0,
-  AgencyName: '',
-  CityName: '',
-  GstinNumber: '',
-  Status: 1
-};
 
-openAddAgencyModal(): void {
-  const name = this.form.get('AgencyName')?.value;
+  openAddAgencyModal(prefillName = ''): void {
+    this.AgencyModel = { ...this.emptyAgencyModel(), AgencyName: prefillName };
+    this.isModalSubmitted = false;
+    this.showModal.set(true);   // signal → OnPush picks it up
+    this.cdr.markForCheck();
+  }
 
-  this.AgencyModel = {
-    AgencyId: 0,
-    AgencyName: name,   // ✅ prefill
-    CityName: '',
-    GstinNumber: '',
-    Status: 1
-  };
+  closeModal(): void {
+    this.showModal.set(false);
+    this.isModalSubmitted = false;
+    this.AgencyModel = this.emptyAgencyModel();
+  }
 
-  this.showModal = true;
-}
+  saveAgency(): void {
+    this.isModalSubmitted = true;
+
+    if (!this.AgencyModel.AgencyName.trim()) {
+      this.toastr.error('Source name is required');
+      return;
+    }
+
+    const enc = (data: object): RequestModel => ({
+      request: this.localService.encrypt(JSON.stringify(data)).toString(),
+    });
+
+    this.dataLoading.set(true);
+
+    this.service.saveAgency(enc({
+      ...this.AgencyModel,
+      CreatedBy: Number(this.staffLogin?.StaffLoginId) || 0,
+      UpdatedBy: Number(this.staffLogin?.StaffLoginId) || 0,
+    })).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (r: any) => {
+        if (r.Message !== ConstantData.SuccessMessage) {
+          this.toastr.error(r.Message);
+          this.dataLoading.set(false);
+          return;
+        }
+
+        // Refresh agency list then auto-select the newly created entry
+        this.service.getAdminAgencyList(enc({ AgencyId: 0, Status: 0 })).pipe(
+          takeUntilDestroyed(this.destroyRef),
+        ).subscribe({
+          next: (agencyResponse: any) => {
+            const agencies: Agency[] = agencyResponse?.AgencyList ?? [];
+            this.agencyList.set(agencies);
+
+            const savedName = this.AgencyModel.AgencyName.trim().toLowerCase();
+            const created   = agencies.find(a =>
+              a.AgencyName?.trim().toLowerCase() === savedName
+            );
+
+            if (created) {
+              this.selectAgency(created);
+            } else {
+              this.form.patchValue({
+                AgencyName: this.AgencyModel.AgencyName,
+                AgencyCity: this.AgencyModel.CityName,
+              });
+            }
+
+            this.toastr.success('Source added successfully');
+            this.closeModal();
+            this.dataLoading.set(false);
+          },
+          error: () => {
+            this.form.patchValue({
+              AgencyName: this.AgencyModel.AgencyName,
+              AgencyCity: this.AgencyModel.CityName,
+            });
+            this.toastr.success('Source added. Could not refresh list.');
+            this.closeModal();
+            this.dataLoading.set(false);
+          },
+        });
+      },
+      error: () => {
+        this.toastr.error('Error while saving source');
+        this.dataLoading.set(false);
+      },
+    });
+  }
 }

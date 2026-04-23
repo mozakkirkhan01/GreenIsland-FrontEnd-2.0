@@ -46,3 +46,7 @@
   width: 20px;
   height: 20px;
 }
+.add-option-animated:hover .add-icon {
+      transform: rotate(90deg);
+      transition: transform 0.2s ease;
+    }
