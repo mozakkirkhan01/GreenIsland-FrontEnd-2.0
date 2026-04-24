@@ -89,6 +89,7 @@ export const routes: Routes = [
     children: [
       { path: 'trips', component: Trips},
       { path: 'query-stepone', component: QueryStepone},
+      { path: 'query-stepone/:id', component: QueryStepone},
       { path: 'query-steptwo/:id', component: QuerySteptwo }
     ]
   },

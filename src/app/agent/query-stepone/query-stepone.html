@@ -320,7 +320,7 @@
                   <div class="row g-3">
 
                     <!-- Guest search (shown only after agency is selected) -->
-                    @if (guestList().length > 0) {
+                    <!-- @if (guestList().length > 0) {
                       <div class="col-12 mb-1">
                         <mat-form-field appearance="outline" style="max-width:320px;">
                           <mat-label>Search existing guest</mat-label>
@@ -339,7 +339,7 @@
                           <mat-hint>Auto-fills fields below</mat-hint>
                         </mat-form-field>
                       </div>
-                    }
+                    } -->
 
                     <!-- Salutation -->
                     <div class="col-sm-2">
@@ -456,16 +456,17 @@
 
         <!-- Save / Cancel -->
         <div class="col-12 d-flex justify-content-center gap-3 pb-4">
-          <button mat-raised-button color="primary"
-                  type="submit"
-                  [disabled]="dataLoading()"
-                  style="min-width:140px;">
-            @if (dataLoading()) { Saving… } @else { Save Details }
-          </button>
-          <button mat-stroked-button type="button"
-                  (click)="cancel()" style="min-width:100px;">
-            Cancel
-          </button>
+         <!-- Replace the save button text: -->
+<button mat-raised-button color="primary"
+        type="submit"
+        [disabled]="dataLoading()"
+        style="min-width:140px;">
+  @if (dataLoading()) {
+    {{ QueryStepOneId > 0 ? 'Updating…' : 'Saving…' }}
+  } @else {
+    {{ QueryStepOneId > 0 ? 'Update Details' : 'Save Details' }}
+  }
+</button>
         </div>
 
       </div>

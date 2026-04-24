@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { forkJoin, BehaviorSubject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -104,6 +104,7 @@ export class QueryStepone implements OnInit {
   private readonly router       = inject(Router);
   private readonly destroyRef   = inject(DestroyRef);
   private readonly cdr          = inject(ChangeDetectorRef);
+  private readonly route        = inject(ActivatedRoute);
 
   // ── State signals ─────────────────────────────────────────────────────────────
   dataLoading      = signal(false);
@@ -176,11 +177,113 @@ export class QueryStepone implements OnInit {
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
+    this.QueryStepOneId = Number(this.route.snapshot.paramMap.get('id')) || 0;
     this.buildForm();
     this.setupAgencySearch();
     this.validateMenu();
     this.loadAllDropdowns();
+
+    //Load existing data if editing 
+    if(this.QueryStepOneId > 0) {
+      this.loadExistingQuery();
+    }
   }
+  get pageTitle(): string {
+  return this.QueryStepOneId > 0 ? 'Edit Query' : 'Add New Query';
+}
+  QueryStepOneId = 0;   // 0 = new, >0 = edit mode
+  private loadExistingQuery(): void {
+    this.dataLoading.set(true);
+    const enc = (data: object): RequestModel => ({
+      request: this.localService.encrypt(JSON.stringify(data)).toString(),
+    });
+
+    this.service.getQueryStepOneList(enc({ QueryStepOneId: this.QueryStepOneId}))
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: (r: any) => {
+        if(r.Message === ConstantData.SuccessMessage) {
+          const list = r.QueryStepOneList ?? [];
+          if(list.length > 0) {
+            this.patchFormWithExistingData(list[0]);
+            }
+        } else{
+          this.toastr.error(r.Message);
+        }
+        error: () => {
+          this.toastr.error('Error loading query for edit');
+          this.dataLoading.set(false);
+        }
+      }
+    });
+  }
+  private patchFormWithExistingData(item: any): void {
+  // Patch main form fields
+  this.form.patchValue({
+    QueryStepOneId:    item.QueryStepOneId,
+    AgencyId:          item.AgencyId          ?? 0,
+    AgencyName:        item.AgencyName         ?? '',
+    AgencyCity:        item.CityName           ?? '',
+    GuestId:           item.GuestId            ?? 0,
+    Salutation:        item.Salutation         ?? 'Mr.',
+    ContactName:       item.ContactName        ?? '',
+    CountryCode:       item.CountryCode        ?? '91-IN',
+    Phone:             item.Phone              ?? '',
+    Email:             item.Email              ?? '',
+    QuerySource:       item.QuerySource        ?? '',
+    ReferenceId:       item.ReferenceId        ?? '',
+    AssignedToLoginId: Number(item.AssignedToLoginId) || 0,
+    DestinationId:     item.DestinationId      ?? 0,
+    StartDate:         item.StartDate
+                         ? new Date(item.StartDate)
+                         : null,
+    NoOfNights:        item.NoOfNights         ?? 1,
+    NoOfAdults:        item.NoOfAdults         ?? 1,
+    OriginCity:        item.OriginCity         ?? '',
+    Nationality:       item.Nationality        ?? '',
+    Comments:          item.Comments           ?? '',
+    TripStatus:        item.TripStatus         ?? 1,
+  });
+
+  // Patch children ages FormArray
+  const childrenArray = this.childrenFormArray;
+  childrenArray.clear();
+  if (item.ChildrenAges) {
+    try {
+      const ages: number[] = JSON.parse(item.ChildrenAges);
+      ages.forEach(age => {
+        const label = age === 0 ? '<1y' : `${age}y`;
+        childrenArray.push(this.fb.control(label));
+      });
+    } catch { }
+  }
+
+  // Patch selected tags
+  const tagIds: number[] = item.TagIds ?? [];
+  this.selectedTagIds.set(tagIds);
+
+  // Load guests for this agency so autocomplete works
+  if (item.AgencyId > 0) {
+    const enc = (data: object): RequestModel => ({
+      request: this.localService.encrypt(JSON.stringify(data)).toString(),
+    });
+    this.service.getGuestByAgency(enc({ AgencyId: item.AgencyId }))
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            this.guestList.set(r.GuestList ?? []);
+            this.filteredGuests = r.GuestList ?? [];
+            this.cdr.markForCheck();
+          }
+        }
+      });
+  }
+
+  // Trigger agency filter so dropdown shows correct value
+  this.agencySearch$.next(item.AgencyName ?? '');
+  this.cdr.markForCheck();
+}
 
   // ── Form ──────────────────────────────────────────────────────────────────────
   private buildForm(): void {
@@ -471,10 +574,16 @@ export class QueryStepone implements OnInit {
     ).subscribe({
       next: (r: any) => {
         const res = r as SaveResponse;
-        if (res.Message === ConstantData.SuccessMessage) {
-          this.toastr.success('Query saved successfully');
-          this.router.navigate(['/agent/query-steptwo']);
-        } else {
+// Replace the success navigate line:
+if (res.Message === ConstantData.SuccessMessage) {
+  this.toastr.success(
+    this.QueryStepOneId > 0
+      ? 'Query updated successfully'
+      : 'Query saved successfully'
+  );
+  const savedId = res.QueryStepOneId ?? this.QueryStepOneId;
+  this.router.navigate(['/agent/query-steptwo', savedId]);
+}else {
           this.toastr.error(res.Message);
         }
         this.dataLoading.set(false);

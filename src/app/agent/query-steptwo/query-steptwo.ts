@@ -368,6 +368,15 @@ export class QuerySteptwo implements OnInit {
     { code: '971-AE', label: '971-AE' },
     { code: '65-SG', label: '65-SG' },
   ];
+  editQuery(obj: any)
+  {
+    const queryId = Number(obj) || this.QueryStepOneId;
+    if (!queryId) {
+      this.toastr.error('Query ID not found');
+      return;
+    }
+    this.router.navigate(['/agent/query-stepone', queryId]);
+  }
 
   // ── Replace editTrip() with this ─────────────────────────────
   editGuest(): void {
