@@ -326,7 +326,7 @@ export class QuerySteptwo implements OnInit {
 
   // ── Navigation ────────────────────────────────────────
   goBack(): void {
-    this.router.navigate(['/admin/trips']);
+    this.router.navigate(['/agent/query-stepone', this.QueryStepOneId]);
   }
 
   // editTrip(): void {
@@ -340,7 +340,7 @@ export class QuerySteptwo implements OnInit {
   }
 
   createCustomQuotation(): void {
-    this.router.navigate(['/admin/query-stepthree', this.QueryStepOneId]);
+    this.router.navigate(['/agent/query-stepthree', this.QueryStepOneId]);
   }
 
   timeAgo(dateStr: string): string {
@@ -358,6 +358,7 @@ export class QuerySteptwo implements OnInit {
 
   showTouristModal = signal(false);
   touristRows = signal<TouristRow[]>([]);
+  deletedTouristRows = signal<TouristRow[]>([]);
   touristTab = 0;   // 0=Tourists, 1=Tourist Groups
   savingTourists = signal(false);
 
@@ -368,8 +369,7 @@ export class QuerySteptwo implements OnInit {
     { code: '971-AE', label: '971-AE' },
     { code: '65-SG', label: '65-SG' },
   ];
-  editQuery(obj: any)
-  {
+  editQuery(obj: any) {
     const queryId = Number(obj) || this.QueryStepOneId;
     if (!queryId) {
       this.toastr.error('Query ID not found');
@@ -391,44 +391,49 @@ export class QuerySteptwo implements OnInit {
   closeTouristModal(): void {
     this.showTouristModal.set(false);
     this.touristRows.set([]);
+    this.deletedTouristRows.set([]);
   }
 
-  loadTouristsForTrip(): void {
-    const trip = this.tripDetail();
-    if (!trip) return;
+loadTouristsForTrip(): void {
+  const trip = this.tripDetail();
+  if (!trip) return;
 
-    const obj: RequestModel = {
-      request: this.local.encrypt(
-        JSON.stringify({ AgencyId: trip.AgencyId ?? 0 })
-      ).toString()
-    };
-    this.service.getGuestByAgency(obj).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          const rows: TouristRow[] = (r.GuestList ?? []).map((g: any) => ({
-            GuestId: g.GuestId,
-            AgencyId: g.AgencyId,
-            Salutation: g.Salutation ?? 'Mr.',
+  const obj: RequestModel = {
+    request: this.local.encrypt(
+      JSON.stringify({
+        AgencyId: trip.AgencyId,
+        QueryStepOneId: this.QueryStepOneId,  // ← key change
+      })
+    ).toString()
+  };
+
+  this.service.getGuestByTrip(obj).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        const rows: TouristRow[] = (r.GuestList ?? [])
+          .filter((g: any) => (g.Status ?? 1) !== 0)
+          .map((g: any) => ({
+            GuestId:     g.GuestId,
+            AgencyId:    g.AgencyId,
+            Salutation:  g.Salutation  ?? 'Mr.',
             ContactName: g.ContactName ?? '',
             CountryCode: g.CountryCode ?? '91-IN',
-            Phone: g.Phone ?? '',
-            Email: g.Email ?? '',
-            IsPrimary: g.IsPrimary ?? false,
-            Status: g.Status ?? 1,
-            CreatedBy: this.staffLogin.StaffLoginId,
-            UpdatedBy: this.staffLogin.StaffLoginId,
-            IsExpanded: false,
-            IsNew: false,
+            Phone:       g.Phone       ?? '',
+            Email:       g.Email       ?? '',
+            IsPrimary:   g.IsPrimary   ?? false,
+            Status:      g.Status      ?? 1,
+            CreatedBy:   this.staffLogin.StaffLoginId,
+            UpdatedBy:   this.staffLogin.StaffLoginId,
+            IsExpanded:  false,
+            IsNew:       false,
           }));
-          // Expand first row by default
-          if (rows.length > 0) rows[0].IsExpanded = false;
-          this.touristRows.set(rows);
-        }
-      },
-      error: () => this.toastr.error('Error loading tourists')
-    });
-  }
-
+        this.touristRows.set(rows);
+        this.deletedTouristRows.set([]);
+      }
+    },
+    error: () => this.toastr.error('Error loading tourists')
+  });
+}
   addTouristRow(): void {
     const trip = this.tripDetail();
     this.touristRows.update(rows => [
@@ -454,13 +459,17 @@ export class QuerySteptwo implements OnInit {
   removeTouristRow(index: number): void {
     const rows = this.touristRows();
     const row = rows[index];
+    if (!row) return;
+
     if (row.GuestId > 0) {
-      // soft delete — just remove from UI for now
-      // wire to deleteGuest API if needed
+      this.deletedTouristRows.update(list => [
+        ...list,
+        { ...row, Status: 0, UpdatedBy: this.staffLogin.StaffLoginId, IsExpanded: false, IsNew: false }
+      ]);
     }
+
     this.touristRows.update(r => r.filter((_, i) => i !== index));
   }
-
   toggleExpand(index: number): void {
     this.touristRows.update(rows =>
       rows.map((r, i) => i === index ? { ...r, IsExpanded: !r.IsExpanded } : r)
@@ -468,6 +477,58 @@ export class QuerySteptwo implements OnInit {
   }
 
   saveTourists(): void {
+    if (this.deletedTouristRows !== undefined) {
+      const rows = this.touristRows();
+      const deletedRows = this.deletedTouristRows();
+
+      const invalid = rows.find(r => r.Status !== 0 && (!r.ContactName?.trim() || !r.Phone?.trim()));
+      if (invalid) {
+        this.toastr.error('Please fill Name and Phone for all tourists');
+        return;
+      }
+
+      this.savingTourists.set(true);
+
+const obj: RequestModel = {
+  request: this.local.encrypt(
+    JSON.stringify({
+      QueryStepOneId: this.QueryStepOneId,   // ← add this
+      Guests: [...rows, ...deletedRows].map(r => ({
+        GuestId: r.GuestId,
+        AgencyId: r.AgencyId,
+        Salutation: r.Salutation,
+        ContactName: r.ContactName,
+        CountryCode: r.CountryCode,
+        Phone: r.Phone,
+        Email: r.Email,
+        IsPrimary: r.IsPrimary,
+        Status: r.Status ?? 1,
+        CreatedBy: r.CreatedBy,
+        UpdatedBy: r.UpdatedBy,
+      }))
+    })
+  ).toString()
+};
+
+      this.service.saveGuestList(obj).subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            this.toastr.success('Tourists saved successfully');
+            this.deletedTouristRows.set([]);
+            this.closeTouristModal();
+            this.loadTripDetail();
+          } else {
+            this.toastr.error(r.Message);
+          }
+          this.savingTourists.set(false);
+        },
+        error: () => {
+          this.toastr.error('Error saving tourists');
+          this.savingTourists.set(false);
+        }
+      });
+      return;
+    }
     const rows = this.touristRows();
 
     const invalid = rows.find(r => !r.ContactName?.trim() || !r.Phone?.trim());
@@ -489,7 +550,7 @@ export class QuerySteptwo implements OnInit {
           Phone: r.Phone,
           Email: r.Email,
           IsPrimary: r.IsPrimary,
-          Status: 1,
+          Status: r.Status ?? 1,   // 0 = deleted rows will carry Status:0
           CreatedBy: r.CreatedBy,
           UpdatedBy: r.UpdatedBy,
         })))

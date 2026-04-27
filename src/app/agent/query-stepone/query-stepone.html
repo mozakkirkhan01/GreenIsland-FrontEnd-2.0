@@ -377,13 +377,23 @@
                           </mat-select>
                         </mat-form-field>
 
-                        <mat-form-field appearance="outline" class="flex-grow-1">
-                          <mat-label>Phone Number</mat-label>
-                          <input matInput formControlName="Phone">
-                          @if (form.get('Phone')?.invalid && form.get('Phone')?.touched) {
-                            <mat-error>Phone number is <strong>required</strong></mat-error>
-                          }
-                        </mat-form-field>
+<mat-form-field appearance="outline" class="flex-grow-1">
+  <mat-label>Phone Number</mat-label>
+
+  <input
+    matInput
+    formControlName="Phone"
+    type="tel"
+    inputmode="numeric"
+    maxlength="10"
+    pattern="[0-9]*"
+    (keypress)="allowOnlyNumbers($event)"
+  >
+
+  @if (form.get('Phone')?.invalid && form.get('Phone')?.touched) {
+    <mat-error>Phone number is <strong>required</strong></mat-error>
+  }
+</mat-form-field>
                       </div>
                     </div>
 

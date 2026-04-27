@@ -9,7 +9,6 @@ import { ToastrService } from 'ngx-toastr';
 import { forkJoin, BehaviorSubject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -217,8 +216,7 @@ export class QueryStepone implements OnInit {
       }
     });
   }
-  private patchFormWithExistingData(item: any): void {
-  // Patch main form fields
+private patchFormWithExistingData(item: any): void {
   this.form.patchValue({
     QueryStepOneId:    item.QueryStepOneId,
     AgencyId:          item.AgencyId          ?? 0,
@@ -234,9 +232,7 @@ export class QueryStepone implements OnInit {
     ReferenceId:       item.ReferenceId        ?? '',
     AssignedToLoginId: Number(item.AssignedToLoginId) || 0,
     DestinationId:     item.DestinationId      ?? 0,
-    StartDate:         item.StartDate
-                         ? new Date(item.StartDate)
-                         : null,
+    StartDate:         item.StartDate ? new Date(item.StartDate) : null,
     NoOfNights:        item.NoOfNights         ?? 1,
     NoOfAdults:        item.NoOfAdults         ?? 1,
     OriginCity:        item.OriginCity         ?? '',
@@ -245,7 +241,7 @@ export class QueryStepone implements OnInit {
     TripStatus:        item.TripStatus         ?? 1,
   });
 
-  // Patch children ages FormArray
+  // Patch children ages
   const childrenArray = this.childrenFormArray;
   childrenArray.clear();
   if (item.ChildrenAges) {
@@ -258,29 +254,31 @@ export class QueryStepone implements OnInit {
     } catch { }
   }
 
-  // Patch selected tags
-  const tagIds: number[] = item.TagIds ?? [];
-  this.selectedTagIds.set(tagIds);
+  // Patch tags
+  this.selectedTagIds.set(item.TagIds ?? []);
 
-  // Load guests for this agency so autocomplete works
+  // ── Load trip-linked guests (not all agency guests) ──
   if (item.AgencyId > 0) {
     const enc = (data: object): RequestModel => ({
       request: this.localService.encrypt(JSON.stringify(data)).toString(),
     });
-    this.service.getGuestByAgency(enc({ AgencyId: item.AgencyId }))
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r: any) => {
-          if (r.Message === ConstantData.SuccessMessage) {
-            this.guestList.set(r.GuestList ?? []);
-            this.filteredGuests = r.GuestList ?? [];
-            this.cdr.markForCheck();
-          }
+
+    this.service.getGuestByAgency(enc({
+      AgencyId:       item.AgencyId,
+      QueryStepOneId: item.QueryStepOneId,  // ← key change
+    }))
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.guestList.set(r.GuestList ?? []);
+          this.filteredGuests = r.GuestList ?? [];
+          this.cdr.markForCheck();
         }
-      });
+      }
+    });
   }
 
-  // Trigger agency filter so dropdown shows correct value
   this.agencySearch$.next(item.AgencyName ?? '');
   this.cdr.markForCheck();
 }
@@ -697,4 +695,13 @@ if (res.Message === ConstantData.SuccessMessage) {
       },
     });
   }
+allowOnlyNumbers(event: KeyboardEvent): void {
+  const charCode = event.which ? event.which : event.keyCode;
+
+  // Allow only numbers (0–9)
+  if (charCode < 48 || charCode > 57) {
+    event.preventDefault();
+  }
+}
+
 }

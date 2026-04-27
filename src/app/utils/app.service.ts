@@ -339,6 +339,7 @@ export class AppService {
   }
 
   /* ---------------------------------------------------------------------- */
+  
   /* ---------------------------------------------------------------------- */
 
 // TripComment
@@ -351,11 +352,65 @@ saveTripComment(obj: any) {
 }
   /* ---------------------------------------------------------------------- */
   /* ---------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------------- */
+
+// Quote Step Three
+getQuoteDetail(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/QuoteDetail", obj, { headers: this.headers })
+}
+
+savePackageTypes(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/savePackageTypes", obj, { headers: this.headers })
+}
+
+saveQuoteHotel(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/saveQuoteHotel", obj, { headers: this.headers })
+}
+
+deleteQuoteHotel(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/deleteQuoteHotel", obj, { headers: this.headers })
+}
+
+saveQuoteService(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/saveQuoteService", obj, { headers: this.headers })
+}
+
+deleteQuoteService(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/deleteQuoteService", obj, { headers: this.headers })
+}
+
+saveQuote(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/saveQuote", obj, { headers: this.headers })
+}
+
+getHotelRateByDate(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/HotelRateByDate", obj, { headers: this.headers })
+}
+
+getVehicleRateByDate(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/VehicleRateByDate", obj, { headers: this.headers })
+}
+
+getActivityRateByDate(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/ActivityRateByDate", obj, { headers: this.headers })
+}
+
+
+
+
+
+
+  /* ---------------------------------------------------------------------- */
 
 // Guest
 // getGuestByAgency(obj: any) {
 //   return this.http.post(this.apiUrl + "Guest/GuestByAgency", obj, { headers: this.headers })
 // }
+getGuestByTrip(obj: any){
+  return this.http.post(this.apiUrl + "Guest/GuestByTrip",obj, { headers: this.headers})
+}
 
 saveGuestList(obj: any) {
   return this.http.post(this.apiUrl + "Guest/saveGuestList", obj, { headers: this.headers })
