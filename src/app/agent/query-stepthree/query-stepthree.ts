@@ -230,7 +230,6 @@ export class QueryStepthree implements OnInit {
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
 
-    // First load trip + quote detail
     this.service.getQuoteDetail(
       enc({ QueryStepOneId: this.QueryStepOneId, QuoteId: this.QuoteId })
     ).subscribe({
@@ -240,6 +239,9 @@ export class QueryStepthree implements OnInit {
           this.loading.set(false);
           return;
         }
+
+        // ✅ Read DestinationId DIRECTLY from raw response
+        const destId = r.TripInfo?.DestinationId ?? 0;
 
         // Set trip info
         if (r.TripInfo) {
@@ -254,7 +256,7 @@ export class QueryStepthree implements OnInit {
           });
         }
 
-        // Set quote ID if exists
+        // Set quote
         if (r.Quote) {
           this.QuoteId = r.Quote.QuoteId;
           this.internalNotes = r.Quote.InternalNotes ?? '';
@@ -264,30 +266,38 @@ export class QueryStepthree implements OnInit {
         // Set package types
         this.packageTypes.set(r.PackageTypes ?? []);
         if (this.packageTypes().length > 0) {
-          this.activePackageTypeId = this.packageTypes()[0].QuotePackageTypeId;
+          this.activePackageTypeId =
+            this.packageTypes()[0].QuotePackageTypeId;
         }
 
-        // Set existing hotel rows
+        // Set hotel + service rows
         if (r.Hotels?.length > 0) {
-          this.hotelRows.set(
-            r.Hotels.map((h: any) => this.mapHotelRow(h))
-          );
+          this.hotelRows.set(r.Hotels.map((h: any) => this.mapHotelRow(h)));
         }
-
-        // Set existing service rows
         if (r.Services?.length > 0) {
-          this.serviceRows.set(
-            r.Services.map((s: any) => this.mapServiceRow(s))
-          );
+          this.serviceRows.set(r.Services.map((s: any) => this.mapServiceRow(s)));
         }
 
-        // Now load master dropdowns
-        const destId = this.tripInfo()?.DestinationId ?? 0;
+        // ✅ Now load master dropdowns using correct destId
+        if (destId === 0) {
+          this.toastr.warning('Destination not found for this trip');
+          this.loading.set(false);
+          return;
+        }
+
         forkJoin({
-          hotels: this.service.getHotelList(enc({ DestinationId: destId })),
-          itinerary: this.service.getIteneraryServiceList(enc({ DestinationId: destId, LocationId: 0 })),
-          activities: this.service.getActivityServiceList(enc({ DestinationId: destId })),
-          vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
+          hotels: this.service.getHotelList(
+            enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })
+          ),
+          itinerary: this.service.getIteneraryServiceList(
+            enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })
+          ),
+          activities: this.service.getActivityServiceList(
+            enc({ DestinationId: destId, LocationId: 0 })
+          ),
+          vehicles: this.service.getVehicleTypeList(
+            enc({ DestinationId: destId })
+          ),
         }).subscribe({
           next: ({ hotels, itinerary, activities, vehicles }) => {
             const h = hotels as any;
@@ -295,10 +305,22 @@ export class QueryStepthree implements OnInit {
             const a = activities as any;
             const v = vehicles as any;
 
-            if (h.Message === ConstantData.SuccessMessage) this.hotelList.set(h.HotelList ?? []);
-            if (i.Message === ConstantData.SuccessMessage) this.itineraryList.set(i.IteneraryServiceList ?? []);
-            if (a.Message === ConstantData.SuccessMessage) this.activityList.set(a.ActivityServiceList ?? []);
-            if (v.Message === ConstantData.SuccessMessage) this.vehicleTypeList.set(v.VehicleTypeList ?? []);
+            if (h.Message === ConstantData.SuccessMessage) {
+              this.hotelList.set(h.HotelList ?? []);
+              console.log('Hotels loaded:', h.HotelList?.length, 'for destId:', destId);
+            } else {
+              this.toastr.warning('No hotels found: ' + h.Message);
+            }
+
+            if (i.Message === ConstantData.SuccessMessage) {
+              this.itineraryList.set(i.IteneraryServiceList ?? []);
+            }
+            if (a.Message === ConstantData.SuccessMessage) {
+              this.activityList.set(a.ActivityServiceList ?? []);
+            }
+            if (v.Message === ConstantData.SuccessMessage) {
+              this.vehicleTypeList.set(v.VehicleTypeList ?? []);
+            }
 
             this.loading.set(false);
           },
