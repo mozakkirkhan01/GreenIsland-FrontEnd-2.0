@@ -36,6 +36,7 @@ import { Template } from './admin/template/template';
 import { QueryStepone } from './agent/query-stepone/query-stepone';
 import { Agency } from './admin/agency/agency';
 import { QuerySteptwo } from './agent/query-steptwo/query-steptwo';
+import { QueryStepthree } from './agent/query-stepthree/query-stepthree';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -90,7 +91,8 @@ export const routes: Routes = [
       { path: 'trips', component: Trips},
       { path: 'query-stepone', component: QueryStepone},
       { path: 'query-stepone/:id', component: QueryStepone},
-      { path: 'query-steptwo/:id', component: QuerySteptwo }
+      { path: 'query-steptwo/:id', component: QuerySteptwo },
+      { path: 'query-stepthree/:id', component: QueryStepthree},
     ]
   },
 
