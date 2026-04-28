@@ -308,6 +308,8 @@ export class QueryStepthree implements OnInit {
             if (h.Message === ConstantData.SuccessMessage) {
               this.hotelList.set(h.HotelList ?? []);
               console.log('Hotels loaded:', h.HotelList?.length, 'for destId:', destId);
+              console.log('Hotel IDs:', h.HotelList?.map((x: any) => x.HotelId));
+              console.log('Full hotel list:', h.HotelList);
             } else {
               this.toastr.warning('No hotels found: ' + h.Message);
             }
@@ -330,8 +332,11 @@ export class QueryStepthree implements OnInit {
           }
         });
       },
-      error: () => {
-        this.toastr.error('Error loading quote');
+      // AFTER
+      error: (err: any) => {
+        console.error('getQuoteDetail HTTP error:', err);
+        console.error('Status:', err.status);
+        this.toastr.error('Error loading quote: ' + err.status);
         this.loading.set(false);
       }
     });
@@ -470,26 +475,97 @@ export class QueryStepthree implements OnInit {
   }
 
   onHotelSelected(row: QuoteHotelRow): void {
-    // Load room types for this hotel
-    const hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
-    if (hotel) {
-      row.HotelName = hotel.HotelName;
-      row.LocationName = hotel.LocationName;
-      row.HotelCategoryName = hotel.HotelCategoryName;
-      // Load room types
-      const enc = (d: object): RequestModel => ({
-        request: this.local.encrypt(JSON.stringify(d)).toString()
-      });
-      this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
-        next: (r: any) => {
-          if (r.Message === ConstantData.SuccessMessage) {
-            row.RoomTypes = r.RoomTypeList ?? [];
-            row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
-            this.lookupHotelRate(row);
+    console.log('=== onHotelSelected START ===');
+    console.log('Selected HotelId:', row.HotelId);
+    console.log('HotelList count:', this.hotelList().length);
+
+    // Try to find in current hotelList
+    let hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
+    console.log('Hotel found in hotelList:', hotel);
+
+    if (!hotel) {
+      // If not found, the row might already have the hotel info from previous load
+      console.log('Hotel not in fresh list. Using existing row data.');
+      console.log('Row HotelName:', row.HotelName, 'LocationName:', row.LocationName);
+
+      // If row already has hotel info, just load room types
+      if (row.HotelId > 0) {
+        const enc = (d: object): RequestModel => ({
+          request: this.local.encrypt(JSON.stringify(d)).toString()
+        });
+
+        console.log('Calling getRoomTypeList for HotelId:', row.HotelId);
+
+        this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
+          next: (r: any) => {
+            console.log('getRoomTypeList response:', r);
+
+            if (r.Message === ConstantData.SuccessMessage) {
+              row.RoomTypes = r.RoomTypeList ?? [];
+              console.log('RoomTypes assigned. Count:', row.RoomTypes.length);
+              console.log('RoomTypes data:', row.RoomTypes);
+
+              row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
+              console.log('RoomTypeId set to:', row.RoomTypeId);
+
+              // ✅ Force signal update so Angular re-renders the dropdown
+              this.hotelRows.update(rows => [...rows]);
+              console.log('Signal updated');
+
+              this.lookupHotelRate(row);
+            } else {
+              console.error('API error:', r.Message);
+              this.toastr.error('Failed to load room types: ' + r.Message);
+            }
+          },
+          error: (err) => {
+            console.error('HTTP error in getRoomTypeList:', err);
+            this.toastr.error('Error loading room types');
           }
-        }
-      });
+        });
+      }
+      return;
     }
+
+    // Hotel found in list - populate its details
+    row.HotelName = hotel.HotelName;
+    row.LocationName = hotel.LocationName;
+    row.HotelCategoryName = hotel.HotelCategoryName;
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    console.log('Calling getRoomTypeList for HotelId:', row.HotelId);
+
+    this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
+      next: (r: any) => {
+        console.log('getRoomTypeList response:', r);
+
+        if (r.Message === ConstantData.SuccessMessage) {
+          row.RoomTypes = r.RoomTypeList ?? [];
+          console.log('RoomTypes assigned. Count:', row.RoomTypes.length);
+          console.log('RoomTypes data:', row.RoomTypes);
+
+          row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
+          console.log('RoomTypeId set to:', row.RoomTypeId);
+
+          // ✅ Force signal update so Angular re-renders the dropdown
+          this.hotelRows.update(rows => [...rows]);
+          console.log('Signal updated');
+
+          this.lookupHotelRate(row);
+        } else {
+          console.error('API error:', r.Message);
+          this.toastr.error('Failed to load room types: ' + r.Message);
+        }
+      },
+      error: (err) => {
+        console.error('HTTP error in getRoomTypeList:', err);
+        this.toastr.error('Error loading room types');
+      }
+    });
+    console.log('=== onHotelSelected END ===');
   }
 
   lookupHotelRate(row: QuoteHotelRow): void {
@@ -765,5 +841,14 @@ export class QueryStepthree implements OnInit {
 
   setActivePackage(id: number): void {
     this.activePackageTypeId = id;
+  }
+
+  editBasicDetail(obj: any) {
+    const queryId = Number(obj) || this.QueryStepOneId;
+    if (!queryId) {
+      this.toastr.error('Query ID not found');
+      return;
+    }
+    this.router.navigate(['/agent/query-stepone', queryId]);
   }
 }
