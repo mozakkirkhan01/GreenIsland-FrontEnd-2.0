@@ -5,70 +5,72 @@
 
   @if (tripInfo(); as trip) {
 
-  <!-- ── Basic Details ──────────────────────────────────── -->
-  <div class="bg-white border-bottom px-4 py-3">
-    <div class="fw-bold fs-5 mb-1">Basic Details</div>
-    <div class="text-muted small mb-3">
-      Please review basic details for this quote. You can edit these details
-      to provide a quote with different configuration.
-    </div>
-    <div class="d-flex align-items-center gap-5 flex-wrap">
-      <div>
-        <div class="text-muted small text-uppercase fw-semibold"
-             style="font-size:10px; letter-spacing:0.5px;">Destination</div>
-        <div class="fw-bold">{{ trip.DestinationName }}</div>
-      </div>
-      <div>
-        <div class="text-muted small text-uppercase fw-semibold"
-             style="font-size:10px; letter-spacing:0.5px;">Start Date</div>
-        <div class="fw-bold">
-          {{ trip.StartDate | date:'dd MMM, yyyy' }}
-        </div>
-      </div>
-      <div>
-        <div class="text-muted small text-uppercase fw-semibold"
-             style="font-size:10px; letter-spacing:0.5px;">Duration</div>
-        <div class="fw-bold">
-          {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
-          {{ trip.NoOfNights + 1 }} Days
-        </div>
-      </div>
-      <div>
-        <div class="text-muted small text-uppercase fw-semibold"
-             style="font-size:10px; letter-spacing:0.5px;">PAX</div>
-        <div class="fw-bold">{{ paxLabel }}</div>
-      </div>
-    </div>
-
-    <!-- Package Types row -->
-    <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
-      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2"
-           style="font-size:13px;">
-        <span class="fw-medium">
-          Package Types/Categories:
-          {{ packageTypes().length }} Option{{ packageTypes().length !== 1 ? 's' : '' }}
-        </span>
-        <button mat-icon-button style="width:24px;height:24px;line-height:24px;"
-                (click)="openPkgModal()" matTooltip="Edit package types">
-          <mat-icon style="font-size:14px;">edit</mat-icon>
-        </button>
-      </div>
-
-      <!-- Package type tabs -->
-      @if (packageTypes().length > 1) {
-        <div class="d-flex gap-2 flex-wrap">
-          @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
-            <button class="btn btn-sm"
-                    [class.btn-primary]="activePackageTypeId === pkg.QuotePackageTypeId"
-                    [class.btn-outline-secondary]="activePackageTypeId !== pkg.QuotePackageTypeId"
-                    (click)="setActivePackage(pkg.QuotePackageTypeId)">
-              {{ pkg.PackageTypeName }}
-            </button>
-          }
-        </div>
-      }
-    </div>
+<!-- ── Basic Details card ──────────────────────────────── -->
+<div class="bg-white border-bottom px-4 py-3">
+  <div class="fw-bold fs-5 mb-1">Basic Details</div>
+  <div class="text-muted small mb-3">
+    Please review basic details for this quote. You can edit these details
+    to provide a quote with different configuration, without changing the trip details.
   </div>
+
+  <div class="d-flex align-items-center gap-5 flex-wrap mb-3">
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold"
+           style="font-size:10px; letter-spacing:0.5px;">Quotation No</div>
+      <div class="fw-bold">{{ formatQuotationNo(trip.QuotationNo) }}</div>
+    </div>
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold"
+           style="font-size:10px; letter-spacing:0.5px;">Destination</div>
+      <div class="fw-bold">{{ trip.DestinationName }}</div>
+    </div>
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold"
+           style="font-size:10px; letter-spacing:0.5px;">Start Date</div>
+      <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
+    </div>
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold"
+           style="font-size:10px; letter-spacing:0.5px;">Duration</div>
+      <div class="fw-bold">
+        {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
+        {{ trip.NoOfNights + 1 }} Days
+      </div>
+    </div>
+    <div>
+      <div class="text-muted small text-uppercase fw-semibold"
+           style="font-size:10px; letter-spacing:0.5px;">PAX</div>
+      <div class="fw-bold">{{ paxLabel }}</div>
+    </div>
+    <button class="btn btn-link btn-sm text-primary p-0" (click)="editBasicDetail(QueryStepOneId)"
+            style="font-size:13px; text-decoration:none;">
+      Edit Basic Details
+    </button>
+  </div>
+
+  <!-- Package Types row -->
+  <div class="border rounded px-3 py-2 d-flex align-items-center gap-3"
+       style="background:#f8f9fa; font-size:13px;">
+    <span class="fw-medium">
+      Package Types/Categories:
+      <strong>{{ packageTypes().length }} Option{{ packageTypes().length !== 1 ? 's' : '' }}</strong>
+    </span>
+    <button mat-icon-button style="width:24px;height:24px;line-height:24px;"
+            (click)="openPkgModal()" matTooltip="Edit package types">
+      <mat-icon style="font-size:14px;">edit</mat-icon>
+    </button>
+
+    <!-- Show all package names inline -->
+    @if (packageTypes().length > 0) {
+      <span class="text-muted">
+        @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let i = $index) {
+          {{ i + 1 }}: {{ pkg.PackageTypeName }}
+          @if (i < packageTypes().length - 1) { &bull; }
+        }
+      </span>
+    }
+  </div>
+</div>
 
   <!-- ── Body ──────────────────────────────────────────── -->
   <div class="px-4 py-3">
@@ -111,7 +113,7 @@
                   <label class="form-label small text-muted mb-1">Hotel</label>
                   <select class="form-select form-select-sm"
                           [(ngModel)]="row.HotelId"
-                          (ngModelChange)="onHotelSelected(row)">
+                          (ngModelChange)="markDirty(); onHotelSelected(row)">
                     <option [value]="0">Select hotel…</option>
                     @for (h of hotelList(); track h.HotelId) {
                       <option [value]="h.HotelId">{{ h.HotelName }}</option>
@@ -129,7 +131,7 @@
                   <label class="form-label small text-muted mb-1">Meal Plan</label>
                   <select class="form-select form-select-sm"
                           [(ngModel)]="row.MealPlan"
-                          (ngModelChange)="lookupHotelRate(row)">
+                          (ngModelChange)="markDirty(); lookupHotelRate(row)">
                     <option value="CP">CP</option>
                     <option value="MAP">MAP</option>
                     <option value="AP">AP</option>
@@ -141,7 +143,7 @@
                   <label class="form-label small text-muted mb-1">Room Type</label>
                   <select class="form-select form-select-sm"
                           [(ngModel)]="row.RoomTypeId"
-                          (ngModelChange)="lookupHotelRate(row)">
+                          (ngModelChange)="markDirty(); lookupHotelRate(row)">
                     <option [value]="0">Select room…</option>
                     @for (rt of row.RoomTypes; track rt.RoomTypeId) {
                       <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
@@ -165,31 +167,41 @@
                       <label class="form-label small text-muted mb-1">Pax/room (WoEB)</label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:70px;"
-                             [(ngModel)]="row.PaxPerRoom" min="1">
+                             [(ngModel)]="row.PaxPerRoom" 
+                             (ngModelChange)="markDirty()"
+                             min="1">
                     </div>
                     <div>
                       <label class="form-label small text-muted mb-1">No. of rooms</label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:70px;"
-                             [(ngModel)]="row.NoOfRooms" min="1">
+                             [(ngModel)]="row.NoOfRooms" 
+                             (ngModelChange)="markDirty()"
+                             min="1">
                     </div>
                     <div>
                       <label class="form-label small text-muted mb-1">AWEB</label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:60px;"
-                             [(ngModel)]="row.AWEB" min="0">
+                             [(ngModel)]="row.AWEB" 
+                             (ngModelChange)="markDirty()"
+                             min="0">
                     </div>
                     <div>
                       <label class="form-label small text-muted mb-1">CWEB</label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:60px;"
-                             [(ngModel)]="row.CWEB" min="0">
+                             [(ngModel)]="row.CWEB" 
+                             (ngModelChange)="markDirty()"
+                             min="0">
                     </div>
                     <div>
                       <label class="form-label small text-muted mb-1">CNB</label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:60px;"
-                             [(ngModel)]="row.CNB" min="0">
+                             [(ngModel)]="row.CNB" 
+                             (ngModelChange)="markDirty()"
+                             min="0">
                     </div>
                   </div>
                 </div>
@@ -203,7 +215,8 @@
                       </label>
                       <input type="number" class="form-control form-control-sm"
                              style="width:120px;"
-                             [(ngModel)]="row.CostPrice">
+                             [(ngModel)]="row.CostPrice"
+                             (ngModelChange)="markDirty()">
                     </div>
                     <div>
                       <label class="form-label small text-muted mb-1">
@@ -212,6 +225,7 @@
                       <input type="number" class="form-control form-control-sm"
                              style="width:120px;"
                              [(ngModel)]="row.SellingPrice"
+                             (ngModelChange)="markDirty()"
                              (blur)="saveHotelRow(row)">
                     </div>
                     @if (row.IsSaving) {
@@ -246,421 +260,25 @@
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-3 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center
-                      justify-content-center text-white flex-shrink-0"
-               style="width:40px; height:40px;">
-            <i class="bx bx-car fs-5"></i>
-          </div>
-          <div>
-            <div class="fw-bold fs-6">Transports and Activities</div>
-            <div class="text-muted small">
-              Please add the transportation services and Activities (if included)
-              details and the selling cost price for each service.
-            </div>
-          </div>
-        </div>
 
-        <!-- Same cab for all -->
-        <div class="mb-3 p-2 border rounded d-flex align-items-center gap-3"
-             style="background:#f0f7ff;">
-          <div class="form-check mb-0">
-            <input class="form-check-input" type="checkbox" id="sameCab"
-                   [(ngModel)]="sameCabForAll">
-            <label class="form-check-label fw-medium" for="sameCab"
-                   style="font-size:13px;">
-              Same Cab Type for All
-            </label>
-          </div>
-          @if (sameCabForAll) {
-            <select class="form-select form-select-sm" style="width:220px;"
-                    [(ngModel)]="globalVehicleTypeId">
-              <option [value]="0">Select vehicle type…</option>
-              @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
-                <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
-              }
-            </select>
-          }
-        </div>
-
-        @for (slot of daySlots(); track slot.DayNumber) {
-          <div class="border rounded mb-3 p-3">
-
-            <!-- Day header -->
-            <div class="fw-semibold mb-3 text-primary" style="font-size:13px;">
-              <i class="bx bx-calendar me-1"></i>
-              Day {{ slot.DayNumber }} — {{ slot.DateLabel }} ({{ slot.DayLabel.slice(0,3) }})
-            </div>
-
-            @for (row of getServiceRowsForDay(slot.DayNumber);
-                  track row.QuoteServiceId; let si = $index) {
-
-              @if (row.ServiceType === 1) {
-                <!-- Transport row -->
-                <div class="mb-3 pb-3 border-bottom">
-                  <div class="text-muted small fw-semibold mb-2">
-                    <i class="bx bx-car me-1"></i> Transport Service
-                  </div>
-                  <div class="row g-2 align-items-end">
-                    <div class="col-sm-4">
-                      <label class="form-label small text-muted mb-1">Service Location</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.IteneraryServiceId"
-                              (ngModelChange)="onItinerarySelected(row)">
-                        <option [value]="0">Select itinerary…</option>
-                        @for (it of itineraryList(); track it.IteneraryServiceId) {
-                          <option [value]="it.IteneraryServiceId">
-                            {{ it.IteneraryServiceName }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-3">
-                      <label class="form-label small text-muted mb-1">Vehicle Type</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.VehicleTypeId"
-                              (ngModelChange)="onVehicleSelected(row)">
-                        <option [value]="0">Select vehicle…</option>
-                        @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
-                          <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.SellingPrice"
-                             (blur)="saveServiceRow(row)">
-                    </div>
-                    <div class="col-sm-1">
-                      <button mat-icon-button color="warn"
-                              (click)="removeServiceRow(row, si)">
-                        <mat-icon style="font-size:16px;">close</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              }
-
-              @if (row.ServiceType === 2) {
-                <!-- Activity row -->
-                <div class="mb-3 pb-3 border-bottom">
-                  <div class="text-muted small fw-semibold mb-2">
-                    <i class="bx bx-ticket me-1"></i> Activity/Ticket
-                  </div>
-                  <div class="row g-2 align-items-end">
-                    <div class="col-sm-4">
-                      <label class="form-label small text-muted mb-1">Activity Name</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.ActivityServiceId"
-                              (ngModelChange)="onActivitySelected(row)">
-                        <option [value]="0">Select activity…</option>
-                        @for (ac of activityList(); track ac.ActivityServiceId) {
-                          <option [value]="ac.ActivityServiceId">
-                            {{ ac.ActivityServiceName }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Qty</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.Qty" min="1"
-                             (ngModelChange)="row.CostPrice = row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.SellingPrice"
-                             (blur)="saveServiceRow(row)">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Notes</label>
-                      <input type="text" class="form-control form-control-sm"
-                             [(ngModel)]="row.Notes" placeholder="Optional">
-                    </div>
-                    <div class="col-auto">
-                      <button mat-icon-button color="warn"
-                              (click)="removeServiceRow(row, si)">
-                        <mat-icon style="font-size:16px;">close</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              }
-            }
-
-            <!-- Add buttons -->
-            <div class="d-flex gap-2 mt-1">
-              <button class="btn btn-outline-primary btn-sm"
-                      style="font-size:12px;"
-                      (click)="addTransportRow(slot)">
-                <i class="bx bx-car me-1"></i> Add Transport
-              </button>
-              <button class="btn btn-outline-success btn-sm"
-                      style="font-size:12px;"
-                      (click)="addActivityRow(slot)">
-                <i class="bx bx-ticket me-1"></i> Add Activity
-              </button>
-            </div>
-          </div>
-        }
-
-        <!-- Transport/Activity total -->
-        <div class="d-flex justify-content-end mt-2 gap-3 flex-wrap">
-          <div class="text-muted small">
-            Transports: <strong>INR {{ formatCurrency(transportTotal()) }}</strong>
-            + Activity/Tickets: <strong>INR {{ formatCurrency(activityTotal()) }}</strong>
-          </div>
-          <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-            Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- SUMMARY SECTION                                      -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <div class="fw-bold fs-6 mb-1">Summary</div>
-        <div class="text-muted small mb-3">
-          Please review the quote's data before creating.
-        </div>
 
-        <!-- Basic info -->
-        <div class="d-flex gap-5 flex-wrap mb-4">
-          <div>
-            <div class="text-muted small text-uppercase"
-                 style="font-size:10px;">Start Date</div>
-            <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
-          </div>
-          <div>
-            <div class="text-muted small text-uppercase"
-                 style="font-size:10px;">Duration</div>
-            <div class="fw-bold">
-              {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
-              {{ trip.NoOfNights + 1 }} Days
-            </div>
-          </div>
-          <div>
-            <div class="text-muted small text-uppercase"
-                 style="font-size:10px;">PAX</div>
-            <div class="fw-bold">{{ paxLabel }}</div>
-          </div>
-        </div>
-
-        <!-- Hotel summary table -->
-        @if (summaryHotels.length > 0) {
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <div class="bg-primary rounded-circle d-flex align-items-center
-                          justify-content-center text-white"
-                   style="width:28px; height:28px; font-size:13px;">
-                <i class="bx bx-hotel"></i>
-              </div>
-              <span class="fw-semibold">Accommodation</span>
-            </div>
-            <table class="table table-sm table-bordered mb-1"
-                   style="font-size:13px;">
-              <thead class="table-light">
-                <tr>
-                  <th>Night</th>
-                  <th>Hotel</th>
-                  <th>Meal</th>
-                  <th>Rooms</th>
-                  <th class="text-end">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (h of summaryHotels; track h.QuoteHotelId) {
-                  <tr>
-                    <td>
-                      <div>{{ h.NightNumber }}{{ h.NightNumber === 1 ? 'st' : h.NightNumber === 2 ? 'nd' : h.NightNumber === 3 ? 'rd' : 'th' }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ h.StayDate | date:'d MMM' }}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="fw-medium">{{ h.HotelName }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ h.LocationName }}, {{ h.HotelCategoryName }}
-                      </div>
-                    </td>
-                    <td>{{ h.MealPlan }}</td>
-                    <td>
-                      <div>{{ h.NoOfRooms }} {{ h.RoomTypeName }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ h.PaxPerRoom }} Pax + {{ h.CWEB }} CwEB
-                      </div>
-                    </td>
-                    <td class="text-end fw-semibold">
-                      INR {{ formatCurrency(h.SellingPrice) }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-            <div class="text-end text-muted small">
-              Total: <strong>INR {{ formatCurrency(hotelTotal()) }}</strong>
-            </div>
-          </div>
-        }
-
-        <!-- Transport & Activity summary -->
-        @if (summaryServices.length > 0) {
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <div class="bg-primary rounded-circle d-flex align-items-center
-                          justify-content-center text-white"
-                   style="width:28px; height:28px; font-size:13px;">
-                <i class="bx bx-car"></i>
-              </div>
-              <span class="fw-semibold">Transportation and Activities</span>
-            </div>
-
-            @for (slot of daySlots(); track slot.DayNumber) {
-              @if (getSummaryServicesByDay(slot.DayNumber).length > 0) {
-                <div class="border rounded mb-2 overflow-hidden">
-                  <div class="bg-light px-3 py-2 d-flex gap-4">
-                    <div class="fw-semibold" style="font-size:13px; min-width:80px;">
-                      Day {{ slot.DayNumber }}
-                    </div>
-                    <div class="text-muted small">{{ slot.DateLabel }} ({{ slot.DayLabel.slice(0,3) }})</div>
-                  </div>
-                  @for (svc of getSummaryServicesByDay(slot.DayNumber); track svc.QuoteServiceId) {
-                    <div class="d-flex align-items-center justify-content-between
-                                px-3 py-2 border-top" style="font-size:13px;">
-                      <div>
-                        <div class="fw-medium">
-                          @if (svc.ServiceType === 1) {
-                            {{ svc.IteneraryServiceName }}
-                          } @else {
-                            {{ svc.ActivityServiceName }}
-                          }
-                        </div>
-                        <div class="text-muted" style="font-size:11px;">
-                          @if (svc.ServiceType === 1) {
-                            {{ svc.VehicleTypeName }}
-                          } @else {
-                            Qty: {{ svc.Qty }} × INR {{ formatCurrency(svc.CostPrice / (svc.Qty || 1)) }}
-                          }
-                        </div>
-                      </div>
-                      <div class="fw-semibold text-success">
-                        INR {{ formatCurrency(svc.SellingPrice) }}
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            }
-
-            <div class="text-end text-muted small mt-1">
-              Transports: <strong>INR {{ formatCurrency(transportTotal()) }}</strong>
-              + Activity/Tickets: <strong>INR {{ formatCurrency(activityTotal()) }}</strong>
-              = <strong>INR {{ formatCurrency(transportTotal() + activityTotal()) }}</strong>
-            </div>
-          </div>
-        }
-
-        <!-- Grand total bar -->
-        <div class="border rounded p-3 bg-light d-flex align-items-center
-                    justify-content-between flex-wrap gap-3 mt-3">
-          <div class="d-flex gap-4 flex-wrap align-items-center">
-            <div class="text-center">
-              <div class="text-muted small">Hotels</div>
-              <div class="fw-semibold">INR {{ formatCurrency(hotelTotal()) }}</div>
-            </div>
-            <span class="text-muted">+</span>
-            <div class="text-center">
-              <div class="text-muted small">Transports</div>
-              <div class="fw-semibold">INR {{ formatCurrency(transportTotal()) }}</div>
-            </div>
-            <span class="text-muted">+</span>
-            <div class="text-center">
-              <div class="text-muted small">Activities/Tickets</div>
-              <div class="fw-semibold">INR {{ formatCurrency(activityTotal()) }}</div>
-            </div>
-          </div>
-          <div class="text-center border-start ps-4">
-            <div class="text-muted small">Total Cost</div>
-            <div class="fw-bold fs-5 text-primary">
-              INR {{ formatCurrency(totalCost()) }}
-            </div>
-          </div>
-        </div>
-        <div class="text-muted small mt-1">
-          It is the total cost price for all the provided services.
-          This is NOT the selling price.
-        </div>
-      </div>
-    </div>
 
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- INTERNAL NOTES                                       -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <label class="form-label fw-semibold mb-2">Internal Notes</label>
-        <textarea class="form-control" rows="3"
-                  placeholder="Any internal comments regarding customer request or anything special about this quote…"
-                  [(ngModel)]="internalNotes"
-                  style="font-size:13px; resize:none;">
-        </textarea>
-      </div>
-    </div>
+
 
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- FINAL PRICE PREVIEW                                  -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4"
-         style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-3 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center
-                      justify-content-center text-white flex-shrink-0"
-               style="width:40px; height:40px;">
-            <i class="bx bx-receipt fs-5"></i>
-          </div>
-          <div>
-            <div class="fw-bold fs-6">Preview Final Package Price</div>
-            <div class="text-muted small">Here are the final prices for this quote.</div>
-          </div>
-        </div>
 
-        <div class="d-flex align-items-center gap-4 flex-wrap">
-          <div>
-            <div class="fw-bold" style="font-size:28px;">
-              INR {{ formatCurrency(finalPrice()) }}
-            </div>
-            <div class="text-muted small">GST: Included ({{ gstPercent }}%)</div>
-          </div>
-          <div>
-            <label class="form-label small text-muted mb-1">GST %</label>
-            <input type="number" class="form-control form-control-sm"
-                   style="width:80px;"
-                   [(ngModel)]="gstPercent" min="0" max="28">
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Save / Cancel -->
-    <div class="d-flex gap-3 pb-4">
+    <!-- <div class="d-flex gap-3 pb-4">
       <button mat-raised-button color="primary"
               style="min-width:130px;"
               (click)="saveQuote()"
@@ -669,7 +287,7 @@
         {{ loading() ? 'Saving…' : 'Save Quote' }}
       </button>
       <button mat-stroked-button (click)="cancel()">Cancel</button>
-    </div>
+    </div> -->
 
   </div>
 
@@ -720,6 +338,7 @@
                     <input type="text"
                            class="form-control form-control-sm"
                            [(ngModel)]="row.PackageTypeName"
+                           (ngModelChange)="markDirty()"
                            placeholder="e.g. Deluxe Package">
                   </td>
                   <td>
@@ -751,3 +370,4 @@
     </div>
   </div>
 }
+<app-unsaved-changes-dialog></app-unsaved-changes-dialog>
