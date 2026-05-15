@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AdminDashboard } from './admin/admin-dashboard/admin-dashboard';
 import { AdminMaster } from './admin/admin-master/admin-master';
+import { CanDeactivateGuard } from './guards/can-deactivate-guard';
 import { AdminLogin } from './admin/admin-login/admin-login';
 import { Company } from './admin/company/company';
 import { PageGroup } from './admin/page-group/page-group';
@@ -92,7 +93,7 @@ export const routes: Routes = [
       { path: 'query-stepone', component: QueryStepone},
       { path: 'query-stepone/:id', component: QueryStepone},
       { path: 'query-steptwo/:id', component: QuerySteptwo },
-      { path: 'query-stepthree/:id', component: QueryStepthree},
+      { path: 'query-stepthree/:id', component: QueryStepthree, canDeactivate: [CanDeactivateGuard]},
     ]
   },
 
