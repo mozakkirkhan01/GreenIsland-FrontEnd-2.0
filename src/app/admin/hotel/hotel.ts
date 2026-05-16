@@ -191,6 +191,7 @@ export class Hotel {
           this.toastr.success(this.Hotel.HotelId > 0
             ? "Hotel updated successfully"
             : "Hotel added successfully");
+          this.dataLoading.set(false);
 
             this.Hotel.HotelName = '';
             this.Hotel.HotelId = 0;
