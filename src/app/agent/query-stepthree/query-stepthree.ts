@@ -5,7 +5,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable } from 'rxjs';
+
+import { UnsavedChangesDialogComponent } from '../../component/unsaved-changes-dialog/unsaved-changes-dialog';
+import { UnsavedChangesDialogService } from '../../component/unsaved-changes-dialog/unsaved-changes-dialog.service';
+import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -25,6 +29,7 @@ import { Progress } from '../../component/progress/progress';
 
 export interface TripInfo {
   QueryStepOneId: number;
+  QuotationNo: number;
   DestinationId: number;
   DestinationName: string;
   StartDate: string;
@@ -72,7 +77,6 @@ export interface QuoteHotelRow {
   CNB: number;
   CostPrice: number;
   SellingPrice: number;
-  // UI
   RoomTypes: any[];
   IsSaving: boolean;
 }
@@ -83,7 +87,7 @@ export interface QuoteServiceRow {
   QuotePackageTypeId: number;
   DayNumber: number;
   ServiceDate: Date;
-  ServiceType: number;   // 1=Transport, 2=Activity
+  ServiceType: number;
   IteneraryServiceId: number;
   IteneraryServiceName: string;
   VehicleTypeId: number;
@@ -107,17 +111,19 @@ export interface QuoteServiceRow {
     MatFormFieldModule, MatInputModule,
     MatTooltipModule, MatDividerModule,
     Progress,
+    UnsavedChangesDialogComponent,
   ],
   templateUrl: './query-stepthree.html',
   styleUrl: './query-stepthree.css',
 })
-export class QueryStepthree implements OnInit {
+export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private service = inject(AppService);
   private toastr = inject(ToastrService);
   private local = inject(LocalService);
+  private dialogService = inject(UnsavedChangesDialogService); // ← ADD
 
   // ── IDs ───────────────────────────────────────────────────
   QueryStepOneId = 0;
@@ -125,18 +131,27 @@ export class QueryStepthree implements OnInit {
 
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
+  // ── Unsaved changes ───────────────────────────────────────
+  hasUnsavedChanges = false;
+
+  markDirty(): void { this.hasUnsavedChanges = true; }
+  markClean(): void { this.hasUnsavedChanges = false; }
+
+  canDeactivate(): boolean | Observable<boolean> {
+    if (!this.hasUnsavedChanges) return true;
+    return this.dialogService.confirm();
+  }
+
   // ── Signals ───────────────────────────────────────────────
   loading = signal(false);
   tripInfo = signal<TripInfo | null>(null);
   packageTypes = signal<PackageTypeRow[]>([]);
 
-  // Master data
   hotelList = signal<any[]>([]);
   itineraryList = signal<any[]>([]);
   activityList = signal<any[]>([]);
   vehicleTypeList = signal<any[]>([]);
 
-  // Quote data
   hotelRows = signal<QuoteHotelRow[]>([]);
   serviceRows = signal<QuoteServiceRow[]>([]);
 
@@ -149,7 +164,7 @@ export class QueryStepthree implements OnInit {
   sameCabForAll = false;
   globalVehicleTypeId = 0;
 
-  // ── Night & Day slots (derived from tripInfo) ─────────────
+  // ── Night & Day slots ─────────────────────────────────────
   nightSlots = computed<NightSlot[]>(() => {
     const trip = this.tripInfo();
     if (!trip) return [];
@@ -223,6 +238,11 @@ export class QueryStepthree implements OnInit {
     this.loadAll();
   }
 
+  formatQuotationNo(no: number): string {
+    if (!no) return '—';
+    return no.toString().padStart(7, '0');
+  }
+
   // ── Load all data ─────────────────────────────────────────
   loadAll(): void {
     this.loading.set(true);
@@ -240,13 +260,12 @@ export class QueryStepthree implements OnInit {
           return;
         }
 
-        // ✅ Read DestinationId DIRECTLY from raw response
         const destId = r.TripInfo?.DestinationId ?? 0;
 
-        // Set trip info
         if (r.TripInfo) {
           this.tripInfo.set({
             QueryStepOneId: r.TripInfo.QueryStepOneId,
+            QuotationNo: r.TripInfo.QuotationNo,
             DestinationId: r.TripInfo.DestinationId,
             DestinationName: r.TripInfo.DestinationName,
             StartDate: r.TripInfo.StartDate,
@@ -256,21 +275,17 @@ export class QueryStepthree implements OnInit {
           });
         }
 
-        // Set quote
         if (r.Quote) {
           this.QuoteId = r.Quote.QuoteId;
           this.internalNotes = r.Quote.InternalNotes ?? '';
           this.gstPercent = r.Quote.GstPercent ?? 5;
         }
 
-        // Set package types
         this.packageTypes.set(r.PackageTypes ?? []);
         if (this.packageTypes().length > 0) {
-          this.activePackageTypeId =
-            this.packageTypes()[0].QuotePackageTypeId;
+          this.activePackageTypeId = this.packageTypes()[0].QuotePackageTypeId;
         }
 
-        // Set hotel + service rows
         if (r.Hotels?.length > 0) {
           this.hotelRows.set(r.Hotels.map((h: any) => this.mapHotelRow(h)));
         }
@@ -278,7 +293,6 @@ export class QueryStepthree implements OnInit {
           this.serviceRows.set(r.Services.map((s: any) => this.mapServiceRow(s)));
         }
 
-        // ✅ Now load master dropdowns using correct destId
         if (destId === 0) {
           this.toastr.warning('Destination not found for this trip');
           this.loading.set(false);
@@ -305,24 +319,17 @@ export class QueryStepthree implements OnInit {
             const a = activities as any;
             const v = vehicles as any;
 
-            if (h.Message === ConstantData.SuccessMessage) {
+            if (h.Message === ConstantData.SuccessMessage)
               this.hotelList.set(h.HotelList ?? []);
-              console.log('Hotels loaded:', h.HotelList?.length, 'for destId:', destId);
-              console.log('Hotel IDs:', h.HotelList?.map((x: any) => x.HotelId));
-              console.log('Full hotel list:', h.HotelList);
-            } else {
+            else
               this.toastr.warning('No hotels found: ' + h.Message);
-            }
 
-            if (i.Message === ConstantData.SuccessMessage) {
+            if (i.Message === ConstantData.SuccessMessage)
               this.itineraryList.set(i.IteneraryServiceList ?? []);
-            }
-            if (a.Message === ConstantData.SuccessMessage) {
+            if (a.Message === ConstantData.SuccessMessage)
               this.activityList.set(a.ActivityServiceList ?? []);
-            }
-            if (v.Message === ConstantData.SuccessMessage) {
+            if (v.Message === ConstantData.SuccessMessage)
               this.vehicleTypeList.set(v.VehicleTypeList ?? []);
-            }
 
             this.loading.set(false);
           },
@@ -332,50 +339,36 @@ export class QueryStepthree implements OnInit {
           }
         });
       },
-      // AFTER
       error: (err: any) => {
-        console.error('getQuoteDetail HTTP error:', err);
-        console.error('Status:', err.status);
         this.toastr.error('Error loading quote: ' + err.status);
         this.loading.set(false);
       }
     });
   }
 
-  // ── Helpers: map raw API rows ─────────────────────────────
+  // ── Map rows ──────────────────────────────────────────────
   private mapHotelRow(h: any): QuoteHotelRow {
     return {
-      QuoteHotelId: h.QuoteHotelId,
-      QuoteId: h.QuoteId,
+      QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
       QuotePackageTypeId: h.QuotePackageTypeId,
-      NightNumber: h.NightNumber,
-      StayDate: new Date(h.StayDate),
-      HotelId: h.HotelId,
-      HotelName: h.HotelName ?? '',
+      NightNumber: h.NightNumber, StayDate: new Date(h.StayDate),
+      HotelId: h.HotelId, HotelName: h.HotelName ?? '',
       LocationName: h.LocationName ?? '',
       HotelCategoryName: h.HotelCategoryName ?? '',
-      RoomTypeId: h.RoomTypeId,
-      RoomTypeName: h.RoomTypeName ?? '',
+      RoomTypeId: h.RoomTypeId, RoomTypeName: h.RoomTypeName ?? '',
       MealPlan: h.MealPlan ?? 'MAP',
-      NoOfRooms: h.NoOfRooms ?? 1,
-      PaxPerRoom: h.PaxPerRoom ?? 2,
-      AWEB: h.AWEB ?? 0,
-      CWEB: h.CWEB ?? 0,
-      CNB: h.CNB ?? 0,
-      CostPrice: h.CostPrice ?? 0,
-      SellingPrice: h.SellingPrice ?? 0,
-      RoomTypes: [],
-      IsSaving: false,
+      NoOfRooms: h.NoOfRooms ?? 1, PaxPerRoom: h.PaxPerRoom ?? 2,
+      AWEB: h.AWEB ?? 0, CWEB: h.CWEB ?? 0, CNB: h.CNB ?? 0,
+      CostPrice: h.CostPrice ?? 0, SellingPrice: h.SellingPrice ?? 0,
+      RoomTypes: [], IsSaving: false,
     };
   }
 
   private mapServiceRow(s: any): QuoteServiceRow {
     return {
-      QuoteServiceId: s.QuoteServiceId,
-      QuoteId: s.QuoteId,
+      QuoteServiceId: s.QuoteServiceId, QuoteId: s.QuoteId,
       QuotePackageTypeId: s.QuotePackageTypeId,
-      DayNumber: s.DayNumber,
-      ServiceDate: new Date(s.ServiceDate),
+      DayNumber: s.DayNumber, ServiceDate: new Date(s.ServiceDate),
       ServiceType: s.ServiceType,
       IteneraryServiceId: s.IteneraryServiceId ?? 0,
       IteneraryServiceName: s.IteneraryServiceName ?? '',
@@ -384,10 +377,8 @@ export class QueryStepthree implements OnInit {
       SameCabForAll: s.SameCabForAll ?? false,
       ActivityServiceId: s.ActivityServiceId ?? 0,
       ActivityServiceName: s.ActivityServiceName ?? '',
-      Qty: s.Qty ?? 1,
-      CostPrice: s.CostPrice ?? 0,
-      SellingPrice: s.SellingPrice ?? 0,
-      Notes: s.Notes ?? '',
+      Qty: s.Qty ?? 1, CostPrice: s.CostPrice ?? 0,
+      SellingPrice: s.SellingPrice ?? 0, Notes: s.Notes ?? '',
       IsSaving: false,
     };
   }
@@ -400,55 +391,61 @@ export class QueryStepthree implements OnInit {
     this.showPkgModal = true;
   }
 
-  closePkgModal(): void {
-    this.showPkgModal = false;
-  }
-
-  addPkgRow(): void {
-    this.pkgModalRows.push({ QuotePackageTypeId: 0, PackageTypeName: '' });
-  }
-
-  removePkgRow(i: number): void {
-    this.pkgModalRows.splice(i, 1);
-  }
+  closePkgModal(): void { this.showPkgModal = false; }
+  addPkgRow(): void { this.pkgModalRows.push({ QuotePackageTypeId: 0, PackageTypeName: '' }); }
+  removePkgRow(i: number): void { this.pkgModalRows.splice(i, 1); }
 
   savePkgTypes(): void {
     const invalid = this.pkgModalRows.find(p => !p.PackageTypeName?.trim());
     if (invalid) { this.toastr.error('Package name cannot be empty'); return; }
-
-    const trip = this.tripInfo();
-    if (!trip) return;
 
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
 
     const payload = {
-      QuoteId: this.QuoteId,
       QueryStepOneId: this.QueryStepOneId,
-      StartDate: trip.StartDate,
-      NoOfNights: trip.NoOfNights,
-      NoOfAdults: trip.NoOfAdults,
-      ChildrenAges: trip.ChildrenAges,
       CreatedBy: this.staffLogin.StaffLoginId,
-      PackageTypes: this.pkgModalRows,
+      PackageTypes: this.pkgModalRows.map(p => ({
+        QuotePackageTypeId: p.QuotePackageTypeId,
+        PackageTypeName: p.PackageTypeName,
+      })),
     };
 
     this.loading.set(true);
     this.service.savePackageTypes(enc(payload)).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
-          this.QuoteId = r.QuoteId;
-          this.packageTypes.set([...this.pkgModalRows]);
-          if (this.activePackageTypeId === 0 && this.pkgModalRows.length > 0) {
-            this.activePackageTypeId = this.pkgModalRows[0].QuotePackageTypeId;
+          const savedPkgTypes: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
+            QuotePackageTypeId: p.QuotePackageTypeId,
+            PackageTypeName: p.PackageTypeName,
+          }));
+
+          this.packageTypes.set(savedPkgTypes);
+
+          if (savedPkgTypes.length > 0) {
+            if (this.activePackageTypeId === 0) {
+              this.activePackageTypeId = savedPkgTypes[0].QuotePackageTypeId;
+            } else {
+              const stillExists = savedPkgTypes.find(
+                p => p.QuotePackageTypeId === this.activePackageTypeId
+              );
+              if (!stillExists)
+                this.activePackageTypeId = savedPkgTypes[0].QuotePackageTypeId;
+            }
           }
+
           this.closePkgModal();
           this.toastr.success('Package types saved');
-        } else { this.toastr.error(r.Message); }
+        } else {
+          this.toastr.error(r.Message);
+        }
         this.loading.set(false);
       },
-      error: () => { this.toastr.error('Error saving package types'); this.loading.set(false); }
+      error: () => {
+        this.toastr.error('Error saving package types');
+        this.loading.set(false);
+      }
     });
   }
 
@@ -461,111 +458,46 @@ export class QueryStepthree implements OnInit {
   }
 
   addHotelRow(slot: NightSlot): void {
-    const newRow: QuoteHotelRow = {
+    this.markDirty();
+    this.hotelRows.update(rows => [...rows, {
       QuoteHotelId: 0, QuoteId: this.QuoteId,
       QuotePackageTypeId: this.activePackageTypeId,
-      NightNumber: slot.NightNumber,
-      StayDate: slot.StayDate,
+      NightNumber: slot.NightNumber, StayDate: slot.StayDate,
       HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
       NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
       CostPrice: 0, SellingPrice: 0, RoomTypes: [], IsSaving: false,
-    };
-    this.hotelRows.update(rows => [...rows, newRow]);
+    }]);
   }
 
   onHotelSelected(row: QuoteHotelRow): void {
-    console.log('=== onHotelSelected START ===');
-    console.log('Selected HotelId:', row.HotelId);
-    console.log('HotelList count:', this.hotelList().length);
-
-    // Try to find in current hotelList
+    this.markDirty();
     let hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
-    console.log('Hotel found in hotelList:', hotel);
 
-    if (!hotel) {
-      // If not found, the row might already have the hotel info from previous load
-      console.log('Hotel not in fresh list. Using existing row data.');
-      console.log('Row HotelName:', row.HotelName, 'LocationName:', row.LocationName);
-
-      // If row already has hotel info, just load room types
-      if (row.HotelId > 0) {
-        const enc = (d: object): RequestModel => ({
-          request: this.local.encrypt(JSON.stringify(d)).toString()
-        });
-
-        console.log('Calling getRoomTypeList for HotelId:', row.HotelId);
-
-        this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
-          next: (r: any) => {
-            console.log('getRoomTypeList response:', r);
-
-            if (r.Message === ConstantData.SuccessMessage) {
-              row.RoomTypes = r.RoomTypeList ?? [];
-              console.log('RoomTypes assigned. Count:', row.RoomTypes.length);
-              console.log('RoomTypes data:', row.RoomTypes);
-
-              row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
-              console.log('RoomTypeId set to:', row.RoomTypeId);
-
-              // ✅ Force signal update so Angular re-renders the dropdown
-              this.hotelRows.update(rows => [...rows]);
-              console.log('Signal updated');
-
-              this.lookupHotelRate(row);
-            } else {
-              console.error('API error:', r.Message);
-              this.toastr.error('Failed to load room types: ' + r.Message);
-            }
-          },
-          error: (err) => {
-            console.error('HTTP error in getRoomTypeList:', err);
-            this.toastr.error('Error loading room types');
-          }
-        });
-      }
-      return;
+    if (hotel) {
+      row.HotelName = hotel.HotelName;
+      row.LocationName = hotel.LocationName;
+      row.HotelCategoryName = hotel.HotelCategoryName;
     }
 
-    // Hotel found in list - populate its details
-    row.HotelName = hotel.HotelName;
-    row.LocationName = hotel.LocationName;
-    row.HotelCategoryName = hotel.HotelCategoryName;
-
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
-
-    console.log('Calling getRoomTypeList for HotelId:', row.HotelId);
-
-    this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
-      next: (r: any) => {
-        console.log('getRoomTypeList response:', r);
-
-        if (r.Message === ConstantData.SuccessMessage) {
-          row.RoomTypes = r.RoomTypeList ?? [];
-          console.log('RoomTypes assigned. Count:', row.RoomTypes.length);
-          console.log('RoomTypes data:', row.RoomTypes);
-
-          row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
-          console.log('RoomTypeId set to:', row.RoomTypeId);
-
-          // ✅ Force signal update so Angular re-renders the dropdown
-          this.hotelRows.update(rows => [...rows]);
-          console.log('Signal updated');
-
-          this.lookupHotelRate(row);
-        } else {
-          console.error('API error:', r.Message);
-          this.toastr.error('Failed to load room types: ' + r.Message);
-        }
-      },
-      error: (err) => {
-        console.error('HTTP error in getRoomTypeList:', err);
-        this.toastr.error('Error loading room types');
-      }
-    });
-    console.log('=== onHotelSelected END ===');
+    if (row.HotelId > 0) {
+      const enc = (d: object): RequestModel => ({
+        request: this.local.encrypt(JSON.stringify(d)).toString()
+      });
+      this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            row.RoomTypes = r.RoomTypeList ?? [];
+            row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
+            this.hotelRows.update(rows => [...rows]);
+            this.lookupHotelRate(row);
+          } else {
+            this.toastr.error('Failed to load room types: ' + r.Message);
+          }
+        },
+        error: () => this.toastr.error('Error loading room types')
+      });
+    }
   }
 
   lookupHotelRate(row: QuoteHotelRow): void {
@@ -574,9 +506,7 @@ export class QueryStepthree implements OnInit {
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
     this.service.getHotelRateByDate(enc({
-      HotelId: row.HotelId,
-      RoomTypeId: row.RoomTypeId,
-      StayDate: row.StayDate,
+      HotelId: row.HotelId, RoomTypeId: row.RoomTypeId, StayDate: row.StayDate,
     })).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage && r.Rate) {
@@ -599,8 +529,7 @@ export class QueryStepthree implements OnInit {
     this.service.saveQuoteHotel(enc({
       QuoteHotelId: row.QuoteHotelId, QuoteId: this.QuoteId,
       QuotePackageTypeId: row.QuotePackageTypeId,
-      NightNumber: row.NightNumber,
-      StayDate: row.StayDate,
+      NightNumber: row.NightNumber, StayDate: row.StayDate,
       HotelId: row.HotelId, RoomTypeId: row.RoomTypeId,
       MealPlan: row.MealPlan, NoOfRooms: row.NoOfRooms,
       PaxPerRoom: row.PaxPerRoom, AWEB: row.AWEB, CWEB: row.CWEB, CNB: row.CNB,
@@ -609,7 +538,10 @@ export class QueryStepthree implements OnInit {
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           row.QuoteHotelId = r.QuoteHotelId;
-        } else { this.toastr.error(r.Message); }
+          this.markClean(); // ← mark clean after successful save
+        } else {
+          this.toastr.error(r.Message);
+        }
         row.IsSaving = false;
       },
       error: () => { row.IsSaving = false; }
@@ -617,6 +549,7 @@ export class QueryStepthree implements OnInit {
   }
 
   removeHotelRow(row: QuoteHotelRow, index: number): void {
+    this.markDirty();
     if (row.QuoteHotelId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
@@ -636,36 +569,35 @@ export class QueryStepthree implements OnInit {
   }
 
   addTransportRow(slot: DaySlot): void {
+    this.markDirty();
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0, QuoteId: this.QuoteId,
       QuotePackageTypeId: this.activePackageTypeId,
       DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
       ServiceType: 1,
       IteneraryServiceId: 0, IteneraryServiceName: '',
-      VehicleTypeId: 0, VehicleTypeName: '',
-      SameCabForAll: false,
+      VehicleTypeId: 0, VehicleTypeName: '', SameCabForAll: false,
       ActivityServiceId: 0, ActivityServiceName: '',
-      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '',
-      IsSaving: false,
+      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '', IsSaving: false,
     }]);
   }
 
   addActivityRow(slot: DaySlot): void {
+    this.markDirty();
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0, QuoteId: this.QuoteId,
       QuotePackageTypeId: this.activePackageTypeId,
       DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
       ServiceType: 2,
       IteneraryServiceId: 0, IteneraryServiceName: '',
-      VehicleTypeId: 0, VehicleTypeName: '',
-      SameCabForAll: false,
+      VehicleTypeId: 0, VehicleTypeName: '', SameCabForAll: false,
       ActivityServiceId: 0, ActivityServiceName: '',
-      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '',
-      IsSaving: false,
+      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '', IsSaving: false,
     }]);
   }
 
   onItinerarySelected(row: QuoteServiceRow): void {
+    this.markDirty();
     const svc = this.itineraryList().find(
       i => i.IteneraryServiceId === row.IteneraryServiceId
     );
@@ -676,6 +608,7 @@ export class QueryStepthree implements OnInit {
   }
 
   onVehicleSelected(row: QuoteServiceRow): void {
+    this.markDirty();
     this.lookupVehicleRate(row);
   }
 
@@ -699,12 +632,12 @@ export class QueryStepthree implements OnInit {
   }
 
   onActivitySelected(row: QuoteServiceRow): void {
+    this.markDirty();
     const act = this.activityList().find(
       a => a.ActivityServiceId === row.ActivityServiceId
     );
     if (act) {
       row.ActivityServiceName = act.ActivityServiceName;
-      // Look up activity rate
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
@@ -728,25 +661,24 @@ export class QueryStepthree implements OnInit {
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
     this.service.saveQuoteService(enc({
-      QuoteServiceId: row.QuoteServiceId,
-      QuoteId: this.QuoteId,
+      QuoteServiceId: row.QuoteServiceId, QuoteId: this.QuoteId,
       QuotePackageTypeId: row.QuotePackageTypeId,
-      DayNumber: row.DayNumber,
-      ServiceDate: row.ServiceDate,
+      DayNumber: row.DayNumber, ServiceDate: row.ServiceDate,
       ServiceType: row.ServiceType,
       IteneraryServiceId: row.IteneraryServiceId || null,
       VehicleTypeId: row.VehicleTypeId || null,
       SameCabForAll: row.SameCabForAll,
       ActivityServiceId: row.ActivityServiceId || null,
-      Qty: row.Qty,
-      CostPrice: row.CostPrice,
-      SellingPrice: row.SellingPrice,
-      Notes: row.Notes,
+      Qty: row.Qty, CostPrice: row.CostPrice,
+      SellingPrice: row.SellingPrice, Notes: row.Notes,
     })).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           row.QuoteServiceId = r.QuoteServiceId;
-        } else { this.toastr.error(r.Message); }
+          this.markClean();
+        } else {
+          this.toastr.error(r.Message);
+        }
         row.IsSaving = false;
       },
       error: () => { row.IsSaving = false; }
@@ -754,6 +686,7 @@ export class QueryStepthree implements OnInit {
   }
 
   removeServiceRow(row: QuoteServiceRow, idx: number): void {
+    this.markDirty();
     if (row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
@@ -796,7 +729,8 @@ export class QueryStepthree implements OnInit {
     const trip = this.tripInfo();
     if (!trip) return '';
     let label = `${trip.NoOfAdults} Adult${trip.NoOfAdults > 1 ? 's' : ''}`;
-    if (this.childrenCount > 0) label += `, ${this.childrenCount} Child${this.childrenCount > 1 ? 'ren' : ''}`;
+    if (this.childrenCount > 0)
+      label += `, ${this.childrenCount} Child${this.childrenCount > 1 ? 'ren' : ''}`;
     return label;
   }
 
@@ -826,6 +760,7 @@ export class QueryStepthree implements OnInit {
     })).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
+          this.markClean();
           this.toastr.success('Quote saved successfully');
           this.router.navigate(['/agent/query-steptwo', this.QueryStepOneId]);
         } else { this.toastr.error(r.Message); }
@@ -843,12 +778,9 @@ export class QueryStepthree implements OnInit {
     this.activePackageTypeId = id;
   }
 
-  editBasicDetail(obj: any) {
+  editBasicDetail(obj: any): void {
     const queryId = Number(obj) || this.QueryStepOneId;
-    if (!queryId) {
-      this.toastr.error('Query ID not found');
-      return;
-    }
+    if (!queryId) { this.toastr.error('Query ID not found'); return; }
     this.router.navigate(['/agent/query-stepone', queryId]);
   }
 }
