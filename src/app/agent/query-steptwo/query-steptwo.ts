@@ -39,6 +39,7 @@ export interface TouristRow {
 
 export interface TripDetail {
   QueryStepOneId: number;
+  QuotationNo: number;
   AgencyId: number;   // ← add this line
   AgencyName: string;
   CityName: string;
@@ -164,7 +165,11 @@ export class QuerySteptwo implements OnInit {
       error: () => { }
     });
   }
-
+// in your component
+formatQuotationNo(no: number): string {
+  if (!no) return '—';
+  return no.toString().padStart(7, '0');
+}
   // ── Load Trip Detail ──────────────────────────────────
   loadTripDetail(): void {
     this.dataLoading.set(true);
@@ -181,6 +186,7 @@ export class QuerySteptwo implements OnInit {
             const item = list[0];
             this.tripDetail.set({
               QueryStepOneId: item.QueryStepOneId,
+              QuotationNo: item.QuotationNo,
               AgencyId: item.AgencyId ?? 0,   // ← add this line
               AgencyName: item.AgencyName ?? '',
               CityName: item.CityName ?? '',
