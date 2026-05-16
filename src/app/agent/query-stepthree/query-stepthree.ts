@@ -77,6 +77,11 @@ export interface QuoteHotelRow {
   CNB: number;
   CostPrice: number;
   SellingPrice: number;
+  BaseRate: number;
+  AwebRate: number;
+  CwebRate: number;
+  CnbRate: number;
+  TotalPrice: number;
   RoomTypes: any[];
   IsSaving: boolean;
 }
@@ -360,6 +365,8 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       NoOfRooms: h.NoOfRooms ?? 1, PaxPerRoom: h.PaxPerRoom ?? 2,
       AWEB: h.AWEB ?? 0, CWEB: h.CWEB ?? 0, CNB: h.CNB ?? 0,
       CostPrice: h.CostPrice ?? 0, SellingPrice: h.SellingPrice ?? 0,
+      BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
+      TotalPrice: h.SellingPrice ?? 0,
       RoomTypes: [], IsSaving: false,
     };
   }
@@ -466,7 +473,8 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
       NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
-      CostPrice: 0, SellingPrice: 0, RoomTypes: [], IsSaving: false,
+      CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
+      TotalPrice: 0, RoomTypes: [], IsSaving: false,
     }]);
   }
 
@@ -505,19 +513,56 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
-    this.service.getHotelRateByDate(enc({
-      HotelId: row.HotelId, RoomTypeId: row.RoomTypeId, StayDate: row.StayDate,
-    })).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
-          const rate = r.Rate;
-          row.CostPrice = row.MealPlan === 'CP' ? (rate.CpRate ?? 0)
-            : row.MealPlan === 'MAP' ? (rate.MapRate ?? 0)
-              : (rate.ApRate ?? 0);
-          row.SellingPrice = row.CostPrice;
+
+    // Fetch base rate and extra charges in parallel
+    forkJoin({
+      rate: this.service.getHotelRateByDate(enc({
+        HotelId: row.HotelId,
+        RoomTypeId: row.RoomTypeId,
+        StayDate: row.StayDate,
+      })),
+      charges: this.service.getHotelExtraCharges(enc({
+        HotelId: row.HotelId,
+        StayDate: row.StayDate,
+      }))
+    }).subscribe({
+      next: ({ rate, charges }: any) => {
+        if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+          const r = rate.Rate;
+          row.BaseRate = row.MealPlan === 'CP' ? (r.CpRate ?? 0)
+            : row.MealPlan === 'MAP' ? (r.MapRate ?? 0)
+              : (r.ApRate ?? 0);
         }
+
+        if (charges.Message === ConstantData.SuccessMessage) {
+          const ch = charges.Charges ?? [];
+          // ChargeType 1=AWEB, 2=CWEB, 3=CNB
+          const aweb = ch.find((c: any) => c.ChargeType === 1);
+          const cweb = ch.find((c: any) => c.ChargeType === 2);
+          const cnb = ch.find((c: any) => c.ChargeType === 3);
+
+          row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate
+            : row.MealPlan === 'MAP' ? aweb.MapRate : aweb.ApRate) ?? 0 : 0;
+          row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate
+            : row.MealPlan === 'MAP' ? cweb.MapRate : cweb.ApRate) ?? 0 : 0;
+          row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate
+            : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
+        }
+
+        this.recalculatePrice(row);
+        this.hotelRows.update(rows => [...rows]);
       }
     });
+  }
+
+  recalculatePrice(row: QuoteHotelRow): void {
+    const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1);
+    const awebCost = (row.AwebRate || 0) * (row.AWEB || 0);
+    const cwebCost = (row.CwebRate || 0) * (row.CWEB || 0);
+    const cnbCost = (row.CnbRate || 0) * (row.CNB || 0);
+    row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
+    row.SellingPrice = row.CostPrice;
+    row.TotalPrice = row.CostPrice;
   }
 
   saveHotelRow(row: QuoteHotelRow): void {
@@ -548,7 +593,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     });
   }
 
-  removeHotelRow(row: QuoteHotelRow, index: number): void {
+  removeHotelRow(row: QuoteHotelRow): void {
     this.markDirty();
     if (row.QuoteHotelId > 0) {
       const enc = (d: object): RequestModel => ({
@@ -557,7 +602,8 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       this.service.deleteQuoteHotel(enc({ QuoteHotelId: row.QuoteHotelId }))
         .subscribe({ next: () => { } });
     }
-    this.hotelRows.update(rows => rows.filter((_, i) => i !== index));
+    // Find and remove the row by comparing the object reference
+    this.hotelRows.update(rows => rows.filter(r => r !== row));
   }
 
   // ── Service rows ──────────────────────────────────────────

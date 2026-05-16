@@ -1,101 +1,97 @@
 @if (loading()) { <app-progress></app-progress> }
 
 <div class="page-content">
-<div class="container-fluid px-0">
+  <div class="container-fluid px-0" style="width: 100%; max-width: 100%; margin: 0; padding: 0;">
 
-  @if (tripInfo(); as trip) {
+    @if (tripInfo(); as trip) {
 
-<!-- ── Basic Details card ──────────────────────────────── -->
-<div class="bg-white border-bottom px-4 py-3">
-  <div class="fw-bold fs-5 mb-1">Basic Details</div>
-  <div class="text-muted small mb-3">
-    Please review basic details for this quote. You can edit these details
-    to provide a quote with different configuration, without changing the trip details.
-  </div>
-
-  <div class="d-flex align-items-center gap-5 flex-wrap mb-3">
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold"
-           style="font-size:10px; letter-spacing:0.5px;">Quotation No</div>
-      <div class="fw-bold">{{ formatQuotationNo(trip.QuotationNo) }}</div>
-    </div>
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold"
-           style="font-size:10px; letter-spacing:0.5px;">Destination</div>
-      <div class="fw-bold">{{ trip.DestinationName }}</div>
-    </div>
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold"
-           style="font-size:10px; letter-spacing:0.5px;">Start Date</div>
-      <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
-    </div>
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold"
-           style="font-size:10px; letter-spacing:0.5px;">Duration</div>
-      <div class="fw-bold">
-        {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
-        {{ trip.NoOfNights + 1 }} Days
+    <!-- ── Basic Details card ──────────────────────────────── -->
+    <div class="bg-white border-bottom px-4 py-3">
+      <div class="fw-bold fs-5 mb-1">Basic Details</div>
+      <div class="text-muted small mb-3">
+        Please review basic details for this quote. You can edit these details
+        to provide a quote with different configuration, without changing the trip details.
       </div>
-    </div>
-    <div>
-      <div class="text-muted small text-uppercase fw-semibold"
-           style="font-size:10px; letter-spacing:0.5px;">PAX</div>
-      <div class="fw-bold">{{ paxLabel }}</div>
-    </div>
-    <button class="btn btn-link btn-sm text-primary p-0" (click)="editBasicDetail(QueryStepOneId)"
-            style="font-size:13px; text-decoration:none;">
-      Edit Basic Details
-    </button>
-  </div>
 
-  <!-- Package Types row -->
-  <div class="border rounded px-3 py-2 d-flex align-items-center gap-3"
-       style="background:#f8f9fa; font-size:13px;">
-    <span class="fw-medium">
-      Package Types/Categories:
-      <strong>{{ packageTypes().length }} Option{{ packageTypes().length !== 1 ? 's' : '' }}</strong>
-    </span>
-    <button mat-icon-button style="width:24px;height:24px;line-height:24px;"
-            (click)="openPkgModal()" matTooltip="Edit package types">
-      <mat-icon style="font-size:14px;">edit</mat-icon>
-    </button>
-
-    <!-- Show all package names inline -->
-    @if (packageTypes().length > 0) {
-      <span class="text-muted">
-        @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let i = $index) {
-          {{ i + 1 }}: {{ pkg.PackageTypeName }}
-          @if (i < packageTypes().length - 1) { &bull; }
-        }
-      </span>
-    }
-  </div>
-</div>
-
-  <!-- ── Body ──────────────────────────────────────────── -->
-  <div class="px-4 py-3">
-
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- HOTELS SECTION                                       -->
-    <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-3 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center
-                      justify-content-center text-white flex-shrink-0"
-               style="width:40px; height:40px;">
-            <i class="bx bx-hotel fs-5"></i>
-          </div>
-          <div>
-            <div class="fw-bold fs-6">Hotels</div>
-            <div class="text-muted small">
-              Please add hotels details (if included in package) with services
-              provided for each hotels and the selling cost price.
-            </div>
+      <div class="d-flex align-items-center gap-5 flex-wrap mb-3">
+        <div>
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+            Quotation No</div>
+          <div class="fw-bold">{{ formatQuotationNo(trip.QuotationNo) }}</div>
+        </div>
+        <div>
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+            Destination</div>
+          <div class="fw-bold">{{ trip.DestinationName }}</div>
+        </div>
+        <div>
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">Start
+            Date</div>
+          <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
+        </div>
+        <div>
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+            Duration</div>
+          <div class="fw-bold">
+            {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
+            {{ trip.NoOfNights + 1 }} Days
           </div>
         </div>
+        <div>
+          <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">PAX
+          </div>
+          <div class="fw-bold">{{ paxLabel }}</div>
+        </div>
+        <button class="btn btn-link btn-sm text-primary p-0" (click)="editBasicDetail(QueryStepOneId)"
+          style="font-size:13px; text-decoration:none;">
+          Edit Basic Details
+        </button>
+      </div>
 
-        @for (slot of nightSlots(); track slot.NightNumber) {
+      <!-- Package Types row -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-3" style="background:#f8f9fa; font-size:13px;">
+        <span class="fw-medium">
+          Package Types/Categories:
+          <strong>{{ packageTypes().length }} Option{{ packageTypes().length !== 1 ? 's' : '' }}</strong>
+        </span>
+        <button mat-icon-button style="width:24px;height:24px;line-height:24px;" (click)="openPkgModal()"
+          matTooltip="Edit package types">
+          <mat-icon style="font-size:14px;">edit</mat-icon>
+        </button>
+
+        <!-- Show all package names inline -->
+        @if (packageTypes().length > 0) {
+        <span class="text-muted">
+          @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let i = $index) {
+          {{ i + 1 }}: {{ pkg.PackageTypeName }}
+          @if (i < packageTypes().length - 1) { &bull; } } </span>
+            }
+      </div>
+    </div>
+
+    <!-- ── Body ──────────────────────────────────────────── -->
+    <div style="padding: 20px 0;">
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- HOTELS SECTION                                       -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="bg-white border-bottom px-4 py-3">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="bg-primary rounded-circle d-flex align-items-center
+                      justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
+              <i class="bx bx-hotel fs-5"></i>
+            </div>
+            <div>
+              <div class="fw-bold fs-6">Hotels</div>
+              <div class="text-muted small">
+                Please add hotels details (if included in package) with services
+                provided for each hotels and the selling cost price.
+              </div>
+            </div>
+          </div>
+
+          @for (slot of nightSlots(); track slot.NightNumber) {
           <div class="border rounded mb-3 p-3">
 
             <!-- Night header -->
@@ -105,180 +101,227 @@
             </div>
 
             @for (row of getHotelRowsForNight(slot.NightNumber);
-                  track row.QuoteHotelId; let ri = $index) {
-              <div class="row g-2 align-items-start mb-3 pb-3 border-bottom">
+            track row.QuoteHotelId; let ri = $index) {
+            <!-- LEFT: config | RIGHT: price panel -->
+            <div class="row g-2 align-items-start mb-3 pb-3 border-bottom">
 
-                <!-- Hotel selector -->
-                <div class="col-sm-4">
-                  <label class="form-label small text-muted mb-1">Hotel</label>
-                  <select class="form-select form-select-sm"
-                          [(ngModel)]="row.HotelId"
-                          (ngModelChange)="markDirty(); onHotelSelected(row)">
-                    <option [value]="0">Select hotel…</option>
-                    @for (h of hotelList(); track h.HotelId) {
+              <!-- LEFT: Hotel config (col-8) -->
+              <div class="col-sm-8">
+
+                <!-- Hotel / Meal / RoomType / Remove row -->
+                <div class="row g-2 mb-2">
+                  <div class="col-sm-5">
+                    <label class="form-label small text-muted mb-1">Hotel</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="row.HotelId"
+                      (ngModelChange)="markDirty(); onHotelSelected(row)">
+                      <option [value]="0">Select hotel…</option>
+                      @for (h of hotelList(); track h.HotelId) {
                       <option [value]="h.HotelId">{{ h.HotelName }}</option>
-                    }
-                  </select>
-                  @if (row.HotelId > 0) {
+                      }
+                    </select>
+                    @if (row.HotelId > 0) {
                     <div class="text-muted" style="font-size:11px; margin-top:2px;">
                       {{ row.LocationName }} • {{ row.HotelCategoryName }}
                     </div>
-                  }
-                </div>
-
-                <!-- Meal Plan -->
-                <div class="col-sm-2">
-                  <label class="form-label small text-muted mb-1">Meal Plan</label>
-                  <select class="form-select form-select-sm"
-                          [(ngModel)]="row.MealPlan"
-                          (ngModelChange)="markDirty(); lookupHotelRate(row)">
-                    <option value="CP">CP</option>
-                    <option value="MAP">MAP</option>
-                    <option value="AP">AP</option>
-                  </select>
-                </div>
-
-                <!-- Room Type -->
-                <div class="col-sm-3">
-                  <label class="form-label small text-muted mb-1">Room Type</label>
-                  <select class="form-select form-select-sm"
-                          [(ngModel)]="row.RoomTypeId"
-                          (ngModelChange)="markDirty(); lookupHotelRate(row)">
-                    <option [value]="0">Select room…</option>
-                    @for (rt of row.RoomTypes; track rt.RoomTypeId) {
-                      <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
                     }
-                  </select>
-                </div>
-
-                <!-- Remove -->
-                <div class="col-sm-1 pt-4">
-                  <button mat-icon-button color="warn"
-                          (click)="removeHotelRow(row, ri)"
-                          matTooltip="Remove">
-                    <mat-icon style="font-size:16px;">close</mat-icon>
-                  </button>
-                </div>
-
-                <!-- Pax/Room details row -->
-                <div class="col-12">
-                  <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div>
-                      <label class="form-label small text-muted mb-1">Pax/room (WoEB)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:70px;"
-                             [(ngModel)]="row.PaxPerRoom" 
-                             (ngModelChange)="markDirty()"
-                             min="1">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">No. of rooms</label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:70px;"
-                             [(ngModel)]="row.NoOfRooms" 
-                             (ngModelChange)="markDirty()"
-                             min="1">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">AWEB</label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:60px;"
-                             [(ngModel)]="row.AWEB" 
-                             (ngModelChange)="markDirty()"
-                             min="0">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">CWEB</label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:60px;"
-                             [(ngModel)]="row.CWEB" 
-                             (ngModelChange)="markDirty()"
-                             min="0">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">CNB</label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:60px;"
-                             [(ngModel)]="row.CNB" 
-                             (ngModelChange)="markDirty()"
-                             min="0">
-                    </div>
+                  </div>
+                  <div class="col-sm-3">
+                    <label class="form-label small text-muted mb-1">Meal Plan</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
+                      (ngModelChange)="markDirty(); lookupHotelRate(row)">
+                      <option value="CP">CP</option>
+                      <option value="MAP">MAP</option>
+                      <option value="AP">AP</option>
+                    </select>
+                  </div>
+                  <div class="col-sm-3">
+                    <label class="form-label small text-muted mb-1">Room Type</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
+                      (ngModelChange)="markDirty(); lookupHotelRate(row)">
+                      <option [value]="0">Select room…</option>
+                      @for (rt of row.RoomTypes; track rt.RoomTypeId) {
+                      <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="col-sm-1 pt-4 text-end">
+                    <button mat-icon-button color="warn" (click)="removeHotelRow(row)" matTooltip="Remove">
+                      <mat-icon style="font-size:16px;">close</mat-icon>
+                    </button>
                   </div>
                 </div>
 
-                <!-- Prices -->
-                <div class="col-12">
-                  <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div>
-                      <label class="form-label small text-muted mb-1">
-                        Cost Price (INR)
-                      </label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:120px;"
-                             [(ngModel)]="row.CostPrice"
-                             (ngModelChange)="markDirty()">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">
-                        Selling Price (INR)
-                      </label>
-                      <input type="number" class="form-control form-control-sm"
-                             style="width:120px;"
-                             [(ngModel)]="row.SellingPrice"
-                             (ngModelChange)="markDirty()"
-                             (blur)="saveHotelRow(row)">
-                    </div>
-                    @if (row.IsSaving) {
-                      <span class="text-muted small mt-3">
-                        <i class="bx bx-loader-alt bx-spin"></i> Saving…
-                      </span>
-                    }
+                <!-- Pax row -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div>
+                    <label class="form-label small text-muted mb-1">Pax/room (WoEB)</label>
+                    <input type="number" class="form-control form-control-sm" style="width:70px;"
+                      [(ngModel)]="row.PaxPerRoom"
+                      (ngModelChange)="markDirty(); recalculatePrice(row); hotelRows.update(r=>[...r])" min="1">
+                  </div>
+                  <div>
+                    <label class="form-label small text-muted mb-1">No. of rooms</label>
+                    <input type="number" class="form-control form-control-sm" style="width:70px;"
+                      [(ngModel)]="row.NoOfRooms"
+                      (ngModelChange)="markDirty(); recalculatePrice(row); hotelRows.update(r=>[...r])" min="1">
+                  </div>
+                  <div>
+                    <label class="form-label small text-muted mb-1">AWEB</label>
+                    <input type="number" class="form-control form-control-sm" style="width:60px;" [(ngModel)]="row.AWEB"
+                      (ngModelChange)="markDirty(); recalculatePrice(row); hotelRows.update(r=>[...r])" min="0">
+                  </div>
+                  <div>
+                    <label class="form-label small text-muted mb-1">CWEB</label>
+                    <input type="number" class="form-control form-control-sm" style="width:60px;" [(ngModel)]="row.CWEB"
+                      (ngModelChange)="markDirty(); recalculatePrice(row); hotelRows.update(r=>[...r])" min="0">
+                  </div>
+                  <div>
+                    <label class="form-label small text-muted mb-1">CNB</label>
+                    <input type="number" class="form-control form-control-sm" style="width:60px;" [(ngModel)]="row.CNB"
+                      (ngModelChange)="markDirty(); recalculatePrice(row); hotelRows.update(r=>[...r])" min="0">
                   </div>
                 </div>
 
               </div>
+
+              <!-- RIGHT: Price panel (col-4) -->
+              <div class="col-sm-4">
+                <div class="border rounded p-3 bg-light h-100">
+                  <div class="fw-semibold small mb-2">Prices
+                    @if (row.IsSaving) {
+                    <span class="text-muted ms-2" style="font-size:11px;">
+                      <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                    </span>
+                    }
+                  </div>
+
+                  @if (row.BaseRate > 0) {
+                  <table class="table table-sm mb-2" style="font-size:12px;">
+                    <thead>
+                      <tr class="text-muted">
+                        <th>Type</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Base rooms -->
+                      <tr>
+                        <td>Rooms ({{ row.NoOfRooms }})</td>
+                        <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
+                        <td class="text-end">{{ row.NoOfRooms }}</td>
+                        <td class="text-end fw-semibold">
+                          {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
+                        </td>
+                      </tr>
+                      <!-- AWEB -->
+                      @if (row.AWEB > 0 && row.AwebRate > 0) {
+                      <tr>
+                        <td>AWEB</td>
+                        <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
+                        <td class="text-end">{{ row.AWEB }}</td>
+                        <td class="text-end fw-semibold">
+                          {{ formatCurrency(row.AwebRate * row.AWEB) }}
+                        </td>
+                      </tr>
+                      }
+                      <!-- CWEB -->
+                      @if (row.CWEB > 0 && row.CwebRate > 0) {
+                      <tr>
+                        <td>CWEB</td>
+                        <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
+                        <td class="text-end">{{ row.CWEB }}</td>
+                        <td class="text-end fw-semibold">
+                          {{ formatCurrency(row.CwebRate * row.CWEB) }}
+                        </td>
+                      </tr>
+                      }
+                      <!-- CNB -->
+                      @if (row.CNB > 0 && row.CnbRate > 0) {
+                      <tr>
+                        <td>CNB</td>
+                        <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
+                        <td class="text-end">{{ row.CNB }}</td>
+                        <td class="text-end fw-semibold">
+                          {{ formatCurrency(row.CnbRate * row.CNB) }}
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                    <tfoot>
+                      <tr class="border-top">
+                        <td colspan="3" class="fw-bold">Total</td>
+                        <td class="text-end fw-bold text-primary">
+                          INR {{ formatCurrency(row.TotalPrice) }}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  } @else {
+                  <div class="text-muted" style="font-size:12px;">
+                    Select hotel, meal plan and room type to see prices.
+                  </div>
+                  }
+
+                  <!-- Selling price override -->
+                  @if (row.BaseRate > 0) {
+                  <div class="mt-2">
+                    <label class="form-label small text-muted mb-1">
+                      Selling Price (INR) <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+                      (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
+                    <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                      Cost: INR {{ formatCurrency(row.CostPrice) }}
+                    </div>
+                  </div>
+                  }
+
+                </div>
+              </div>
+
+            </div>
             }
 
             <!-- Add hotel button -->
-            <button class="btn btn-outline-primary btn-sm"
-                    style="font-size:12px;"
-                    (click)="addHotelRow(slot)">
+            <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addHotelRow(slot)">
               <i class="bx bx-plus me-1"></i> Add Hotel
             </button>
           </div>
-        }
+          }
 
-        <!-- Hotel total -->
-        <div class="d-flex justify-content-end mt-2">
-          <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-            Accommodations Total: INR {{ formatCurrency(hotelTotal()) }}
+          <!-- Hotel total -->
+          <div class="d-flex justify-content-end mt-2">
+            <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+              Accommodations Total: INR {{ formatCurrency(hotelTotal()) }}
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
-    <!-- ═══════════════════════════════════════════════════ -->
-
-
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- SUMMARY SECTION                                      -->
-    <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
 
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- INTERNAL NOTES                                       -->
-    <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- SUMMARY SECTION                                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
 
 
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- FINAL PRICE PREVIEW                                  -->
-    <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- INTERNAL NOTES                                       -->
+      <!-- ═══════════════════════════════════════════════════ -->
 
 
-    <!-- Save / Cancel -->
-    <!-- <div class="d-flex gap-3 pb-4">
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- FINAL PRICE PREVIEW                                  -->
+      <!-- ═══════════════════════════════════════════════════ -->
+
+
+      <!-- Save / Cancel -->
+      <!-- <div class="d-flex gap-3 pb-4">
       <button mat-raised-button color="primary"
               style="min-width:130px;"
               (click)="saveQuote()"
@@ -289,85 +332,75 @@
       <button mat-stroked-button (click)="cancel()">Cancel</button>
     </div> -->
 
-  </div>
+    </div>
 
-  } @else if (!loading()) {
+    } @else if (!loading()) {
     <div class="text-center text-muted py-5">
       <i class="bx bx-error-circle fs-1 d-block mb-2 opacity-25"></i>
       <p>Trip details not found.</p>
     </div>
-  }
+    }
 
-</div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════ -->
 <!-- PACKAGE TYPES MODAL                                      -->
 <!-- ════════════════════════════════════════════════════════ -->
 @if (showPkgModal) {
-  <div class="modal-backdrop fade show"
-       style="z-index:1040; backdrop-filter:blur(3px);"
-       (click)="closePkgModal()">
-  </div>
+<div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter:blur(3px);" (click)="closePkgModal()">
+</div>
 
-  <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+<div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
 
-        <div class="modal-header border-bottom px-4 py-3">
-          <h5 class="modal-title fw-bold" style="font-size:15px;">
-            Package Types/Options
-          </h5>
-          <button type="button" class="btn-close" (click)="closePkgModal()"></button>
-        </div>
-
-        <div class="modal-body px-4 py-3">
-          <table class="table table-sm mb-3" style="font-size:13px;">
-            <thead>
-              <tr>
-                <th style="width:30px;">#</th>
-                <th>Name</th>
-                <th style="width:30px;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of pkgModalRows; track $index; let i = $index) {
-                <tr>
-                  <td class="text-muted">{{ i + 1 }}</td>
-                  <td>
-                    <input type="text"
-                           class="form-control form-control-sm"
-                           [(ngModel)]="row.PackageTypeName"
-                           (ngModelChange)="markDirty()"
-                           placeholder="e.g. Deluxe Package">
-                  </td>
-                  <td>
-                    <button mat-icon-button
-                            style="width:24px;height:24px;line-height:24px;"
-                            (click)="removePkgRow(i)">
-                      <mat-icon style="font-size:14px;">close</mat-icon>
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-          <button class="btn btn-link btn-sm p-0 text-primary"
-                  style="font-size:13px; text-decoration:none;"
-                  (click)="addPkgRow()">
-            <i class="bx bx-plus me-1"></i> Add More
-          </button>
-        </div>
-
-        <div class="modal-footer border-top px-4 py-3">
-          <button class="btn btn-primary btn-sm px-4"
-                  (click)="savePkgTypes()">Save</button>
-          <button class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closePkgModal()">Cancel</button>
-        </div>
-
+      <div class="modal-header border-bottom px-4 py-3">
+        <h5 class="modal-title fw-bold" style="font-size:15px;">
+          Package Types/Options
+        </h5>
+        <button type="button" class="btn-close" (click)="closePkgModal()"></button>
       </div>
+
+      <div class="modal-body px-4 py-3">
+        <table class="table table-sm mb-3" style="font-size:13px;">
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>Name</th>
+              <th style="width:30px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of pkgModalRows; track $index; let i = $index) {
+            <tr>
+              <td class="text-muted">{{ i + 1 }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="row.PackageTypeName"
+                  (ngModelChange)="markDirty()" placeholder="e.g. Deluxe Package">
+              </td>
+              <td>
+                <button mat-icon-button style="width:24px;height:24px;line-height:24px;" (click)="removePkgRow(i)">
+                  <mat-icon style="font-size:14px;">close</mat-icon>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        <button class="btn btn-link btn-sm p-0 text-primary" style="font-size:13px; text-decoration:none;"
+          (click)="addPkgRow()">
+          <i class="bx bx-plus me-1"></i> Add More
+        </button>
+      </div>
+
+      <div class="modal-footer border-top px-4 py-3">
+        <button class="btn btn-primary btn-sm px-4" (click)="savePkgTypes()">Save</button>
+        <button class="btn btn-outline-secondary btn-sm px-3" (click)="closePkgModal()">Cancel</button>
+      </div>
+
     </div>
   </div>
+</div>
 }
 <app-unsaved-changes-dialog></app-unsaved-changes-dialog>
