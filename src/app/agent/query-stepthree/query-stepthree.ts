@@ -18,6 +18,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { LoadDataService } from '../../utils/load-data.service';
 
 import { AppService } from '../../utils/app.service';
 import { LocalService } from '../../utils/local.service';
@@ -26,6 +27,20 @@ import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
 
 // ── Interfaces ────────────────────────────────────────────────
+export interface QuoteSpecialInclusionRow {
+  QuoteSpecialInclusionId: number;
+  QuoteId: number;
+  QuoteHotelId: number;
+  NightNumber: number;
+  SpecialInclusionId: number;
+  SpecialInclusionName: string;
+  HotelName: string;
+  TotalPrice: number;
+  Comments: string;
+  // UI
+  AvailableServices: any[];
+  IsSaving: boolean;
+}
 
 export interface TripInfo {
   QueryStepOneId: number;
@@ -65,6 +80,7 @@ export interface QuoteHotelRow {
   StayDate: Date;
   HotelId: number;
   HotelName: string;
+  SpecialInclusions: any[];
   LocationName: string;
   HotelCategoryName: string;
   RoomTypeId: number;
@@ -84,6 +100,9 @@ export interface QuoteHotelRow {
   TotalPrice: number;
   RoomTypes: any[];
   IsSaving: boolean;
+  HotelSearch: string;
+  FilteredHotels: any[];
+  ShowDropdown: boolean;
 }
 
 export interface QuoteServiceRow {
@@ -151,6 +170,11 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   loading = signal(false);
   tripInfo = signal<TripInfo | null>(null);
   packageTypes = signal<PackageTypeRow[]>([]);
+
+  specialInclusionRows = signal<QuoteSpecialInclusionRow[]>([]);
+specialInclusionMasterList = signal<any[]>([]);
+
+  loadData = inject(LoadDataService);
 
   hotelList = signal<any[]>([]);
   itineraryList = signal<any[]>([]);
@@ -367,7 +391,9 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       CostPrice: h.CostPrice ?? 0, SellingPrice: h.SellingPrice ?? 0,
       BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
       TotalPrice: h.SellingPrice ?? 0,
-      RoomTypes: [], IsSaving: false,
+      RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: h.HotelName ?? '',
+    FilteredHotels: [],
+    ShowDropdown: false,
     };
   }
 
@@ -474,10 +500,52 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
       NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
       CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
-      TotalPrice: 0, RoomTypes: [], IsSaving: false,
+      TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],HotelSearch: '',
+    FilteredHotels: [],
+    ShowDropdown: false,
     }]);
   }
+onHotelSearch(row: QuoteHotelRow): void {
+  const query = (row.HotelSearch ?? '').toLowerCase().trim();
+  if (!query) {
+    row.FilteredHotels = [];
+    row.ShowDropdown = false;
+    return;
+  }
+  row.FilteredHotels = this.hotelList().filter(h =>
+    h.HotelName.toLowerCase().includes(query) ||
+    h.LocationName?.toLowerCase().includes(query)
+  ).slice(0, 10); // limit to 10 results
+  row.ShowDropdown = true;
+  this.hotelRows.update(rows => [...rows]);
+}
 
+selectHotel(row: QuoteHotelRow, hotel: any): void {
+  row.HotelId = hotel.HotelId;
+  row.HotelName = hotel.HotelName;
+  row.HotelSearch = hotel.HotelName;
+  row.LocationName = hotel.LocationName;
+  row.HotelCategoryName = hotel.HotelCategoryName;
+  row.ShowDropdown = false;
+  row.FilteredHotels = [];
+  this.hotelRows.update(rows => [...rows]);
+  this.markDirty();
+  this.onHotelSelected(row);
+}
+
+onHotelBlur(row: QuoteHotelRow): void {
+  // Delay to allow mousedown on dropdown item to fire first
+  setTimeout(() => {
+    row.ShowDropdown = false;
+    // If user typed something but didn't select, reset to last valid hotel
+    if (row.HotelId > 0) {
+      row.HotelSearch = row.HotelName;
+    } else {
+      row.HotelSearch = '';
+    }
+    this.hotelRows.update(rows => [...rows]);
+  }, 200);
+}
   onHotelSelected(row: QuoteHotelRow): void {
     this.markDirty();
     let hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
@@ -505,21 +573,111 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
         },
         error: () => this.toastr.error('Error loading room types')
       });
+      // Add to onHotelSelected after getRoomTypeList success
+this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
+  .subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        row.SpecialInclusions = r.SpecialInclusionList ?? [];  // ← correct key
+        this.hotelRows.update(rows => [...rows]);
+      }
+    }
+  });
     }
   }
+  getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
+  return this.specialInclusionRows().filter(r => r.NightNumber === nightNumber);
+}
 
+// Get all hotels for a night to populate hotel dropdown in special inclusions
+getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
+  return this.hotelRows().filter(
+    r => r.NightNumber === nightNumber
+      && r.QuotePackageTypeId === this.activePackageTypeId
+      && r.HotelId > 0
+  );
+}
+
+addSpecialInclusionRow(nightNumber: number): void {
+  const hotelsForNight = this.getHotelsForNight(nightNumber);
+  const firstHotel = hotelsForNight[0];
+  this.markDirty();
+  this.specialInclusionRows.update(rows => [...rows, {
+    QuoteSpecialInclusionId: 0,
+    QuoteId: this.QuoteId,
+    QuoteHotelId: firstHotel?.QuoteHotelId ?? 0,
+    NightNumber: nightNumber,
+    SpecialInclusionId: 0,
+    SpecialInclusionName: '',
+    HotelName: firstHotel?.HotelName ?? '',
+    TotalPrice: 0,
+    Comments: '',
+    AvailableServices: firstHotel?.SpecialInclusions ?? [],
+    IsSaving: false,
+  }]);
+}
+
+onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotelRow: QuoteHotelRow): void {
+  row.QuoteHotelId = hotelRow.QuoteHotelId;
+  row.HotelName = hotelRow.HotelName;
+  row.AvailableServices = hotelRow.SpecialInclusions ?? [];
+  row.SpecialInclusionId = 0;
+  row.TotalPrice = 0;
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
+  const svc = row.AvailableServices.find(
+    s => Number(s.SpecialInclusionId) === Number(row.SpecialInclusionId)
+  );
+
+  if (svc) {
+    row.SpecialInclusionName = svc.SpecialInclusionTypeName ?? svc.SpecialInclusionName ?? '';
+    row.TotalPrice            = Number(svc.Rate ?? svc.ApRate ?? 0);
+  } else {
+    row.TotalPrice = 0;
+  }
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+// onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
+//   const svc = row.AvailableServices.find(
+//     s => s.SpecialInclusionId === row.SpecialInclusionId
+//   );
+//   if (svc) {
+//     row.SpecialInclusionName = svc.SpecialInclusionTypeName;
+//     row.TotalPrice = svc.Rate ?? 0;
+//   }
+//   this.specialInclusionRows.update(rows => [...rows]);
+//   this.markDirty();
+// }
+
+removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
+  this.markDirty();
+  if (row.QuoteSpecialInclusionId > 0) {
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+    this.service.deleteQuoteSpecialInclusion(
+      enc({ QuoteSpecialInclusionId: row.QuoteSpecialInclusionId })
+    ).subscribe({ next: () => {} });
+  }
+  // Find and remove the row by comparing the object reference
+  this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
+}
   lookupHotelRate(row: QuoteHotelRow): void {
     if (!row.HotelId || !row.RoomTypeId) return;
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
-
     // Fetch base rate and extra charges in parallel
     forkJoin({
       rate: this.service.getHotelRateByDate(enc({
         HotelId: row.HotelId,
         RoomTypeId: row.RoomTypeId,
-        StayDate: row.StayDate,
+        StayDate: this.loadData.loadDateTime(row.StayDate),
       })),
       charges: this.service.getHotelExtraCharges(enc({
         HotelId: row.HotelId,
@@ -571,10 +729,12 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
+
+    const stayDate = this.formatDate(row.StayDate);
     this.service.saveQuoteHotel(enc({
       QuoteHotelId: row.QuoteHotelId, QuoteId: this.QuoteId,
       QuotePackageTypeId: row.QuotePackageTypeId,
-      NightNumber: row.NightNumber, StayDate: row.StayDate,
+      NightNumber: row.NightNumber, StayDate: stayDate,
       HotelId: row.HotelId, RoomTypeId: row.RoomTypeId,
       MealPlan: row.MealPlan, NoOfRooms: row.NoOfRooms,
       PaxPerRoom: row.PaxPerRoom, AWEB: row.AWEB, CWEB: row.CWEB, CNB: row.CNB,
@@ -731,7 +891,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     });
   }
 
-  removeServiceRow(row: QuoteServiceRow, idx: number): void {
+  removeServiceRow(row: QuoteServiceRow): void {
     this.markDirty();
     if (row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({
@@ -740,8 +900,15 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId }))
         .subscribe({ next: () => { } });
     }
-    this.serviceRows.update(rows => rows.filter((_, i) => i !== idx));
+    // Find and remove the row by comparing the object reference
+    this.serviceRows.update(rows => rows.filter(r => r !== row));
   }
+
+  // ── function  helpers ───────────────────────────────────────
+formatDate(date: any): string {
+  const formatted = this.loadData.loadDateTime(date);
+  return formatted ? formatted : '';
+}
 
   // ── Summary helpers ───────────────────────────────────────
   get summaryHotels(): QuoteHotelRow[] {

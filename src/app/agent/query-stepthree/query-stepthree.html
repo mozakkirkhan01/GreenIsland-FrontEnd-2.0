@@ -110,21 +110,51 @@
 
                 <!-- Hotel / Meal / RoomType / Remove row -->
                 <div class="row g-2 mb-2">
-                  <div class="col-sm-5">
-                    <label class="form-label small text-muted mb-1">Hotel</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="row.HotelId"
-                      (ngModelChange)="markDirty(); onHotelSelected(row)">
-                      <option [value]="0">Select hotel…</option>
-                      @for (h of hotelList(); track h.HotelId) {
-                      <option [value]="h.HotelId">{{ h.HotelName }}</option>
-                      }
-                    </select>
-                    @if (row.HotelId > 0) {
-                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
-                      {{ row.LocationName }} • {{ row.HotelCategoryName }}
-                    </div>
-                    }
-                  </div>
+<div class="col-sm-5">
+  <label class="form-label small text-muted mb-1">Hotel</label>
+  <div style="position:relative;">
+    <input type="text"
+           class="form-control form-control-sm"
+           placeholder="Search hotel…"
+           [(ngModel)]="row.HotelSearch"
+           (ngModelChange)="onHotelSearch(row)"
+           (focus)="row.ShowDropdown = true"
+           (blur)="onHotelBlur(row)"
+           autocomplete="off">
+
+    @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
+      <div class="border rounded bg-white shadow-sm"
+           style="position:absolute; top:100%; left:0; right:0;
+                  z-index:1000; max-height:200px; overflow-y:auto;">
+        @for (h of row.FilteredHotels; track h.HotelId) {
+          <div class="px-3 py-2 cursor-pointer"
+               style="font-size:13px; cursor:pointer;"
+               (mousedown)="selectHotel(row, h)">
+            <div class="fw-semibold">{{ h.HotelName }}</div>
+            <div class="text-muted" style="font-size:11px;">
+              {{ h.LocationName }} • {{ h.HotelCategoryName }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (row.ShowDropdown && row.HotelSearch.length > 0 
+         && row.FilteredHotels.length === 0) {
+      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+           style="position:absolute; top:100%; left:0; right:0;
+                  z-index:1000; font-size:13px;">
+        No hotels found
+      </div>
+    }
+  </div>
+
+  @if (row.HotelId > 0) {
+    <div class="text-muted" style="font-size:11px; margin-top:2px;">
+      {{ row.LocationName }} • {{ row.HotelCategoryName }}
+    </div>
+  }
+</div>
                   <div class="col-sm-3">
                     <label class="form-label small text-muted mb-1">Meal Plan</label>
                     <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
@@ -268,7 +298,7 @@
                   @if (row.BaseRate > 0) {
                   <div class="mt-2">
                     <label class="form-label small text-muted mb-1">
-                      Selling Price (INR) <span class="text-danger">*</span>
+                      Final Price (INR) <span class="text-danger">*</span>
                     </label>
                     <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
                       (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
@@ -300,6 +330,133 @@
         </div>
       </div>
 
+
+      <!-- ═══════════════════════════════════════════════════ -->
+<!-- SPECIAL INCLUSIONS SECTION                          -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-start gap-3 mb-3">
+      <div class="bg-warning rounded-circle d-flex align-items-center
+                  justify-content-center text-white flex-shrink-0"
+           style="width:40px; height:40px;">
+        <i class="bx bx-star fs-5"></i>
+      </div>
+      <div>
+        <div class="fw-bold fs-6">Any Special Inclusions in Hotels</div>
+        <div class="text-muted small">
+          Add any extra services e.g. special dinner, honeymoon cake etc.
+        </div>
+      </div>
+    </div>
+
+    @for (slot of nightSlots(); track slot.NightNumber) {
+      @if (getHotelsForNight(slot.NightNumber).length > 0) {
+        <div class="mb-3">
+          <div class="fw-semibold text-muted small mb-2" style="font-size:12px;">
+            <i class="bx bx-moon me-1"></i>
+            Night {{ slot.NightNumber }} — {{ slot.DateLabel }}
+          </div>
+
+          @for (row of getSpecialInclusionRowsForNight(slot.NightNumber);
+                track row.QuoteSpecialInclusionId; let idx = $index) {
+            <div class="row g-2 align-items-end mb-2">
+
+              <!-- Service -->
+              <div class="col-sm-3">
+                <label class="form-label small text-muted mb-1">Service</label>
+                <select class="form-select form-select-sm"
+                        [(ngModel)]="row.SpecialInclusionId"
+                        (ngModelChange)="onSpecialInclusionServiceChange(row)">
+                  <option [value]="0">Select service…</option>
+                  @for (svc of row.AvailableServices; track svc.SpecialInclusionId) {
+                    <option [ngValue]="svc.SpecialInclusionId">
+                      {{ svc.SpecialInclusionTypeName }}
+                    </option>
+                  }
+                </select>
+              </div>
+
+              <!-- Hotel -->
+              <div class="col-sm-3">
+                <label class="form-label small text-muted mb-1">Hotel</label>
+                <select class="form-select form-select-sm"
+                        [(ngModel)]="row.QuoteHotelId"
+                        (ngModelChange)="onSpecialInclusionHotelChange(
+                          row,
+                          getHotelsForNight(slot.NightNumber)
+                            .find(h => h.QuoteHotelId === row.QuoteHotelId)!
+                        )">
+                  @for (h of getHotelsForNight(slot.NightNumber); track h.QuoteHotelId) {
+                    <option [value]="h.QuoteHotelId">{{ h.HotelName }}</option>
+                  }
+                </select>
+                @if (row.QuoteHotelId > 0) {
+                  <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                    {{ getHotelsForNight(slot.NightNumber)
+                        .find(h => h.QuoteHotelId === row.QuoteHotelId)?.LocationName }}
+                    •
+                    {{ getHotelsForNight(slot.NightNumber)
+                        .find(h => h.QuoteHotelId === row.QuoteHotelId)?.HotelCategoryName }}
+                  </div>
+                }
+              </div>
+
+              <!-- Night label (read-only) -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Night</label>
+                <input type="text" class="form-control form-control-sm"
+                       [value]="slot.NightNumber + 'st N (' + slot.DateLabel + ')'"
+                       readonly style="background:#f8f9fa;">
+              </div>
+
+              <!-- Total Price -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Total Price (INR)</label>
+                <input type="number" class="form-control form-control-sm"
+                       [(ngModel)]="row.TotalPrice"
+                       (ngModelChange)="markDirty()"
+                       placeholder="e.g. 3000">
+              </div>
+
+              <!-- Comments -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Comments</label>
+                <input type="text" class="form-control form-control-sm"
+                       [(ngModel)]="row.Comments"
+                       (ngModelChange)="markDirty()"
+                       placeholder="Any comments…">
+              </div>
+
+              <!-- Remove -->
+              <div class="col-auto">
+                <button mat-icon-button color="warn"
+                        (click)="removeSpecialInclusionRow(row)"
+                        matTooltip="Remove">
+                  <mat-icon style="font-size:16px;">close</mat-icon>
+                </button>
+              </div>
+
+            </div>
+          }
+
+          <button class="btn btn-outline-secondary btn-sm mt-1"
+                  style="font-size:12px;"
+                  (click)="addSpecialInclusionRow(slot.NightNumber)">
+            <i class="bx bx-plus me-1"></i> Add Service
+          </button>
+        </div>
+      }
+    }
+
+    @if (specialInclusionRows().length === 0) {
+      <div class="text-muted small fst-italic">
+        No special inclusions added. Add hotels first, then add services here.
+      </div>
+    }
+
+  </div>
+</div>
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
       <!-- ═══════════════════════════════════════════════════ -->
