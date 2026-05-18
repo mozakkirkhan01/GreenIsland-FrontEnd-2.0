@@ -37,6 +37,9 @@ export interface QuoteSpecialInclusionRow {
   HotelName: string;
   TotalPrice: number;
   Comments: string;
+  ServiceSearch: string;
+  FilteredServices: any[];
+  ShowServiceDropdown: boolean;
   // UI
   AvailableServices: any[];
   IsSaving: boolean;
@@ -507,15 +510,23 @@ specialInclusionMasterList = signal<any[]>([]);
   }
 onHotelSearch(row: QuoteHotelRow): void {
   const query = (row.HotelSearch ?? '').toLowerCase().trim();
+
+  // If empty → show first 4 hotels
   if (!query) {
-    row.FilteredHotels = [];
-    row.ShowDropdown = false;
+    row.FilteredHotels = this.hotelList().slice(0, 4);
+    row.ShowDropdown = true;
+    this.hotelRows.update(rows => [...rows]);
     return;
   }
-  row.FilteredHotels = this.hotelList().filter(h =>
-    h.HotelName.toLowerCase().includes(query) ||
-    h.LocationName?.toLowerCase().includes(query)
-  ).slice(0, 10); // limit to 10 results
+
+  // Search results
+  row.FilteredHotels = this.hotelList()
+    .filter(h =>
+      h.HotelName.toLowerCase().includes(query) ||
+      h.LocationName?.toLowerCase().includes(query)
+    )
+    .slice(0, 4);
+
   row.ShowDropdown = true;
   this.hotelRows.update(rows => [...rows]);
 }
@@ -613,7 +624,8 @@ addSpecialInclusionRow(nightNumber: number): void {
     TotalPrice: 0,
     Comments: '',
     AvailableServices: firstHotel?.SpecialInclusions ?? [],
-    IsSaving: false,
+    IsSaving: false, ServiceSearch: '', FilteredServices: [],
+    ShowServiceDropdown: false,
   }]);
 }
 
@@ -642,17 +654,50 @@ onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
   this.markDirty();
 }
 
-// onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
-//   const svc = row.AvailableServices.find(
-//     s => s.SpecialInclusionId === row.SpecialInclusionId
-//   );
-//   if (svc) {
-//     row.SpecialInclusionName = svc.SpecialInclusionTypeName;
-//     row.TotalPrice = svc.Rate ?? 0;
-//   }
-//   this.specialInclusionRows.update(rows => [...rows]);
-//   this.markDirty();
-// }
+//special inclusion serach
+onServiceSearch(row: QuoteSpecialInclusionRow): void {
+  const query = (row.ServiceSearch ?? '').toLowerCase().trim();
+
+  // Show default 4 services on focus
+  if (!query) {
+    row.FilteredServices = (row.AvailableServices ?? []).slice(0, 4);
+    row.ShowServiceDropdown = true;
+    this.specialInclusionRows.update(rows => [...rows]);
+    return;
+  }
+
+  // Filter services while typing
+  row.FilteredServices = (row.AvailableServices ?? [])
+    .filter(s =>
+      s.SpecialInclusionTypeName.toLowerCase().includes(query)
+    )
+    .slice(0, 4);
+
+  row.ShowServiceDropdown = true;
+  this.specialInclusionRows.update(rows => [...rows]);
+}
+selectService(row: QuoteSpecialInclusionRow, svc: any): void {
+  row.SpecialInclusionId = svc.SpecialInclusionId;
+  row.SpecialInclusionName = svc.SpecialInclusionTypeName;
+  row.ServiceSearch = svc.SpecialInclusionTypeName;
+  row.TotalPrice = svc.Rate ?? 0;
+  row.ShowServiceDropdown = false;
+  row.FilteredServices = [];
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+onServiceBlur(row: QuoteSpecialInclusionRow): void {
+  setTimeout(() => {
+    row.ShowServiceDropdown = false;
+    if (row.SpecialInclusionId > 0) {
+      row.ServiceSearch = row.SpecialInclusionName;
+    } else {
+      row.ServiceSearch = '';
+    }
+    this.specialInclusionRows.update(rows => [...rows]);
+  }, 200);
+}
+
 
 removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
   this.markDirty();
