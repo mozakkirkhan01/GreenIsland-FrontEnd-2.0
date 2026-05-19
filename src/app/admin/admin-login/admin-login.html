@@ -1,84 +1,101 @@
-<!-- <app-progress *ngIf="dataLoading"></app-progress> -->
+<!-- admin-login.html -->
+
+@if (dataLoading()) {
+  <app-progress></app-progress>
+}
+
 <div class="account-pages my-5 pt-sm-5">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6 col-xl-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6 col-xl-5">
 
-                <div class="card overflow-hidden shadow">
-                    <div class="bg-primary bg-soft">
-                        <div class="row">
-                            <div class="col-7">
-                                <div class="text-primary p-4">
-                                    <h5 class="text-primary">Welcome Back!</h5>
-                                    <p>Sign in to Green Island.</p>
-                                </div>
-                            </div>
-                            <div class="col-5 align-self-end">
-                                <img src="assets/img/profile-img.png" alt="" class="img-fluid">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card-body pt-4">
-
-                        <div class="auth-logo text-center mb-3">
-                            <img src="/assets/img/greenlogo.png" alt="" height="40">
-                        </div>
-
-                        <!-- FORM START -->
-                        <form #myForm="ngForm" (ngSubmit)="staffLogin(myForm)" novalidate>
-
-                            <!-- USERNAME -->
-                            <mat-form-field appearance="outline" class="w-100 mb-3">
-                                <mat-label>Username</mat-label>
-                                <mat-icon matPrefix>person</mat-icon>
-
-                                <input matInput type="text" name="UserName" [(ngModel)]="Staff.UserName"
-                                    #UserName="ngModel" required>
-
-                                <mat-error *ngIf="submitted && UserName.invalid">
-                                    Username is required
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- PASSWORD -->
-                            <mat-form-field appearance="outline" class="w-100 mb-4">
-                                <mat-label>Password</mat-label>
-                                <mat-icon matPrefix>lock</mat-icon>
-
-                                <input matInput [type]="hidePassword ? 'password' : 'text'" name="LoginPassword"
-                                    [(ngModel)]="Staff.LoginPassword" #LoginPassword="ngModel" required>
-
-                                <button mat-icon-button matSuffix type="button" (click)="togglePassword()"
-                                    (mousedown)="$event.preventDefault()">
-                                    <mat-icon>
-                                        {{ hidePassword ? 'visibility_off' : 'visibility' }}
-                                    </mat-icon>
-                                </button>
-
-                                <mat-error *ngIf="submitted && LoginPassword.invalid">
-                                    Password is required
-                                </mat-error>
-                            </mat-form-field>
-
-                            <!-- BUTTON -->
-                            <button mat-raised-button color="primary" class="w-100" type="submit">
-                                Login
-                            </button>
-
-                        </form>
-                        <!-- FORM END -->
-
-                    </div>
+        <div class="card overflow-hidden shadow">
+          <div class="bg-primary bg-soft">
+            <div class="row">
+              <div class="col-7">
+                <div class="text-primary p-4">
+                  <h5 class="text-primary">Welcome Back!</h5>
+                  <p>Sign in to Green Island.</p>
                 </div>
-
-                <div class="text-center mt-3">
-                    <p>
-                        © {{currentYear}} Green Island Tours & Travels Pvt. Ltd.
-                    </p>
-                </div>
-
+              </div>
+              <div class="col-5 align-self-end">
+                <img src="assets/img/profile-img.png" alt="" class="img-fluid">
+              </div>
             </div>
+          </div>
+
+          <div class="card-body pt-4">
+
+            <div class="auth-logo text-center mb-3">
+              <img src="/assets/img/greenlogo.png" alt="" height="40">
+            </div>
+
+            <!-- FORM START -->
+            <form #myForm="ngForm" (ngSubmit)="staffLogin(myForm)" novalidate>
+
+              <!-- USERNAME -->
+              <mat-form-field appearance="outline" class="w-100 mb-3">
+                <mat-label>Username</mat-label>
+                <mat-icon matPrefix>person</mat-icon>
+                <input matInput
+                       type="text"
+                       name="UserName"
+                       [(ngModel)]="Staff.UserName"
+                       #UserName="ngModel"
+                       required>
+                @if (submitted() && UserName.invalid) {
+                  <mat-error>Username is required</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- PASSWORD -->
+              <mat-form-field appearance="outline" class="w-100 mb-4">
+                <mat-label>Password</mat-label>
+                <mat-icon matPrefix>lock</mat-icon>
+                <input matInput
+                       [type]="hidePassword() ? 'password' : 'text'"
+                       name="LoginPassword"
+                       [(ngModel)]="Staff.LoginPassword"
+                       #LoginPassword="ngModel"
+                       required>
+                <button mat-icon-button matSuffix
+                        type="button"
+                        (click)="togglePassword()"
+                        (mousedown)="$event.preventDefault()">
+                  <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                @if (submitted() && LoginPassword.invalid) {
+                  <mat-error>Password is required</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- SUBMIT -->
+              <button mat-raised-button
+                      color="primary"
+                      class="w-100"
+                      type="submit"
+                      [disabled]="dataLoading()">
+                @if (dataLoading()) {
+                  <ng-container>
+                    <mat-icon class="spin-icon">autorenew</mat-icon>
+                    Signing in…
+                  </ng-container>
+                } @else {
+                  Login
+                }
+              </button>
+
+            </form>
+            <!-- FORM END -->
+
+          </div>
         </div>
+
+        <div class="text-center mt-3">
+          <p>© {{ currentYear }} Green Island Tours &amp; Travels Pvt. Ltd.</p>
+        </div>
+
+      </div>
     </div>
+  </div>
 </div>
