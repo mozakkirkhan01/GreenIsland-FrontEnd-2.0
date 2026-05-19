@@ -122,6 +122,24 @@
            (blur)="onHotelBlur(row)"
            autocomplete="off">
 
+           @if(row.HotelSearch.length >0){
+                <button type="button"
+            class="btn btn-sm p-0 border-0 bg-transparent"
+            style="
+              position:absolute;
+              top:50%;
+              right:8px;
+              transform:translateY(-50%);
+              font-size:14px;
+              line-height:1;
+              z-index:10;
+              color:#999;
+            "
+            (mousedown)="clearHotel(row)">
+      ×
+    </button>
+           }
+
     @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
       <div class="border rounded bg-white shadow-sm"
            style="position:absolute; top:100%; left:0; right:0;
@@ -384,6 +402,25 @@
            (focus)="onServiceSearch(row)"
            (blur)="onServiceBlur(row)"
            autocomplete="off">
+
+            <!-- Clear button -->
+  @if (row.ServiceSearch.length > 0) {
+    <button type="button"
+            class="btn btn-sm p-0 border-0 bg-transparent"
+            style="
+              position:absolute;
+              top:50%;
+              right:8px;
+              transform:translateY(-50%);
+              font-size:14px;
+              line-height:1;
+              z-index:10;
+              color:#999;
+            "
+            (mousedown)="clearService(row)">
+      ×
+    </button>
+  }
 
     @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
       <div class="border rounded bg-white shadow-sm"

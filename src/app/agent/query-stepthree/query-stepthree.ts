@@ -573,12 +573,29 @@ onHotelBlur(row: QuoteHotelRow): void {
       });
       this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
         next: (r: any) => {
-          if (r.Message === ConstantData.SuccessMessage) {
-            row.RoomTypes = r.RoomTypeList ?? [];
-            row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
-            this.hotelRows.update(rows => [...rows]);
-            this.lookupHotelRate(row);
-          } else {
+if (r.Message === ConstantData.SuccessMessage) {
+
+  row.RoomTypes = r.RoomTypeList ?? [];
+
+  // No room type found
+  if (row.RoomTypes.length === 0) {
+    this.toastr.warning(
+      `No room types configured for ${row.HotelName}`
+    );
+  }
+
+  row.RoomTypeId =
+    row.RoomTypes.length > 0
+      ? row.RoomTypes[0].RoomTypeId
+      : 0;
+
+  this.hotelRows.update(rows => [...rows]);
+
+  // Only lookup price if room type exists
+  if (row.RoomTypeId > 0) {
+    this.lookupHotelRate(row);
+  }
+} else {
             this.toastr.error('Failed to load room types: ' + r.Message);
           }
         },
@@ -607,6 +624,21 @@ getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
       && r.QuotePackageTypeId === this.activePackageTypeId
       && r.HotelId > 0
   );
+}
+
+clearHotel(row: QuoteHotelRow): void {
+  row.HotelSearch = '';
+  row.HotelId = 0;
+  row.HotelName = '';
+  row.LocationName = '';
+  row.HotelCategoryName = '';
+  row.RoomTypeId = 0;
+  row.RoomTypes = [];
+  row.FilteredHotels = [];
+  row.ShowDropdown = false;
+
+  this.hotelRows.update(rows => [...rows]);
+  this.markDirty();
 }
 
 addSpecialInclusionRow(nightNumber: number): void {
@@ -697,7 +729,17 @@ onServiceBlur(row: QuoteSpecialInclusionRow): void {
     this.specialInclusionRows.update(rows => [...rows]);
   }, 200);
 }
+clearService(row: QuoteSpecialInclusionRow): void {
+  row.ServiceSearch = '';
+  row.SpecialInclusionId = 0;
+  row.SpecialInclusionName = '';
+  row.TotalPrice = 0;
+  row.FilteredServices = [];
+  row.ShowServiceDropdown = false;
 
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
 
 removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
   this.markDirty();
@@ -730,12 +772,24 @@ removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
       }))
     }).subscribe({
       next: ({ rate, charges }: any) => {
-        if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
-          const r = rate.Rate;
-          row.BaseRate = row.MealPlan === 'CP' ? (r.CpRate ?? 0)
-            : row.MealPlan === 'MAP' ? (r.MapRate ?? 0)
-              : (r.ApRate ?? 0);
-        }
+if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+
+  const r = rate.Rate;
+
+  row.BaseRate = row.MealPlan === 'CP'
+    ? (r.CpRate ?? 0)
+    : row.MealPlan === 'MAP'
+      ? (r.MapRate ?? 0)
+      : (r.ApRate ?? 0);
+
+} else {
+
+  this.toastr.warning(
+    `No price configured for ${row.HotelName}`
+  );
+
+  row.BaseRate = 0;
+}
 
         if (charges.Message === ConstantData.SuccessMessage) {
           const ch = charges.Charges ?? [];
