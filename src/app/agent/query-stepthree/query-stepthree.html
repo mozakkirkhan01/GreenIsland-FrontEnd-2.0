@@ -157,14 +157,35 @@
       </div>
     }
 
-    @if (row.ShowDropdown && row.HotelSearch.length > 0 
-         && row.FilteredHotels.length === 0) {
-      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-           style="position:absolute; top:100%; left:0; right:0;
-                  z-index:1000; font-size:13px;">
-        No hotels found
-      </div>
-    }
+@if (row.ShowDropdown && row.HotelSearch.length > 0
+     && row.FilteredHotels.length === 0) {
+
+  <div class="border rounded bg-white shadow-sm"
+       style="position:absolute;
+              top:100%;
+              left:0;
+              right:0;
+              z-index:1000;">
+
+    <!-- No Result -->
+    <div class="px-3 py-1 text-muted"
+         style="font-size:10px;">
+      No hotels found
+    </div>
+
+    <!-- Add New Hotel -->
+    <div class="px-3 py-2 border-top text-primary"
+         style="font-size:13px;
+                cursor:pointer;
+                font-weight:500;"
+         (mousedown)="addNewHotel(row)">
+
+      <i class="bx bx-plus me-1"></i>
+      Add New Hotel "{{ row.HotelSearch }}"
+    </div>
+
+  </div>
+}
   </div>
 
   @if (row.HotelId > 0) {
@@ -538,11 +559,11 @@
       }
     }
 
-    @if (specialInclusionRows().length === 0) {
+    <!-- @if (specialInclusionRows().length === 0) { -->
       <div class="text-muted small fst-italic">
         No special inclusions added. Add hotels first, then add services here.
       </div>
-    }
+    <!-- } -->
 
   </div>
 </div>
@@ -648,5 +669,167 @@
     </div>
   </div>
 </div>
+}
+
+
+
+
+<!--Modal create new hotel -->
+<!--Modal create new hotel -->
+@if (showNewHotelModal) {
+  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+
+        <div class="modal-header border-bottom px-4 py-3">
+          <h5 class="modal-title fw-bold" style="font-size:15px;">
+            <i class="bx bx-hotel me-2"></i> Add New Hotel
+          </h5>
+          <button type="button" class="btn-close" (click)="closeNewHotelModal()"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3">
+
+          <!-- Hotel Details -->
+          <div class="row g-3 mb-4">
+           <div class="col-sm-4">
+              <label class="form-label small fw-semibold">Location <span class="text-danger">*</span></label>
+              <div style="position:relative;">
+                <input type="text"
+                       class="form-control form-control-sm"
+                       placeholder="Search location..."
+                       [(ngModel)]="locationSearchText"
+                       (ngModelChange)="onLocationSearch()"
+                       (focus)="onLocationSearch()"
+                       (blur)="onLocationBlur()"
+                       autocomplete="off">
+                
+                <!-- Clear button -->
+                @if (locationSearchText.length > 0) {
+                  <button type="button"
+                          class="btn btn-sm p-0 border-0 bg-transparent"
+                          style="
+                            position:absolute;
+                            top:50%;
+                            right:8px;
+                            transform:translateY(-50%);
+                            font-size:14px;
+                            line-height:1;
+                            z-index:10;
+                            color:#999;
+                          "
+                          (mousedown)="clearLocation()">
+                    ×
+                  </button>
+                }
+                
+                @if (showLocationDropdown && filteredLocations.length > 0) {
+                  <div class="border rounded bg-white shadow-sm"
+                       style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; max-height:180px; overflow-y:auto;">
+                   <!-- Location dropdown items -->
+@for (l of filteredLocations; track l.LocationId) {
+  <div class="px-3 py-2"
+       style="font-size:13px; cursor:pointer;"
+       (mousedown)="$event.preventDefault(); selectLocation(l)">
+    {{ l.LocationName }}
+  </div>
+}
+                  </div>
+                }
+
+                @if (showLocationDropdown && locationSearchText.length > 0
+                     && filteredLocations.length === 0) {
+                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                       style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; font-size:13px;">
+                    No locations found
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+              <select class="form-select form-select-sm" [(ngModel)]="newHotel.HotelCategoryId">
+                <option [value]="0">Select category…</option>
+                @for (c of hotelCategoryList(); track c.HotelCategoryId) {
+                  <option [value]="c.HotelCategoryId">{{ c.HotelCategoryName }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small fw-semibold">Hotel Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm"
+                     [(ngModel)]="newHotel.HotelName"
+                     placeholder="Enter hotel name">
+            </div>
+          </div>
+
+          <!-- Room Types -->
+          <div class="mb-2 d-flex align-items-center justify-content-between">
+            <div class="fw-semibold small">Room Types</div>
+            <button class="btn btn-outline-primary btn-sm" style="font-size:12px;"
+                    (click)="addNewRoomTypeRow()">
+              <i class="bx bx-plus me-1"></i> Add Room Type
+            </button>
+          </div>
+
+          <table class="table table-sm table-bordered" style="font-size:13px;">
+            <thead class="table-light">
+              <tr>
+                <th style="width:30px;">#</th>
+                <th>Room Type Name</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (rt of newRoomTypes; track $index; let i = $index) {
+                <tr>
+                  <td class="text-muted align-middle">{{ i + 1 }}</td>
+                  <td>
+                    <input type="text" class="form-control form-control-sm"
+                           [(ngModel)]="rt.RoomTypeName"
+                           placeholder="e.g. Deluxe Room">
+                  </td>
+                  <td class="text-center align-middle">
+                    <button mat-icon-button color="warn"
+                            style="width:24px;height:24px;line-height:24px;"
+                            (click)="removeNewRoomTypeRow(i)">
+                      <mat-icon style="font-size:14px;">close</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+              @if (newRoomTypes.length === 0) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-3" style="font-size:12px;">
+                    No room types added yet. Click "Add Room Type" to add.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+        </div>
+
+        <div class="modal-footer border-top px-4 py-3">
+          @if (newHotelSaving) {
+            <span class="text-muted small me-3">
+              <i class="bx bx-loader-alt bx-spin"></i> Saving…
+            </span>
+          }
+          <button class="btn btn-outline-secondary btn-sm px-3"
+                  (click)="closeNewHotelModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm px-4"
+                  (click)="saveNewHotel()"
+                  [disabled]="newHotelSaving">
+            Save Hotel
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
 }
 <app-unsaved-changes-dialog></app-unsaved-changes-dialog>

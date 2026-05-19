@@ -187,6 +187,21 @@ specialInclusionMasterList = signal<any[]>([]);
   hotelRows = signal<QuoteHotelRow[]>([]);
   serviceRows = signal<QuoteServiceRow[]>([]);
 
+  // New hotel model
+newHotel = {
+  HotelName: '',
+  LocationId: 0,
+  HotelCategoryId: 0,
+};
+newRoomTypes: { RoomTypeName: string }[] = [];
+showNewHotelModal = false;
+newHotelSaving = false;
+pendingHotelRow: QuoteHotelRow | null = null; // which row triggered add
+
+// Master lists for modal dropdowns
+locationList = signal<any[]>([]);
+hotelCategoryList = signal<any[]>([]);
+
   // UI state
   showPkgModal = false;
   pkgModalRows: PackageTypeRow[] = [];
@@ -330,46 +345,45 @@ specialInclusionMasterList = signal<any[]>([]);
           this.loading.set(false);
           return;
         }
+forkJoin({
+  hotels: this.service.getHotelList(enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })),
+  itinerary: this.service.getIteneraryServiceList(enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })),
+  activities: this.service.getActivityServiceList(enc({ DestinationId: destId, LocationId: 0 })),
+  vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
+  locations: this.service.getLocationList(enc({ DestinationId: destId, LocationId: 0 })),
+  hotelCategories: this.service.getHotelCategoryList(enc({ HotelCategoryId: 0 })),
+}).subscribe({
+  next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories }) => {
+    const h = hotels as any;
+    const i = itinerary as any;
+    const a = activities as any;
+    const v = vehicles as any;
+    const l = locations as any;
+    const hc = hotelCategories as any;
 
-        forkJoin({
-          hotels: this.service.getHotelList(
-            enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })
-          ),
-          itinerary: this.service.getIteneraryServiceList(
-            enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })
-          ),
-          activities: this.service.getActivityServiceList(
-            enc({ DestinationId: destId, LocationId: 0 })
-          ),
-          vehicles: this.service.getVehicleTypeList(
-            enc({ DestinationId: destId })
-          ),
-        }).subscribe({
-          next: ({ hotels, itinerary, activities, vehicles }) => {
-            const h = hotels as any;
-            const i = itinerary as any;
-            const a = activities as any;
-            const v = vehicles as any;
+    if (h.Message === ConstantData.SuccessMessage)
+      this.hotelList.set(h.HotelList ?? []);
+    else
+      this.toastr.warning('No hotels found: ' + h.Message);
 
-            if (h.Message === ConstantData.SuccessMessage)
-              this.hotelList.set(h.HotelList ?? []);
-            else
-              this.toastr.warning('No hotels found: ' + h.Message);
+    if (i.Message === ConstantData.SuccessMessage)
+      this.itineraryList.set(i.IteneraryServiceList ?? []);
+    if (a.Message === ConstantData.SuccessMessage)
+      this.activityList.set(a.ActivityServiceList ?? []);
+    if (v.Message === ConstantData.SuccessMessage)
+      this.vehicleTypeList.set(v.VehicleTypeList ?? []);
+    if (l.Message === ConstantData.SuccessMessage)
+      this.locationList.set(l.LocationList ?? []);
+    if (hc.Message === ConstantData.SuccessMessage)
+      this.hotelCategoryList.set(hc.HotelCategoryList ?? []);
 
-            if (i.Message === ConstantData.SuccessMessage)
-              this.itineraryList.set(i.IteneraryServiceList ?? []);
-            if (a.Message === ConstantData.SuccessMessage)
-              this.activityList.set(a.ActivityServiceList ?? []);
-            if (v.Message === ConstantData.SuccessMessage)
-              this.vehicleTypeList.set(v.VehicleTypeList ?? []);
-
-            this.loading.set(false);
-          },
-          error: () => {
-            this.toastr.error('Error loading master data');
-            this.loading.set(false);
-          }
-        });
+    this.loading.set(false);
+  },
+  error: () => {
+    this.toastr.error('Error loading master data');
+    this.loading.set(false);
+  }
+});
       },
       error: (err: any) => {
         this.toastr.error('Error loading quote: ' + err.status);
@@ -640,6 +654,198 @@ clearHotel(row: QuoteHotelRow): void {
   this.hotelRows.update(rows => [...rows]);
   this.markDirty();
 }
+addNewHotel(row: QuoteHotelRow): void {
+  this.pendingHotelRow = row;
+  this.newHotel = { HotelName: row.HotelSearch, LocationId: 0, HotelCategoryId: 0 };
+  this.newRoomTypes = [{ RoomTypeName: '' }];
+  this.showNewHotelModal = true;
+}
+
+closeNewHotelModal(): void {
+  this.showNewHotelModal = false;
+  this.pendingHotelRow = null;
+  this.newHotel = { HotelName: '', LocationId: 0, HotelCategoryId: 0 };
+  this.newRoomTypes = [{ RoomTypeName: '' }];
+  
+  // Reset search fields
+  this.locationSearchText = '';
+  this.categorySearchText = '';
+  this.filteredLocations = [];
+  this.filteredCategories = [];
+  this.showLocationDropdown = false;
+  this.showCategoryDropdown = false;
+}
+
+addNewRoomTypeRow(): void {
+  this.newRoomTypes.push({ RoomTypeName: '' });
+}
+
+removeNewRoomTypeRow(i: number): void {
+  this.newRoomTypes.splice(i, 1);
+}
+
+onNewHotelLocationChange(): void {
+  // optional: filter anything by location if needed
+}
+
+saveNewHotel(): void {
+  if (!this.newHotel.HotelName?.trim()) {
+    this.toastr.error('Hotel name is required'); return;
+  }
+  if (!this.newHotel.LocationId) {
+    this.toastr.error('Location is required'); return;
+  }
+  if (!this.newHotel.HotelCategoryId) {
+    this.toastr.error('Hotel category is required'); return;
+  }
+  if (this.newRoomTypes.length === 0) {
+    this.toastr.error('Add at least one room type'); return;
+  }
+  const invalidRt = this.newRoomTypes.find(rt => !rt.RoomTypeName?.trim());
+  if (invalidRt) {
+    this.toastr.error('Room type name cannot be empty'); return;
+  }
+
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  this.newHotelSaving = true;
+
+  const trip = this.tripInfo();
+  this.service.saveNewHotel(enc({
+    HotelId: 0,
+    HotelName: this.newHotel.HotelName.trim(),
+    DestinationId: trip?.DestinationId ?? 0,
+    LocationId: this.newHotel.LocationId,
+    HotelCategoryId: this.newHotel.HotelCategoryId,
+    Status: 1,
+    CreatedBy: this.staffLogin.StaffLoginId,
+    RoomTypes: this.newRoomTypes.map(rt => ({ RoomTypeName: rt.RoomTypeName.trim() })),
+  })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        const newHotelId = r.HotelId;
+
+        // Add to hotelList signal so it appears in search
+        const location = this.locationList().find(l => l.LocationId === this.newHotel.LocationId);
+        const category = this.hotelCategoryList().find(c => c.HotelCategoryId === this.newHotel.HotelCategoryId);
+
+        const newHotelEntry = {
+          HotelId: newHotelId,
+          HotelName: this.newHotel.HotelName.trim(),
+          LocationId: this.newHotel.LocationId,
+          LocationName: location?.LocationName ?? '',
+          HotelCategoryId: this.newHotel.HotelCategoryId,
+          HotelCategoryName: category?.HotelCategoryName ?? '',
+        };
+
+        this.hotelList.update(list => [...list, newHotelEntry]);
+
+        // Auto-select in the row that triggered add
+        if (this.pendingHotelRow) {
+          this.selectHotel(this.pendingHotelRow, newHotelEntry);
+        }
+
+        this.toastr.success('Hotel saved successfully');
+        this.closeNewHotelModal();
+      } else {
+        this.toastr.error(r.Message);
+      }
+      this.newHotelSaving = false;
+    },
+    error: () => {
+      this.toastr.error('Error saving hotel');
+      this.newHotelSaving = false;
+    }
+  });
+}
+
+
+// Add these with your other properties
+
+// Location autocomplete
+locationSearchText = '';
+filteredLocations: any[] = [];
+showLocationDropdown = false;
+
+// Category autocomplete
+categorySearchText = '';
+filteredCategories: any[] = [];
+showCategoryDropdown = false;
+// ── Location Search Methods ─────────────────────────────────
+onLocationSearch(): void {
+  const query = (this.locationSearchText ?? '').toLowerCase().trim();
+
+  if (!query) {
+    // Show first 5 locations when empty
+    this.filteredLocations = this.locationList().slice(0, 5);
+  } else {
+    // Filter locations
+    this.filteredLocations = this.locationList()
+      .filter(l => l.LocationName.toLowerCase().includes(query))
+      .slice(0, 5);
+  }
+  
+  this.showLocationDropdown = true;
+}
+
+selectLocation(location: any): void {
+  this.newHotel.LocationId = location.LocationId;
+  this.locationSearchText = location.LocationName;
+  this.showLocationDropdown = false;
+  this.filteredLocations = [];
+}
+
+onLocationBlur(): void {
+  this.showLocationDropdown = false;
+  if (this.newHotel.LocationId === 0) {
+    this.locationSearchText = '';
+  }
+}
+
+clearLocation(): void {
+  this.locationSearchText = '';
+  this.newHotel.LocationId = 0;
+  this.filteredLocations = [];
+  this.showLocationDropdown = false;
+}
+
+// ── Category Search Methods ─────────────────────────────────
+onCategorySearch(): void {
+  const query = (this.categorySearchText ?? '').toLowerCase().trim();
+
+  if (!query) {
+    // Show first 5 categories when empty
+    this.filteredCategories = this.hotelCategoryList().slice(0, 5);
+  } else {
+    // Filter categories
+    this.filteredCategories = this.hotelCategoryList()
+      .filter(c => c.HotelCategoryName.toLowerCase().includes(query))
+      .slice(0, 5);
+  }
+  
+  this.showCategoryDropdown = true;
+}
+
+selectCategory(category: any): void {
+  this.newHotel.HotelCategoryId = category.HotelCategoryId;
+  this.categorySearchText = category.HotelCategoryName;
+  this.showCategoryDropdown = false;
+  this.filteredCategories = [];
+}
+
+onCategoryBlur(): void {
+  setTimeout(() => {
+    this.showCategoryDropdown = false;
+    // If no category selected but text exists, clear it
+    if (this.newHotel.HotelCategoryId === 0 && this.categorySearchText) {
+      this.categorySearchText = '';
+    }
+  }, 200);
+}
+
+
 
 addSpecialInclusionRow(nightNumber: number): void {
   const hotelsForNight = this.getHotelsForNight(nightNumber);
@@ -864,6 +1070,8 @@ if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
     // Find and remove the row by comparing the object reference
     this.hotelRows.update(rows => rows.filter(r => r !== row));
   }
+
+
 
   // ── Service rows ──────────────────────────────────────────
   getServiceRowsForDay(dayNumber: number): QuoteServiceRow[] {
