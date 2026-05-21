@@ -1071,6 +1071,66 @@ if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
     this.hotelRows.update(rows => rows.filter(r => r !== row));
   }
 
+// State
+showEditPricesModal = false;
+editingHotelRow: QuoteHotelRow | null = null;
+editPrices = {
+  RoomRate: 0,
+  AwebRate: 0,
+  CwebRate: 0,
+  CnbRate: 0,
+  SellingPrice: 0,
+  ComputedTotal: 0,
+};
+
+// Open modal
+EditPrices(row: QuoteHotelRow): void {
+  this.editingHotelRow = row;
+  this.editPrices = {
+    RoomRate: row.BaseRate,
+    AwebRate: row.AwebRate,
+    CwebRate: row.CwebRate,
+    CnbRate: row.CnbRate,
+    SellingPrice: row.SellingPrice,
+    ComputedTotal: row.CostPrice,
+  };
+  this.showEditPricesModal = true;
+}
+
+closeEditPricesModal(): void {
+  this.showEditPricesModal = false;
+  this.editingHotelRow = null;
+}
+
+recalculateEditPrice(): void {
+  if (!this.editingHotelRow) return;
+  const row = this.editingHotelRow;
+  this.editPrices.ComputedTotal =
+    (this.editPrices.RoomRate * (row.NoOfRooms || 0)) +
+    (this.editPrices.AwebRate * (row.AWEB || 0)) +
+    (this.editPrices.CwebRate * (row.CWEB || 0)) +
+    (this.editPrices.CnbRate  * (row.CNB  || 0));
+}
+
+applyEditPrices(): void {
+  if (!this.editingHotelRow) return;
+  const row = this.editingHotelRow;
+
+  // Apply back to row
+  row.BaseRate     = this.editPrices.RoomRate;
+  row.AwebRate     = this.editPrices.AwebRate;
+  row.CwebRate     = this.editPrices.CwebRate;
+  row.CnbRate      = this.editPrices.CnbRate;
+  row.CostPrice    = this.editPrices.ComputedTotal;
+  row.TotalPrice   = this.editPrices.ComputedTotal;
+  row.SellingPrice = this.editPrices.SellingPrice;
+
+  this.hotelRows.update(rows => [...rows]);
+  this.markDirty();
+  this.saveHotelRow(row);
+  this.closeEditPricesModal();
+}
+
 
 
   // ── Service rows ──────────────────────────────────────────

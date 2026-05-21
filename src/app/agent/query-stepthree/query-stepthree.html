@@ -256,22 +256,34 @@
               <!-- RIGHT: Price panel (col-4) -->
               <div class="col-sm-4">
                 <div class="border rounded p-3 bg-light h-100">
-                  <div class="fw-semibold small mb-2">Prices
-                    @if (row.IsSaving) {
-                    <span class="text-muted ms-2" style="font-size:11px;">
-                      <i class="bx bx-loader-alt bx-spin"></i> Saving…
-                    </span>
-                    }
-                  </div>
+                <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
 
-                  @if (row.BaseRate > 0) {
+  <div class="d-flex align-items-center gap-2">
+    <span>Prices</span>
+
+    @if (row.IsSaving) {
+      <span class="text-muted" style="font-size:11px;">
+        <i class="bx bx-loader-alt bx-spin"></i> Saving…
+      </span>
+    }
+  </div>
+
+  <button mat-icon-button
+        (click)="EditPrices(row)"
+        matTooltip="Edit prices">
+  <mat-icon style="font-size:14px;">edit</mat-icon>
+</button>
+
+</div>
+
+                  <!-- @if (row.BaseRate > 0) { -->
                   <table class="table table-sm mb-2" style="font-size:12px;">
                     <thead>
                       <tr class="text-muted">
                         <th>Type</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Qty</th>
-                        <th class="text-end">Total</th>
+                        <th class="text-end">Given</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -327,11 +339,11 @@
                       </tr>
                     </tfoot>
                   </table>
-                  } @else {
+                  <!-- } @else {
                   <div class="text-muted" style="font-size:12px;">
                     Select hotel, meal plan and room type to see prices.
                   </div>
-                  }
+                  } -->
 
                   <!-- Selling price override -->
                   @if (row.BaseRate > 0) {
@@ -342,7 +354,8 @@
                     <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
                       (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
                     <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                      Cost: INR {{ formatCurrency(row.CostPrice) }}
+                      Cost: INR {{ formatCurrency(row.TotalPrice) }}
+                      <!-- Cost: INR {{ formatCurrency(row.CostPrice) }} -->
                     </div>
                   </div>
                   }
@@ -825,6 +838,199 @@
                   (click)="saveNewHotel()"
                   [disabled]="newHotelSaving">
             Save Hotel
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+ <!-- Edit Prices Modal -->
+@if (showEditPricesModal && editingHotelRow) {
+  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+
+        <div class="modal-header border-bottom px-4 py-3">
+          <div>
+            <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
+              Edit Prices
+            </h5>
+            <div class="text-muted" style="font-size:12px;">
+              {{ editingHotelRow.HotelName }} •
+              {{ editingHotelRow.MealPlan }} •
+              {{ editingHotelRow.RoomTypeName }}
+            </div>
+          </div>
+          <button type="button" class="btn-close" (click)="closeEditPricesModal()"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3">
+
+          <table class="table table-sm table-bordered" style="font-size:13px;">
+            <thead class="table-light">
+              <tr>
+                <th>Type</th>
+                <th class="text-end">System Rate</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Given Rate</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- Rooms -->
+              <tr>
+                <td class="align-middle">
+                  Rooms
+                  <div class="text-muted" style="font-size:10px;">per room/night</div>
+                </td>
+                <td class="text-end align-middle text-muted">
+                  {{ formatCurrency(editingHotelRow.BaseRate) }}
+                </td>
+                <td class="align-middle" style="width:60px;">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editingHotelRow.NoOfRooms"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="1" style="width:60px;">
+                </td>
+                <td class="align-middle" style="width:110px;">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editPrices.RoomRate"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:110px;">
+                </td>
+                <td class="text-end align-middle fw-semibold">
+                  {{ formatCurrency(editPrices.RoomRate * editingHotelRow.NoOfRooms) }}
+                </td>
+              </tr>
+
+              <!-- AWEB -->
+              <tr>
+                <td class="align-middle">
+                  AWEB
+                </td>
+                <td class="text-end align-middle text-muted">
+                  {{ formatCurrency(editingHotelRow.AwebRate) }}
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editingHotelRow.AWEB"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:60px;">
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editPrices.AwebRate"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:110px;">
+                </td>
+                <td class="text-end align-middle fw-semibold">
+                  {{ formatCurrency(editPrices.AwebRate * editingHotelRow.AWEB) }}
+                </td>
+              </tr>
+
+              <!-- CWEB -->
+              <tr>
+                <td class="align-middle">
+                  CWEB
+                </td>
+                <td class="text-end align-middle text-muted">
+                  {{ formatCurrency(editingHotelRow.CwebRate) }}
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editingHotelRow.CWEB"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:60px;">
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editPrices.CwebRate"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:110px;">
+                </td>
+                <td class="text-end align-middle fw-semibold">
+                  {{ formatCurrency(editPrices.CwebRate * editingHotelRow.CWEB) }}
+                </td>
+              </tr>
+
+              <!-- CNB -->
+              <tr>
+                <td class="align-middle">
+                  CNB
+                </td>
+                <td class="text-end align-middle text-muted">
+                  {{ formatCurrency(editingHotelRow.CnbRate) }}
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editingHotelRow.CNB"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:60px;">
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editPrices.CnbRate"
+                         (ngModelChange)="recalculateEditPrice()"
+                         min="0" style="width:110px;">
+                </td>
+                <td class="text-end align-middle fw-semibold">
+                  {{ formatCurrency(editPrices.CnbRate * editingHotelRow.CNB) }}
+                </td>
+              </tr>
+
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <td colspan="4" class="fw-bold">Cost Total</td>
+                <td class="text-end fw-bold">
+                  INR {{ formatCurrency(editPrices.ComputedTotal) }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- Selling price -->
+          <!-- <div class="border rounded p-3 bg-light mt-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold mb-1">
+                  Final Selling Price (INR) <span class="text-danger">*</span>
+                </label>
+                <input type="number" class="form-control form-control-sm"
+                       [(ngModel)]="editPrices.SellingPrice"
+                       min="0">
+                <div class="text-muted mt-1" style="font-size:10px;">
+                  Cost: INR {{ formatCurrency(editPrices.ComputedTotal) }}
+                  @if (editPrices.SellingPrice < editPrices.ComputedTotal) {
+                    <span class="text-danger ms-2">
+                      <i class="bx bx-error-circle"></i> Below cost
+                    </span>
+                  }
+                </div>
+              </div>
+              <div class="col-sm-6 text-end">
+                <div class="text-muted small">Margin</div>
+                <div class="fw-bold"
+                     [class.text-success]="editPrices.SellingPrice >= editPrices.ComputedTotal"
+                     [class.text-danger]="editPrices.SellingPrice < editPrices.ComputedTotal"
+                     style="font-size:16px;">
+                  INR {{ formatCurrency(editPrices.SellingPrice - editPrices.ComputedTotal) }}
+                </div>
+              </div>
+            </div>
+          </div> -->
+
+        </div>
+
+        <div class="modal-footer border-top  ">
+          <button class="btn btn-outline-secondary btn-sm px-3"
+                  (click)="closeEditPricesModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm px-4"
+                  (click)="applyEditPrices()">
+            Apply
           </button>
         </div>
 
