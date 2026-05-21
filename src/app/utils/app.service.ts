@@ -85,6 +85,16 @@ export class AppService {
     return this.http.post(this.apiUrl + "SpecialInclusion/deleteSpecialInclusionType", obj, { headers: this.headers })
   }
 
+
+  // Quote Special Inclusions
+saveQuoteSpecialInclusion(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/saveQuoteSpecialInclusion", obj, { headers: this.headers });
+}
+
+deleteQuoteSpecialInclusion(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/deleteQuoteSpecialInclusion", obj, { headers: this.headers });
+}
+
   //SpecialInclusion
   getSpecialInclusionList(obj: any) {
     return this.http.post(this.apiUrl + "SpecialInclusion/SpecialInclusionList", obj, { headers: this.headers })
@@ -194,6 +204,9 @@ export class AppService {
   saveHotel(obj: any) {
     return this.http.post(this.apiUrl + "Hotel/saveHotel", obj, { headers: this.headers })
   }
+  saveNewHotel(obj: any) {
+    return this.http.post(this.apiUrl + "Hotel/saveNewHotel", obj, { headers: this.headers })
+  }
 
   deleteHotel(obj: any) {
     return this.http.post(this.apiUrl + "Hotel/deleteHotel", obj, { headers: this.headers })
@@ -219,6 +232,10 @@ export class AppService {
   getExtraChargeList(obj: any) {
     return this.http.post(this.apiUrl + "ExtraCharge/ExtraChargeList", obj, { headers: this.headers })
   }
+  getHotelExtraCharges(obj: any) {
+    return this.http.post(this.apiUrl + "Quote/HotelExtraCharges", obj, { headers: this.headers })
+  }
+  
 
   saveExtraCharge(obj: any) {
     return this.http.post(this.apiUrl + "ExtraCharge/saveExtraCharge", obj, { headers: this.headers })
