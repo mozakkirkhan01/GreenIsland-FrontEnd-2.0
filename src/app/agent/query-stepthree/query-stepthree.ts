@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, signal, inject, computed
+  Component, OnInit, signal, inject, computed, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -169,6 +169,15 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     return this.dialogService.confirm();
   }
 
+  // ── Page Refresh Popup ────────────────────────────────────
+  @HostListener('window:beforeunload', ['$event'])
+  unloadNotification(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedChanges) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
   // ── Signals ───────────────────────────────────────────────
   loading = signal(false);
   tripInfo = signal<TripInfo | null>(null);
@@ -205,7 +214,7 @@ hotelCategoryList = signal<any[]>([]);
   // UI state
   showPkgModal = false;
   pkgModalRows: PackageTypeRow[] = [];
-  activePackageTypeId = 0;
+  activePackageTypeId = signal(0);
   internalNotes = '';
   gstPercent = 5;
   sameCabForAll = false;
@@ -250,18 +259,20 @@ hotelCategoryList = signal<any[]>([]);
 
   // ── Totals ────────────────────────────────────────────────
   hotelTotal = computed(() =>
-    this.hotelRows().reduce((s, r) => s + (r.SellingPrice || 0), 0)
+    this.hotelRows()
+      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
+      .reduce((s, r) => s + (r.SellingPrice || 0), 0)
   );
 
   transportTotal = computed(() =>
     this.serviceRows()
-      .filter(r => r.ServiceType === 1)
+      .filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId())
       .reduce((s, r) => s + (r.SellingPrice || 0), 0)
   );
 
   activityTotal = computed(() =>
     this.serviceRows()
-      .filter(r => r.ServiceType === 2)
+      .filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === this.activePackageTypeId())
       .reduce((s, r) => s + (r.SellingPrice || 0), 0)
   );
 
@@ -330,8 +341,12 @@ hotelCategoryList = signal<any[]>([]);
 
         this.packageTypes.set(r.PackageTypes ?? []);
         if (this.packageTypes().length > 0) {
-          this.activePackageTypeId = this.packageTypes()[0].QuotePackageTypeId;
+          this.activePackageTypeId.set(this.packageTypes()[0].QuotePackageTypeId);
         }
+        else {
+  // ← NEW: Auto-save a default package type
+  this.autoCreateDefaultPackageType();
+}
 
         if (r.Hotels?.length > 0) {
           this.hotelRows.set(r.Hotels.map((h: any) => this.mapHotelRow(h)));
@@ -395,7 +410,31 @@ forkJoin({
       }
     });
   }
+autoCreateDefaultPackageType(): void {
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
 
+  const payload = {
+    QueryStepOneId: this.QueryStepOneId,
+    CreatedBy: this.staffLogin.StaffLoginId,
+    PackageTypes: [{ QuotePackageTypeId: 0, PackageTypeName: 'Deluxe Package' }],
+  };
+
+  this.service.savePackageTypes(enc(payload)).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
+          QuotePackageTypeId: p.QuotePackageTypeId,
+          PackageTypeName: p.PackageTypeName,
+        }));
+        this.packageTypes.set(saved);
+        if (saved.length > 0)
+          this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
+      }
+    }
+  });
+}
   // ── Map rows ──────────────────────────────────────────────
   private mapHotelRow(h: any): QuoteHotelRow {
     return {
@@ -478,14 +517,14 @@ forkJoin({
           this.packageTypes.set(savedPkgTypes);
 
           if (savedPkgTypes.length > 0) {
-            if (this.activePackageTypeId === 0) {
-              this.activePackageTypeId = savedPkgTypes[0].QuotePackageTypeId;
+            if (this.activePackageTypeId() === 0) {
+              this.activePackageTypeId.set(savedPkgTypes[0].QuotePackageTypeId);
             } else {
               const stillExists = savedPkgTypes.find(
-                p => p.QuotePackageTypeId === this.activePackageTypeId
+                p => p.QuotePackageTypeId === this.activePackageTypeId()
               );
               if (!stillExists)
-                this.activePackageTypeId = savedPkgTypes[0].QuotePackageTypeId;
+                this.activePackageTypeId.set(savedPkgTypes[0].QuotePackageTypeId);
             }
           }
 
@@ -507,7 +546,7 @@ forkJoin({
   getHotelRowsForNight(nightNumber: number): QuoteHotelRow[] {
     return this.hotelRows().filter(
       r => r.NightNumber === nightNumber
-        && r.QuotePackageTypeId === this.activePackageTypeId
+        && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
 
@@ -515,7 +554,7 @@ forkJoin({
     this.markDirty();
     this.hotelRows.update(rows => [...rows, {
       QuoteHotelId: 0, QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId,
+      QuotePackageTypeId: this.activePackageTypeId(),
       NightNumber: slot.NightNumber, StayDate: slot.StayDate,
       HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
@@ -639,7 +678,7 @@ this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
 getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
   return this.hotelRows().filter(
     r => r.NightNumber === nightNumber
-      && r.QuotePackageTypeId === this.activePackageTypeId
+      && r.QuotePackageTypeId === this.activePackageTypeId()
       && r.HotelId > 0
   );
 }
@@ -1141,6 +1180,7 @@ applyEditPrices(): void {
   this.hotelRows.update(rows => [...rows]);
   this.markDirty();
   this.saveHotelRow(row);
+  this.recalculatePrice(row);
   this.closeEditPricesModal();
 }
 
@@ -1150,7 +1190,7 @@ applyEditPrices(): void {
   getServiceRowsForDay(dayNumber: number): QuoteServiceRow[] {
     return this.serviceRows().filter(
       r => r.DayNumber === dayNumber
-        && r.QuotePackageTypeId === this.activePackageTypeId
+        && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
 
@@ -1158,7 +1198,7 @@ applyEditPrices(): void {
     this.markDirty();
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0, QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId,
+      QuotePackageTypeId: this.activePackageTypeId(),
       DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
       ServiceType: 1,
       IteneraryServiceId: 0, IteneraryServiceName: '',
@@ -1172,7 +1212,7 @@ applyEditPrices(): void {
     this.markDirty();
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0, QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId,
+      QuotePackageTypeId: this.activePackageTypeId(),
       DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
       ServiceType: 2,
       IteneraryServiceId: 0, IteneraryServiceName: '',
@@ -1301,13 +1341,13 @@ getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
   // ── Summary helpers ───────────────────────────────────────
   get summaryHotels(): QuoteHotelRow[] {
     return this.hotelRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId && r.HotelId > 0
+      r => r.QuotePackageTypeId === this.activePackageTypeId() && r.HotelId > 0
     );
   }
 
   get summaryServices(): QuoteServiceRow[] {
     return this.serviceRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
 
@@ -1376,7 +1416,7 @@ getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
   }
 
   setActivePackage(id: number): void {
-    this.activePackageTypeId = id;
+    this.activePackageTypeId.set(id);
   }
 
   editBasicDetail(obj: any): void {
