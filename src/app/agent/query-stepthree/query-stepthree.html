@@ -365,6 +365,7 @@
 
             </div>
             }
+            
 
             <!-- Add/remove hotel button -->
              @if(getHotelRowsForNight(slot.NightNumber).length === 0){
@@ -374,10 +375,15 @@
                 </button>
               }@else {
                 <!-- Remove Hotel-->
-                 <button class="btn btn-outline-danger btn-sm"
+                 <!-- <button class="btn btn-outline-danger btn-sm"
                           style="font-size: 12px;"
                             (click)="removeHotelRow(getHotelRowsForNight(slot.NightNumber)[0])">
-                        <i class = "bx bx-trash me-1"></i>Remove</button>
+                        <i class = "bx bx-trash me-1"></i>Remove Hotel</button> -->
+                                    <button class="btn btn-outline-primary btn-sm"
+                    style="font-size:12px;"
+                    (click)="addHotelRow(slot)">
+              <i class="bx bx-plus me-1"></i> Add Similar Hotel
+            </button>
               }
           </div>
           }
@@ -389,7 +395,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div>  
 
 
       <!-- ═══════════════════════════════════════════════════ -->
@@ -438,7 +444,7 @@
            autocomplete="off">
 
             <!-- Clear button -->
-  @if (row.ServiceSearch.length > 0) {
+  @if (row.ServiceSearch.length > 0) {  
     <button type="button"
             class="btn btn-sm p-0 border-0 bg-transparent"
             style="
@@ -460,16 +466,22 @@
       <div class="border rounded bg-white shadow-sm"
            style="position:absolute; top:100%; left:0; right:0;
                   z-index:1000; max-height:180px; overflow-y:auto;">
-        @for (svc of row.FilteredServices; track svc.SpecialInclusionId) {
-          <div class="px-3 py-2"
-               style="font-size:13px; cursor:pointer;"
-               (mousedown)="selectService(row, svc)">
-            <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
-            <div class="text-muted" style="font-size:11px;">
-              INR {{ svc.Rate | number }}
-            </div>
-          </div>
-        }
+@for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
+  <div class="px-3 py-2"
+       style="font-size:13px; cursor:pointer;"
+       (mousedown)="selectService(row, svc)">
+    <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
+    @if (getHotelRateForService(row, svc) > 0) {
+      <div class="text-muted" style="font-size:11px;">
+        INR {{ getHotelRateForService(row, svc) | number }}
+      </div>
+    } @else {
+      <div class="text-muted" style="font-size:11px;">
+        No price set — enter manually
+      </div>
+    }
+  </div>
+}
       </div>
     }
 
@@ -583,7 +595,190 @@
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
       <!-- ═══════════════════════════════════════════════════ -->
+  <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div class="bg-primary rounded-circle d-flex align-items-center
+                      justify-content-center text-white flex-shrink-0"
+               style="width:40px; height:40px;">
+            <i class="bx bx-car fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-6">Transports and Activities</div>
+            <div class="text-muted small">
+              Please add the transportation services and Activities (if included)
+              details and the selling cost price for each service.
+            </div>
+          </div>
+        </div>
 
+        <!-- Same cab for all -->
+        <div class="mb-3 p-2 border rounded d-flex align-items-center gap-3"
+             style="background:#f0f7ff;">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="sameCab"
+                   [(ngModel)]="sameCabForAll">
+            <label class="form-check-label fw-medium" for="sameCab"
+                   style="font-size:13px;">
+              Same Cab Type for All
+            </label>
+          </div>
+          @if (sameCabForAll) {
+            <select class="form-select form-select-sm" style="width:220px;"
+                    [(ngModel)]="globalVehicleTypeId">
+              <option [value]="0">Select vehicle type…</option>
+              @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
+                <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        @for (slot of daySlots(); track slot.DayNumber) {
+          <div class="border rounded mb-3 p-3">
+
+            <!-- Day header -->
+            <div class="fw-semibold mb-3 text-primary" style="font-size:13px;">
+              <i class="bx bx-calendar me-1"></i>
+              Day {{ slot.DayNumber }} — {{ slot.DateLabel }} ({{ slot.DayLabel.slice(0,3) }})
+            </div>
+
+            @for (row of getServiceRowsForDay(slot.DayNumber);
+                  track row.QuoteServiceId; let si = $index) {
+
+              @if (row.ServiceType === 1) {
+                <!-- Transport row -->
+                <div class="mb-3 pb-3 border-bottom">
+                  <div class="text-muted small fw-semibold mb-2">
+                    <i class="bx bx-car me-1"></i> Transport Service
+                  </div>
+                  <div class="row g-2 align-items-end">
+                    <div class="col-sm-4">
+                      <label class="form-label small text-muted mb-1">Service Location</label>
+                      <select class="form-select form-select-sm"
+                              [(ngModel)]="row.IteneraryServiceId"
+                              (ngModelChange)="onItinerarySelected(row)">
+                        <option [value]="0">Select itinerary…</option>
+                        @for (it of itineraryList(); track it.IteneraryServiceId) {
+                          <option [value]="it.IteneraryServiceId">
+                            {{ it.IteneraryServiceName }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-sm-3">
+                      <label class="form-label small text-muted mb-1">Vehicle Type</label>
+                      <select class="form-select form-select-sm"
+                              [(ngModel)]="row.VehicleTypeId"
+                              (ngModelChange)="onVehicleSelected(row)">
+                        <option [value]="0">Select vehicle…</option>
+                        @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
+                          <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="row.CostPrice">
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="row.SellingPrice"
+                             (blur)="saveServiceRow(row)">
+                    </div>
+                    <div class="col-sm-1">
+                      <button mat-icon-button color="warn"
+                              (click)="removeServiceRow(row)">
+                        <mat-icon style="font-size:16px;">close</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (row.ServiceType === 2) {
+                <!-- Activity row -->
+                <div class="mb-3 pb-3 border-bottom">
+                  <div class="text-muted small fw-semibold mb-2">
+                    <i class="bx bx-ticket me-1"></i> Activity/Ticket
+                  </div>
+                  <div class="row g-2 align-items-end">
+                    <div class="col-sm-4">
+                      <label class="form-label small text-muted mb-1">Activity Name</label>
+                      <select class="form-select form-select-sm"
+                              [(ngModel)]="row.ActivityServiceId"
+                              (ngModelChange)="onActivitySelected(row)">
+                        <option [value]="0">Select activity…</option>
+                        @for (ac of activityList(); track ac.ActivityServiceId) {
+                          <option [value]="ac.ActivityServiceId">
+                            {{ ac.ActivityServiceName }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Qty</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="row.Qty" min="1"
+                             (ngModelChange)="row.CostPrice = row.CostPrice">
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="row.CostPrice">
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
+                      <input type="number" class="form-control form-control-sm"
+                             [(ngModel)]="row.SellingPrice"
+                             (blur)="saveServiceRow(row)">
+                    </div>
+                    <div class="col-sm-2">
+                      <label class="form-label small text-muted mb-1">Notes</label>
+                      <input type="text" class="form-control form-control-sm"
+                             [(ngModel)]="row.Notes" placeholder="Optional">
+                    </div>
+                    <div class="col-auto">
+                      <button mat-icon-button color="warn"
+                              (click)="removeServiceRow(row)">
+                        <mat-icon style="font-size:16px;">close</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+
+            <!-- Add buttons -->
+            <div class="d-flex gap-2 mt-1">
+              <button class="btn btn-outline-primary btn-sm"
+                      style="font-size:12px;"
+                      (click)="addTransportRow(slot)">
+                <i class="bx bx-car me-1"></i> Add Transport
+              </button>
+              <button class="btn btn-outline-success btn-sm"
+                      style="font-size:12px;"
+                      (click)="addActivityRow(slot)">
+                <i class="bx bx-ticket me-1"></i> Add Activity
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Transport/Activity total -->
+        <div class="d-flex justify-content-end mt-2 gap-3 flex-wrap">
+          <div class="text-muted small">
+            Transports: <strong>INR {{ formatCurrency(transportTotal()) }}</strong>
+            + Activity/Tickets: <strong>INR {{ formatCurrency(activityTotal()) }}</strong>
+          </div>
+          <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+            Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+          </div>
+        </div>
+      </div>
+    </div>
 
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- SUMMARY SECTION                                      -->

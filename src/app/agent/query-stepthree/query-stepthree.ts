@@ -352,14 +352,18 @@ forkJoin({
   vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
   locations: this.service.getLocationList(enc({ DestinationId: destId, LocationId: 0 })),
   hotelCategories: this.service.getHotelCategoryList(enc({ HotelCategoryId: 0 })),
+  specialInclusionTypes: this.service.getSpecialInclusionTypeList(enc({ SpecialInclusionTypeId: 0 })),
 }).subscribe({
-  next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories }) => {
+  next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories, specialInclusionTypes  }) => {
     const h = hotels as any;
     const i = itinerary as any;
     const a = activities as any;
     const v = vehicles as any;
     const l = locations as any;
     const hc = hotelCategories as any;
+     const sit = specialInclusionTypes as any;
+    if (sit.Message === ConstantData.SuccessMessage)
+      this.specialInclusionMasterList.set(sit.SpecialInclusionTypeList ?? []);
 
     if (h.Message === ConstantData.SuccessMessage)
       this.hotelList.set(h.HotelList ?? []);
@@ -861,17 +865,20 @@ addSpecialInclusionRow(nightNumber: number): void {
     HotelName: firstHotel?.HotelName ?? '',
     TotalPrice: 0,
     Comments: '',
-    AvailableServices: firstHotel?.SpecialInclusions ?? [],
+    AvailableServices: this.specialInclusionMasterList(), // ← all types
     IsSaving: false, ServiceSearch: '', FilteredServices: [],
     ShowServiceDropdown: false,
   }]);
 }
 
 onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotelRow: QuoteHotelRow): void {
+  if (!hotelRow) return;
   row.QuoteHotelId = hotelRow.QuoteHotelId;
   row.HotelName = hotelRow.HotelName;
-  row.AvailableServices = hotelRow.SpecialInclusions ?? [];
+  // Keep master list — don't restrict to hotel's inclusions
+  row.AvailableServices = this.specialInclusionMasterList();
   row.SpecialInclusionId = 0;
+  row.ServiceSearch = '';
   row.TotalPrice = 0;
   this.specialInclusionRows.update(rows => [...rows]);
   this.markDirty();
@@ -895,32 +902,38 @@ onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
 //special inclusion serach
 onServiceSearch(row: QuoteSpecialInclusionRow): void {
   const query = (row.ServiceSearch ?? '').toLowerCase().trim();
+  const source = this.specialInclusionMasterList(); // ← always master list
 
-  // Show default 4 services on focus
   if (!query) {
-    row.FilteredServices = (row.AvailableServices ?? []).slice(0, 4);
+    row.FilteredServices = source.slice(0, 6);
     row.ShowServiceDropdown = true;
     this.specialInclusionRows.update(rows => [...rows]);
     return;
   }
 
-  // Filter services while typing
-  row.FilteredServices = (row.AvailableServices ?? [])
-    .filter(s =>
-      s.SpecialInclusionTypeName.toLowerCase().includes(query)
-    )
-    .slice(0, 4);
+  row.FilteredServices = source
+    .filter(s => s.SpecialInclusionTypeName.toLowerCase().includes(query))
+    .slice(0, 6);
 
   row.ShowServiceDropdown = true;
   this.specialInclusionRows.update(rows => [...rows]);
 }
 selectService(row: QuoteSpecialInclusionRow, svc: any): void {
-  row.SpecialInclusionId = svc.SpecialInclusionId;
+  row.SpecialInclusionId = svc.SpecialInclusionTypeId; // ← type ID now
   row.SpecialInclusionName = svc.SpecialInclusionTypeName;
   row.ServiceSearch = svc.SpecialInclusionTypeName;
-  row.TotalPrice = svc.Rate ?? 0;
   row.ShowServiceDropdown = false;
   row.FilteredServices = [];
+
+  // Try to find rate from the selected hotel's special inclusions
+  const hotelRow = this.hotelRows().find(h => h.QuoteHotelId === row.QuoteHotelId);
+  const hotelInclusion = hotelRow?.SpecialInclusions?.find(
+    (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
+  );
+
+  // Use hotel rate if available, else 0 (user fills manually)
+  row.TotalPrice = hotelInclusion?.Rate ?? 0;
+
   this.specialInclusionRows.update(rows => [...rows]);
   this.markDirty();
 }
@@ -1275,6 +1288,14 @@ applyEditPrices(): void {
 formatDate(date: any): string {
   const formatted = this.loadData.loadDateTime(date);
   return formatted ? formatted : '';
+}
+
+getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
+  const hotelRow = this.hotelRows().find(h => h.QuoteHotelId === row.QuoteHotelId);
+  const match = hotelRow?.SpecialInclusions?.find(
+    (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
+  );
+  return match?.Rate ?? 0;
 }
 
   // ── Summary helpers ───────────────────────────────────────
