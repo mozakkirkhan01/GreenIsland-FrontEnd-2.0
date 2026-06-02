@@ -31,6 +31,7 @@ export interface QuoteSpecialInclusionRow {
   QuoteSpecialInclusionId: number;
   QuoteId: number;
   QuoteHotelId: number;
+  HotelId: number;
   NightNumber: number;
   SpecialInclusionId: number;
   SpecialInclusionName: string;
@@ -40,6 +41,12 @@ export interface QuoteSpecialInclusionRow {
   ServiceSearch: string;
   FilteredServices: any[];
   ShowServiceDropdown: boolean;
+  HotelSearch: string;
+  FilteredHotels: any[];
+  ShowHotelDropdown: boolean;
+  //manual location toogle support
+  ManualLocationName: string;
+  UseManualLocation: boolean;
   // UI
   AvailableServices: any[];
   IsSaving: boolean;
@@ -189,6 +196,7 @@ specialInclusionMasterList = signal<any[]>([]);
   loadData = inject(LoadDataService);
 
   hotelList = signal<any[]>([]);
+  specialInclusionsByHotel: Record<number, any[]> = {};
   itineraryList = signal<any[]>([]);
   activityList = signal<any[]>([]);
   vehicleTypeList = signal<any[]>([]);
@@ -300,6 +308,50 @@ hotelCategoryList = signal<any[]>([]);
     if (!no) return '—';
     return no.toString().padStart(7, '0');
   }
+  packageTypesLoaded = false;
+  fetchPackageTypesSeparately(): void {
+  // Don't do anything if we already have package types
+  if (this.packageTypes().length > 0) {
+    console.log('Package types already exist, skipping fetch');
+    return;
+  }
+  
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+  
+  console.log('Fetching package types directly for QueryStepOneId:', this.QueryStepOneId);
+  
+  // Use the new getPackageTypesByQuery endpoint
+  this.service.getPackageTypesByQuery(enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
+    next: (r: any) => {
+      console.log('Direct package types response:', r);
+      if (r.Message === ConstantData.SuccessMessage && r.PackageTypes && r.PackageTypes.length > 0) {
+        // Found package types - use them
+        this.packageTypes.set(r.PackageTypes);
+        this.activePackageTypeId.set(r.PackageTypes[0].QuotePackageTypeId);
+        this.packageTypesLoaded = true;
+        console.log('Package types loaded successfully:', this.packageTypes());
+      } else {
+        // No package types found
+        console.log('No package types found for QueryStepOneId:', this.QueryStepOneId);
+        this.packageTypesLoaded = true;
+        
+        // Only create default for brand new quotes (QuoteId === 0)
+        if (this.QuoteId === 0) {
+          console.log('New quote - creating default package type');
+          this.autoCreateDefaultPackageType();
+        } else {
+          console.log('Existing quote has no package types - waiting for user to add');
+        }
+      }
+    },
+    error: (err) => {
+      console.error('Error fetching package types:', err);
+      this.packageTypesLoaded = true;
+    }
+  });
+}
 
   // ── Load all data ─────────────────────────────────────────
   loadAll(): void {
@@ -339,15 +391,12 @@ hotelCategoryList = signal<any[]>([]);
           this.gstPercent = r.Quote.GstPercent ?? 5;
         }
 
-        this.packageTypes.set(r.PackageTypes ?? []);
-        if (this.packageTypes().length > 0) {
-          this.activePackageTypeId.set(this.packageTypes()[0].QuotePackageTypeId);
-        }
-        else {
-  // ← NEW: Auto-save a default package type
-  this.autoCreateDefaultPackageType();
-}
-
+        
+      // ========== FIXED PACKAGE TYPES HANDLING ==========
+      // Always fetch package types directly using the dedicated endpoint
+      // This ensures we get the correct data regardless of what QuoteDetail returns
+      this.fetchPackageTypesSeparately();
+      // ========== END PACKAGE TYPES HANDLING ==========
         if (r.Hotels?.length > 0) {
           this.hotelRows.set(r.Hotels.map((h: any) => this.mapHotelRow(h)));
         }
@@ -411,6 +460,20 @@ forkJoin({
     });
   }
 autoCreateDefaultPackageType(): void {
+  // Don't create if we already have package types
+  if (this.packageTypes().length > 0) {
+    console.log('Package types already exist, skipping auto-create');
+    return;
+  }
+  
+  // Don't create for existing quotes
+  if (this.QuoteId > 0) {
+    console.log('Existing quote (QuoteId > 0), skipping auto-create');
+    return;
+  }
+  
+  console.log('Creating default package type for new quote');
+  
   const enc = (d: object): RequestModel => ({
     request: this.local.encrypt(JSON.stringify(d)).toString()
   });
@@ -423,15 +486,25 @@ autoCreateDefaultPackageType(): void {
 
   this.service.savePackageTypes(enc(payload)).subscribe({
     next: (r: any) => {
+      console.log('Save package types response:', r);
       if (r.Message === ConstantData.SuccessMessage) {
         const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
           QuotePackageTypeId: p.QuotePackageTypeId,
           PackageTypeName: p.PackageTypeName,
         }));
         this.packageTypes.set(saved);
-        if (saved.length > 0)
+        if (saved.length > 0) {
           this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
+        }
+        this.packageTypesLoaded = true;
+        this.toastr.success('Default package type created');
+      } else {
+        this.toastr.error(r.Message);
       }
+    },
+    error: (err) => {
+      console.error('Error creating default package type:', err);
+      this.toastr.error('Error creating default package type');
     }
   });
 }
@@ -904,13 +977,13 @@ onCategoryBlur(): void {
 
 
 addSpecialInclusionRow(nightNumber: number): void {
-  const hotelsForNight = this.getHotelsForNight(nightNumber);
-  const firstHotel = hotelsForNight[0];
+  const firstHotel = this.getDestinationHotels()[0];
   this.markDirty();
   this.specialInclusionRows.update(rows => [...rows, {
     QuoteSpecialInclusionId: 0,
     QuoteId: this.QuoteId,
-    QuoteHotelId: firstHotel?.QuoteHotelId ?? 0,
+    QuoteHotelId: 0,
+    HotelId: firstHotel?.HotelId ?? 0,
     NightNumber: nightNumber,
     SpecialInclusionId: 0,
     SpecialInclusionName: '',
@@ -918,20 +991,91 @@ addSpecialInclusionRow(nightNumber: number): void {
     TotalPrice: 0,
     Comments: '',
     AvailableServices: this.specialInclusionMasterList(), // ← all types
-    IsSaving: false, ServiceSearch: '', FilteredServices: [],
+    IsSaving: false, 
+    ServiceSearch: '', 
+    FilteredServices: [],
     ShowServiceDropdown: false,
+    HotelSearch: firstHotel?.HotelName ?? '',
+    FilteredHotels: [],
+    ShowHotelDropdown: false,
+    ManualLocationName: '',
+    UseManualLocation: false,
   }]);
+  if (firstHotel?.HotelId) {
+    this.loadSpecialInclusionsForHotel(firstHotel.HotelId);
+  }
 }
 
-onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotelRow: QuoteHotelRow): void {
-  if (!hotelRow) return;
-  row.QuoteHotelId = hotelRow.QuoteHotelId;
-  row.HotelName = hotelRow.HotelName;
+saveSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
+  // Validate required fields
+  if (!row.SpecialInclusionId || row.SpecialInclusionId === 0) {
+    this.toastr.error('Please select a service');
+    return;
+  }
+  
+  if (row.TotalPrice <= 0) {
+    this.toastr.error('Please enter a valid price');
+    return;
+  }
+  
+  if (row.UseManualLocation) {
+    if (!row.ManualLocationName?.trim()) {
+      this.toastr.error('Please enter a location name');
+      return;
+    }
+  } else {
+    if (row.QuoteHotelId <= 0) {
+      this.toastr.error('Please select a hotel');
+      return;
+    }
+  }
+
+  row.IsSaving = true;
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  const payload = {
+    QuoteSpecialInclusionId: row.QuoteSpecialInclusionId,
+    QuoteId: this.QuoteId,
+    QuoteHotelId: row.UseManualLocation ? 0 : row.QuoteHotelId,
+    NightNumber: row.NightNumber,
+    SpecialInclusionId: row.SpecialInclusionId,
+    TotalPrice: row.TotalPrice,
+    Comments: row.Comments,
+    UseManualLocation: row.UseManualLocation,           // ← NEW
+    ManualLocationName: row.ManualLocationName || null, // ← NEW
+  };
+
+  this.service.saveQuoteSpecialInclusion(enc(payload)).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        row.QuoteSpecialInclusionId = r.QuoteSpecialInclusionId;
+        this.toastr.success('Service added successfully');
+        this.markClean();
+      } else {
+        this.toastr.error(r.Message);
+      }
+      row.IsSaving = false;
+    },
+    error: () => {
+      this.toastr.error('Error saving service');
+      row.IsSaving = false;
+    }
+  });
+}
+
+onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotel: any): void {
+  if (!hotel) return;
+  row.HotelId = hotel.HotelId;
+  row.QuoteHotelId = 0;
+  row.HotelName = hotel.HotelName;
   // Keep master list — don't restrict to hotel's inclusions
   row.AvailableServices = this.specialInclusionMasterList();
   row.SpecialInclusionId = 0;
   row.ServiceSearch = '';
   row.TotalPrice = 0;
+  this.loadSpecialInclusionsForHotel(row.HotelId);
   this.specialInclusionRows.update(rows => [...rows]);
   this.markDirty();
 }
@@ -977,14 +1121,7 @@ selectService(row: QuoteSpecialInclusionRow, svc: any): void {
   row.ShowServiceDropdown = false;
   row.FilteredServices = [];
 
-  // Try to find rate from the selected hotel's special inclusions
-  const hotelRow = this.hotelRows().find(h => h.QuoteHotelId === row.QuoteHotelId);
-  const hotelInclusion = hotelRow?.SpecialInclusions?.find(
-    (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
-  );
-
-  // Use hotel rate if available, else 0 (user fills manually)
-  row.TotalPrice = hotelInclusion?.Rate ?? 0;
+  row.TotalPrice = this.getHotelRateForService(row, svc);
 
   this.specialInclusionRows.update(rows => [...rows]);
   this.markDirty();
@@ -1010,6 +1147,94 @@ clearService(row: QuoteSpecialInclusionRow): void {
 
   this.specialInclusionRows.update(rows => [...rows]);
   this.markDirty();
+}
+
+// Hotel search methods for Special Inclusions
+onSpecialInclusionHotelSearch(row: QuoteSpecialInclusionRow): void {
+  const query = (row.HotelSearch ?? '').toLowerCase().trim();
+  const hotels = this.getDestinationHotels();
+
+  if (!query) {
+    row.FilteredHotels = hotels.slice(0, 6);
+    row.ShowHotelDropdown = true;
+    this.specialInclusionRows.update(rows => [...rows]);
+    return;
+  }
+
+  row.FilteredHotels = hotels
+    .filter(h => h.HotelName.toLowerCase().includes(query))
+    .slice(0, 6);
+
+  row.ShowHotelDropdown = true;
+  this.specialInclusionRows.update(rows => [...rows]);
+}
+
+selectSpecialInclusionHotel(row: QuoteSpecialInclusionRow, hotel: any): void {
+  row.HotelId = hotel.HotelId;
+  row.HotelName = hotel.HotelName;
+  row.HotelSearch = hotel.HotelName;
+  row.ShowHotelDropdown = false;
+  row.FilteredHotels = [];
+  row.QuoteHotelId = 0;
+  row.AvailableServices = this.specialInclusionMasterList();
+  row.SpecialInclusionId = 0;
+  row.ServiceSearch = '';
+
+  this.loadSpecialInclusionsForHotel(row.HotelId);
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+onSpecialInclusionHotelBlur(row: QuoteSpecialInclusionRow): void {
+  setTimeout(() => {
+    row.ShowHotelDropdown = false;
+    if (row.HotelId > 0) {
+      row.HotelSearch = row.HotelName;
+    } else {
+      row.HotelSearch = '';
+    }
+    this.specialInclusionRows.update(rows => [...rows]);
+  }, 200);
+}
+
+clearSpecialInclusionHotel(row: QuoteSpecialInclusionRow): void {
+  row.HotelSearch = '';
+  row.HotelId = 0;
+  row.HotelName = '';
+  row.FilteredHotels = [];
+  row.ShowHotelDropdown = false;
+  row.SpecialInclusionId = 0;
+  row.ServiceSearch = '';
+  row.TotalPrice = 0;
+
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+// Toggle between hotel selection and manual location entry
+toggleManualLocation(row: QuoteSpecialInclusionRow): void {
+  if (row.UseManualLocation) {
+    // Switching back to hotel selection
+    row.UseManualLocation = false;
+    row.ManualLocationName = '';
+    row.HotelSearch = row.HotelName;
+  } else {
+    // Switching to manual location
+    row.UseManualLocation = true;
+    row.HotelSearch = '';
+    row.FilteredHotels = [];
+    row.ShowHotelDropdown = false;
+    row.ManualLocationName = row.HotelName;
+    row.HotelId = 0;
+  }
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+// Save manual location entry
+onManualLocationChange(row: QuoteSpecialInclusionRow): void {
+  this.markDirty();
+  this.specialInclusionRows.update(rows => [...rows]);
 }
 
 removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
@@ -1343,9 +1568,29 @@ formatDate(date: any): string {
   return formatted ? formatted : '';
 }
 
+getDestinationHotels(): any[] {
+  return this.hotelList();
+}
+
+private loadSpecialInclusionsForHotel(hotelId: number): void {
+  if (!hotelId || this.specialInclusionsByHotel[hotelId]) return;
+
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  this.service.getSpecialInclusionList(enc({ HotelId: hotelId })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        this.specialInclusionsByHotel[hotelId] = r.SpecialInclusionList ?? [];
+        this.specialInclusionRows.update(rows => [...rows]);
+      }
+    }
+  });
+}
+
 getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
-  const hotelRow = this.hotelRows().find(h => h.QuoteHotelId === row.QuoteHotelId);
-  const match = hotelRow?.SpecialInclusions?.find(
+  const match = this.specialInclusionsByHotel[row.HotelId]?.find(
     (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
   );
   return match?.Rate ?? 0;
