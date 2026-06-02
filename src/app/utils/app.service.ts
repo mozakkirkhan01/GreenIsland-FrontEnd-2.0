@@ -378,6 +378,10 @@ getQuoteDetail(obj: any) {
   return this.http.post(this.apiUrl + "Quote/QuoteDetail", obj, { headers: this.headers })
 }
 
+// Add to AppService if this endpoint exists
+getPackageTypesByQuery(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/getPackageTypesByQuery", obj, { headers: this.headers })
+}
 savePackageTypes(obj: any) {
   return this.http.post(this.apiUrl + "Quote/savePackageTypes", obj, { headers: this.headers })
 }
