@@ -456,7 +456,7 @@
 
           @for (row of getSpecialInclusionRowsForNight(slot.NightNumber);
                 track row.QuoteSpecialInclusionId; let idx = $index) {
-            <div class="row g-2 align-items-end mb-2">
+            <div class="row g-2 align-items-start mb-2">
 
               <!-- Service -->
 <!-- Service -->
@@ -532,25 +532,97 @@
 
               <!-- Hotel -->
               <div class="col-sm-3">
-                <label class="form-label small text-muted mb-1">Hotel</label>
-                <select class="form-select form-select-sm"
-                        [(ngModel)]="row.QuoteHotelId"
-                        (ngModelChange)="onSpecialInclusionHotelChange(
-                          row,
-                          getHotelsForNight(slot.NightNumber)
-                            .find(h => h.QuoteHotelId === row.QuoteHotelId)!
-                        )">
-                  @for (h of getHotelsForNight(slot.NightNumber); track h.QuoteHotelId) {
-                    <option [value]="h.QuoteHotelId">{{ h.HotelName }}</option>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <label class="form-label small text-muted mb-0">Hotel</label>
+                  <button type="button"
+                          class="btn btn-sm p-0 border-0 bg-transparent"
+                          style="font-size:11px; color:#666; text-decoration:underline;"
+                          (click)="toggleManualLocation(row)"
+                          matTooltip="Toggle between selecting hotel or entering location manually">
+                    @if (row.UseManualLocation) {
+                      Select Hotel
+                    } @else {
+                      Enter Location
+                    }
+                  </button>
+                </div>
+
+                @if (!row.UseManualLocation) {
+                  <!-- Hotel selection mode -->
+                  <div style="position:relative;">
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           placeholder="Search hotel…"
+                           [(ngModel)]="row.HotelSearch"
+                           (ngModelChange)="onSpecialInclusionHotelSearch(row)"
+                           (focus)="onSpecialInclusionHotelSearch(row)"
+                           (blur)="onSpecialInclusionHotelBlur(row)"
+                           autocomplete="off">
+
+                    <!-- Clear button -->
+                    @if (row.HotelSearch.length > 0) {  
+                      <button type="button"
+                              class="btn btn-sm p-0 border-0 bg-transparent"
+                              style="
+                                position:absolute;
+                                top:50%;
+                                right:8px;
+                                transform:translateY(-50%);
+                                font-size:14px;
+                                line-height:1;
+                                z-index:10;
+                                color:#999;
+                              "
+                              (mousedown)="clearSpecialInclusionHotel(row)">
+                        ×
+                      </button>
+                    }
+
+                    @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
+                      <div class="border rounded bg-white shadow-sm"
+                           style="position:absolute; top:100%; left:0; right:0;
+                                  z-index:1000; max-height:180px; overflow-y:auto;">
+                        @for (h of row.FilteredHotels; track h.HotelId) {
+                          <div class="px-3 py-2"
+                               style="font-size:13px; cursor:pointer;"
+                               (mousedown)="selectSpecialInclusionHotel(row, h)">
+                            <div class="fw-semibold">{{ h.HotelName }}</div>
+                            <div class="text-muted" style="font-size:11px;">
+                              {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
+                         && row.FilteredHotels.length === 0) {
+                      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                           style="position:absolute; top:100%; left:0; right:0;
+                                  z-index:1000; font-size:13px;">
+                        No hotels found
+                      </div>
+                    }
+                  </div>
+                  @if (row.HotelId > 0) {
+                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                      {{ getDestinationHotels()
+                          .find(h => h.HotelId === row.HotelId)?.LocationName }}
+                      •
+                      {{ getDestinationHotels()
+                          .find(h => h.HotelId === row.HotelId)?.HotelCategoryName }}
+                    </div>
                   }
-                </select>
-                @if (row.QuoteHotelId > 0) {
-                  <div class="text-muted" style="font-size:11px; margin-top:2px;">
-                    {{ getHotelsForNight(slot.NightNumber)
-                        .find(h => h.QuoteHotelId === row.QuoteHotelId)?.LocationName }}
-                    •
-                    {{ getHotelsForNight(slot.NightNumber)
-                        .find(h => h.QuoteHotelId === row.QuoteHotelId)?.HotelCategoryName }}
+                } @else {
+                  <!-- Manual location entry mode -->
+                  <input type="text"
+                         class="form-control form-control-sm"
+                         placeholder="Enter location name…"
+                         [(ngModel)]="row.ManualLocationName"
+                         (ngModelChange)="onManualLocationChange(row)"
+                         autocomplete="off">
+                  <div class="text-muted" style="font-size:10px; margin-top:2px; font-style:italic;">
+                    Manual entry
                   </div>
                 }
               </div>
