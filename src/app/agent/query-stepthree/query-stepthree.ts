@@ -589,6 +589,7 @@ onHotelSearch(row: QuoteHotelRow): void {
 }
 
 selectHotel(row: QuoteHotelRow, hotel: any): void {
+  this.clearHotel(row);
   row.HotelId = hotel.HotelId;
   row.HotelName = hotel.HotelName;
   row.HotelSearch = hotel.HotelName;
@@ -692,7 +693,19 @@ clearHotel(row: QuoteHotelRow): void {
   row.RoomTypeId = 0;
   row.RoomTypes = [];
   row.FilteredHotels = [];
+  row.AWEB = 0;
+  row.NoOfRooms = 1;
   row.ShowDropdown = false;
+
+  // RESET ALL PRICE FIELDS when clearing
+  row.BaseRate = 0;
+  row.AwebRate = 0;
+  row.CwebRate = 0;
+  row.CnbRate = 0;
+  row.CostPrice = 0;
+  row.SellingPrice = 0;
+  row.TotalPrice = 0;
+  
 
   this.hotelRows.update(rows => [...rows]);
   this.markDirty();
