@@ -441,255 +441,252 @@
       <div>
         <div class="fw-bold fs-6">Any Special Inclusions in Hotels</div>
         <div class="text-muted small">
-          Add any extra services e.g. special dinner, honeymoon cake etc.
+          Add services and select multiple nights for each service.
         </div>
       </div>
     </div>
 
-    @for (slot of nightSlots(); track slot.NightNumber) {
-      @if (getHotelsForNight(slot.NightNumber).length > 0) {
-        <div class="mb-3">
-          <div class="fw-semibold text-muted small mb-2" style="font-size:12px;">
-            <i class="bx bx-moon me-1"></i>
-            Night {{ slot.NightNumber }} — {{ slot.DateLabel }}
+    <!-- All inclusion rows (no grouping by night) -->
+    @for (row of specialInclusionRows(); track row.QuoteSpecialInclusionId; let idx = $index) {
+      <div class="border rounded p-3 mb-3 bg-white position-relative">
+
+        <!-- Remove button — top right -->
+        <button mat-icon-button color="warn"
+                class="position-absolute"
+                style="top:4px; right:4px; width:24px; height:24px; line-height:24px;"
+                (click)="removeSpecialInclusionRow(row)"
+                matTooltip="Remove">
+          <mat-icon style="font-size:14px;">close</mat-icon>
+        </button>
+
+        <div class="row g-2 align-items-start">
+
+          <!-- Service -->
+          <div class="col-sm-3">
+            <label class="form-label small text-muted mb-1">Service</label>
+            <div style="position:relative;">
+              <input type="text"
+                     class="form-control form-control-sm"
+                     placeholder="Search service…"
+                     [(ngModel)]="row.ServiceSearch"
+                     (ngModelChange)="onServiceSearch(row)"
+                     (focus)="onServiceSearch(row)"
+                     (blur)="onServiceBlur(row)"
+                     autocomplete="off">
+
+              @if (row.ServiceSearch.length > 0) {
+                <button type="button"
+                        class="btn btn-sm p-0 border-0 bg-transparent"
+                        style="position:absolute; top:50%; right:8px;
+                               transform:translateY(-50%); font-size:14px;
+                               line-height:1; z-index:10; color:#999;"
+                        (mousedown)="clearService(row)">
+                  ×
+                </button>
+              }
+
+              @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
+                <div class="border rounded bg-white shadow-sm"
+                     style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; max-height:180px; overflow-y:auto;">
+                  @for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
+                    <div class="px-3 py-2"
+                         style="font-size:13px; cursor:pointer;"
+                         (mousedown)="selectService(row, svc)">
+                      <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
+                      @if (getHotelRateForService(row, svc) > 0) {
+                        <div class="text-muted" style="font-size:11px;">
+                          INR {{ getHotelRateForService(row, svc) | number }}
+                        </div>
+                      } @else {
+                        <div class="text-muted" style="font-size:11px;">
+                          No price set — enter manually
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
+                   && row.FilteredServices.length === 0) {
+                <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                     style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; font-size:13px;">
+                  No services found
+                </div>
+              }
+            </div>
           </div>
 
-          @for (row of getSpecialInclusionRowsForNight(slot.NightNumber);
-                track row.QuoteSpecialInclusionId; let idx = $index) {
-            <div class="row g-2 align-items-start mb-2">
+          <!-- Hotel / Manual Location -->
+          <div class="col-sm-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <label class="form-label small text-muted mb-0">Hotel</label>
+              <button type="button"
+                      class="btn btn-sm p-0 border-0 bg-transparent"
+                      style="font-size:11px; color:#666; text-decoration:underline;"
+                      (click)="toggleManualLocation(row)">
+                @if (row.UseManualLocation) { Select Hotel }
+                @else { Enter Location }
+              </button>
+            </div>
 
-              <!-- Service -->
-<!-- Service -->
-<div class="col-sm-3">
-  <label class="form-label small text-muted mb-1">Service</label>
-  <div style="position:relative;">
-    <input type="text"
-           class="form-control form-control-sm"
-           placeholder="Search service…"
-           [(ngModel)]="row.ServiceSearch"
-           (ngModelChange)="onServiceSearch(row)"
-           (focus)="onServiceSearch(row)"
-           (blur)="onServiceBlur(row)"
-           autocomplete="off">
+            @if (!row.UseManualLocation) {
+              <div style="position:relative;">
+                <input type="text"
+                       class="form-control form-control-sm"
+                       placeholder="Search hotel…"
+                       [(ngModel)]="row.HotelSearch"
+                       (ngModelChange)="onSpecialInclusionHotelSearch(row)"
+                       (focus)="onSpecialInclusionHotelSearch(row)"
+                       (blur)="onSpecialInclusionHotelBlur(row)"
+                       autocomplete="off">
 
-            <!-- Clear button -->
-  @if (row.ServiceSearch.length > 0) {  
-    <button type="button"
-            class="btn btn-sm p-0 border-0 bg-transparent"
-            style="
-              position:absolute;
-              top:50%;
-              right:8px;
-              transform:translateY(-50%);
-              font-size:14px;
-              line-height:1;
-              z-index:10;
-              color:#999;
-            "
-            (mousedown)="clearService(row)">
-      ×
-    </button>
-  }
-
-    @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
-      <div class="border rounded bg-white shadow-sm"
-           style="position:absolute; top:100%; left:0; right:0;
-                  z-index:1000; max-height:180px; overflow-y:auto;">
-@for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
-  <div class="px-3 py-2"
-       style="font-size:13px; cursor:pointer;"
-       (mousedown)="selectService(row, svc)">
-    <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
-    @if (getHotelRateForService(row, svc) > 0) {
-      <div class="text-muted" style="font-size:11px;">
-        INR {{ getHotelRateForService(row, svc) | number }}
-      </div>
-    } @else {
-      <div class="text-muted" style="font-size:11px;">
-        No price set — enter manually
-      </div>
-    }
-  </div>
-}
-      </div>
-    }
-
-    @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
-         && row.FilteredServices.length === 0) {
-      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-           style="position:absolute; top:100%; left:0; right:0;
-                  z-index:1000; font-size:13px;">
-        No services found
-      </div>
-    }
-  </div>
-  <!-- @if (row.SpecialInclusionId > 0) {
-    <div class="text-muted" style="font-size:11px; margin-top:2px;">
-      INR {{ row.TotalPrice | number }}
-    </div>
-  } -->
-</div>
-
-              <!-- Hotel -->
-              <div class="col-sm-3">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <label class="form-label small text-muted mb-0">Hotel</label>
+                @if (row.HotelSearch.length > 0) {
                   <button type="button"
                           class="btn btn-sm p-0 border-0 bg-transparent"
-                          style="font-size:11px; color:#666; text-decoration:underline;"
-                          (click)="toggleManualLocation(row)"
-                          matTooltip="Toggle between selecting hotel or entering location manually">
-                    @if (row.UseManualLocation) {
-                      Select Hotel
-                    } @else {
-                      Enter Location
-                    }
+                          style="position:absolute; top:50%; right:8px;
+                                 transform:translateY(-50%); font-size:14px;
+                                 line-height:1; z-index:10; color:#999;"
+                          (mousedown)="clearSpecialInclusionHotel(row)">
+                    ×
                   </button>
-                </div>
+                }
 
-                @if (!row.UseManualLocation) {
-                  <!-- Hotel selection mode -->
-                  <div style="position:relative;">
-                    <input type="text"
-                           class="form-control form-control-sm"
-                           placeholder="Search hotel…"
-                           [(ngModel)]="row.HotelSearch"
-                           (ngModelChange)="onSpecialInclusionHotelSearch(row)"
-                           (focus)="onSpecialInclusionHotelSearch(row)"
-                           (blur)="onSpecialInclusionHotelBlur(row)"
-                           autocomplete="off">
-
-                    <!-- Clear button -->
-                    @if (row.HotelSearch.length > 0) {  
-                      <button type="button"
-                              class="btn btn-sm p-0 border-0 bg-transparent"
-                              style="
-                                position:absolute;
-                                top:50%;
-                                right:8px;
-                                transform:translateY(-50%);
-                                font-size:14px;
-                                line-height:1;
-                                z-index:10;
-                                color:#999;
-                              "
-                              (mousedown)="clearSpecialInclusionHotel(row)">
-                        ×
-                      </button>
-                    }
-
-                    @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
-                      <div class="border rounded bg-white shadow-sm"
-                           style="position:absolute; top:100%; left:0; right:0;
-                                  z-index:1000; max-height:180px; overflow-y:auto;">
-                        @for (h of row.FilteredHotels; track h.HotelId) {
-                          <div class="px-3 py-2"
-                               style="font-size:13px; cursor:pointer;"
-                               (mousedown)="selectSpecialInclusionHotel(row, h)">
-                            <div class="fw-semibold">{{ h.HotelName }}</div>
-                            <div class="text-muted" style="font-size:11px;">
-                              {{ h.LocationName }} • {{ h.HotelCategoryName }}
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    }
-
-                    @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
-                         && row.FilteredHotels.length === 0) {
-                      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                           style="position:absolute; top:100%; left:0; right:0;
-                                  z-index:1000; font-size:13px;">
-                        No hotels found
+                @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
+                  <div class="border rounded bg-white shadow-sm"
+                       style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; max-height:180px; overflow-y:auto;">
+                    @for (h of row.FilteredHotels; track h.HotelId) {
+                      <div class="px-3 py-2"
+                           style="font-size:13px; cursor:pointer;"
+                           (mousedown)="selectSpecialInclusionHotel(row, h)">
+                        <div class="fw-semibold">{{ h.HotelName }}</div>
+                        <div class="text-muted" style="font-size:11px;">
+                          {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                        </div>
                       </div>
                     }
                   </div>
-                  @if (row.HotelId > 0) {
-                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
-                      {{ getDestinationHotels()
-                          .find(h => h.HotelId === row.HotelId)?.LocationName }}
-                      •
-                      {{ getDestinationHotels()
-                          .find(h => h.HotelId === row.HotelId)?.HotelCategoryName }}
-                    </div>
-                  }
-                } @else {
-                  <!-- Manual location entry mode -->
-                  <input type="text"
-                         class="form-control form-control-sm"
-                         placeholder="Enter location name…"
-                         [(ngModel)]="row.ManualLocationName"
-                         (ngModelChange)="onManualLocationChange(row)"
-                         autocomplete="off">
-                  <div class="text-muted" style="font-size:10px; margin-top:2px; font-style:italic;">
-                    Manual entry
+                }
+
+                @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
+                     && row.FilteredHotels.length === 0) {
+                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                       style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; font-size:13px;">
+                    No hotels found
                   </div>
                 }
               </div>
-
-              <!-- Night label (read-only) -->
-              <div class="col-sm-2">
-                <label class="form-label small text-muted mb-1">Night</label>
-                <input type="text" class="form-control form-control-sm"
-                       [value]="slot.NightNumber + 'st N (' + slot.DateLabel + ')'"
-                       readonly style="background:#f8f9fa;">
+            } @else {
+              <input type="text"
+                     class="form-control form-control-sm"
+                     placeholder="Enter location name…"
+                     [(ngModel)]="row.ManualLocationName"
+                     (ngModelChange)="onManualLocationChange(row)"
+                     autocomplete="off">
+              <div class="text-muted" style="font-size:10px; margin-top:2px; font-style:italic;">
+                Manual entry
               </div>
+            }
+          </div>
 
-              <!-- Total Price -->
-              <div class="col-sm-2">
-                <label class="form-label small text-muted mb-1">Total Price (INR)</label>
-                <input type="number" class="form-control form-control-sm"
-                       [(ngModel)]="row.TotalPrice"
-                       (ngModelChange)="markDirty()"
-                       placeholder="e.g. 3000">
-              </div>
+          <!-- Nights (Multi-select) -->
+          <div class="col-sm-2">
+            <label class="form-label small text-muted mb-1">Nights</label>
+            <div style="position:relative;">
+              <button type="button"
+                      class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                      style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+                      (click)="toggleNightDropdown(row)"
+                      (blur)="onNightDropdownBlur(row)">
+                <span style="font-size:13px;">
+                  @if (row.SelectedNightsDisplay) {
+                    {{ row.SelectedNightsDisplay }}
+                  } @else {
+                    <span class="text-muted">Select nights…</span>
+                  }
+                </span>
+                <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+              </button>
 
-              <!-- Comments -->
-              <div class="col-sm-2">
-                <label class="form-label small text-muted mb-1">Comments</label>
-                <input type="text" class="form-control form-control-sm"
-                       [(ngModel)]="row.Comments"
-                       (ngModelChange)="markDirty()"
-                       placeholder="Any comments…">
-              </div>
-
-              <!-- Remove -->
-              <!-- <div class="col-auto">
-                <button mat-icon-button color="warn"
-                        (click)="removeSpecialInclusionRow(row)"
-                        matTooltip="Remove">
-                  <mat-icon style="font-size:16px;">close</mat-icon>
-                </button>
-              </div> -->
-
+              @if (row.ShowNightDropdown) {
+                <div class="border rounded bg-white shadow-sm"
+                     style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; max-height:200px; overflow-y:auto;">
+                  @for (slot of nightSlots(); track slot.NightNumber) {
+                    <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                           style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+                      <input type="checkbox"
+                             [checked]="row.NightNumbers.includes(slot.NightNumber)"
+                             (change)="onNightToggle(row, slot.NightNumber)"
+                             style="cursor:pointer;">
+                      <span>Night {{ slot.NightNumber }} — {{ slot.DateLabel }}</span>
+                    </label>
+                  }
+                </div>
+              }
             </div>
-          }
-@if (getSpecialInclusionRowsForNight(slot.NightNumber).length ===0 ){
+            @if (row.NightNumbers.length > 0) {
+              <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                {{ row.NightNumbers.length }} night(s)
+              </div>
+            }
+          </div>
 
-  <button class="btn btn-outline-secondary btn-sm mt-1"
-  style="font-size:12px;"
-  (click)="addSpecialInclusionRow(slot.NightNumber)">
-            <i class="bx bx-plus me-1"></i> Add Service
-          </button>
-        } @else{
-          <button class="btn btn-outline-danger btn-sm mt-1"
-          style="font-size:12px;"
-          (click)="removeSpecialInclusionRow(
-            getSpecialInclusionRowsForNight(slot.NightNumber)[0]
-          )">
-    <i class="bx bx-trash me-1"></i> Remove
-  </button>
+          <!-- Total Price -->
+          <div class="col-sm-1">
+            <label class="form-label small text-muted mb-1">Price (INR)</label>
+            <input type="number" class="form-control form-control-sm"
+                   [(ngModel)]="row.TotalPrice"
+                   (ngModelChange)="markDirty()"
+                   placeholder="e.g. 3000">
+          </div>
 
-        }
+          <!-- Comments -->
+          <div class="col-sm-2">
+            <label class="form-label small text-muted mb-1">Comments</label>
+            <input type="text" class="form-control form-control-sm"
+                   [(ngModel)]="row.Comments"
+                   (ngModelChange)="markDirty()"
+                   placeholder="Any comments…">
+          </div>
+
+          <!-- Save button -->
+          <!-- <div class="col-12 d-flex justify-content-end">
+            <button class="btn btn-outline-primary btn-sm"
+                    style="font-size:12px;"
+                    [disabled]="row.IsSaving || row.NightNumbers.length === 0"
+                    (click)="saveSpecialInclusionRow(row)">
+              @if (row.IsSaving) {
+                <i class="bx bx-loader-alt bx-spin me-1"></i> Saving…
+              } @else {
+                <i class="bx bx-save me-1"></i>
+                {{ row.QuoteSpecialInclusionId > 0 ? 'Update' : 'Save' }}
+              }
+            </button>
+          </div> -->
+
         </div>
-      }
+      </div>
     }
 
-    <!-- @if (specialInclusionRows().length === 0) { -->
+    <!-- ── Add Service button ── -->
+    @if (specialInclusionRows().length === 0 || hotelRows().length > 0) {
+      <button class="btn btn-outline-secondary btn-sm"
+              style="font-size:12px;"
+              (click)="addSpecialInclusionRow()">
+        <i class="bx bx-plus me-1"></i> Add Service
+      </button>
+    }
+
+    @if (specialInclusionRows().length === 0) {
       <div class="text-muted small fst-italic">
         No special inclusions added. Add hotels first, then add services here.
       </div>
-    <!-- } -->
+    }
 
   </div>
 </div>
