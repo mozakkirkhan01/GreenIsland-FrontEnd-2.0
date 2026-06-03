@@ -120,17 +120,10 @@
     }
   </select>
 </div>
-          @for (slot of nightSlots(); track slot.NightNumber) {
-          <div class="border rounded mb-3 p-3">
+          @for (row of getActiveHotelRows(); track row) {
+          <div class="border rounded mb-3 p-3 bg-white">
 
-            <!-- Night header -->
-            <div class="fw-semibold mb-3 text-primary" style="font-size:13px;">
-              <i class="bx bx-moon me-1"></i>
-              Night {{ slot.NightNumber }} — {{ slot.DateLabel }} ({{ slot.DayLabel.slice(0,3) }})
-            </div>
 
-            @for (row of getHotelRowsForNight(slot.NightNumber);
-            track row.QuoteHotelId; let ri = $index) {
             <!-- LEFT: config | RIGHT: price panel -->
             <div class="row g-2 align-items-start mb-3 pb-3 border-bottom">
 
@@ -139,7 +132,55 @@
 
                 <!-- Hotel / Meal / RoomType / Remove row -->
                 <div class="row g-2 mb-2">
-<div class="col-sm-5">
+<div class="col-sm-2">
+  <label class="form-label small text-muted mb-1">Nights</label>
+  <div style="position:relative;">
+    <button type="button"
+            class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+            style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+            (click)="toggleHotelNightDropdown(row)"
+            >
+      <span style="font-size:13px;">
+        @if (row.SelectedNightsDisplay) {
+          {{ row.SelectedNightsDisplay }}
+        } @else {
+          <span class="text-muted">Select nights</span>
+        }
+      </span>
+      <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+    </button>
+
+    @if (row.ShowNightDropdown) {
+  <!-- Backdrop — closes on outside click -->
+  <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
+       (click)="closeHotelNightDropdown(row)"></div>
+
+  <!-- Dropdown -->
+  <div class="border rounded bg-white shadow-sm"
+       style="position:absolute; top:100%; left:0; right:0;
+              z-index:1000; max-height:200px; overflow-y:auto;">
+    @for (night of nightSlots(); track night.NightNumber) {
+      <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+             style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+        <input type="checkbox"
+               [checked]="row.NightNumbers.includes(night.NightNumber)"
+               (change)="onHotelNightToggle(row, night.NightNumber)"
+               style="cursor:pointer;">
+        <span>Night {{ night.NightNumber }} — {{ night.DateLabel }}</span>
+      </label>
+    }
+    <div class="px-3 py-2 border-top text-end">
+      <button class="btn btn-primary btn-sm px-3"
+              (click)="closeHotelNightDropdown(row)">
+        Done
+      </button>
+    </div>
+  </div>
+}
+  </div>
+</div>
+
+<div class="col-sm-4">
   <label class="form-label small text-muted mb-1">Hotel</label>
   <div style="position:relative;">
     <input type="text"
@@ -223,7 +264,7 @@
     </div>
   }
 </div>
-                  <div class="col-sm-3">
+                  <div class="col-sm-2">
                     <label class="form-label small text-muted mb-1">Meal Plan</label>
                     <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
                       (ngModelChange)="markDirty(); lookupHotelRate(row)">
@@ -281,140 +322,138 @@
                 </div>
 
               </div>
+<!-- RIGHT: Price panel (col-4) -->
+<div class="col-sm-4">
+  <div class="border rounded p-3 bg-light h-100">
+    <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
+      <div class="d-flex align-items-center gap-2">
+        <span>Prices</span>
+        @if (row.IsSaving) {
+          <span class="text-muted" style="font-size:11px;">
+            <i class="bx bx-loader-alt bx-spin"></i> Saving…
+          </span>
+        }
+      </div>
+      <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
+        <mat-icon style="font-size:14px;">edit</mat-icon>
+      </button>
+    </div>
 
-              <!-- RIGHT: Price panel (col-4) -->
-              <div class="col-sm-4">
-                <div class="border rounded p-3 bg-light h-100">
-                <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
+    <table class="table table-sm mb-2" style="font-size:12px;">
+      <thead>
+        <tr class="text-muted">
+          <th>Night</th>
+          <th>Type</th>
+          <th class="text-end">Rate</th>
+          <th class="text-end">Qty</th>
+          <th class="text-end">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Loop through each night -->
+        @for (night of row.NightNumbers; track night) {
+          <!-- Base rooms for this night -->
+          <tr>
+            <td class="fw-semibold text-primary">Night {{ night }}</td>
+            <td>Rooms ({{ row.NoOfRooms }})</td>
+            <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
+            <td class="text-end">{{ row.NoOfRooms }}</td>
+            <td class="text-end fw-semibold">
+              {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
+            </td>
+          </tr>
 
-  <div class="d-flex align-items-center gap-2">
-    <span>Prices</span>
+          <!-- AWEB for this night -->
+          @if (row.AWEB > 0 && row.AwebRate > 0) {
+            <tr>
+              <td></td>
+              <td>AWEB</td>
+              <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
+              <td class="text-end">{{ row.AWEB }}</td>
+              <td class="text-end fw-semibold">
+                {{ formatCurrency(row.AwebRate * row.AWEB) }}
+              </td>
+            </tr>
+          }
 
-    @if (row.IsSaving) {
-      <span class="text-muted" style="font-size:11px;">
-        <i class="bx bx-loader-alt bx-spin"></i> Saving…
-      </span>
+          <!-- CWEB for this night -->
+          @if (row.CWEB > 0 && row.CwebRate > 0) {
+            <tr>
+              <td></td>
+              <td>CWEB</td>
+              <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
+              <td class="text-end">{{ row.CWEB }}</td>
+              <td class="text-end fw-semibold">
+                {{ formatCurrency(row.CwebRate * row.CWEB) }}
+              </td>
+            </tr>
+          }
+
+          <!-- CNB for this night -->
+          @if (row.CNB > 0 && row.CnbRate > 0) {
+            <tr>
+              <td></td>
+              <td>CNB</td>
+              <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
+              <td class="text-end">{{ row.CNB }}</td>
+              <td class="text-end fw-semibold">
+                {{ formatCurrency(row.CnbRate * row.CNB) }}
+              </td>
+            </tr>
+          }
+
+          <!-- Night subtotal -->
+          <!-- <tr class="border-top border-bottom" style="background-color: #f9f9f9;">
+            <td colspan="4" class="text-end fw-bold text-muted">Night {{ night }} Subtotal</td>
+            <td class="text-end fw-bold text-primary">
+              {{ formatCurrency(
+                (row.BaseRate * row.NoOfRooms) +
+                (row.AWEB > 0 && row.AwebRate > 0 ? row.AwebRate * row.AWEB : 0) +
+                (row.CWEB > 0 && row.CwebRate > 0 ? row.CwebRate * row.CWEB : 0) +
+                (row.CNB > 0 && row.CnbRate > 0 ? row.CnbRate * row.CNB : 0)
+              ) }}
+            </td>
+          </tr> -->
+        }
+      </tbody>
+      <tfoot>
+        <tr class="border-top">
+          <td colspan="4" class="fw-bold">Total (All Nights)</td>
+          <td class="text-end fw-bold text-primary" style="font-size: 13px;">
+            INR {{ formatCurrency(row.TotalPrice) }}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Selling price override -->
+    @if (row.BaseRate > 0) {
+      <div class="mt-2">
+        <label class="form-label small text-muted mb-1">
+          Final Price (INR) <span class="text-danger">*</span>
+        </label>
+        <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+          (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
+        <div class="text-muted" style="font-size:10px; margin-top:2px;">
+          Cost: INR {{ formatCurrency(row.TotalPrice) }}
+        </div>
+      </div>
     }
   </div>
-
-  <button mat-icon-button
-        (click)="EditPrices(row)"
-        matTooltip="Edit prices">
-  <mat-icon style="font-size:14px;">edit</mat-icon>
-</button>
-
 </div>
 
-                  <!-- @if (row.BaseRate > 0) { -->
-                  <table class="table table-sm mb-2" style="font-size:12px;">
-                    <thead>
-                      <tr class="text-muted">
-                        <th>Type</th>
-                        <th class="text-end">Rate</th>
-                        <th class="text-end">Qty</th>
-                        <th class="text-end">Given</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <!-- Base rooms -->
-                      <tr>
-                        <td>Rooms ({{ row.NoOfRooms }})</td>
-                        <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
-                        <td class="text-end">{{ row.NoOfRooms }}</td>
-                        <td class="text-end fw-semibold">
-                          {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
-                        </td>
-                      </tr>
-                      <!-- AWEB -->
-                      @if (row.AWEB > 0 && row.AwebRate > 0) {
-                      <tr>
-                        <td>AWEB</td>
-                        <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
-                        <td class="text-end">{{ row.AWEB }}</td>
-                        <td class="text-end fw-semibold">
-                          {{ formatCurrency(row.AwebRate * row.AWEB) }}
-                        </td>
-                      </tr>
-                      }
-                      <!-- CWEB -->
-                      @if (row.CWEB > 0 && row.CwebRate > 0) {
-                      <tr>
-                        <td>CWEB</td>
-                        <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
-                        <td class="text-end">{{ row.CWEB }}</td>
-                        <td class="text-end fw-semibold">
-                          {{ formatCurrency(row.CwebRate * row.CWEB) }}
-                        </td>
-                      </tr>
-                      }
-                      <!-- CNB -->
-                      @if (row.CNB > 0 && row.CnbRate > 0) {
-                      <tr>
-                        <td>CNB</td>
-                        <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
-                        <td class="text-end">{{ row.CNB }}</td>
-                        <td class="text-end fw-semibold">
-                          {{ formatCurrency(row.CnbRate * row.CNB) }}
-                        </td>
-                      </tr>
-                      }
-                    </tbody>
-                    <tfoot>
-                      <tr class="border-top">
-                        <td colspan="3" class="fw-bold">Total</td>
-                        <td class="text-end fw-bold text-primary">
-                          INR {{ formatCurrency(row.TotalPrice) }}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                  <!-- } @else {
-                  <div class="text-muted" style="font-size:12px;">
-                    Select hotel, meal plan and room type to see prices.
-                  </div>
-                  } -->
-
-                  <!-- Selling price override -->
-                  @if (row.BaseRate > 0) {
-                  <div class="mt-2">
-                    <label class="form-label small text-muted mb-1">
-                      Final Price (INR) <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
-                      (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
-                    <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                      Cost: INR {{ formatCurrency(row.TotalPrice) }}
-                      <!-- Cost: INR {{ formatCurrency(row.CostPrice) }} -->
-                    </div>
-                  </div>
-                  }
-
-                </div>
-              </div>
-
             </div>
-            }
-            
-
-            <!-- Add/remove hotel button -->
-             @if(getHotelRowsForNight(slot.NightNumber).length === 0){
-
-               <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addHotelRow(slot)">
-                 <i class="bx bx-plus me-1"></i> Add Hotel
-                </button>
-              }@else {
-                <!-- Remove Hotel-->
-                 <!-- <button class="btn btn-outline-danger btn-sm"
-                          style="font-size: 12px;"
-                            (click)="removeHotelRow(getHotelRowsForNight(slot.NightNumber)[0])">
-                        <i class = "bx bx-trash me-1"></i>Remove Hotel</button> -->
-                                    <button class="btn btn-outline-primary btn-sm"
-                    style="font-size:12px;"
-                    (click)="addHotelRow(slot)">
-              <i class="bx bx-plus me-1"></i> Add Similar Hotel
-            </button>
-              }
           </div>
+          }
+
+          <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addHotelRow()">
+            <i class="bx bx-plus me-1"></i> Add Hotel
+          </button>
+
+          @if (getActiveHotelRows().length === 0) {
+            <div class="text-muted small fst-italic mt-2">
+              No hotels added. Click Add Hotel and select nights.
+            </div>
           }
 
           <!-- Hotel total -->
@@ -637,7 +676,7 @@
           </div>
 
           <!-- Total Price -->
-          <div class="col-sm-1">
+          <div class="col-sm-2">
             <label class="form-label small text-muted mb-1">Price (INR)</label>
             <input type="number" class="form-control form-control-sm"
                    [(ngModel)]="row.TotalPrice"
