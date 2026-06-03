@@ -32,7 +32,7 @@ export interface QuoteSpecialInclusionRow {
   QuoteId: number;
   QuoteHotelId: number;
   HotelId: number;
-  NightNumber: number;
+  NightNumbers: number[];
   SpecialInclusionId: number;
   SpecialInclusionName: string;
   HotelName: string;
@@ -47,6 +47,9 @@ export interface QuoteSpecialInclusionRow {
   //manual location toogle support
   ManualLocationName: string;
   UseManualLocation: boolean;
+  //night selection support
+  ShowNightDropdown: boolean;
+  SelectedNightsDisplay: string;
   // UI
   AvailableServices: any[];
   IsSaving: boolean;
@@ -745,7 +748,7 @@ this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
     }
   }
   getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
-  return this.specialInclusionRows().filter(r => r.NightNumber === nightNumber);
+  return this.specialInclusionRows().filter(r => r.NightNumbers.includes(nightNumber));
 }
 
 // Get all hotels for a night to populate hotel dropdown in special inclusions
@@ -976,7 +979,7 @@ onCategoryBlur(): void {
 
 
 
-addSpecialInclusionRow(nightNumber: number): void {
+addSpecialInclusionRow(): void {
   const firstHotel = this.getDestinationHotels()[0];
   this.markDirty();
   this.specialInclusionRows.update(rows => [...rows, {
@@ -984,13 +987,13 @@ addSpecialInclusionRow(nightNumber: number): void {
     QuoteId: this.QuoteId,
     QuoteHotelId: 0,
     HotelId: firstHotel?.HotelId ?? 0,
-    NightNumber: nightNumber,
+    NightNumbers: [],
     SpecialInclusionId: 0,
     SpecialInclusionName: '',
     HotelName: firstHotel?.HotelName ?? '',
     TotalPrice: 0,
     Comments: '',
-    AvailableServices: this.specialInclusionMasterList(), // ← all types
+    AvailableServices: this.specialInclusionMasterList(),
     IsSaving: false, 
     ServiceSearch: '', 
     FilteredServices: [],
@@ -1000,6 +1003,8 @@ addSpecialInclusionRow(nightNumber: number): void {
     ShowHotelDropdown: false,
     ManualLocationName: '',
     UseManualLocation: false,
+    ShowNightDropdown: false,
+    SelectedNightsDisplay: '',
   }]);
   if (firstHotel?.HotelId) {
     this.loadSpecialInclusionsForHotel(firstHotel.HotelId);
@@ -1039,12 +1044,12 @@ saveSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
     QuoteSpecialInclusionId: row.QuoteSpecialInclusionId,
     QuoteId: this.QuoteId,
     QuoteHotelId: row.UseManualLocation ? 0 : row.QuoteHotelId,
-    NightNumber: row.NightNumber,
+    NightNumbers: row.NightNumbers,
     SpecialInclusionId: row.SpecialInclusionId,
     TotalPrice: row.TotalPrice,
     Comments: row.Comments,
-    UseManualLocation: row.UseManualLocation,           // ← NEW
-    ManualLocationName: row.ManualLocationName || null, // ← NEW
+    UseManualLocation: row.UseManualLocation,
+    ManualLocationName: row.ManualLocationName || null,
   };
 
   this.service.saveQuoteSpecialInclusion(enc(payload)).subscribe({
@@ -1235,6 +1240,42 @@ toggleManualLocation(row: QuoteSpecialInclusionRow): void {
 onManualLocationChange(row: QuoteSpecialInclusionRow): void {
   this.markDirty();
   this.specialInclusionRows.update(rows => [...rows]);
+}
+
+// Night selection methods
+onNightToggle(row: QuoteSpecialInclusionRow, nightNumber: number): void {
+  const index = row.NightNumbers.indexOf(nightNumber);
+  if (index > -1) {
+    row.NightNumbers.splice(index, 1);
+  } else {
+    row.NightNumbers.push(nightNumber);
+    row.NightNumbers.sort((a, b) => a - b);
+  }
+  this.updateNightsDisplay(row);
+  this.specialInclusionRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+updateNightsDisplay(row: QuoteSpecialInclusionRow): void {
+  if (row.NightNumbers.length === 0) {
+    row.SelectedNightsDisplay = '';
+  } else if (row.NightNumbers.length === 1) {
+    row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
+  } else {
+    row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
+  }
+}
+
+toggleNightDropdown(row: QuoteSpecialInclusionRow): void {
+  row.ShowNightDropdown = !row.ShowNightDropdown;
+  this.specialInclusionRows.update(rows => [...rows]);
+}
+
+onNightDropdownBlur(row: QuoteSpecialInclusionRow): void {
+  setTimeout(() => {
+    row.ShowNightDropdown = false;
+    this.specialInclusionRows.update(rows => [...rows]);
+  }, 150);
 }
 
 removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
