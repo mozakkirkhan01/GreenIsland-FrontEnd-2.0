@@ -90,6 +90,7 @@ export interface QuoteHotelRow {
   QuoteId: number;
   QuotePackageTypeId: number;
   NightNumber: number;
+  NightNumbers: number[];
   StayDate: Date;
   HotelId: number;
   HotelName: string;
@@ -116,6 +117,8 @@ export interface QuoteHotelRow {
   HotelSearch: string;
   FilteredHotels: any[];
   ShowDropdown: boolean;
+  ShowNightDropdown: boolean;
+  SelectedNightsDisplay: string;
 }
 
 export interface QuoteServiceRow {
@@ -517,6 +520,7 @@ autoCreateDefaultPackageType(): void {
       QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
       QuotePackageTypeId: h.QuotePackageTypeId,
       NightNumber: h.NightNumber, StayDate: new Date(h.StayDate),
+      NightNumbers: [h.NightNumber],
       HotelId: h.HotelId, HotelName: h.HotelName ?? '',
       LocationName: h.LocationName ?? '',
       HotelCategoryName: h.HotelCategoryName ?? '',
@@ -530,6 +534,8 @@ autoCreateDefaultPackageType(): void {
       RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: h.HotelName ?? '',
     FilteredHotels: [],
     ShowDropdown: false,
+    ShowNightDropdown: false,
+    SelectedNightsDisplay: `Night ${h.NightNumber}`,
     };
   }
 
@@ -621,17 +627,30 @@ autoCreateDefaultPackageType(): void {
   // ── Hotel rows ────────────────────────────────────────────
   getHotelRowsForNight(nightNumber: number): QuoteHotelRow[] {
     return this.hotelRows().filter(
-      r => r.NightNumber === nightNumber
+      r => (r.NightNumbers?.includes(nightNumber) ?? r.NightNumber === nightNumber)
         && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
 
-  addHotelRow(slot: NightSlot): void {
+  getActiveHotelRows(): QuoteHotelRow[] {
+    return this.hotelRows().filter(
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
+
+  addHotelRow(slot?: NightSlot): void {
+    const selectedSlot = slot ?? this.nightSlots()[0];
+    if (!selectedSlot) {
+      this.toastr.error('No nights available for this trip');
+      return;
+    }
+
     this.markDirty();
     this.hotelRows.update(rows => [...rows, {
       QuoteHotelId: 0, QuoteId: this.QuoteId,
       QuotePackageTypeId: this.activePackageTypeId(),
-      NightNumber: slot.NightNumber, StayDate: slot.StayDate,
+      NightNumber: selectedSlot.NightNumber, StayDate: selectedSlot.StayDate,
+      NightNumbers: [selectedSlot.NightNumber],
       HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
       NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
@@ -639,8 +658,55 @@ autoCreateDefaultPackageType(): void {
       TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],HotelSearch: '',
     FilteredHotels: [],
     ShowDropdown: false,
+    ShowNightDropdown: false,
+    SelectedNightsDisplay: `Night ${selectedSlot.NightNumber}`,
     }]);
   }
+
+onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
+  const index = row.NightNumbers.indexOf(nightNumber);
+  if (index > -1) {
+    row.NightNumbers.splice(index, 1);
+  } else {
+    row.NightNumbers.push(nightNumber);
+    row.NightNumbers.sort((a, b) => a - b);
+  }
+
+  if (row.NightNumbers.length > 0) {
+    const firstNight = row.NightNumbers[0];
+    const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
+    row.NightNumber = firstNight;
+    if (slot) row.StayDate = slot.StayDate;
+  }
+
+  this.updateHotelNightsDisplay(row);
+  this.hotelRows.update(rows => [...rows]);
+  if (row.HotelId > 0 && row.RoomTypeId > 0) {
+    this.lookupHotelRate(row);
+  }
+  this.markDirty();
+}
+
+updateHotelNightsDisplay(row: QuoteHotelRow): void {
+  if (row.NightNumbers.length === 0) {
+    row.SelectedNightsDisplay = '';
+  } else if (row.NightNumbers.length === 1) {
+    row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
+  } else {
+    row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
+  }
+}
+
+toggleHotelNightDropdown(row: QuoteHotelRow): void {
+  row.ShowNightDropdown = !row.ShowNightDropdown;
+  this.hotelRows.update(rows => [...rows]);
+}
+
+closeHotelNightDropdown(row: QuoteHotelRow): void {
+  row.ShowNightDropdown = false;
+  this.hotelRows.update(rows => [...rows]);
+}
+
 onHotelSearch(row: QuoteHotelRow): void {
   const query = (row.HotelSearch ?? '').toLowerCase().trim();
 
@@ -1350,10 +1416,11 @@ if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
   }
 
   recalculatePrice(row: QuoteHotelRow): void {
-    const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1);
-    const awebCost = (row.AwebRate || 0) * (row.AWEB || 0);
-    const cwebCost = (row.CwebRate || 0) * (row.CWEB || 0);
-    const cnbCost = (row.CnbRate || 0) * (row.CNB || 0);
+    const nights = row.NightNumbers.length || 1;
+    const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1) * nights;
+    const awebCost = (row.AwebRate || 0) * (row.AWEB || 0) * nights;
+    const cwebCost = (row.CwebRate || 0) * (row.CWEB || 0) * nights;
+    const cnbCost = (row.CnbRate || 0) * (row.CNB || 0) * nights;
     row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
     row.SellingPrice = row.CostPrice;
     row.TotalPrice = row.CostPrice;
@@ -1361,6 +1428,16 @@ if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
 
   saveHotelRow(row: QuoteHotelRow): void {
     if (!row.HotelId || !row.RoomTypeId) return;
+    if (row.NightNumbers.length === 0) {
+      this.toastr.error('Please select at least one night');
+      return;
+    }
+
+    const firstNight = row.NightNumbers[0];
+    const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
+    row.NightNumber = firstNight;
+    if (slot) row.StayDate = slot.StayDate;
+
     row.IsSaving = true;
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
