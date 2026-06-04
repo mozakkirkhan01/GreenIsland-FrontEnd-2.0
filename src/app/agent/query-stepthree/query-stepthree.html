@@ -732,190 +732,494 @@
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
       <!-- ═══════════════════════════════════════════════════ -->
-  <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-3 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center
-                      justify-content-center text-white flex-shrink-0"
-               style="width:40px; height:40px;">
-            <i class="bx bx-car fs-5"></i>
-          </div>
-          <div>
-            <div class="fw-bold fs-6">Transports and Activities</div>
-            <div class="text-muted small">
-              Please add the transportation services and Activities (if included)
-              details and the selling cost price for each service.
-            </div>
-          </div>
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TRANSPORTS & ACTIVITIES SECTION                      -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="bg-white border-bottom px-4 py-3">
+  <div class="card-body">
+    <div class="d-flex align-items-start gap-3 mb-3">
+      <div class="bg-primary rounded-circle d-flex align-items-center
+                  justify-content-center text-white flex-shrink-0"
+           style="width:40px; height:40px;">
+        <i class="bx bx-car fs-5"></i>
+      </div>
+      <div>
+        <div class="fw-bold fs-6">Transports and Activities</div>
+        <div class="text-muted small">
+          Please add the transportation services and Activities (if included) details and the selling cost price for each service.
         </div>
-
-        <!-- Same cab for all -->
-        <div class="mb-3 p-2 border rounded d-flex align-items-center gap-3"
-             style="background:#f0f7ff;">
-          <div class="form-check mb-0">
-            <input class="form-check-input" type="checkbox" id="sameCab"
-                   [(ngModel)]="sameCabForAll">
-            <label class="form-check-label fw-medium" for="sameCab"
-                   style="font-size:13px;">
-              Same Cab Type for All
-            </label>
-          </div>
-          @if (sameCabForAll) {
-            <select class="form-select form-select-sm" style="width:220px;"
-                    [(ngModel)]="globalVehicleTypeId">
-              <option [value]="0">Select vehicle type…</option>
-              @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
-                <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
-              }
-            </select>
-          }
-        </div>
-
-        @for (slot of daySlots(); track slot.DayNumber) {
-          <div class="border rounded mb-3 p-3">
-
-            <!-- Day header -->
-            <div class="fw-semibold mb-3 text-primary" style="font-size:13px;">
-              <i class="bx bx-calendar me-1"></i>
-              Day {{ slot.DayNumber }} — {{ slot.DateLabel }} ({{ slot.DayLabel.slice(0,3) }})
-            </div>
-
-            @for (row of getServiceRowsForDay(slot.DayNumber);
-                  track row.QuoteServiceId; let si = $index) {
-
-              @if (row.ServiceType === 1) {
-                <!-- Transport row -->
-                <div class="mb-3 pb-3 border-bottom">
-                  <div class="text-muted small fw-semibold mb-2">
-                    <i class="bx bx-car me-1"></i> Transport Service
-                  </div>
-                  <div class="row g-2 align-items-end">
-                    <div class="col-sm-4">
-                      <label class="form-label small text-muted mb-1">Service Location</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.IteneraryServiceId"
-                              (ngModelChange)="onItinerarySelected(row)">
-                        <option [value]="0">Select itinerary…</option>
-                        @for (it of itineraryList(); track it.IteneraryServiceId) {
-                          <option [value]="it.IteneraryServiceId">
-                            {{ it.IteneraryServiceName }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-3">
-                      <label class="form-label small text-muted mb-1">Vehicle Type</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.VehicleTypeId"
-                              (ngModelChange)="onVehicleSelected(row)">
-                        <option [value]="0">Select vehicle…</option>
-                        @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
-                          <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.SellingPrice"
-                             (blur)="saveServiceRow(row)">
-                    </div>
-                    <div class="col-sm-1">
-                      <button mat-icon-button color="warn"
-                              (click)="removeServiceRow(row)">
-                        <mat-icon style="font-size:16px;">close</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              }
-
-              @if (row.ServiceType === 2) {
-                <!-- Activity row -->
-                <div class="mb-3 pb-3 border-bottom">
-                  <div class="text-muted small fw-semibold mb-2">
-                    <i class="bx bx-ticket me-1"></i> Activity/Ticket
-                  </div>
-                  <div class="row g-2 align-items-end">
-                    <div class="col-sm-4">
-                      <label class="form-label small text-muted mb-1">Activity Name</label>
-                      <select class="form-select form-select-sm"
-                              [(ngModel)]="row.ActivityServiceId"
-                              (ngModelChange)="onActivitySelected(row)">
-                        <option [value]="0">Select activity…</option>
-                        @for (ac of activityList(); track ac.ActivityServiceId) {
-                          <option [value]="ac.ActivityServiceId">
-                            {{ ac.ActivityServiceName }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Qty</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.Qty" min="1"
-                             (ngModelChange)="row.CostPrice = row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Cost (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.CostPrice">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Selling (INR)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             [(ngModel)]="row.SellingPrice"
-                             (blur)="saveServiceRow(row)">
-                    </div>
-                    <div class="col-sm-2">
-                      <label class="form-label small text-muted mb-1">Notes</label>
-                      <input type="text" class="form-control form-control-sm"
-                             [(ngModel)]="row.Notes" placeholder="Optional">
-                    </div>
-                    <div class="col-auto">
-                      <button mat-icon-button color="warn"
-                              (click)="removeServiceRow(row)">
-                        <mat-icon style="font-size:16px;">close</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              }
-            }
-
-            <!-- Add buttons -->
-            <div class="d-flex gap-2 mt-1">
-              <button class="btn btn-outline-primary btn-sm"
-                      style="font-size:12px;"
-                      (click)="addTransportRow(slot)">
-                <i class="bx bx-car me-1"></i> Add Transport
-              </button>
-              <button class="btn btn-outline-success btn-sm"
-                      style="font-size:12px;"
-                      (click)="addActivityRow(slot)">
-                <i class="bx bx-ticket me-1"></i> Add Activity
-              </button>
-            </div>
-          </div>
-        }
-
-        <!-- Transport/Activity total -->
-        <div class="d-flex justify-content-end mt-2 gap-3 flex-wrap">
-          <div class="text-muted small">
-            Transports: <strong>INR {{ formatCurrency(transportTotal()) }}</strong>
-            + Activity/Tickets: <strong>INR {{ formatCurrency(activityTotal()) }}</strong>
-          </div>
-          <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-            Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
-          </div>
+        <div class="text-muted small mt-1">
+          <i class="bx bx-info-circle" style="font-size:13px;"></i>
+          Tip: To speed up the process of adding multiple services, use Next Day or Duplicate actions.
         </div>
       </div>
     </div>
+
+    <!-- Same Cab Type for All -->
+    <div class="mb-4 p-2 border rounded d-flex align-items-center gap-3"
+         style="background:#f0f7ff;">
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" id="sameCab"
+               [(ngModel)]="sameCabForAll"
+               (change)="onSameCabChange()">
+        <label class="form-check-label fw-medium" for="sameCab"
+               style="font-size:13px;">
+          Same Cab Type for All
+        </label>
+      </div>
+      
+      @if (sameCabForAll && selectedCabTypes.length > 0) {
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:13px;" class="text-primary fw-semibold">
+            {{ getSelectedCabTypesDisplay() }}
+          </span>
+          <button type="button"
+                  class="btn btn-link p-0 border-0 bg-transparent"
+                  style="font-size:12px; color:#0d6efd; cursor:pointer;"
+                  (click)="openCabTypesModal()">
+            <i class="bx bx-edit" style="font-size:14px;"></i>
+          </button>
+        </div>
+      }
+      
+      @if (sameCabForAll && selectedCabTypes.length === 0) {
+        <button type="button"
+                class="btn btn-link p-0 border-0 text-primary"
+                style="font-size:12px; text-decoration:none;"
+                (click)="openCabTypesModal()">
+          <i class="bx bx-plus me-1"></i> Select Cab Types
+        </button>
+      }
+    </div>
+
+    <!-- Days | Transport Details | Transportation and Prices -->
+    <div class="row g-3">
+      
+<!-- LEFT: Days Selector (col-2) -->
+<div class="col-sm-2">
+  <div class="border rounded p-3" style="background:#f8f9fa;">
+    <label class="form-label small text-muted mb-1">Days</label>
+    <div style="position:relative;">
+      <button type="button"
+              class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+              style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+              (click)="toggleDaysDropdown()"
+              (blur)="onDaysDropdownBlur()">
+        <span style="font-size:13px;">
+          @if (selectedDaysDisplay) {
+            {{ selectedDaysDisplay }}
+          } @else {
+            <span class="text-muted">Select day(s)…</span>
+          }
+        </span>
+        <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+      </button>
+
+      @if (showDaysDropdown) {
+        <div class="border rounded bg-white shadow-sm"
+             style="position:absolute; top:100%; left:0; right:0;
+                    z-index:1000; max-height:250px; overflow-y:auto;">
+          @for (slot of daySlots(); track slot.DayNumber) {
+            <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                   style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+              <input type="checkbox"
+                     [checked]="selectedDays.includes(slot.DayNumber)"
+                     (change)="onDayToggle(slot.DayNumber)"
+                     style="cursor:pointer;">
+              <span>Day {{ slot.DayNumber }} — {{ slot.DateLabel }}</span>
+            </label>
+          }
+        </div>
+      }
+    </div>
+    
+    @if (selectedDays.length > 0) {
+      <div class="text-muted" style="font-size:10px; margin-top:2px;">
+        {{ selectedDays.length }} day(s)
+      </div>
+    }
+  </div>
+</div>
+
+<!-- MIDDLE: Service Details Form (col-3) -->
+<div class="col-sm-3">
+  <div class="border rounded p-3">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <i class="bx bx-car" style="font-size:16px; color:#0066cc;"></i>
+      <div class="fw-semibold small">Transport Service</div>
+    </div>
+
+    <!-- Service Location Search -->
+<!-- Service Location Search -->
+<div class="mb-3" style="position:relative;">
+  <label class="form-label small text-muted mb-1">
+    Service Location
+  </label>
+
+  <div style="position:relative;">
+
+    <input type="text"
+           class="form-control form-control-sm"
+           placeholder="Search location..."
+           [(ngModel)]="locationSearchText"
+           (ngModelChange)="onTransportLocationSearch()"
+           (focus)="onTransportLocationSearch()"
+           (blur)="onTransportLocationBlur()"
+           autocomplete="off">
+
+    @if(locationSearchText.length > 0){
+      <button type="button"
+              class="btn btn-sm p-0 border-0 bg-transparent"
+              style="
+                position:absolute;
+                top:50%;
+                right:8px;
+                transform:translateY(-50%);
+                font-size:14px;
+                line-height:1;
+                z-index:10;
+                color:#999;"
+              (mousedown)="clearTransportLocation()">
+        ×
+      </button>
+    }
+
+    @if(showLocationDropdown && filteredLocations.length > 0){
+      <div class="border rounded bg-white shadow-sm"
+           style="
+             position:absolute;
+             top:100%;
+             left:0;
+             right:0;
+             z-index:1050;
+             max-height:200px;
+             overflow-y:auto;">
+
+        @for(loc of filteredLocations; track loc.LocationId){
+          <div class="px-3 py-2"
+               style="cursor:pointer;font-size:13px;"
+               (mousedown)="selectTransportLocation(loc)">
+
+            <div class="fw-semibold">
+              {{ loc.LocationName }}
+            </div>
+
+          </div>
+        }
+
+      </div>
+    }
+
+    @if(showLocationDropdown &&
+        locationSearchText.length > 0 &&
+        filteredLocations.length === 0){
+
+      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+           style="
+             position:absolute;
+             top:100%;
+             left:0;
+             right:0;
+             z-index:1050;
+             font-size:13px;">
+        No locations found
+      </div>
+
+    }
+
+  </div>
+</div>
+
+<!-- Service Type Search -->
+<div class="mb-3" style="position:relative;">
+  <label class="form-label small text-muted mb-1">Service Type</label>
+
+  <div style="position:relative;">
+
+    <input type="text"
+           class="form-control form-control-sm"
+           placeholder="Search service..."
+           [(ngModel)]="serviceSearchText"
+           (ngModelChange)="onTransportServiceSearch()"
+           (focus)="onTransportServiceSearch()"
+           (blur)="onTransportServiceBlur()"
+           autocomplete="off"
+           [disabled]="!currentTransportRow.LocationId">
+
+    @if(serviceSearchText.length > 0){
+      <button type="button"
+              class="btn btn-sm p-0 border-0 bg-transparent"
+              style="
+                position:absolute;
+                top:50%;
+                right:8px;
+                transform:translateY(-50%);
+                font-size:14px;
+                line-height:1;
+                z-index:10;
+                color:#999;"
+              (mousedown)="clearTransportService()">
+        ×
+      </button>
+    }
+
+    @if(showServiceDropdown && filteredServices.length > 0){
+      <div class="border rounded bg-white shadow-sm"
+           style="
+             position:absolute;
+             top:100%;
+             left:0;
+             right:0;
+             z-index:1050;
+             max-height:200px;
+             overflow-y:auto;">
+
+        @for(service of filteredServices; track service.IteneraryServiceId){
+          <div class="px-3 py-2"
+               style="cursor:pointer;font-size:13px;"
+               (mousedown)="selectTransportService(service)">
+
+            <div class="fw-semibold">
+              {{ service.IteneraryServiceName }}
+            </div>
+
+          </div>
+        }
+
+      </div>
+    }
+
+    @if(showServiceDropdown &&
+        serviceSearchText.length > 0 &&
+        filteredServices.length === 0){
+
+      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+           style="
+             position:absolute;
+             top:100%;
+             left:0;
+             right:0;
+             z-index:1050;
+             font-size:13px;">
+        No services found
+      </div>
+
+    }
+
+  </div>
+
+  @if (!currentTransportRow.LocationId) {
+    <small class="text-muted d-block mt-1">
+      Select a location first
+    </small>
+  }
+</div>
+
+  </div>
+</div>
+
+      <!-- RIGHT: Transportation and Prices Table (col-7) -->
+      <div class="col-sm-7">
+        <div class="border rounded p-3">
+          <div class="fw-semibold small mb-3">Transportation and Prices</div>
+
+          
+          
+          <div style="overflow-x:auto;">
+            <table class="table table-sm" style="font-size:12px; min-width:500px;">
+              <thead>
+                <tr class="text-muted border-bottom">
+                  <th>Transportation</th>
+                  <th class="text-center">Date</th>
+                  <th class="text-end">Rate</th>
+                  <th class="text-end">Given</th>
+                  <th style="width:30px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
+                  <tr>
+                    <!-- i want here vehicle type selection opton here -->
+                    <!-- <td class="fw-semibold">{{ row.VehicleTypeName }}</td> -->
+                     <td>
+  <div style="position:relative; min-width:160px;">
+    <input type="text"
+           class="form-control form-control-sm"
+           placeholder="Type to search..."
+           [(ngModel)]="row.VehicleTypeSearch"
+           (ngModelChange)="onTransportVehicleSearch(row)"
+           (focus)="onTransportVehicleSearch(row)"
+           (blur)="onTransportVehicleBlur(row)"
+           autocomplete="off">
+
+@if (row.VehicleTypeSearch?.length ?? 0 > 0) {
+      <button type="button"
+              class="btn btn-sm p-0 border-0 bg-transparent"
+              style="position:absolute; top:50%; right:26px;
+                     transform:translateY(-50%); font-size:14px;
+                     line-height:1; z-index:10; color:#999;"
+              (mousedown)="clearTransportVehicle(row)">×</button>
+    }
+
+    <!-- Expand icon -->
+    <span style="position:absolute; top:50%; right:6px;
+                 transform:translateY(-50%); color:#999; font-size:14px; pointer-events:none;">
+      <i class="bx bx-expand-alt"></i>
+    </span>
+
+@if (row.ShowVehicleDropdown && (row.FilteredVehicles?.length ?? 0) > 0) {
+      <div class="border rounded bg-white shadow-sm"
+           style="position:absolute; top:100%; left:0; right:0;
+                  z-index:1000; max-height:180px; overflow-y:auto;">
+        @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
+          <div class="px-3 py-2"
+               style="font-size:13px; cursor:pointer;"
+               (mousedown)="selectTransportVehicle(row, vt)">
+            {{ vt.VehicleTypeName }}
+          </div>
+        }
+      </div>
+    }
+  </div>
+</td>
+                    <td class="text-center text-muted">
+                      {{ row.ServiceDate | date:'dd MMM' }}
+                    </td>
+                    <td class="text-end text-muted">
+                      INR {{ formatCurrency(row.CostPrice) }}
+                    </td>
+                    <td class="text-end">
+                      <input type="number" class="form-control form-control-sm text-end"
+                             style="width:90px;"
+                             [(ngModel)]="row.SellingPrice"
+                             (blur)="saveServiceRow(row)">
+                      <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                        × {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
+                      </div>
+                    </td>
+                    <td class="text-end">
+                      <button mat-icon-button color="warn"
+                              style="width:24px; height:24px; line-height:24px;"
+                              (click)="removeServiceRow(row)"
+                              matTooltip="Remove">
+                        <mat-icon style="font-size:14px;">close</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Add buttons -->
+<div class="d-flex gap-2 mt-2">
+  <button class="btn btn-outline-primary btn-sm"
+          style="font-size:12px;"
+          (click)="addTransportRowQuick()">
+    <i class="bx bx-plus me-1"></i> Transport Service
+  </button>
+  <button class="btn btn-outline-success btn-sm"
+          style="font-size:12px;"
+          (click)="addActivityRowQuick()">
+    <i class="bx bx-ticket me-1"></i> Activity/Ticket
+  </button>
+</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary btn-sm" style="font-size:12px;">
+          <i class="bx bx-chevron-right me-1"></i> Next Day
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;">
+          <i class="bx bx-trash me-1"></i> Remove
+        </button>
+      </div>
+      <div class="text-end">
+        <div class="text-muted small mb-1">
+          Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}
+        </div>
+        <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+          Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SELECT CAB TYPES MODAL                                    -->
+<!-- ════════════════════════════════════════════════════════ -->
+@if (showCabTypesModal) {
+  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);" 
+       (click)="closeCabTypesModal()"></div>
+  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom px-4 py-3">
+          <h5 class="modal-title fw-bold" style="font-size:15px;">
+            Select Cab Types
+          </h5>
+          <button type="button" class="btn-close" (click)="closeCabTypesModal()"></button>
+        </div>
+        <div class="modal-body px-4 py-3">
+          <table class="table table-sm" style="font-size:13px;">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th class="text-end">Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cabType of cabTypesList; track $index; let i = $index) {
+                <tr>
+                  <td>
+                    <select class="form-select form-select-sm"
+                            [(ngModel)]="cabType.VehicleTypeId"
+                            (ngModelChange)="onCabTypeSelected(cabType)">
+                      <option [value]="0">Select vehicle…</option>
+                      @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
+                        <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="text-end" style="width:100px;">
+                    <input type="number" class="form-control form-control-sm text-end"
+                           [(ngModel)]="cabType.Quantity"
+                           min="1">
+                  </td>
+                  <td class="text-end" style="width:30px;">
+                    <button type="button" class="btn btn-link p-0 border-0 text-danger"
+                            style="font-size:16px;"
+                            (click)="removeCabType(i)">
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-link btn-sm p-0 text-primary"
+                  style="font-size:12px; text-decoration:none;"
+                  (click)="addCabType()">
+            <i class="bx bx-plus me-1"></i> Add More
+          </button>
+        </div>
+        <div class="modal-footer border-top px-4 py-3">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3"
+                  (click)="closeCabTypesModal()">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm px-4"
+                  (click)="saveCabTypes()">Set Cab Types</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
 
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- SUMMARY SECTION                                      -->
