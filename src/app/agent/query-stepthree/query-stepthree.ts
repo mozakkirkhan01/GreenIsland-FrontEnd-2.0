@@ -140,6 +140,12 @@ export interface QuoteServiceRow {
   SellingPrice: number;
   Notes: string;
   IsSaving: boolean;
+    // ADD THESE
+  LocationId: number;
+  LocationName: string;
+   FilteredVehicles?: any[]; // Replace 'any' with your Vehicle type
+  VehicleTypeSearch?: string;
+  ShowVehicleDropdown?: boolean;
 }
 
 @Component({
@@ -554,7 +560,11 @@ autoCreateDefaultPackageType(): void {
       ActivityServiceName: s.ActivityServiceName ?? '',
       Qty: s.Qty ?? 1, CostPrice: s.CostPrice ?? 0,
       SellingPrice: s.SellingPrice ?? 0, Notes: s.Notes ?? '',
-      IsSaving: false,
+      IsSaving: false,    LocationId: s.LocationId ?? 0,
+    LocationName: s.LocationName ?? '',VehicleTypeSearch: s.VehicleTypeName ?? '',
+    FilteredVehicles: [],
+    ShowVehicleDropdown: false,
+    
     };
   }
 
@@ -988,12 +998,7 @@ onLocationSearch(): void {
   this.showLocationDropdown = true;
 }
 
-selectLocation(location: any): void {
-  this.newHotel.LocationId = location.LocationId;
-  this.locationSearchText = location.LocationName;
-  this.showLocationDropdown = false;
-  this.filteredLocations = [];
-}
+
 
 onLocationBlur(): void {
   this.showLocationDropdown = false;
@@ -1542,6 +1547,117 @@ applyEditPrices(): void {
 
 
 
+// Cab types & days
+showCabTypesModal = false;
+selectedCabTypes: any[] = [];
+cabTypesList: any[] = [];
+selectedDays: number[] = [];
+selectedDayForForm = 0;
+currentTransportRow: QuoteServiceRow = {} as QuoteServiceRow;
+// Transport form state — separate from hotel modal
+transportLocationSearchText = '';
+transportFilteredLocations: any[] = [];
+transportShowLocationDropdown = false;
+
+transportServiceSearchText = '';
+transportFilteredServices: any[] = [];
+transportShowServiceDropdown = false;
+
+onSameCabChange(): void {
+  if (!this.sameCabForAll) {
+    this.selectedCabTypes = [];
+  }
+}
+
+openCabTypesModal(): void {
+  this.cabTypesList = this.selectedCabTypes.length > 0
+    ? this.selectedCabTypes.map(c => ({ ...c }))
+    : [{ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 }];
+  this.showCabTypesModal = true;
+}
+
+closeCabTypesModal(): void {
+  this.showCabTypesModal = false;
+}
+
+onCabTypeSelected(cabType: any): void {
+  const vt = this.vehicleTypeList().find(v => v.VehicleTypeId === cabType.VehicleTypeId);
+  if (vt) {
+    cabType.VehicleTypeName = vt.VehicleTypeName;
+  }
+}
+
+addCabType(): void {
+  this.cabTypesList.push({ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 });
+}
+
+removeCabType(i: number): void {
+  this.cabTypesList.splice(i, 1);
+}
+
+saveCabTypes(): void {
+  const invalid = this.cabTypesList.find(c => !c.VehicleTypeId || c.Quantity < 1);
+  if (invalid) {
+    this.toastr.error('Select vehicle type and quantity for all');
+    return;
+  }
+  this.selectedCabTypes = this.cabTypesList.map(c => ({ ...c }));
+  this.closeCabTypesModal();
+  this.markDirty();
+}
+
+getSelectedCabTypesDisplay(): string {
+  return this.selectedCabTypes
+    .map(c => `${c.Quantity}-${c.VehicleTypeName}`)
+    .join(' + ');
+}
+
+
+getActiveTransportRows(): QuoteServiceRow[] {
+  if (this.selectedDays.length === 0) {
+    return this.serviceRows().filter(
+      r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
+  return this.serviceRows().filter(
+    r => r.ServiceType === 1
+      && r.QuotePackageTypeId === this.activePackageTypeId()
+      && this.selectedDays.includes(r.DayNumber)
+  );
+}
+
+toggleDay(dayNumber: number): void {
+  const idx = this.selectedDays.indexOf(dayNumber);
+  if (idx > -1) {
+    this.selectedDays.splice(idx, 1);
+  } else {
+    this.selectedDays.push(dayNumber);
+    this.selectedDays.sort((a, b) => a - b);
+  }
+}
+
+toggleAllDays(): void {
+  if (this.selectedDays.length === this.daySlots().length) {
+    this.selectedDays = [];
+  } else {
+    this.selectedDays = this.daySlots().map(d => d.DayNumber);
+  }
+}
+
+allDaysSelected(): boolean {
+  const slots = this.daySlots();
+  return slots.length > 0 && this.selectedDays.length === slots.length;
+}
+
+addTransportRow(): void {
+  if (this.selectedDays.length === 0) {
+    this.toastr.error('Select at least one day');
+    return;
+  }
+  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+  this.addTransportRowForSlot(daySlot!);
+}
+
   // ── Service rows ──────────────────────────────────────────
   getServiceRowsForDay(dayNumber: number): QuoteServiceRow[] {
     return this.serviceRows().filter(
@@ -1549,20 +1665,418 @@ applyEditPrices(): void {
         && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
-
-  addTransportRow(slot: DaySlot): void {
-    this.markDirty();
-    this.serviceRows.update(rows => [...rows, {
-      QuoteServiceId: 0, QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId(),
-      DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
-      ServiceType: 1,
-      IteneraryServiceId: 0, IteneraryServiceName: '',
-      VehicleTypeId: 0, VehicleTypeName: '', SameCabForAll: false,
-      ActivityServiceId: 0, ActivityServiceName: '',
-      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '', IsSaving: false,
-    }]);
+  addTransportRowQuick(): void {
+  if (this.selectedDays.length === 0) {
+    this.toastr.error('Select at least one day');
+    return;
   }
+  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+  if (daySlot) {
+    this.addTransportRow();
+  }
+}
+
+addActivityRowQuick(): void {
+  if (this.selectedDays.length === 0) {
+    this.toastr.error('Select at least one day');
+    return;
+  }
+  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+  if (daySlot) {
+    this.addActivityRow(daySlot);
+  }
+}
+
+
+showDaysDropdown = false;
+selectedDaysDisplay = '';
+
+onDayToggle(dayNumber: number): void {
+  const index = this.selectedDays.indexOf(dayNumber);
+  if (index > -1) {
+    this.selectedDays.splice(index, 1);
+  } else {
+    this.selectedDays.push(dayNumber);
+    this.selectedDays.sort((a, b) => a - b);
+  }
+  this.updateDaysDisplay();
+}
+
+updateDaysDisplay(): void {
+  if (this.selectedDays.length === 0) {
+    this.selectedDaysDisplay = '';
+  } else if (this.selectedDays.length === 1) {
+    this.selectedDaysDisplay = `Day ${this.selectedDays[0]}`;
+  } else {
+    this.selectedDaysDisplay = `${this.selectedDays.length} days selected`;
+  }
+}
+
+toggleDaysDropdown(): void {
+  this.showDaysDropdown = !this.showDaysDropdown;
+}
+
+onDaysDropdownBlur(): void {
+  setTimeout(() => {
+    this.showDaysDropdown = false;
+  }, 150);
+}
+
+// Location search
+// locationSearchText = '';
+// filteredLocations: any[] = [];
+// showLocationDropdown = false;
+
+onLocationSearchChange(): void {
+  const query = (this.locationSearchText ?? '').toLowerCase().trim();
+
+  if (!query) {
+    this.filteredLocations = this.itineraryList().slice(0, 6);
+    this.showLocationDropdown = true;
+    return;
+  }
+
+  this.filteredLocations = this.itineraryList()
+    .filter(it => it.IteneraryServiceName.toLowerCase().includes(query))
+    .slice(0, 6);
+
+  this.showLocationDropdown = true;
+}
+
+selectLocation(location: any): void {
+  this.currentTransportRow.IteneraryServiceId = location.IteneraryServiceId;
+  this.currentTransportRow.IteneraryServiceName = location.IteneraryServiceName;
+  this.locationSearchText = location.ItineraryServiceName;
+  this.showLocationDropdown = false;
+  this.filteredLocations = [];
+}
+
+onLocationSearchBlur(): void {
+  setTimeout(() => {
+    this.showLocationDropdown = false;
+    if (this.currentTransportRow.IteneraryServiceId > 0) {
+      this.locationSearchText = this.currentTransportRow.IteneraryServiceName;
+    } else {
+      this.locationSearchText = '';
+    }
+  }, 200);
+}
+
+clearLocationSearch(): void {
+  this.locationSearchText = '';
+  // this.currentTransportRow.ItineraryServiceId = 0;
+  // this.currentTransportRow.ItineraryServiceName = '';
+  this.filteredLocations = [];
+  this.showLocationDropdown = false;
+}
+
+// Service Type search
+serviceTypeSearchText = '';
+filteredServiceTypes: any[] = [];
+showServiceTypeDropdown = false;
+
+onServiceTypeSearchChange(): void {
+  const query = (this.serviceTypeSearchText ?? '').toLowerCase().trim();
+  const vehicles = this.sameCabForAll && this.selectedCabTypes.length > 0
+    ? this.selectedCabTypes
+    : this.vehicleTypeList();
+
+  if (!query) {
+    this.filteredServiceTypes = vehicles.slice(0, 6);
+    this.showServiceTypeDropdown = true;
+    return;
+  }
+
+  this.filteredServiceTypes = vehicles
+    .filter(v => v.VehicleTypeName.toLowerCase().includes(query))
+    .slice(0, 6);
+
+  this.showServiceTypeDropdown = true;
+}
+
+selectServiceType(serviceType: any): void {
+  this.currentTransportRow.VehicleTypeId = serviceType.VehicleTypeId;
+  this.currentTransportRow.VehicleTypeName = serviceType.VehicleTypeName;
+  this.serviceTypeSearchText = serviceType.VehicleTypeName;
+  this.showServiceTypeDropdown = false;
+  this.filteredServiceTypes = [];
+  this.onVehicleSelected(this.currentTransportRow);
+}
+
+onServiceTypeSearchBlur(): void {
+  setTimeout(() => {
+    this.showServiceTypeDropdown = false;
+    if (this.currentTransportRow.VehicleTypeId > 0) {
+      this.serviceTypeSearchText = this.currentTransportRow.VehicleTypeName;
+    } else {
+      this.serviceTypeSearchText = '';
+    }
+  }, 200);
+}
+
+clearServiceTypeSearch(): void {
+  this.serviceTypeSearchText = '';
+  this.currentTransportRow.VehicleTypeId = 0;
+  this.currentTransportRow.VehicleTypeName = '';
+  this.filteredServiceTypes = [];
+  this.showServiceTypeDropdown = false;
+}
+
+// Transport Service search properties
+
+
+serviceSearchText = '';
+filteredServices: any[] = [];
+showServiceDropdown = false;
+
+// Available data for transport
+availableLocations: any[] = [];
+availableServices: any[] = [];
+
+
+
+// Transport Service - Location & Service search (following Special Inclusions pattern)
+
+// Location search
+onTransportLocationSearch(): void {
+  const query = (this.locationSearchText ?? '').toLowerCase().trim();
+
+  if (!query) {
+    this.filteredLocations = this.locationList().slice(0, 4);
+  } else {
+    this.filteredLocations = this.locationList()
+      .filter(x =>
+        x.LocationName.toLowerCase().includes(query)
+      )
+      .slice(0, 4);
+  }
+
+  this.showLocationDropdown = true;
+}
+
+selectTransportLocation(loc: any): void {
+
+  this.currentTransportRow.LocationId = loc.LocationId;
+  this.currentTransportRow.LocationName = loc.LocationName;
+
+  this.locationSearchText = loc.LocationName;
+
+  this.showLocationDropdown = false;
+
+  this.filteredServices = this.itineraryList()
+    .filter(x => x.LocationId === loc.LocationId);
+}
+
+onTransportLocationBlur(): void {
+  setTimeout(() => {
+    this.showLocationDropdown = false;
+  }, 150);
+}
+
+// Service search
+onTransportServiceSearch(): void {
+
+  const query = (this.serviceSearchText ?? '')
+    .toLowerCase()
+    .trim();
+
+  const services = this.itineraryList()
+    .filter(x =>
+      x.LocationId === this.currentTransportRow.LocationId
+    );
+
+  if (!query) {
+    this.filteredServices = services.slice(0, 4);
+  } else {
+    this.filteredServices = services
+      .filter(x =>
+        x.IteneraryServiceName
+          .toLowerCase()
+          .includes(query)
+      )
+      .slice(0, 4);
+  }
+
+  this.showServiceDropdown = true;
+}
+//clear transport
+clearTransportLocation(): void {
+
+  this.locationSearchText = '';
+
+  this.currentTransportRow.LocationId = 0;
+  this.currentTransportRow.LocationName = '';
+
+  this.serviceSearchText = '';
+  this.filteredServices = [];
+
+  this.showLocationDropdown = false;
+}
+
+selectTransportService(service: any): void {
+  this.currentTransportRow.IteneraryServiceId = service.IteneraryServiceId;
+  this.currentTransportRow.IteneraryServiceName = service.IteneraryServiceName;
+    this.serviceSearchText = service.IteneraryServiceName;
+    this.showServiceDropdown = false;
+
+  // Load vehicles that have rates configured for this service
+  this.loadVehiclesForService(service.IteneraryServiceId);
+}
+// DELETE THIS ENTIRE METHOD
+loadVehiclesForService(iteneraryServiceId: number): void {
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  this.service.getVehicleServiceRateList(enc({
+    IteneraryServiceId: iteneraryServiceId
+  })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        this.availableVehiclesForService = r.VehicleRateList ?? [];
+      }
+    }
+  });
+}
+
+availableVehiclesForService: any[] = [];
+clearTransportService(): void {
+
+  this.serviceSearchText = '';
+
+  this.currentTransportRow.IteneraryServiceId = 0;
+  this.currentTransportRow.IteneraryServiceName = '';
+
+  this.showServiceDropdown = false;
+}
+
+onTransportServiceBlur(): void {
+  setTimeout(() => {
+    this.showServiceDropdown = false;
+  }, 150);
+}
+
+loadLocationsByDestination(): void {
+  const trip = this.tripInfo();
+  if (!trip || !trip.DestinationId) {
+    return;
+  }
+  
+  const destinationId = trip.DestinationId;
+  
+  this.service.getLocationsByDestination(destinationId).subscribe({
+    next: (response: any) => {
+      this.availableLocations = response || [];
+      this.onTransportLocationSearch();
+    },
+    error: (err) => {
+      console.error('Error loading locations:', err);
+      this.toastr.error('Failed to load locations');
+    }
+  });
+}
+
+loadServicesByLocation(locationId: number): void {
+  this.service.getItineraryServicesByLocation(locationId).subscribe({
+    next: (response: any) => {
+      this.availableServices = response || [];
+      this.onTransportServiceSearch();
+    },
+    error: (err) => {
+      console.error('Error loading services:', err);
+      this.toastr.error('Failed to load services');
+    }
+  });
+}
+
+addTransportRowForSlot(slot: DaySlot): void {
+  this.markDirty();
+  const newRow: QuoteServiceRow = {
+    QuoteServiceId: 0,
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: this.activePackageTypeId(),
+    DayNumber: slot.DayNumber,
+    ServiceDate: slot.ServiceDate,
+    ServiceType: 1,
+    IteneraryServiceId: this.currentTransportRow.IteneraryServiceId ?? 0,
+    IteneraryServiceName: this.currentTransportRow.IteneraryServiceName ?? '',
+    VehicleTypeId: 0,
+    VehicleTypeName: '',
+    SameCabForAll: this.sameCabForAll,
+    ActivityServiceId: 0,
+    ActivityServiceName: '',
+    Qty: 1,
+    CostPrice: 0,
+    SellingPrice: 0,
+    Notes: '',
+    IsSaving: false,
+    LocationId: this.currentTransportRow.LocationId ?? 0,
+    LocationName: this.currentTransportRow.LocationName ?? '',
+    VehicleTypeSearch: '',
+    FilteredVehicles: [],
+    ShowVehicleDropdown: false,
+  };
+  this.serviceRows.update(rows => [...rows, newRow]);
+}
+
+  // vehicle row
+  VehicleTypeSearch?: string;
+FilteredVehicles?: any[];
+ShowVehicleDropdown?: boolean;
+onTransportVehicleSearch(row: QuoteServiceRow): void {
+  const query = (row.VehicleTypeSearch ?? '').toLowerCase().trim();
+  const source = this.sameCabForAll && this.selectedCabTypes.length > 0
+    ? this.selectedCabTypes
+    : this.vehicleTypeList();  // ← this is all you need
+
+  row.FilteredVehicles = !query
+    ? source.slice(0, 6)
+    : source.filter(v => v.VehicleTypeName.toLowerCase().includes(query)).slice(0, 6);
+
+  row.ShowVehicleDropdown = true;
+  this.serviceRows.update(rows => [...rows]);
+}
+
+selectTransportVehicle(row: QuoteServiceRow, vt: any): void {
+  row.VehicleTypeId = vt.VehicleTypeId;
+  row.VehicleTypeName = vt.VehicleTypeName;
+  row.VehicleTypeSearch = vt.VehicleTypeName;
+  row.ShowVehicleDropdown = false;
+  row.FilteredVehicles = [];
+
+  // If rate is already on the vehicle object from the service lookup, use it directly
+  if (vt.RateAmount) {
+    row.CostPrice = vt.RateAmount;
+    row.SellingPrice = vt.RateAmount;
+    this.serviceRows.update(rows => [...rows]);
+  } else {
+    // Otherwise fetch it
+    this.lookupVehicleRate(row);
+  }
+
+  this.serviceRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+onTransportVehicleBlur(row: QuoteServiceRow): void {
+  setTimeout(() => {
+    row.ShowVehicleDropdown = false;
+    row.VehicleTypeSearch = row.VehicleTypeId > 0 ? row.VehicleTypeName : '';
+    this.serviceRows.update(rows => [...rows]);
+  }, 200);
+}
+
+clearTransportVehicle(row: QuoteServiceRow): void {
+  row.VehicleTypeSearch = '';
+  row.VehicleTypeId = 0;
+  row.VehicleTypeName = '';
+  row.FilteredVehicles = [];
+  row.ShowVehicleDropdown = false;
+  row.CostPrice = 0;
+  row.SellingPrice = 0;
+  this.serviceRows.update(rows => [...rows]);
+  this.markDirty();
+}
 
   addActivityRow(slot: DaySlot): void {
     this.markDirty();
@@ -1575,6 +2089,9 @@ applyEditPrices(): void {
       VehicleTypeId: 0, VehicleTypeName: '', SameCabForAll: false,
       ActivityServiceId: 0, ActivityServiceName: '',
       Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '', IsSaving: false,
+    LocationId: 0,
+    LocationName: '',
+
     }]);
   }
 
@@ -1595,7 +2112,13 @@ applyEditPrices(): void {
   }
 
   lookupVehicleRate(row: QuoteServiceRow): void {
-    if (!row.IteneraryServiceId || !row.VehicleTypeId) return;
+      if (!row.IteneraryServiceId || !row.VehicleTypeId) {
+    // Don't silently fail — user needs to know
+    if (row.VehicleTypeId > 0 && !row.IteneraryServiceId) {
+      this.toastr.warning('Select a service location and service type first');
+    }
+    return;
+  }
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
