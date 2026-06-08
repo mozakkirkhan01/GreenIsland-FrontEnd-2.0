@@ -322,7 +322,7 @@
                 </div>
 
               </div>
-<!-- RIGHT: Price panel (col-4) -->
+<!-- RIGHT: Price panel (col-4) - Compact with Date column -->
 <div class="col-sm-4">
   <div class="border rounded p-3 bg-light h-100">
     <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
@@ -343,7 +343,7 @@
       <thead>
         <tr class="text-muted">
           <th>Night</th>
-          <th>Type</th>
+          <th>Date</th>
           <th class="text-end">Rate</th>
           <th class="text-end">Qty</th>
           <th class="text-end">Total</th>
@@ -352,76 +352,55 @@
       <tbody>
         <!-- Loop through each night -->
         @for (night of row.NightNumbers; track night) {
-          <!-- Base rooms for this night -->
+          @let nightSlot = nightSlots()[night - 1];
+          
+          <!-- Rooms row -->
           <tr>
             <td class="fw-semibold text-primary">Night {{ night }}</td>
-            <td>Rooms ({{ row.NoOfRooms }})</td>
+            <td class="text-muted small">{{ nightSlot?.DateLabel || '' }}</td>
             <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
             <td class="text-end">{{ row.NoOfRooms }}</td>
-            <td class="text-end fw-semibold">
-              {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
-            </td>
+            <td class="text-end fw-semibold">{{ formatCurrency(row.BaseRate * row.NoOfRooms) }}</td>
           </tr>
 
-          <!-- AWEB for this night -->
+          <!-- AWEB -->
           @if (row.AWEB > 0 && row.AwebRate > 0) {
             <tr>
               <td></td>
-              <td>AWEB</td>
+              <td class="text-muted small">AWEB</td>
               <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
               <td class="text-end">{{ row.AWEB }}</td>
-              <td class="text-end fw-semibold">
-                {{ formatCurrency(row.AwebRate * row.AWEB) }}
-              </td>
+              <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
             </tr>
           }
 
-          <!-- CWEB for this night -->
+          <!-- CWEB -->
           @if (row.CWEB > 0 && row.CwebRate > 0) {
             <tr>
               <td></td>
-              <td>CWEB</td>
+              <td class="text-muted small">CWEB</td>
               <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
               <td class="text-end">{{ row.CWEB }}</td>
-              <td class="text-end fw-semibold">
-                {{ formatCurrency(row.CwebRate * row.CWEB) }}
-              </td>
+              <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
             </tr>
           }
 
-          <!-- CNB for this night -->
+          <!-- CNB -->
           @if (row.CNB > 0 && row.CnbRate > 0) {
             <tr>
               <td></td>
-              <td>CNB</td>
+              <td class="text-muted small">CNB</td>
               <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
               <td class="text-end">{{ row.CNB }}</td>
-              <td class="text-end fw-semibold">
-                {{ formatCurrency(row.CnbRate * row.CNB) }}
-              </td>
+              <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
             </tr>
           }
-
-          <!-- Night subtotal -->
-          <!-- <tr class="border-top border-bottom" style="background-color: #f9f9f9;">
-            <td colspan="4" class="text-end fw-bold text-muted">Night {{ night }} Subtotal</td>
-            <td class="text-end fw-bold text-primary">
-              {{ formatCurrency(
-                (row.BaseRate * row.NoOfRooms) +
-                (row.AWEB > 0 && row.AwebRate > 0 ? row.AwebRate * row.AWEB : 0) +
-                (row.CWEB > 0 && row.CwebRate > 0 ? row.CwebRate * row.CWEB : 0) +
-                (row.CNB > 0 && row.CnbRate > 0 ? row.CnbRate * row.CNB : 0)
-              ) }}
-            </td>
-          </tr> -->
         }
       </tbody>
       <tfoot>
         <tr class="border-top">
-          <td colspan="4" class="fw-bold">Total (All Nights)</td>
-          <td class="text-end fw-bold text-primary" style="font-size: 13px;">
-            INR {{ formatCurrency(row.TotalPrice) }}
-          </td>
+          <td colspan="4" class="fw-bold">Total ({{ row.NightNumbers.length }} Nights)</td>
+          <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
         </tr>
       </tfoot>
     </table>
@@ -429,14 +408,10 @@
     <!-- Selling price override -->
     @if (row.BaseRate > 0) {
       <div class="mt-2">
-        <label class="form-label small text-muted mb-1">
-          Final Price (INR) <span class="text-danger">*</span>
-        </label>
+        <label class="form-label small text-muted mb-1">Final Price (INR) <span class="text-danger">*</span></label>
         <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
           (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
-        <div class="text-muted" style="font-size:10px; margin-top:2px;">
-          Cost: INR {{ formatCurrency(row.TotalPrice) }}
-        </div>
+        <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
       </div>
     }
   </div>
@@ -1028,13 +1003,14 @@
           <div style="overflow-x:auto;">
             <table class="table table-sm" style="font-size:12px; min-width:500px;">
               <thead>
-                <tr class="text-muted border-bottom">
-                  <th>Transportation</th>
-                  <th class="text-center">Date</th>
-                  <th class="text-end">Rate</th>
-                  <th class="text-end">Given</th>
-                  <th style="width:30px;"></th>
-                </tr>
+ <tr class="text-muted border-bottom">
+  <th>Transportation</th>
+  <th class="text-center">Date</th>
+  <th class="text-end">Rate</th>
+  <th class="text-center">Qty</th>
+  <th class="text-end">Total</th>
+  <th style="width:30px;"></th>
+</tr>
               </thead>
               <tbody>
                 @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
@@ -1085,27 +1061,31 @@
                     <td class="text-center text-muted">
                       {{ row.ServiceDate | date:'dd MMM' }}
                     </td>
-                    <td class="text-end text-muted">
-                      INR {{ formatCurrency(row.CostPrice) }}
-                    </td>
-                    <td class="text-end">
-                      <input type="number" class="form-control form-control-sm text-end"
-                             style="width:90px;"
-                             [(ngModel)]="row.SellingPrice"
-                             (blur)="saveServiceRow(row)">
-                      <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                        × {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      <button mat-icon-button color="warn"
-                              style="width:24px; height:24px; line-height:24px;"
-                              (click)="removeServiceRow(row)"
-                              matTooltip="Remove">
-                        <mat-icon style="font-size:14px;">close</mat-icon>
-                      </button>
-                    </td>
-                  </tr>
+<td class="text-end text-muted">
+  INR {{ formatCurrency(row.CostPrice) }}
+</td>
+<td class="text-center">
+  <input type="number"
+         class="form-control form-control-sm text-center"
+         style="width:60px;"
+         [(ngModel)]="row.Qty"
+         (ngModelChange)="onTransportQtyChange(row)"
+         min="1">
+</td>
+<td class="text-end">
+  <div class="fw-semibold">INR {{ formatCurrency(row.CostPrice * row.Qty) }}</div>
+  <div class="mt-1">
+    <input type="number"
+           class="form-control form-control-sm text-end"
+           style="width:90px;"
+           placeholder="Selling"
+           [(ngModel)]="row.SellingPrice"
+           (blur)="saveServiceRow(row)">
+    <div class="text-muted" style="font-size:10px; margin-top:2px;">
+      Selling × {{ row.Qty }} = INR {{ formatCurrency(row.SellingPrice * row.Qty) }}
+    </div>
+  </div>
+</td>
                 }
               </tbody>
             </table>
