@@ -241,23 +241,23 @@ hotelCategoryList = signal<any[]>([]);
   globalVehicleTypeId = 0;
 
   // ── Night & Day slots ─────────────────────────────────────
-  nightSlots = computed<NightSlot[]>(() => {
-    const trip = this.tripInfo();
-    if (!trip) return [];
-    const slots: NightSlot[] = [];
-    const start = new Date(trip.StartDate);
-    for (let i = 0; i < trip.NoOfNights; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      slots.push({
-        NightNumber: i + 1,
-        StayDate: d,
-        DateLabel: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
-        DayLabel: d.toLocaleDateString('en-IN', { weekday: 'long' }),
-      });
-    }
-    return slots;
-  });
+nightSlots = computed<NightSlot[]>(() => {
+  const trip = this.tripInfo();
+  if (!trip) return [];
+  const slots: NightSlot[] = [];
+  const start = new Date(trip.StartDate);
+  for (let i = 0; i < trip.NoOfNights; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    slots.push({
+      NightNumber: i + 1,
+      StayDate: d,
+      DateLabel: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      DayLabel: d.toLocaleDateString('en-IN', { weekday: 'short' }),
+    });
+  }
+  return slots;
+});
 
   daySlots = computed<DaySlot[]>(() => {
     const trip = this.tripInfo();
@@ -2110,6 +2110,13 @@ clearTransportVehicle(row: QuoteServiceRow): void {
     this.markDirty();
     this.lookupVehicleRate(row);
   }
+
+  onTransportQtyChange(row: QuoteServiceRow): void {
+  // CostPrice is per-unit rate, SellingPrice tracks the override
+  // Just re-trigger saving; totals are computed in template
+  this.markDirty();
+  this.serviceRows.update(rows => [...rows]);
+}
 
   lookupVehicleRate(row: QuoteServiceRow): void {
       if (!row.IteneraryServiceId || !row.VehicleTypeId) {
