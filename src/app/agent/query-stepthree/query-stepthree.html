@@ -170,10 +170,10 @@
       </label>
     }
     <div class="px-3 py-2 border-top text-end">
-      <button class="btn btn-primary btn-sm px-3"
+      <!-- <button class="btn btn-primary btn-sm px-3"
               (click)="closeHotelNightDropdown(row)">
         Done
-      </button>
+      </button> -->
     </div>
   </div>
 }
@@ -1181,48 +1181,78 @@
       
 <!-- LEFT: Days Selector (col-2) -->
 <div class="col-sm-2">
-  <div class="border rounded p-3" style="background:#f8f9fa;">
-    <label class="form-label small text-muted mb-1">Days</label>
-    <div style="position:relative;">
-      <button type="button"
-              class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-              style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
-              (click)="toggleDaysDropdown()"
-              (blur)="onDaysDropdownBlur()">
-        <span style="font-size:13px;">
-          @if (selectedDaysDisplay) {
-            {{ selectedDaysDisplay }}
-          } @else {
-            <span class="text-muted">Select day(s)…</span>
-          }
-        </span>
-        <i class="bx bx-chevron-down" style="font-size:16px;"></i>
-      </button>
+  <label class="form-label small text-muted mb-1">Days</label>
 
-      @if (showDaysDropdown) {
-        <div class="border rounded bg-white shadow-sm"
-             style="position:absolute; top:100%; left:0; right:0;
-                    z-index:1000; max-height:250px; overflow-y:auto;">
-          @for (slot of daySlots(); track slot.DayNumber) {
-            <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
-                   style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
-              <input type="checkbox"
-                     [checked]="selectedDays.includes(slot.DayNumber)"
-                     (change)="onDayToggle(slot.DayNumber)"
-                     style="cursor:pointer;">
-              <span>Day {{ slot.DayNumber }} — {{ slot.DateLabel }}</span>
-            </label>
-          }
-        </div>
-      }
-    </div>
-    
-    @if (selectedDays.length > 0) {
-      <div class="text-muted" style="font-size:10px; margin-top:2px;">
-        {{ selectedDays.length }} day(s)
+  <div style="position:relative;">
+
+    <button type="button"
+            class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+            style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+            (click)="toggleDaysDropdown()">
+
+      <span style="font-size:13px;">
+        @if (selectedDaysDisplay) {
+          {{ selectedDaysDisplay }}
+        } @else {
+          <span class="text-muted">Select days</span>
+        }
+      </span>
+
+      <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+    </button>
+
+    @if (showDaysDropdown) {
+
+      <!-- Backdrop -->
+      <div style="position:fixed;
+                  top:0;
+                  left:0;
+                  right:0;
+                  bottom:0;
+                  z-index:999;"
+           (click)="closeDaysDropdown()">
+      </div>
+
+      <!-- Dropdown -->
+      <div class="border rounded bg-white shadow-sm"
+           style="position:absolute;
+                  top:100%;
+                  left:0;
+                  right:0;
+                  z-index:1000;
+                  max-height:200px;
+                  overflow-y:auto;">
+
+        @for (slot of daySlots(); track slot.DayNumber) {
+          <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                 style="font-size:13px;
+                        cursor:pointer;
+                        border-bottom:1px solid #f0f0f0;">
+
+            <input type="checkbox"
+                   [checked]="selectedDays.includes(slot.DayNumber)"
+                   (change)="onDayToggle(slot.DayNumber)"
+                   style="cursor:pointer;">
+
+            <span>
+              Day {{ slot.DayNumber }} — {{ slot.DateLabel }}
+            </span>
+
+          </label>
+        }
+
       </div>
     }
+
   </div>
+
+  @if (selectedDays.length > 0) {
+    <div class="text-muted"
+         style="font-size:11px; margin-top:2px;">
+      {{ selectedDays.length }} day(s) selected
+    </div>
+  }
+
 </div>
 
 <!-- MIDDLE: Service Details Form (col-3) -->
@@ -1402,106 +1432,181 @@
   </div>
 </div>
 
-      <!-- RIGHT: Transportation and Prices Table (col-7) -->
-      <div class="col-sm-7">
-        <div class="border rounded p-3">
-          <div class="fw-semibold small mb-3">Transportation and Prices</div>
+<!-- RIGHT: Transportation and Prices Table (col-7) -->
+<div class="col-sm-7">
+  <div class="border rounded p-3">
+    <div class="fw-semibold small mb-3">Transportation and Prices</div>
 
-          
-          
-          <div style="overflow-x:auto;">
-            <table class="table table-sm" style="font-size:12px; min-width:500px;">
-              <thead>
- <tr class="text-muted border-bottom">
-  <th>Transportation</th>
-  <th class="text-center">Date</th>
-  <th class="text-end">Rate</th>
-  <th class="text-center">Qty</th>
-  <th class="text-end">Total</th>
-  <th style="width:30px;"></th>
-</tr>
-              </thead>
-              <tbody>
-                @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
-                  <tr>
-                    <!-- i want here vehicle type selection opton here -->
-                    <!-- <td class="fw-semibold">{{ row.VehicleTypeName }}</td> -->
-                     <td>
-  <div style="position:relative; min-width:160px;">
-    <input type="text"
-           class="form-control form-control-sm"
-           placeholder="Type to search..."
-           [(ngModel)]="row.VehicleTypeSearch"
-           (ngModelChange)="onTransportVehicleSearch(row)"
-           (focus)="onTransportVehicleSearch(row)"
-           (blur)="onTransportVehicleBlur(row)"
-           autocomplete="off">
+    <div style="overflow-x:auto;">
+      <table class="table table-sm mb-0" style="font-size:12px; min-width:500px; border-collapse:collapse;">
+        <thead>
+          <tr class="text-muted border-bottom">
+            <th style="min-width:170px;">Type</th>
+            <th class="text-center" style="width:70px;">Qty.</th>
+            <th style="width:80px;">Date</th>
+            <th class="text-end" style="width:90px;">Rate</th>
+            <th style="width:110px;">Given</th>
+            <th style="width:28px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of getActiveTransportRows(); track $index) {
 
-@if (row.VehicleTypeSearch?.length ?? 0 > 0) {
-      <button type="button"
-              class="btn btn-sm p-0 border-0 bg-transparent"
-              style="position:absolute; top:50%; right:26px;
-                     transform:translateY(-50%); font-size:14px;
-                     line-height:1; z-index:10; color:#999;"
-              (mousedown)="clearTransportVehicle(row)">×</button>
-    }
+            <!-- ── Vehicle header row (shaded) ── -->
+            <tr style="background:#f8f9fa; border-top: 1px solid #dee2e6;">
 
-    <!-- Expand icon -->
-    <span style="position:absolute; top:50%; right:6px;
-                 transform:translateY(-50%); color:#999; font-size:14px; pointer-events:none;">
-      <i class="bx bx-expand-alt"></i>
-    </span>
+              <!-- Vehicle search -->
+              <td style="vertical-align:middle; padding:6px 8px;">
+                <div style="position:relative;">
+                  <input type="text"
+                         class="form-control form-control-sm"
+                         placeholder="Type to search..."
+                         [(ngModel)]="row.VehicleTypeSearch"
+                         (ngModelChange)="onTransportVehicleSearch(row)"
+                         (focus)="onTransportVehicleSearch(row)"
+                         (blur)="onTransportVehicleBlur(row)"
+                         autocomplete="off"
+                         style="padding-right:42px;">
 
-@if (row.ShowVehicleDropdown && (row.FilteredVehicles?.length ?? 0) > 0) {
-      <div class="border rounded bg-white shadow-sm"
-           style="position:absolute; top:100%; left:0; right:0;
-                  z-index:1000; max-height:180px; overflow-y:auto;">
-        @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
-          <div class="px-3 py-2"
-               style="font-size:13px; cursor:pointer;"
-               (mousedown)="selectTransportVehicle(row, vt)">
-            {{ vt.VehicleTypeName }}
-          </div>
-        }
-      </div>
-    }
-  </div>
-</td>
-                    <td class="text-center text-muted">
-                      {{ row.ServiceDate | date:'dd MMM' }}
-                    </td>
-<td class="text-end text-muted">
-  INR {{ formatCurrency(row.CostPrice) }}
-</td>
-<td class="text-center">
-  <input type="number"
-         class="form-control form-control-sm text-center"
-         style="width:60px;"
-         [(ngModel)]="row.Qty"
-         (ngModelChange)="onTransportQtyChange(row)"
-         min="1">
-</td>
-<td class="text-end">
-  <div class="fw-semibold">INR {{ formatCurrency(row.CostPrice * row.Qty) }}</div>
-  <div class="mt-1">
-    <input type="number"
-           class="form-control form-control-sm text-end"
-           style="width:90px;"
-           placeholder="Selling"
-           [(ngModel)]="row.SellingPrice"
-           (blur)="saveServiceRow(row)">
-    <div class="text-muted" style="font-size:10px; margin-top:2px;">
-      Selling × {{ row.Qty }} = INR {{ formatCurrency(row.SellingPrice * row.Qty) }}
+                  @if ((row.VehicleTypeSearch?.length ?? 0) > 0) {
+                    <button type="button"
+                            class="btn btn-sm p-0 border-0 bg-transparent"
+                            style="position:absolute; top:50%; right:24px;
+                                   transform:translateY(-50%); font-size:14px;
+                                   line-height:1; z-index:10; color:#999;"
+                            (mousedown)="clearTransportVehicle(row)">×</button>
+                  }
+                  <span style="position:absolute; top:50%; right:6px;
+                               transform:translateY(-50%); color:#999;
+                               font-size:13px; pointer-events:none;">
+                    <i class="bx bx-expand-alt"></i>
+                  </span>
+
+                  @if (row.ShowVehicleDropdown && (row.FilteredVehicles?.length ?? 0) > 0) {
+                    <div class="border rounded bg-white shadow-sm"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; max-height:180px; overflow-y:auto;">
+                      @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
+                        <div class="px-3 py-2"
+                             style="font-size:13px; cursor:pointer;"
+                             (mousedown)="selectTransportVehicle(row, vt)">
+                          {{ vt.VehicleTypeName }}
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </td>
+
+              <!-- Qty -->
+              <td class="text-center" style="vertical-align:middle; padding:6px 8px;">
+                <input type="number"
+                       class="form-control form-control-sm text-center"
+                       style="width:55px;"
+                       [(ngModel)]="row.Qty"
+                       (ngModelChange)="onTransportQtyChange(row)"
+                       min="1">
+              </td>
+
+              <!-- Date (first day if selected, else blank) -->
+              <td style="vertical-align:middle; padding:6px 8px; color:#888; font-size:12px;">
+                @if (selectedDays.length > 0) {
+                  {{ daySlots()[selectedDays[0] - 1]?.DateLabel }}
+                }
+              </td>
+
+              <!-- Rate (first day) -->
+              <td class="text-end" style="vertical-align:middle; padding:6px 8px; color:#888; font-size:12px;">
+                @if (row.CostPrice > 0) {
+                  <span class="text-muted" style="font-size:10px;">INR</span>
+                  {{ formatCurrency(row.CostPrice) }}
+                }
+              </td>
+
+              <!-- Given (first day inline input) -->
+              <td style="vertical-align:middle; padding:6px 8px;">
+                <input type="number"
+                       class="form-control form-control-sm text-end"
+                       style="width:90px;"
+                       placeholder="Given"
+                       [(ngModel)]="row.SellingPrice"
+                       (ngModelChange)="onTransportSellingChange(row)"
+                       (blur)="saveServiceRow(row)">
+                @if (row.SellingPrice > 0 && row.Qty > 1) {
+                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                    x {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
+                  </div>
+                }
+              </td>
+
+              <!-- Remove -->
+              <td style="vertical-align:middle; padding:6px 4px;">
+                <button mat-icon-button color="warn"
+                        style="width:22px; height:22px; line-height:22px;"
+                        (click)="removeServiceRow(row)"
+                        matTooltip="Remove">
+                  <mat-icon style="font-size:14px;">close</mat-icon>
+                </button>
+              </td>
+            </tr>
+
+            <!-- ── Per-day sub-rows (days 2..N, or all if no first-row date) ── -->
+            @for (dayNum of (selectedDays.length > 0 ? selectedDays : daySlots().map(d => d.DayNumber)); track dayNum; let di = $index) {
+              @if (di > 0) {
+                @let ds = daySlots()[dayNum - 1];
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                  <td style="padding:5px 8px;"></td>
+                  <td style="padding:5px 8px;"></td>
+
+                  <!-- Date -->
+                  <td style="padding:5px 8px; color:#888; font-size:12px;">
+                    {{ ds?.DateLabel }}
+                  </td>
+
+                  <!-- Rate -->
+                  <td class="text-end" style="padding:5px 8px; color:#888; font-size:12px;">
+                    @if (row.CostPrice > 0) {
+                      <span class="text-muted" style="font-size:10px;">INR</span>
+                      {{ formatCurrency(row.CostPrice) }}
+                    } @else { — }
+                  </td>
+
+                  <!-- Given per day (same selling price, shown as input) -->
+                  <td style="padding:5px 8px;">
+                    <input type="number"
+                           class="form-control form-control-sm text-end"
+                           style="width:90px;"
+                           placeholder="Given"
+                           [(ngModel)]="row.SellingPrice"
+                           (ngModelChange)="onTransportSellingChange(row)"
+                           (blur)="saveServiceRow(row)">
+                    @if (row.SellingPrice > 0 && row.Qty > 1) {
+                      <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                        x {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
+                      </div>
+                    }
+                  </td>
+
+                  <td style="padding:5px 8px;"></td>
+                </tr>
+              }
+            }
+
+            <!-- ── Day 1 sub-row: only shown when there are multiple days ── -->
+            <!-- (Day 1 is already shown in the header row above, so we skip di===0) -->
+
+          }
+        </tbody>
+      </table>
     </div>
   </div>
-</td>
-                }
-              </tbody>
-            </table>
-          </div>
 
-          <!-- Add buttons -->
-<div class="d-flex gap-2 mt-2">
+  
+
+    </div>
+<!-- Add buttons OUTSIDE the table border -->
+  <!-- Add buttons OUTSIDE the table border -->
+<!-- <div class="d-flex gap-2 mt-2">
   <button class="btn btn-outline-primary btn-sm"
           style="font-size:12px;"
           (click)="addTransportRowQuick()">
@@ -1512,21 +1617,34 @@
           (click)="addActivityRowQuick()">
     <i class="bx bx-ticket me-1"></i> Activity/Ticket
   </button>
-</div>
-        </div>
-      </div>
+</div> -->
 
+<!-- ── Transport Rows Table ── -->
+
+
+<!-- Totals -->
+<div class="d-flex justify-content-between align-items-center mt-3">
+  <div></div>
+  <div class="text-end">
+    <div class="text-muted small mb-1">
+      Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}
     </div>
+    <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+      Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+    </div>
+  </div>
+</div>
 
     <!-- Action Buttons -->
     <div class="d-flex justify-content-between align-items-center mt-3">
-      <div class="d-flex gap-2">
+      <!-- <div class="d-flex gap-2">
         <button class="btn btn-outline-primary btn-sm" style="font-size:12px;">
           <i class="bx bx-chevron-right me-1"></i> Next Day
         </button>
         <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;">
           <i class="bx bx-trash me-1"></i> Remove
         </button>
+      </div> -->
       </div>
       <div class="text-end">
         <div class="text-muted small mb-1">

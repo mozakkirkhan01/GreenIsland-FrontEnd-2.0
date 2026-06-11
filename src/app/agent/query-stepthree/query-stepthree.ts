@@ -146,6 +146,7 @@ export interface QuoteServiceRow {
    FilteredVehicles?: any[]; // Replace 'any' with your Vehicle type
   VehicleTypeSearch?: string;
   ShowVehicleDropdown?: boolean;
+    TotalPrice: number;
 }
 
 @Component({
@@ -284,11 +285,30 @@ nightSlots = computed<NightSlot[]>(() => {
       .reduce((s, r) => s + (r.SellingPrice || 0), 0)
   );
 
-  transportTotal = computed(() =>
-    this.serviceRows()
-      .filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId())
-      .reduce((s, r) => s + (r.SellingPrice || 0), 0)
-  );
+
+transportTotal = computed(() => {
+  let total = 0;
+ 
+  this.serviceRows()
+    .filter(r => 
+      r.ServiceType === 1 && 
+      r.QuotePackageTypeId === this.activePackageTypeId()
+    )
+    .forEach(row => {
+      // ✅ Apply day multiplier
+      let multiplier = 1;
+      
+      if (this.selectedDays.length > 0) {
+        // If days are filtered, only count if this row's day is selected
+        multiplier = this.selectedDays.includes(row.DayNumber) ? 1 : 0;
+      }
+ 
+      // Add to total: SellingPrice × Qty × DayMultiplier
+      total += (row.SellingPrice || 0) * (row.Qty || 1) * multiplier;
+    });
+ 
+  return total;
+});
 
   activityTotal = computed(() =>
     this.serviceRows()
@@ -558,28 +578,34 @@ autoCreateDefaultPackageType(): void {
     };
   }
 
-  private mapServiceRow(s: any): QuoteServiceRow {
-    return {
-      QuoteServiceId: s.QuoteServiceId, QuoteId: s.QuoteId,
-      QuotePackageTypeId: s.QuotePackageTypeId,
-      DayNumber: s.DayNumber, ServiceDate: new Date(s.ServiceDate),
-      ServiceType: s.ServiceType,
-      IteneraryServiceId: s.IteneraryServiceId ?? 0,
-      IteneraryServiceName: s.IteneraryServiceName ?? '',
-      VehicleTypeId: s.VehicleTypeId ?? 0,
-      VehicleTypeName: s.VehicleTypeName ?? '',
-      SameCabForAll: s.SameCabForAll ?? false,
-      ActivityServiceId: s.ActivityServiceId ?? 0,
-      ActivityServiceName: s.ActivityServiceName ?? '',
-      Qty: s.Qty ?? 1, CostPrice: s.CostPrice ?? 0,
-      SellingPrice: s.SellingPrice ?? 0, Notes: s.Notes ?? '',
-      IsSaving: false,    LocationId: s.LocationId ?? 0,
-    LocationName: s.LocationName ?? '',VehicleTypeSearch: s.VehicleTypeName ?? '',
+private mapServiceRow(s: any): QuoteServiceRow {
+  return {
+    QuoteServiceId: s.QuoteServiceId, 
+    QuoteId: s.QuoteId,
+    QuotePackageTypeId: s.QuotePackageTypeId,
+    DayNumber: s.DayNumber, 
+    ServiceDate: new Date(s.ServiceDate),
+    ServiceType: s.ServiceType,
+    IteneraryServiceId: s.IteneraryServiceId ?? 0,
+    IteneraryServiceName: s.IteneraryServiceName ?? '',
+    VehicleTypeId: s.VehicleTypeId ?? 0,
+    VehicleTypeName: s.VehicleTypeName ?? '',
+    SameCabForAll: s.SameCabForAll ?? false,
+    ActivityServiceId: s.ActivityServiceId ?? 0,
+    ActivityServiceName: s.ActivityServiceName ?? '',
+    Qty: s.Qty ?? 1, 
+    CostPrice: s.CostPrice ?? 0,
+    SellingPrice: s.SellingPrice ?? 0, 
+    Notes: s.Notes ?? '',
+    IsSaving: false,    
+    LocationId: s.LocationId ?? 0,
+    LocationName: s.LocationName ?? '',
+    VehicleTypeSearch: s.VehicleTypeName ?? '',
     FilteredVehicles: [],
     ShowVehicleDropdown: false,
-    
-    };
-  }
+    TotalPrice: 0,  // ← ADD THIS
+  };
+}
 
   // ── Package Types Modal ───────────────────────────────────
   openPkgModal(): void {
@@ -1929,18 +1955,18 @@ getSelectedCabTypesDisplay(): string {
 }
 
 
-getActiveTransportRows(): QuoteServiceRow[] {
-  if (this.selectedDays.length === 0) {
-    return this.serviceRows().filter(
-      r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
-    );
-  }
-  return this.serviceRows().filter(
-    r => r.ServiceType === 1
-      && r.QuotePackageTypeId === this.activePackageTypeId()
-      && this.selectedDays.includes(r.DayNumber)
-  );
-}
+// getActiveTransportRows(): QuoteServiceRow[] {
+//   if (this.selectedDays.length === 0) {
+//     return this.serviceRows().filter(
+//       r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
+//     );
+//   }
+//   return this.serviceRows().filter(
+//     r => r.ServiceType === 1
+//       && r.QuotePackageTypeId === this.activePackageTypeId()
+//       && this.selectedDays.includes(r.DayNumber)
+//   );
+// }
 
 toggleDay(dayNumber: number): void {
   const idx = this.selectedDays.indexOf(dayNumber);
@@ -1965,14 +1991,14 @@ allDaysSelected(): boolean {
   return slots.length > 0 && this.selectedDays.length === slots.length;
 }
 
-addTransportRow(): void {
-  if (this.selectedDays.length === 0) {
-    this.toastr.error('Select at least one day');
-    return;
-  }
-  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
-  this.addTransportRowForSlot(daySlot!);
-}
+// addTransportRow(): void {
+//   if (this.selectedDays.length === 0) {
+//     this.toastr.error('Select at least one day');
+//     return;
+//   }
+//   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+//   this.addTransportRowForSlot(daySlot!);
+// }
 
   // ── Service rows ──────────────────────────────────────────
   getServiceRowsForDay(dayNumber: number): QuoteServiceRow[] {
@@ -1981,28 +2007,42 @@ addTransportRow(): void {
         && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
-  addTransportRowQuick(): void {
-  if (this.selectedDays.length === 0) {
-    this.toastr.error('Select at least one day');
-    return;
-  }
-  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
-  if (daySlot) {
-    this.addTransportRow();
-  }
+//   addTransportRowQuick(): void {
+//   if (this.selectedDays.length === 0) {
+//     this.toastr.error('Select at least one day');
+//     return;
+//   }
+//   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+//   if (daySlot) {
+//     this.addTransportRow();
+//   }
+// }
+
+// addActivityRowQuick(): void {
+//   if (this.selectedDays.length === 0) {
+//     this.toastr.error('Select at least one day');
+//     return;
+//   }
+//   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+//   if (daySlot) {
+//     this.addActivityRow(daySlot);
+//   }
+// }
+// For the col-sm-7 day summary (keeps day filter)
+getActiveTransportRows(): QuoteServiceRow[] {
+  return this.serviceRows().filter(
+    r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
+  );
 }
 
-addActivityRowQuick(): void {
-  if (this.selectedDays.length === 0) {
-    this.toastr.error('Select at least one day');
-    return;
-  }
-  const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
-  if (daySlot) {
-    this.addActivityRow(daySlot);
-  }
+// For the col-sm-7 day summary table only
+getTransportRowsForDay(dayNumber: number): QuoteServiceRow[] {
+  return this.serviceRows().filter(
+    r => r.ServiceType === 1
+      && r.DayNumber === dayNumber
+      && r.QuotePackageTypeId === this.activePackageTypeId()
+  );
 }
-
 
 showDaysDropdown = false;
 selectedDaysDisplay = '';
@@ -2016,6 +2056,7 @@ onDayToggle(dayNumber: number): void {
     this.selectedDays.sort((a, b) => a - b);
   }
   this.updateDaysDisplay();
+  this.serviceRows.update(rows => [...rows]); // ← trigger UI refresh
 }
 
 updateDaysDisplay(): void {
@@ -2169,18 +2210,15 @@ onTransportLocationSearch(): void {
 
   this.showLocationDropdown = true;
 }
-
 selectTransportLocation(loc: any): void {
-
   this.currentTransportRow.LocationId = loc.LocationId;
   this.currentTransportRow.LocationName = loc.LocationName;
-
   this.locationSearchText = loc.LocationName;
-
   this.showLocationDropdown = false;
-
-  this.filteredServices = this.itineraryList()
-    .filter(x => x.LocationId === loc.LocationId);
+  
+  // ✅ IMPORTANT: Load services for THIS location from backend
+  this.loadServicesByLocation(loc.LocationId);
+  this.serviceRows.update(rows => [...rows]); // ← refresh table
 }
 
 onTransportLocationBlur(): void {
@@ -2232,11 +2270,10 @@ clearTransportLocation(): void {
 selectTransportService(service: any): void {
   this.currentTransportRow.IteneraryServiceId = service.IteneraryServiceId;
   this.currentTransportRow.IteneraryServiceName = service.IteneraryServiceName;
-    this.serviceSearchText = service.IteneraryServiceName;
-    this.showServiceDropdown = false;
-
-  // Load vehicles that have rates configured for this service
+  this.serviceSearchText = service.IteneraryServiceName;
+  this.showServiceDropdown = false;
   this.loadVehiclesForService(service.IteneraryServiceId);
+  this.serviceRows.update(rows => [...rows]); // ← refresh table
 }
 // DELETE THIS ENTIRE METHOD
 loadVehiclesForService(iteneraryServiceId: number): void {
@@ -2272,41 +2309,75 @@ onTransportServiceBlur(): void {
   }, 150);
 }
 
+
 loadLocationsByDestination(): void {
   const trip = this.tripInfo();
   if (!trip || !trip.DestinationId) {
     return;
   }
-  
-  const destinationId = trip.DestinationId;
-  
-  this.service.getLocationsByDestination(destinationId).subscribe({
-    next: (response: any) => {
-      this.availableLocations = response || [];
-      this.onTransportLocationSearch();
-    },
-    error: (err) => {
-      console.error('Error loading locations:', err);
-      this.toastr.error('Failed to load locations');
-    }
+ 
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
   });
+ 
+  this.service.getLocationsByDestination(enc({ DestinationId: trip.DestinationId }))
+    .subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.availableLocations = r.LocationList ?? [];
+        }
+      },
+      error: (err) => {
+        console.error('Error loading locations:', err);
+        this.toastr.error('Failed to load locations');
+      }
+    });
 }
 
+
+
 loadServicesByLocation(locationId: number): void {
-  this.service.getItineraryServicesByLocation(locationId).subscribe({
-    next: (response: any) => {
-      this.availableServices = response || [];
-      this.onTransportServiceSearch();
-    },
-    error: (err) => {
-      console.error('Error loading services:', err);
-      this.toastr.error('Failed to load services');
-    }
+  if (!locationId) {
+    this.filteredServices = [];
+    return;
+  }
+ 
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
   });
+ 
+  this.service.getItineraryServicesByLocation(enc({ LocationId: locationId }))
+    .subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          // Filter to this location's services only
+          this.filteredServices = r.ItineraryServiceList ?? [];
+          this.showServiceDropdown = false;
+        } else {
+          this.toastr.warning('No services available for this location');
+          this.filteredServices = [];
+        }
+      },
+      error: () => {
+        this.toastr.error('Failed to load services for this location');
+        this.filteredServices = [];
+      }
+    });
 }
+
 
 addTransportRowForSlot(slot: DaySlot): void {
   this.markDirty();
+  
+  // ✅ If "Same Cab For All" is enabled, pre-select the first cab
+  let prefilledVehicleId = 0;
+  let prefilledVehicleName = '';
+  
+  if (this.sameCabForAll && this.selectedCabTypes.length > 0) {
+    prefilledVehicleId = this.selectedCabTypes[0].VehicleTypeId;
+    prefilledVehicleName = this.selectedCabTypes[0].VehicleTypeName;
+  }
+ 
   const newRow: QuoteServiceRow = {
     QuoteServiceId: 0,
     QuoteId: this.QuoteId,
@@ -2316,8 +2387,8 @@ addTransportRowForSlot(slot: DaySlot): void {
     ServiceType: 1,
     IteneraryServiceId: this.currentTransportRow.IteneraryServiceId ?? 0,
     IteneraryServiceName: this.currentTransportRow.IteneraryServiceName ?? '',
-    VehicleTypeId: 0,
-    VehicleTypeName: '',
+    VehicleTypeId: prefilledVehicleId,  // ✅ Pre-filled if sameCabForAll
+    VehicleTypeName: prefilledVehicleName,
     SameCabForAll: this.sameCabForAll,
     ActivityServiceId: 0,
     ActivityServiceName: '',
@@ -2328,27 +2399,46 @@ addTransportRowForSlot(slot: DaySlot): void {
     IsSaving: false,
     LocationId: this.currentTransportRow.LocationId ?? 0,
     LocationName: this.currentTransportRow.LocationName ?? '',
-    VehicleTypeSearch: '',
+    VehicleTypeSearch: prefilledVehicleName,  // ✅ Show in input
     FilteredVehicles: [],
     ShowVehicleDropdown: false,
+    TotalPrice: 0,
   };
+  
   this.serviceRows.update(rows => [...rows, newRow]);
+  
+  // ✅ If vehicle was auto-selected, lookup rate immediately
+  if (prefilledVehicleId > 0 && newRow.IteneraryServiceId > 0) {
+    setTimeout(() => this.lookupVehicleRate(newRow), 100);
+  }
 }
 
   // vehicle row
   VehicleTypeSearch?: string;
 FilteredVehicles?: any[];
 ShowVehicleDropdown?: boolean;
+
 onTransportVehicleSearch(row: QuoteServiceRow): void {
   const query = (row.VehicleTypeSearch ?? '').toLowerCase().trim();
-  const source = this.sameCabForAll && this.selectedCabTypes.length > 0
-    ? this.selectedCabTypes
-    : this.vehicleTypeList();  // ← this is all you need
-
+  
+  // ✅ KEY LOGIC: If "Same Cab For All" is enabled, ONLY show selected cabs
+  let source: any[] = [];
+  
+  if (this.sameCabForAll && this.selectedCabTypes.length > 0) {
+    // ✅ Restrict to selected cab types ONLY
+    source = this.selectedCabTypes;
+  } else {
+    // Show all vehicles
+    source = this.vehicleTypeList();
+  }
+ 
+  // Filter by search query
   row.FilteredVehicles = !query
     ? source.slice(0, 6)
-    : source.filter(v => v.VehicleTypeName.toLowerCase().includes(query)).slice(0, 6);
-
+    : source.filter(v => 
+        v.VehicleTypeName.toLowerCase().includes(query)
+      ).slice(0, 6);
+ 
   row.ShowVehicleDropdown = true;
   this.serviceRows.update(rows => [...rows]);
 }
@@ -2360,18 +2450,53 @@ selectTransportVehicle(row: QuoteServiceRow, vt: any): void {
   row.ShowVehicleDropdown = false;
   row.FilteredVehicles = [];
 
-  // If rate is already on the vehicle object from the service lookup, use it directly
+  // If this is a virtual row (not yet in serviceRows), add it now
+  const exists = this.serviceRows().find(
+    r => r.ServiceType === 1
+      && r.DayNumber === row.DayNumber
+      && r.QuotePackageTypeId === row.QuotePackageTypeId
+  );
+  if (!exists) {
+    this.serviceRows.update(rows => [...rows, row]);
+  }
+
   if (vt.RateAmount) {
     row.CostPrice = vt.RateAmount;
     row.SellingPrice = vt.RateAmount;
-    this.serviceRows.update(rows => [...rows]);
+    this.calculateServiceTotal(row);
   } else {
-    // Otherwise fetch it
     this.lookupVehicleRate(row);
   }
 
   this.serviceRows.update(rows => [...rows]);
   this.markDirty();
+}
+onTransportSellingChange(row: QuoteServiceRow): void {
+  const days = this.selectedDays.length > 0
+    ? this.selectedDays.length
+    : this.daySlots().length;
+  row.TotalPrice = (row.SellingPrice ?? 0) * (row.Qty ?? 1) * days;
+  this.serviceRows.update(rows => [...rows]);
+  this.markDirty();
+}
+closeDaysDropdown(): void {
+  this.showDaysDropdown = false;
+}
+
+calculateServiceTotal(row: QuoteServiceRow): void {
+  // Count selected days (if day filtering is active)
+  const dayMultiplier = this.selectedDays.length > 0 
+    ? (this.selectedDays.includes(row.DayNumber) ? 1 : 0)
+    : 1;  // If no day filter, apply to all days
+ 
+  // Formula: (BaseRate × Qty × Days)
+  const costTotal = (row.CostPrice || 0) * (row.Qty || 1) * dayMultiplier;
+  const sellingTotal = (row.SellingPrice || 0) * (row.Qty || 1) * dayMultiplier;
+ 
+  // Store calculated values (for display in template)
+  row.TotalPrice = sellingTotal;
+ 
+  this.serviceRows.update(rows => [...rows]);
 }
 
 onTransportVehicleBlur(row: QuoteServiceRow): void {
@@ -2394,22 +2519,35 @@ clearTransportVehicle(row: QuoteServiceRow): void {
   this.markDirty();
 }
 
-  addActivityRow(slot: DaySlot): void {
-    this.markDirty();
-    this.serviceRows.update(rows => [...rows, {
-      QuoteServiceId: 0, QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId(),
-      DayNumber: slot.DayNumber, ServiceDate: slot.ServiceDate,
-      ServiceType: 2,
-      IteneraryServiceId: 0, IteneraryServiceName: '',
-      VehicleTypeId: 0, VehicleTypeName: '', SameCabForAll: false,
-      ActivityServiceId: 0, ActivityServiceName: '',
-      Qty: 1, CostPrice: 0, SellingPrice: 0, Notes: '', IsSaving: false,
+addActivityRow(slot: DaySlot): void {
+  this.markDirty();
+  this.serviceRows.update(rows => [...rows, {
+    QuoteServiceId: 0, 
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: this.activePackageTypeId(),
+    DayNumber: slot.DayNumber, 
+    ServiceDate: slot.ServiceDate,
+    ServiceType: 2,
+    IteneraryServiceId: 0, 
+    IteneraryServiceName: '',
+    VehicleTypeId: 0, 
+    VehicleTypeName: '', 
+    SameCabForAll: false,
+    ActivityServiceId: 0, 
+    ActivityServiceName: '',
+    Qty: 1, 
+    CostPrice: 0, 
+    SellingPrice: 0, 
+    Notes: '', 
+    IsSaving: false,
     LocationId: 0,
     LocationName: '',
-
-    }]);
-  }
+    FilteredVehicles: [],
+    VehicleTypeSearch: '',
+    ShowVehicleDropdown: false,
+    TotalPrice: 0,  // ← ADD THIS
+  }]);
+}
 
   onItinerarySelected(row: QuoteServiceRow): void {
     this.markDirty();
@@ -2427,37 +2565,56 @@ clearTransportVehicle(row: QuoteServiceRow): void {
     this.lookupVehicleRate(row);
   }
 
-  onTransportQtyChange(row: QuoteServiceRow): void {
-  // CostPrice is per-unit rate, SellingPrice tracks the override
-  // Just re-trigger saving; totals are computed in template
+onTransportQtyChange(row: QuoteServiceRow): void {
+  // ✅ Recalculate total when qty changes
+  this.calculateServiceTotal(row);
   this.markDirty();
   this.serviceRows.update(rows => [...rows]);
 }
 
-  lookupVehicleRate(row: QuoteServiceRow): void {
-      if (!row.IteneraryServiceId || !row.VehicleTypeId) {
-    // Don't silently fail — user needs to know
+
+lookupVehicleRate(row: QuoteServiceRow): void {
+  if (!row.IteneraryServiceId || !row.VehicleTypeId) {
     if (row.VehicleTypeId > 0 && !row.IteneraryServiceId) {
-      this.toastr.warning('Select a service location and service type first');
+      this.toastr.warning('Select service location and service first');
     }
     return;
   }
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
-    this.service.getVehicleRateByDate(enc({
-      IteneraryServiceId: row.IteneraryServiceId,
-      VehicleTypeId: row.VehicleTypeId,
-      ServiceDate: row.ServiceDate,
-    })).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
-          row.CostPrice = r.Rate.RateAmount ?? 0;
-          row.SellingPrice = row.CostPrice;
-        }
+ 
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+ 
+  this.service.getVehicleRateByDate(enc({
+    IteneraryServiceId: row.IteneraryServiceId,
+    VehicleTypeId: row.VehicleTypeId,
+    ServiceDate: row.ServiceDate,
+  })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage && r.Rate) {
+        // ✅ Get base rate per unit
+        const baseRate = r.Rate.RateAmount ?? 0;
+        row.CostPrice = baseRate;
+        row.SellingPrice = baseRate;
+ 
+        // ✅ Calculate total with day multiplier
+        this.calculateServiceTotal(row);
+ 
+        this.serviceRows.update(rows => [...rows]);
+        this.markDirty();
+      } else {
+        row.CostPrice = 0;
+        row.SellingPrice = 0;
+        this.toastr.warning(
+          `No rate found for ${row.VehicleTypeName} on this service`
+        );
       }
-    });
-  }
+    },
+    error: () => {
+      this.toastr.error('Error loading vehicle rate');
+    }
+  });
+}
 
   onActivitySelected(row: QuoteServiceRow): void {
     this.markDirty();
