@@ -409,9 +409,22 @@ nightSlots = computed<NightSlot[]>(() => {
       // This ensures we get the correct data regardless of what QuoteDetail returns
       this.fetchPackageTypesSeparately();
       // ========== END PACKAGE TYPES HANDLING ==========
-        if (r.Hotels?.length > 0) {
-          this.hotelRows.set(r.Hotels.map((h: any) => this.mapHotelRow(h)));
-        }
+
+  // First hotel is main, rest are similar
+ if (r.Hotels?.length > 0) {
+  const allHotels = r.Hotels.map((h: any) => this.mapHotelRow(h));
+  
+  if (allHotels.length > 0) {
+    // Set first hotel as main
+    this.hotelRows.set([allHotels[0]]);
+    
+    // Set remaining hotels as similar
+    if (allHotels.length > 1) {
+      this.similarHotels.set(allHotels.slice(1));
+    }
+  }
+}
+
         if (r.Services?.length > 0) {
           this.serviceRows.set(r.Services.map((s: any) => this.mapServiceRow(s)));
         }
@@ -642,11 +655,12 @@ autoCreateDefaultPackageType(): void {
     );
   }
 
-  getActiveHotelRows(): QuoteHotelRow[] {
-    return this.hotelRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId()
-    );
-  }
+getActiveHotelRows(): QuoteHotelRow[] {
+  // Return ONLY main hotels (not similar hotels)
+  return this.hotelRows().filter(
+    r => r.QuotePackageTypeId === this.activePackageTypeId()
+  );
+}
 
   addHotelRow(slot?: NightSlot): void {
     const selectedSlot = slot ?? this.nightSlots()[0];
@@ -968,6 +982,308 @@ saveNewHotel(): void {
     }
   });
 }
+
+
+
+// Similar Hotels Modal
+showSimilarHotelsModal = false;
+similarHotelSourceRow: QuoteHotelRow | null = null;
+similarHotelRows: QuoteHotelRow[] = [];
+// Add this with your other signals
+similarHotels = signal<QuoteHotelRow[]>([]);
+
+
+getNextUnselectedNight(): number | null {
+  const allNights = this.nightSlots().map(n => n.NightNumber);
+  const usedNights = new Set(
+    this.getActiveHotelRows().flatMap(r => r.NightNumbers)
+  );
+  return allNights.find(n => !usedNights.has(n)) ?? null;
+}
+
+addHotelRowForNextNight(): void {
+  const nextNight = this.getNextUnselectedNight();
+  if (nextNight === null) return;
+  const slot = this.nightSlots().find(n => n.NightNumber === nextNight);
+  if (slot) this.addHotelRow(slot);
+}
+
+openSimilarHotelsModal(): void {
+  const mainHotels = this.getActiveHotelRows();
+  if (mainHotels.length === 0) {
+    this.toastr.warning('No main hotels found. Please add a hotel first.');
+    return;
+  }
+  
+  // First hotel is the source/reference
+  this.similarHotelSourceRow = mainHotels[0];
+  
+  // Load existing similar hotels
+  const existingSimilar = this.similarHotels();
+  
+  if (existingSimilar.length === 0) {
+    // Create one empty row as template
+    this.similarHotelRows = [{
+      ...this.createEmptyHotelRow(),
+      MealPlan: mainHotels[0].MealPlan,
+      NightNumbers: [...mainHotels[0].NightNumbers],
+      SelectedNightsDisplay: mainHotels[0].SelectedNightsDisplay,
+      NoOfRooms: mainHotels[0].NoOfRooms,
+      PaxPerRoom: mainHotels[0].PaxPerRoom,
+      AWEB: mainHotels[0].AWEB,
+      CWEB: mainHotels[0].CWEB,
+      CNB: mainHotels[0].CNB,
+    }];
+  } else {
+    // Load existing similar hotels
+    this.similarHotelRows = existingSimilar.map(row => ({
+      ...this.createEmptyHotelRow(),
+      QuoteHotelId: row.QuoteHotelId,
+      HotelId: row.HotelId,
+      HotelName: row.HotelName,
+      HotelSearch: row.HotelName,
+      LocationName: row.LocationName,
+      HotelCategoryName: row.HotelCategoryName,
+      RoomTypeId: row.RoomTypeId,
+      RoomTypeName: row.RoomTypeName,
+      MealPlan: row.MealPlan,
+      NightNumbers: [...row.NightNumbers],
+      NightNumber: row.NightNumber,
+      StayDate: row.StayDate,
+      SelectedNightsDisplay: row.SelectedNightsDisplay,
+      NoOfRooms: row.NoOfRooms,
+      PaxPerRoom: row.PaxPerRoom,
+      AWEB: row.AWEB,
+      CWEB: row.CWEB,
+      CNB: row.CNB,
+      BaseRate: row.BaseRate,
+      AwebRate: row.AwebRate,
+      CwebRate: row.CwebRate,
+      CnbRate: row.CnbRate,
+      CostPrice: row.CostPrice,
+      SellingPrice: row.SellingPrice,
+      TotalPrice: row.TotalPrice,
+      RoomTypes: [...row.RoomTypes],
+      IsSaving: false,
+      SpecialInclusions: [],
+      FilteredHotels: [],
+      ShowDropdown: false,
+      ShowNightDropdown: false,
+    }));
+  }
+  
+  this.showSimilarHotelsModal = true;
+}
+
+closeSimilarHotelsModal(): void {
+  this.showSimilarHotelsModal = false;
+  this.similarHotelSourceRow = null;
+  this.similarHotelRows = [];
+}
+
+private createEmptyHotelRow(): QuoteHotelRow {
+  const slot = this.nightSlots()[0];
+  return {
+    QuoteHotelId: 0, QuoteId: this.QuoteId,
+    QuotePackageTypeId: this.activePackageTypeId(),
+    NightNumber: slot?.NightNumber ?? 1,
+    NightNumbers: [slot?.NightNumber ?? 1],
+    StayDate: slot?.StayDate ?? new Date(),
+    HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
+    RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
+    NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
+    CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
+    TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],
+    HotelSearch: '', FilteredHotels: [], ShowDropdown: false,
+    ShowNightDropdown: false, SelectedNightsDisplay: '',
+  };
+}
+
+addSimilarHotelRow(): void {
+  const src = this.similarHotelSourceRow!;
+  this.similarHotelRows.push({
+    ...this.createEmptyHotelRow(),
+    MealPlan: src.MealPlan,
+    NightNumbers: [...src.NightNumbers],
+    NightNumber: src.NightNumber,
+    StayDate: src.StayDate,
+    SelectedNightsDisplay: src.SelectedNightsDisplay,
+    NoOfRooms: src.NoOfRooms,
+    PaxPerRoom: src.PaxPerRoom,
+    AWEB: src.AWEB, CWEB: src.CWEB, CNB: src.CNB,
+  });
+}
+
+// Remove from modal by index
+removeSimilarHotelRow(i: number): void {
+  this.similarHotelRows.splice(i, 1);
+  this.similarHotelRows = [...this.similarHotelRows];
+  this.markDirty();
+}
+
+// Remove from summary list by row object
+removeSimilarHotel(row: QuoteHotelRow): void {
+  if (confirm(`Remove ${row.HotelName} from similar hotels?`)) {
+    if (row.QuoteHotelId > 0) {
+      const enc = (d: object): RequestModel => ({
+        request: this.local.encrypt(JSON.stringify(d)).toString()
+      });
+      this.service.deleteQuoteHotel(enc({ QuoteHotelId: row.QuoteHotelId }))
+        .subscribe({
+          next: () => {
+            this.similarHotels.update(hotels => hotels.filter(h => h.QuoteHotelId !== row.QuoteHotelId));
+            this.toastr.success('Similar hotel removed');
+            this.markDirty();
+          },
+          error: () => this.toastr.error('Error removing hotel')
+        });
+    } else {
+      this.similarHotels.update(hotels => hotels.filter(h => h !== row));
+      this.markDirty();
+    }
+  }
+}
+
+onSimilarHotelSearch(row: QuoteHotelRow): void {
+  const query = (row.HotelSearch ?? '').toLowerCase().trim();
+  row.FilteredHotels = !query
+    ? this.hotelList().slice(0, 4)
+    : this.hotelList()
+        .filter(h => h.HotelName.toLowerCase().includes(query) ||
+                     h.LocationName?.toLowerCase().includes(query))
+        .slice(0, 4);
+  row.ShowDropdown = true;
+  this.similarHotelRows = [...this.similarHotelRows];
+}
+
+selectSimilarHotel(row: QuoteHotelRow, hotel: any): void {
+
+  row.HotelId = hotel.HotelId;
+  row.HotelName = hotel.HotelName;
+  row.HotelSearch = hotel.HotelName;
+  row.LocationName = hotel.LocationName;
+  row.HotelCategoryName = hotel.HotelCategoryName;
+
+  row.ShowDropdown = false;
+  row.FilteredHotels = [];
+
+  // Force UI refresh
+  this.similarHotelRows = [...this.similarHotelRows];
+
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  this.service.getRoomTypeList(enc({ HotelId: hotel.HotelId }))
+    .subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+
+          row.RoomTypes = r.RoomTypeList ?? [];
+          row.RoomTypeId = row.RoomTypes[0]?.RoomTypeId ?? 0;
+
+          // Force refresh again
+          this.similarHotelRows = [...this.similarHotelRows];
+
+          if (row.RoomTypeId > 0) {
+            this.lookupHotelRate(row);
+          }
+        }
+      }
+    });
+}
+
+onSimilarHotelBlur(row: QuoteHotelRow): void {
+  setTimeout(() => {
+    row.ShowDropdown = false;
+    if (!row.HotelId) row.HotelSearch = '';
+  }, 200);
+}
+
+clearSimilarHotel(row: QuoteHotelRow): void {
+  row.HotelSearch = ''; row.HotelId = 0; row.HotelName = '';
+  row.RoomTypes = []; row.RoomTypeId = 0;
+  row.BaseRate = 0; row.FilteredHotels = []; row.ShowDropdown = false;
+  this.similarHotelRows = [...this.similarHotelRows];
+}
+
+saveSimilarHotels(): void {
+  // Filter out rows that have valid hotel and room type selected
+  const valid = this.similarHotelRows.filter(r => r.HotelId > 0 && r.RoomTypeId > 0);
+  
+  if (valid.length === 0) { 
+    this.toastr.error('Please add at least one valid hotel with room type selected'); 
+    return; 
+  }
+  
+  // Save each similar hotel to database and collect them
+  const savedSimilarHotels: QuoteHotelRow[] = [];
+  
+  valid.forEach((modalRow) => {
+    if (modalRow.QuoteHotelId > 0) {
+      // Update existing similar hotel
+      this.saveHotelRow(modalRow);
+      savedSimilarHotels.push(modalRow);
+    } else {
+      // Create new similar hotel
+      const newRow: QuoteHotelRow = {
+        ...this.createEmptyHotelRow(),
+        QuoteHotelId: 0,
+        QuoteId: this.QuoteId,
+        QuotePackageTypeId: this.activePackageTypeId(),
+        HotelId: modalRow.HotelId,
+        HotelName: modalRow.HotelName,
+        LocationName: modalRow.LocationName,
+        HotelCategoryName: modalRow.HotelCategoryName,
+        RoomTypeId: modalRow.RoomTypeId,
+        RoomTypeName: modalRow.RoomTypeName,
+        MealPlan: modalRow.MealPlan,
+        NightNumbers: [...modalRow.NightNumbers],
+        NightNumber: modalRow.NightNumbers[0],
+        StayDate: this.nightSlots()[modalRow.NightNumbers[0] - 1]?.StayDate || new Date(),
+        SelectedNightsDisplay: modalRow.SelectedNightsDisplay,
+        NoOfRooms: modalRow.NoOfRooms,
+        PaxPerRoom: modalRow.PaxPerRoom,
+        AWEB: modalRow.AWEB,
+        CWEB: modalRow.CWEB,
+        CNB: modalRow.CNB,
+        BaseRate: modalRow.BaseRate,
+        AwebRate: modalRow.AwebRate,
+        CwebRate: modalRow.CwebRate,
+        CnbRate: modalRow.CnbRate,
+        CostPrice: modalRow.CostPrice,
+        SellingPrice: modalRow.SellingPrice,
+        TotalPrice: modalRow.TotalPrice,
+        RoomTypes: [...modalRow.RoomTypes],
+        IsSaving: false,
+        SpecialInclusions: [],
+        FilteredHotels: [],
+        ShowDropdown: false,
+        ShowNightDropdown: false,
+        HotelSearch: modalRow.HotelName,
+      };
+      this.saveHotelRow(newRow);
+      savedSimilarHotels.push(newRow);
+    }
+  });
+  
+  // Update the similar hotels signal
+  this.similarHotels.set(savedSimilarHotels);
+  
+  this.markDirty();
+  this.closeSimilarHotelsModal();
+  this.toastr.success(`${savedSimilarHotels.length} similar hotel(s) saved successfully`);
+}
+
+hasSelectedNight(): boolean {
+  return this.getActiveHotelRows()
+    .some(r => r.NightNumbers && r.NightNumbers.length > 0);
+}
+getSimilarHotelRows(): QuoteHotelRow[] {
+  // Simply return the similar hotels signal
+  return this.similarHotels();
+}
+
 
 
 // Add these with your other properties

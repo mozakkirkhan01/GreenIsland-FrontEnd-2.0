@@ -420,16 +420,425 @@
             </div>
           </div>
           }
+<div class="d-flex gap-2 mt-2 flex-wrap">
 
-          <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addHotelRow()">
-            <i class="bx bx-plus me-1"></i> Add Hotel
+  @if (getActiveHotelRows().length === 0) {
+    <button class="btn btn-outline-primary btn-sm"
+            style="font-size:12px;"
+            (click)="addHotelRow()">
+      <i class="bx bx-plus me-1"></i> Add Hotel
+    </button>
+  }
+
+  @if (hasSelectedNight() && getNextUnselectedNight() !== null) {
+    <button class="btn btn-outline-secondary btn-sm"
+            style="font-size:12px;"
+            (click)="addHotelRowForNextNight()">
+      <i class="bx bx-chevron-right me-1"></i>
+      Next Night (Night {{ getNextUnselectedNight() }})
+    </button>
+  }
+
+  @if (getActiveHotelRows().length > 0) {
+    <button class="btn btn-outline-success btn-sm"
+            style="font-size:12px;"
+            (click)="openSimilarHotelsModal()">
+      <i class="bx bx-copy me-1"></i>
+      Add Similar Hotels
+    </button>
+  }
+
+  
+
+</div>
+<!-- Similar Hotels Summary List -->
+@if (getSimilarHotelRows().length > 0) {
+  <div class="mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="fw-semibold small">Similar Hotels</div>
+      <button class="btn btn-link btn-sm p-0 text-primary"
+              style="font-size:12px; text-decoration:none;"
+              (click)="openSimilarHotelsModal()">
+        <i class="bx bx-edit me-1"></i> Edit Similar Hotels
+      </button>
+    </div>
+
+    <div class="border rounded overflow-hidden">
+      @for (row of getSimilarHotelRows(); track row.QuoteHotelId) {
+        <div class="d-flex align-items-center px-3 py-2 border-bottom"
+             style="font-size:13px; background:#fff;">
+
+          <!-- Hotel name + location -->
+          <div style="flex:2; min-width:0;">
+            <div class="fw-semibold text-truncate">{{ row.HotelName }}</div>
+            <div class="text-muted" style="font-size:11px;">
+              {{ row.LocationName }}
+              @if (row.HotelCategoryName) { • {{ row.HotelCategoryName }} }
+              @if (row.RoomTypeName) {
+                <span class="bx bx-tag-alt ms-1" style="font-size:10px;"></span>
+              }
+            </div>
+          </div>
+
+          <!-- Room type + meal plan + pax -->
+          <div style="flex:2; min-width:0;" class="text-muted">
+            {{ row.NoOfRooms }} {{ row.RoomTypeName }} ({{ row.PaxPerRoom }}A)
+            <div style="font-size:11px;">{{ row.MealPlan }}</div>
+          </div>
+
+          <!-- Selling price -->
+          <div style="flex:1;" class="text-end">
+            <span class="text-primary fw-semibold">
+              INR {{ formatCurrency(row.SellingPrice || row.TotalPrice) }}
+            </span>
+          </div>
+
+          <!-- Night date -->
+          <div style="flex:1;" class="text-center text-muted" style="font-size:12px;">
+           @if (nightSlots()[row.NightNumber - 1]; as slot) {
+  ({{ slot.DateLabel }})
+}
+          </div>
+
+          <!-- Remove -->
+          <div>
+            <button mat-icon-button color="warn"
+                    style="width:24px; height:24px; line-height:24px;"
+                    (click)="removeHotelRow(row)"
+                    matTooltip="Remove">
+              <mat-icon style="font-size:14px;">close</mat-icon>
+            </button>
+          </div>
+
+        </div>
+      }
+    </div>
+  </div>
+}
+
+
+
+
+
+
+
+
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SIMILAR HOTELS MODAL                                      -->
+<!-- ════════════════════════════════════════════════════════ -->
+@if (showSimilarHotelsModal && similarHotelSourceRow) {
+  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"
+       (click)="closeSimilarHotelsModal()"></div>
+  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+
+        <div class="modal-header border-bottom px-4 py-3">
+          <h5 class="modal-title fw-bold" style="font-size:15px;">Add Similar Hotels</h5>
+          <button type="button" class="btn-close" (click)="closeSimilarHotelsModal()"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3" style="max-height:75vh; overflow-y:auto;">
+
+          <!-- Source hotel summary bar -->
+          <div class="border rounded px-4 py-3 mb-4" style="background:#f8f9fa;">
+            <div class="row g-3">
+              <div class="col-sm-3">
+                <div class="text-muted small">Nights</div>
+                <div class="fw-semibold small">{{ similarHotelSourceRow.SelectedNightsDisplay }}</div>
+              </div>
+              <div class="col-sm-3">
+                <div class="text-muted small">Hotel Name</div>
+                <div class="fw-semibold small">{{ similarHotelSourceRow.HotelName || '—' }}</div>
+                @if (similarHotelSourceRow.LocationName) {
+                  <div class="text-muted" style="font-size:11px;">
+                    {{ similarHotelSourceRow.LocationName }}
+                    @if (similarHotelSourceRow.HotelCategoryName) {
+                      • {{ similarHotelSourceRow.HotelCategoryName }}
+                    }
+                  </div>
+                }
+              </div>
+              <div class="col-sm-3">
+                <div class="text-muted small">Meal Plan</div>
+                <div class="fw-semibold small">{{ similarHotelSourceRow.MealPlan }}</div>
+              </div>
+              <div class="col-sm-3">
+                <div class="text-muted small">Rooms</div>
+                <div class="fw-semibold small">
+                  {{ similarHotelSourceRow.NoOfRooms }} × {{ similarHotelSourceRow.RoomTypeName }}
+                </div>
+                <div class="text-muted" style="font-size:11px;">
+                  {{ similarHotelSourceRow.PaxPerRoom }} Pax/room
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Similar hotel rows -->
+          @for (row of similarHotelRows; track $index; let i = $index) {
+            <div class="border rounded p-3 mb-3 bg-white">
+              <div class="row g-2 align-items-start">
+
+                <!-- Hotel Search -->
+                <div class="col-sm-3">
+                  <label class="form-label small text-muted mb-1">Hotel</label>
+                  <div style="position:relative;">
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           placeholder="Type to search..."
+                           [(ngModel)]="row.HotelSearch"
+                           (ngModelChange)="onSimilarHotelSearch(row)"
+                           (focus)="onSimilarHotelSearch(row)"
+                           (blur)="onSimilarHotelBlur(row)"
+                           autocomplete="off">
+                    @if (row.HotelSearch.length > 0) {
+                      <button type="button"
+                              class="btn btn-sm p-0 border-0 bg-transparent"
+                              style="position:absolute; top:50%; right:8px;
+                                     transform:translateY(-50%); font-size:14px;
+                                     line-height:1; z-index:10; color:#999;"
+                              (mousedown)="clearSimilarHotel(row)">×</button>
+                    }
+                    @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
+                      <div class="border rounded bg-white shadow-sm"
+                           style="position:absolute; top:100%; left:0; right:0;
+                                  z-index:1080; max-height:180px; overflow-y:auto;">
+                        @for (h of row.FilteredHotels; track h.HotelId) {
+                          <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                               (mousedown)="selectSimilarHotel(row, h)">
+                            <div class="fw-semibold">{{ h.HotelName }}</div>
+                            <div class="text-muted" style="font-size:11px;">
+                              {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                  @if (row.HotelId > 0) {
+                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                      {{ row.LocationName }} • {{ row.HotelCategoryName }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Meal Plan -->
+                <div class="col-sm-2">
+                  <label class="form-label small text-muted mb-1">Meal Plan</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
+                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                    <option value="CP">CP</option>
+                    <option value="MAP">MAP</option>
+                    <option value="AP">AP</option>
+                  </select>
+                </div>
+
+                <!-- Room Type -->
+                <div class="col-sm-2">
+                  <label class="form-label small text-muted mb-1">Room Type</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
+                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                    <option [value]="0">Select room…</option>
+                    @for (rt of row.RoomTypes; track rt.RoomTypeId) {
+                      <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Remove -->
+                <div class="col-auto pt-4">
+                  <button mat-icon-button color="warn"
+                          style="width:24px; height:24px; line-height:24px;"
+                          (click)="removeSimilarHotelRow(i)">
+                    <mat-icon style="font-size:14px;">close</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Pax row -->
+                <div class="col-12">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div>
+                      <label class="form-label small text-muted mb-1">No. of Nights</label>
+                      <input type="text" class="form-control form-control-sm"
+                             style="width:70px; background:#f8f9fa;"
+                             [value]="row.NightNumbers.length" readonly>
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">Pax/room</label>
+                      <input type="number" class="form-control form-control-sm" style="width:70px;"
+                             [(ngModel)]="row.PaxPerRoom"
+                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
+                             min="1">
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">No. of rooms</label>
+                      <input type="number" class="form-control form-control-sm" style="width:70px;"
+                             [(ngModel)]="row.NoOfRooms"
+                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
+                             min="1">
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">AWEB</label>
+                      <input type="number" class="form-control form-control-sm" style="width:60px;"
+                             [(ngModel)]="row.AWEB"
+                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
+                             min="0">
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">CWEB</label>
+                      <input type="number" class="form-control form-control-sm" style="width:60px;"
+                             [(ngModel)]="row.CWEB"
+                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
+                             min="0">
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">CNB</label>
+                      <input type="number" class="form-control form-control-sm" style="width:60px;"
+                             [(ngModel)]="row.CNB"
+                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
+                             min="0">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Price Panel -->
+                <div class="col-12 mt-2">
+                  <div class="border rounded p-3 bg-light">
+                    <div class="d-flex align-items-center justify-content-between fw-semibold small mb-3">
+                      <div class="d-flex align-items-center gap-2">
+                        <span>Prices</span>
+                        @if (row.IsSaving) {
+                          <span class="text-muted" style="font-size:11px;">
+                            <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                          </span>
+                        }
+                      </div>
+                      <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
+                        <mat-icon style="font-size:14px;">edit</mat-icon>
+                      </button>
+                    </div>
+
+                    <table class="table table-sm mb-2" style="font-size:12px;">
+                      <thead>
+                        <tr class="text-muted">
+                          <th>Night</th>
+                          <th>Date</th>
+                          <th class="text-end">Rate</th>
+                          <th class="text-end">Qty</th>
+                          <th class="text-end">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (night of row.NightNumbers; track night) {
+                          @let nightSlotData = nightSlots()[night - 1];
+                          <tr>
+                            <td class="fw-semibold text-primary">Night {{ night }}</td>
+                            <td class="text-muted small">{{ nightSlotData?.DateLabel || '' }}</td>
+                            <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
+                            <td class="text-end">{{ row.NoOfRooms }}</td>
+                            <td class="text-end fw-semibold">
+                              {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
+                            </td>
+                          </tr>
+                          @if (row.AWEB > 0 && row.AwebRate > 0) {
+                            <tr>
+                              <td></td>
+                              <td class="text-muted small">AWEB</td>
+                              <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
+                              <td class="text-end">{{ row.AWEB }}</td>
+                              <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
+                            </tr>
+                          }
+                          @if (row.CWEB > 0 && row.CwebRate > 0) {
+                            <tr>
+                              <td></td>
+                              <td class="text-muted small">CWEB</td>
+                              <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
+                              <td class="text-end">{{ row.CWEB }}</td>
+                              <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
+                            </tr>
+                          }
+                          @if (row.CNB > 0 && row.CnbRate > 0) {
+                            <tr>
+                              <td></td>
+                              <td class="text-muted small">CNB</td>
+                              <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
+                              <td class="text-end">{{ row.CNB }}</td>
+                              <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                      <tfoot>
+                        <tr class="border-top">
+                          <td colspan="4" class="fw-bold">
+                            Total ({{ row.NightNumbers.length }} Night{{ row.NightNumbers.length !== 1 ? 's' : '' }})
+                          </td>
+                          <td class="text-end fw-bold text-primary">
+                            INR {{ formatCurrency(row.TotalPrice) }}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    @if (row.BaseRate > 0) {
+                      <div class="mt-2">
+                        <label class="form-label small text-muted mb-1">
+                          Final Price (INR) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control form-control-sm"
+                               [(ngModel)]="row.SellingPrice"
+                               (ngModelChange)="similarHotelRows = [...similarHotelRows]">
+                        <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                          Cost: INR {{ formatCurrency(row.TotalPrice) }}
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          }
+
+          <button class="btn btn-outline-primary btn-sm mt-1" style="font-size:12px;"
+                  (click)="addSimilarHotelRow()">
+            <i class="bx bx-plus me-1"></i> Add More Hotel
           </button>
 
-          @if (getActiveHotelRows().length === 0) {
+        </div>
+
+        <div class="modal-footer border-top px-4 py-3">
+          <button class="btn btn-outline-secondary btn-sm px-3"
+                  (click)="closeSimilarHotelsModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm px-4"
+                  (click)="saveSimilarHotels()">Save</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div class="text-muted small fst-italic mt-2">
               No hotels added. Click Add Hotel and select nights.
             </div>
-          }
+          
 
           <!-- Hotel total -->
           <div class="d-flex justify-content-end mt-2">
@@ -1136,9 +1545,9 @@
 <!-- SELECT CAB TYPES MODAL                                    -->
 <!-- ════════════════════════════════════════════════════════ -->
 @if (showCabTypesModal) {
-  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);" 
+  <div class="modal-backdrop fade show" style="z-index:1090; backdrop-filter:blur(3px);" 
        (click)="closeCabTypesModal()"></div>
-  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+  <div class="modal fade show d-block" style="z-index:1100;" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg">
         <div class="modal-header border-bottom px-4 py-3">
