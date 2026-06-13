@@ -25,6 +25,7 @@ import { LocalService } from '../../utils/local.service';
 import { ConstantData } from '../../utils/constant-data';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
+import { LoadDataService } from '../../utils/load-data.service';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ export class QueryStepone implements OnInit {
   private readonly destroyRef   = inject(DestroyRef);
   private readonly cdr          = inject(ChangeDetectorRef);
   private readonly route        = inject(ActivatedRoute);
+  private readonly loadDataService        = inject(LoadDataService);
 
   // ── State signals ─────────────────────────────────────────────────────────────
   dataLoading      = signal(false);
@@ -232,7 +234,7 @@ private patchFormWithExistingData(item: any): void {
     ReferenceId:       item.ReferenceId        ?? '',
     AssignedToLoginId: Number(item.AssignedToLoginId) || 0,
     DestinationId:     item.DestinationId      ?? 0,
-    StartDate:         item.StartDate ? new Date(item.StartDate) : null,
+    StartDate:         this.loadDataService.loadDate(item.StartDate), // ← Use loadDate method
     NoOfNights:        item.NoOfNights         ?? 1,
     NoOfAdults:        item.NoOfAdults         ?? 1,
     OriginCity:        item.OriginCity         ?? '',
@@ -549,7 +551,7 @@ private patchFormWithExistingData(item: any): void {
       ReferenceId:       v.ReferenceId,
       AssignedToLoginId: Number(v.AssignedToLoginId) || 0,
       DestinationId:     v.DestinationId,
-      StartDate:         v.StartDate,
+      StartDate:         this.loadDataService.loadDateYMD(v.StartDate),
       NoOfNights:        v.NoOfNights,
       NoOfAdults:        v.NoOfAdults,
       ChildrenAges:      childrenAgesJson,
