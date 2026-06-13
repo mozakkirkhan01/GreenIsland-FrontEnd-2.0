@@ -1368,10 +1368,10 @@
                 top:50%;
                 right:8px;
                 transform:translateY(-50%);
-                font-size:14px;
+                font-size:24px;
                 line-height:1;
                 z-index:10;
-                color:#999;"
+                color:#ed0b0b;"
               (mousedown)="clearTransportService()">
         ×
       </button>
@@ -1433,191 +1433,149 @@
 </div>
 
 <!-- RIGHT: Transportation and Prices Table (col-7) -->
-<div class="col-sm-7">
+<div class="col-sm-7" style="position: relative; z-index: 1001;">
   <div class="border rounded p-3">
     <div class="fw-semibold small mb-3">Transportation and Prices</div>
 
-    <div style="overflow-x:auto;">
-      <table class="table table-sm mb-0" style="font-size:12px; min-width:500px; border-collapse:collapse;">
-        <thead>
-          <tr class="text-muted border-bottom">
-            <th style="min-width:170px;">Type</th>
-            <th class="text-center" style="width:70px;">Qty.</th>
-            <th style="width:80px;">Date</th>
-            <th class="text-end" style="width:90px;">Rate</th>
-            <th style="width:110px;">Given</th>
-            <th style="width:28px;"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of getActiveTransportRows(); track $index) {
+    @if (selectedDays.length === 0) {
+      <div class="text-muted small text-center py-4">
+        <i class="bx bx-info-circle me-2" style="font-size:14px;"></i>
+        Select days to add transport services
+      </div>
+    } @else {
+      <!-- Vehicle Selection + Qty (at top) -->
+      <div class="row g-2 mb-3">
+        <!-- Vehicle Type -->
+        <div class="col-8" style="position:relative;">
+          <label class="form-label small text-muted mb-1">Vehicle Type</label>
+          <div style="position:relative;">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   placeholder="Select vehicle..."
+                   [(ngModel)]="transportVehicleSearch"
+                   (ngModelChange)="onTransportVehicleSearch()"
+                   (focus)="onTransportVehicleSearch()"
+                   (blur)="onTransportVehicleBlur()"
+                   autocomplete="off">
 
-            <!-- ── Vehicle header row (shaded) ── -->
-            <tr style="background:#f8f9fa; border-top: 1px solid #dee2e6;">
+            @if(transportVehicleSearch.length > 0) {
+              <button type="button"
+                      class="btn btn-sm p-0 border-0 bg-transparent"
+                      style="position:absolute; top:50%; right:8px;
+                             transform:translateY(-50%); font-size:14px;
+                             z-index:10; color:#999;"
+                      (mousedown)="clearTransportVehicleGlobal()">×</button>
+            }
 
-              <!-- Vehicle search -->
-              <td style="vertical-align:middle; padding:6px 8px;">
-                <div style="position:relative;">
-                  <input type="text"
-                         class="form-control form-control-sm"
-                         placeholder="Type to search..."
-                         [(ngModel)]="row.VehicleTypeSearch"
-                         (ngModelChange)="onTransportVehicleSearch(row)"
-                         (focus)="onTransportVehicleSearch(row)"
-                         (blur)="onTransportVehicleBlur(row)"
-                         autocomplete="off"
-                         style="padding-right:42px;">
-
-                  @if ((row.VehicleTypeSearch?.length ?? 0) > 0) {
-                    <button type="button"
-                            class="btn btn-sm p-0 border-0 bg-transparent"
-                            style="position:absolute; top:50%; right:24px;
-                                   transform:translateY(-50%); font-size:14px;
-                                   line-height:1; z-index:10; color:#999;"
-                            (mousedown)="clearTransportVehicle(row)">×</button>
-                  }
-                  <span style="position:absolute; top:50%; right:6px;
-                               transform:translateY(-50%); color:#999;
-                               font-size:13px; pointer-events:none;">
-                    <i class="bx bx-expand-alt"></i>
-                  </span>
-
-                  @if (row.ShowVehicleDropdown && (row.FilteredVehicles?.length ?? 0) > 0) {
-                    <div class="border rounded bg-white shadow-sm"
-                         style="position:absolute; top:100%; left:0; right:0;
-                                z-index:1000; max-height:180px; overflow-y:auto;">
-                      @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
-                        <div class="px-3 py-2"
-                             style="font-size:13px; cursor:pointer;"
-                             (mousedown)="selectTransportVehicle(row, vt)">
-                          {{ vt.VehicleTypeName }}
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </td>
-
-              <!-- Qty -->
-              <td class="text-center" style="vertical-align:middle; padding:6px 8px;">
-                <input type="number"
-                       class="form-control form-control-sm text-center"
-                       style="width:55px;"
-                       [(ngModel)]="row.Qty"
-                       (ngModelChange)="onTransportQtyChange(row)"
-                       min="1">
-              </td>
-
-              <!-- Date (first day if selected, else blank) -->
-              <td style="vertical-align:middle; padding:6px 8px; color:#888; font-size:12px;">
-                @if (selectedDays.length > 0) {
-                  {{ daySlots()[selectedDays[0] - 1]?.DateLabel }}
-                }
-              </td>
-
-              <!-- Rate (first day) -->
-              <td class="text-end" style="vertical-align:middle; padding:6px 8px; color:#888; font-size:12px;">
-                @if (row.CostPrice > 0) {
-                  <span class="text-muted" style="font-size:10px;">INR</span>
-                  {{ formatCurrency(row.CostPrice) }}
-                }
-              </td>
-
-              <!-- Given (first day inline input) -->
-              <td style="vertical-align:middle; padding:6px 8px;">
-                <input type="number"
-                       class="form-control form-control-sm text-end"
-                       style="width:90px;"
-                       placeholder="Given"
-                       [(ngModel)]="row.SellingPrice"
-                       (ngModelChange)="onTransportSellingChange(row)"
-                       (blur)="saveServiceRow(row)">
-                @if (row.SellingPrice > 0 && row.Qty > 1) {
-                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                    x {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
+            @if(transportShowVehicleDropdown && transportFilteredVehicles.length > 0) {
+              <div class="border rounded bg-white shadow-sm"
+                   style="position:absolute; top:100%; left:0; right:0;
+                          z-index:1050; max-height:200px; overflow-y:auto;">
+                @for(vt of transportFilteredVehicles; track vt.VehicleTypeId) {
+                  <div class="px-3 py-2"
+                       style="cursor:pointer; font-size:13px;"
+                       (mousedown)="selectTransportVehicleGlobal(vt)">
+                    {{ vt.VehicleTypeName }}
                   </div>
                 }
-              </td>
+              </div>
+            }
+          </div>
+        </div>
 
-              <!-- Remove -->
-              <td style="vertical-align:middle; padding:6px 4px;">
-                <button mat-icon-button color="warn"
-                        style="width:22px; height:22px; line-height:22px;"
-                        (click)="removeServiceRow(row)"
-                        matTooltip="Remove">
-                  <mat-icon style="font-size:14px;">close</mat-icon>
-                </button>
-              </td>
+        <!-- Qty (Shared) -->
+        <div class="col-4">
+          <label class="form-label small text-muted mb-1">Qty.</label>
+          <input type="number"
+                 class="form-control form-control-sm text-center"
+                 [(ngModel)]="transportQty"
+                 (ngModelChange)="onTransportQtyChange()"
+                 min="1">
+        </div>
+      </div>
+
+      <!-- Table: One Row Per Day -->
+      <div style="overflow-x:auto;">
+        <table class="table table-sm mb-0" style="font-size:12px; min-width:500px;">
+          <thead>
+            <tr class="text-muted border-bottom">
+              <th style="min-width:120px;">Day</th>
+              <th class="text-end" style="width:90px;">Rate (Per Unit)</th>
+              <th class="width:110px;">Given</th>
+              <th class="text-end" style="width:100px;">Total</th>
+              <th style="width:28px;"></th>
             </tr>
-
-            <!-- ── Per-day sub-rows (days 2..N, or all if no first-row date) ── -->
-            @for (dayNum of (selectedDays.length > 0 ? selectedDays : daySlots().map(d => d.DayNumber)); track dayNum; let di = $index) {
-              @if (di > 0) {
-                @let ds = daySlots()[dayNum - 1];
-                <tr style="border-bottom: 1px solid #f0f0f0;">
-                  <td style="padding:5px 8px;"></td>
-                  <td style="padding:5px 8px;"></td>
-
-                  <!-- Date -->
-                  <td style="padding:5px 8px; color:#888; font-size:12px;">
-                    {{ ds?.DateLabel }}
+          </thead>
+          <tbody>
+            @for (dayNum of selectedDays; track dayNum) {
+              @let rowsForDay = getTransportRowsForDay(dayNum);
+              @let row = rowsForDay[0];
+              
+              @if (row) {
+                <tr style="border-bottom:1px solid #dee2e6;">
+                  <td style="vertical-align:middle; padding:8px;">
+                    <div class="fw-semibold text-primary" style="font-size:13px;">Day {{ dayNum }}</div>
+                    <div class="text-muted" style="font-size:11px;">
+                      {{ daySlots()[dayNum - 1]?.DateLabel }}
+                    </div>
                   </td>
 
-                  <!-- Rate -->
-                  <td class="text-end" style="padding:5px 8px; color:#888; font-size:12px;">
-                    @if (row.CostPrice > 0) {
-                      <span class="text-muted" style="font-size:10px;">INR</span>
-                      {{ formatCurrency(row.CostPrice) }}
-                    } @else { — }
-                  </td>
-
-                  <!-- Given per day (same selling price, shown as input) -->
-                  <td style="padding:5px 8px;">
-                    <input type="number"
-                           class="form-control form-control-sm text-end"
-                           style="width:90px;"
-                           placeholder="Given"
-                           [(ngModel)]="row.SellingPrice"
-                           (ngModelChange)="onTransportSellingChange(row)"
-                           (blur)="saveServiceRow(row)">
-                    @if (row.SellingPrice > 0 && row.Qty > 1) {
-                      <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                        x {{ row.Qty }} = {{ formatCurrency(row.SellingPrice * row.Qty) }}
-                      </div>
+                  <td class="text-end" style="vertical-align:middle; padding:8px; color:#666; font-size:12px;">
+                    @if(row.CostPrice > 0) {
+                      INR {{ formatCurrency(row.CostPrice) }}
+                    } @else {
+                      —
                     }
                   </td>
 
-                  <td style="padding:5px 8px;"></td>
+                  <!-- Given (Override Price) -->
+                  <td style="vertical-align:middle; padding:8px;">
+                    <input type="number"
+                           class="form-control form-control-sm text-end"
+                           placeholder="Override"
+                           [(ngModel)]="row.SellingPrice"
+                           (ngModelChange)="calculateServiceTotal(row)"
+                           (blur)="saveServiceRow(row)"
+                           style="width:100px;">
+                  </td>
+
+                  <td class="text-end fw-semibold" style="vertical-align:middle; padding:8px; color:#0066cc; font-size:12px;">
+                    @if(row.TotalPrice > 0) {
+                      INR {{ formatCurrency(row.TotalPrice) }}
+                    } @else {
+                      —
+                    }
+                  </td>
+
+                  <td style="vertical-align:middle; padding:8px;">
+                    <button mat-icon-button color="warn"
+                            style="width:22px; height:22px; line-height:22px;"
+                            (click)="removeServiceRow(row)"
+                            matTooltip="Remove">
+                      <mat-icon style="font-size:14px;">close</mat-icon>
+                    </button>
+                  </td>
                 </tr>
               }
             }
+          </tbody>
+          <tfoot>
+            @if(selectedDays.length > 0) {
+              <tr class="border-top">
+                <td colspan="3" class="fw-semibold" style="font-size:12px;">Transport Total</td>
+                <td class="text-end fw-bold text-primary" style="font-size:12px;">
+                  INR {{ formatCurrency(transportTotal()) }}
+                </td>
+                <td></td>
+              </tr>
+            }
+          </tfoot>
+        </table>
+      </div>
+    }
 
-            <!-- ── Day 1 sub-row: only shown when there are multiple days ── -->
-            <!-- (Day 1 is already shown in the header row above, so we skip di===0) -->
-
-          }
-        </tbody>
-      </table>
-    </div>
   </div>
-
-  
-
-    </div>
-<!-- Add buttons OUTSIDE the table border -->
-  <!-- Add buttons OUTSIDE the table border -->
-<!-- <div class="d-flex gap-2 mt-2">
-  <button class="btn btn-outline-primary btn-sm"
-          style="font-size:12px;"
-          (click)="addTransportRowQuick()">
-    <i class="bx bx-plus me-1"></i> Transport Service
-  </button>
-  <button class="btn btn-outline-success btn-sm"
-          style="font-size:12px;"
-          (click)="addActivityRowQuick()">
-    <i class="bx bx-ticket me-1"></i> Activity/Ticket
-  </button>
-</div> -->
+</div>
 
 <!-- ── Transport Rows Table ── -->
 
@@ -1646,15 +1604,7 @@
         </button>
       </div> -->
       </div>
-      <div class="text-end">
-        <div class="text-muted small mb-1">
-          Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}
-        </div>
-        <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-          Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
-        </div>
-      </div>
-    </div>
+</div>
 
   </div>
 </div>
