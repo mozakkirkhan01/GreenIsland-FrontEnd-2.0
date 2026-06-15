@@ -1923,12 +1923,14 @@ closeCabTypesModal(): void {
 }
 
 onCabTypeSelected(cabType: any): void {
-  const vt = this.vehicleTypeList().find(v => v.VehicleTypeId === cabType.VehicleTypeId);
+  const vt = this.vehicleTypeList().find(
+    v => Number(v.VehicleTypeId) === Number(cabType.VehicleTypeId)
+  );
+
   if (vt) {
     cabType.VehicleTypeName = vt.VehicleTypeName;
   }
 }
-
 addCabType(): void {
   this.cabTypesList.push({ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 });
 }
@@ -1966,8 +1968,9 @@ saveCabTypes(): void {
 
 getSelectedCabTypesDisplay(): string {
   return this.selectedCabTypes
-    .map(c => `${c.Quantity}-${c.VehicleTypeName}`)
+    .map(c => `${c.VehicleTypeName}`)
     .join(' + ');
+    
 }
 
 
@@ -2135,11 +2138,6 @@ onDaysDropdownBlur(): void {
     this.showDaysDropdown = false;
   }, 150);
 }
-
-// Location search
-// locationSearchText = '';
-// filteredLocations: any[] = [];
-// showLocationDropdown = false;
 
 onLocationSearchChange(): void {
   const query = (this.locationSearchText ?? '').toLowerCase().trim();
@@ -2634,6 +2632,9 @@ clearTransportVehicle(row: QuoteServiceRow): void {
   row.SellingPrice = 0;
   this.serviceRows.update(rows => [...rows]);
   this.markDirty();
+}
+addNextDay() {
+  
 }
 
 addActivityRow(slot: DaySlot): void {

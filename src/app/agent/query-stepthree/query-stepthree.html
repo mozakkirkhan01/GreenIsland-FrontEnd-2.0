@@ -1448,39 +1448,61 @@
         <!-- Vehicle Type -->
         <div class="col-8" style="position:relative;">
           <label class="form-label small text-muted mb-1">Vehicle Type</label>
-          <div style="position:relative;">
-            <input type="text"
-                   class="form-control form-control-sm"
-                   placeholder="Select vehicle..."
-                   [(ngModel)]="transportVehicleSearch"
-                   (ngModelChange)="onTransportVehicleSearch()"
-                   (focus)="onTransportVehicleSearch()"
-                   (blur)="onTransportVehicleBlur()"
-                   autocomplete="off">
-
-            @if(transportVehicleSearch.length > 0) {
-              <button type="button"
-                      class="btn btn-sm p-0 border-0 bg-transparent"
-                      style="position:absolute; top:50%; right:8px;
-                             transform:translateY(-50%); font-size:14px;
-                             z-index:10; color:#999;"
-                      (mousedown)="clearTransportVehicleGlobal()">×</button>
-            }
-
-            @if(transportShowVehicleDropdown && transportFilteredVehicles.length > 0) {
-              <div class="border rounded bg-white shadow-sm"
-                   style="position:absolute; top:100%; left:0; right:0;
-                          z-index:1050; max-height:200px; overflow-y:auto;">
-                @for(vt of transportFilteredVehicles; track vt.VehicleTypeId) {
-                  <div class="px-3 py-2"
-                       style="cursor:pointer; font-size:13px;"
-                       (mousedown)="selectTransportVehicleGlobal(vt)">
-                    {{ vt.VehicleTypeName }}
-                  </div>
+          
+          @if(sameCabForAll) {
+            <!-- Show Selected Cab Types (Read-only) -->
+            <div class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                 style="background:#f8f9fa; border:1px solid #dee2e6; padding:0.375rem 0.5rem;">
+              <span style="font-size:13px;" class="text-primary fw-semibold">
+                @if (selectedCabTypes.length > 0) {
+                  {{ getSelectedCabTypesDisplay() }}
+                } @else {
+                  <span class="text-muted">No cab types selected</span>
                 }
-              </div>
-            }
-          </div>
+              </span>
+              <button type="button"
+                      class="btn btn-link p-0 border-0 bg-transparent"
+                      style="font-size:12px; color:#0d6efd; cursor:pointer;"
+                      (click)="openCabTypesModal()">
+                <i class="bx bx-edit" style="font-size:14px;"></i>
+              </button>
+            </div>
+          } @else {
+            <!-- Show Vehicle Search Input (Normal mode) -->
+            <div style="position:relative;">
+              <input type="text"
+                     class="form-control form-control-sm"
+                     placeholder="Select vehicle..."
+                     [(ngModel)]="transportVehicleSearch"
+                     (ngModelChange)="onTransportVehicleSearch()"
+                     (focus)="onTransportVehicleSearch()"
+                     (blur)="onTransportVehicleBlur()"
+                     autocomplete="off">
+
+              @if(transportVehicleSearch.length > 0) {
+                <button type="button"
+                        class="btn btn-sm p-0 border-0 bg-transparent"
+                        style="position:absolute; top:50%; right:8px;
+                               transform:translateY(-50%); font-size:14px;
+                               z-index:10; color:#999;"
+                        (mousedown)="clearTransportVehicleGlobal()">×</button>
+              }
+
+              @if(transportShowVehicleDropdown && transportFilteredVehicles.length > 0) {
+                <div class="border rounded bg-white shadow-sm"
+                     style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1050; max-height:200px; overflow-y:auto;">
+                  @for(vt of transportFilteredVehicles; track vt.VehicleTypeId) {
+                    <div class="px-3 py-2"
+                         style="cursor:pointer; font-size:13px;"
+                         (mousedown)="selectTransportVehicleGlobal(vt)">
+                      {{ vt.VehicleTypeName }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Qty (Shared) -->
@@ -1500,9 +1522,9 @@
           <thead>
             <tr class="text-muted border-bottom">
               <th style="min-width:120px;">Day</th>
-              <th class="text-end" style="width:90px;">Rate (Per Unit)</th>
-              <th class="width:110px;">Given</th>
-              <th class="text-end" style="width:100px;">Total</th>
+              <th class="text-start" style="width:120px;">Rate (Per Unit)</th>
+              <!-- <th class="width:110px;">Given</th> -->
+              <th class="text-end" style="width:100px;">Given</th>
               <th style="width:28px;"></th>
             </tr>
           </thead>
@@ -1520,7 +1542,7 @@
                     </div>
                   </td>
 
-                  <td class="text-end" style="vertical-align:middle; padding:8px; color:#666; font-size:12px;">
+                  <td class="text-start" style="vertical-align:middle; padding:8px; color:#666; font-size:12px;">
                     @if(row.CostPrice > 0) {
                       INR {{ formatCurrency(row.CostPrice) }}
                     } @else {
@@ -1529,7 +1551,7 @@
                   </td>
 
                   <!-- Given (Override Price) -->
-                  <td style="vertical-align:middle; padding:8px;">
+                  <td class="text-end fw-semibold" style="vertical-align:middle; padding:8px; color:#0066cc; font-size:12px;">
                     <input type="number"
                            class="form-control form-control-sm text-end"
                            placeholder="Override"
@@ -1539,15 +1561,15 @@
                            style="width:100px;">
                   </td>
 
-                  <td class="text-end fw-semibold" style="vertical-align:middle; padding:8px; color:#0066cc; font-size:12px;">
+                  <!-- <td class="text-end fw-semibold" style="vertical-align:middle; padding:8px; color:#0066cc; font-size:12px;">
                     @if(row.TotalPrice > 0) {
                       INR {{ formatCurrency(row.TotalPrice) }}
                     } @else {
                       —
                     }
-                  </td>
+                  </td> -->
 
-                  <td style="vertical-align:middle; padding:8px;">
+                  <td style="vertical-align:end; padding:8px;">
                     <button mat-icon-button color="warn"
                             style="width:22px; height:22px; line-height:22px;"
                             (click)="removeServiceRow(row)"
@@ -1573,9 +1595,27 @@
         </table>
       </div>
     }
-
+    
   </div>
 </div>
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="d-flex gap-2">
+     @if (selectedDays.length > 0 &&
+     selectedDays.length < daySlots().length) {
+
+  <button class="btn btn-outline-primary btn-sm"
+          style="font-size:12px;"
+          (click)="addNextDay()">
+    <i class="bx bx-chevron-right me-1"></i>
+    Next Day
+  </button>
+
+}
+        <!-- <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;">
+          <i class="bx bx-trash me-1"></i> Remove
+        </button> -->
+      </div>
+      </div>
 
 <!-- ── Transport Rows Table ── -->
 
@@ -1595,16 +1635,31 @@
 
     <!-- Action Buttons -->
     <div class="d-flex justify-content-between align-items-center mt-3">
-      <!-- <div class="d-flex gap-2">
-        <button class="btn btn-outline-primary btn-sm" style="font-size:12px;">
+    <div class="d-flex gap-2">
+        <!-- <button class="btn btn-outline-primary btn-sm" style="font-size:12px;">
           <i class="bx bx-chevron-right me-1"></i> Next Day
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;">
+        </button> -->
+        <!-- <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;">
           <i class="bx bx-trash me-1"></i> Remove
-        </button>
-      </div> -->
+        </button> -->
       </div>
+      </div>
+
+        <div class="d-flex gap-2 mt-2">
+  <button class="btn btn-outline-primary btn-sm"
+          style="font-size:12px;"
+          >
+    <i class="bx bx-plus me-1"></i> Transport Service
+  </button>
+  <button class="btn btn-outline-success btn-sm"
+          style="font-size:12px;"
+          >
+    <i class="bx bx-ticket me-1"></i> Activity/Ticket
+  </button>
 </div>
+        
+    
+    </div>
 
   </div>
 </div>
