@@ -1117,6 +1117,10 @@
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
       <!-- ═══════════════════════════════════════════════════ -->
 
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TRANSPORTS & ACTIVITIES SECTION                      -->
+<!-- ═══════════════════════════════════════════════════ -->
+
 <div class="bg-white border-bottom px-4 py-3">
   <div class="card-body">
     <div class="d-flex align-items-start gap-3 mb-3">
@@ -1137,563 +1141,452 @@
       </div>
     </div>
 
-    <!-- Add Transport Service Button -->
-    <div class="mb-3">
-      <button class="btn btn-primary btn-sm" style="font-size:12px;" (click)="showTransportForm = !showTransportForm">
-        <i class="bx bx-plus me-1"></i>
-        {{ showTransportForm ? 'Cancel' : 'Add Transport Service' }}
-      </button>
+    <!-- Same Cab Type for All - Global setting -->
+    <div class="mb-4 p-2 border rounded d-flex align-items-center gap-3"
+         style="background:#f0f7ff;">
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" id="sameCab"
+               [(ngModel)]="sameCabForAll"
+               (change)="onSameCabChange()">
+        <label class="form-check-label fw-medium" for="sameCab"
+               style="font-size:13px;">
+          Same Cab Type for All
+        </label>
+      </div>
+      
+      @if (sameCabForAll && selectedCabTypes.length > 0) {
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:13px;" class="text-primary fw-semibold">
+            {{ getSelectedCabTypesDisplay() }}
+          </span>
+          <button type="button"
+                  class="btn btn-link p-0 border-0 bg-transparent"
+                  style="font-size:12px; color:#0d6efd; cursor:pointer;"
+                  (click)="openCabTypesModal()">
+            <i class="bx bx-edit" style="font-size:14px;"></i>
+          </button>
+        </div>
+      }
+      
+      @if (sameCabForAll && selectedCabTypes.length === 0) {
+        <button type="button"
+                class="btn btn-link p-0 border-0 text-primary"
+                style="font-size:12px; text-decoration:none;"
+                (click)="openCabTypesModal()">
+          <i class="bx bx-plus me-1"></i> Select Cab Types
+        </button>
+      }
     </div>
 
-    <!-- Same Cab Type for All -->
-    @if (showTransportForm) {
-      <div class="mb-4 p-2 border rounded d-flex align-items-center gap-3"
-           style="background:#f0f7ff;">
-        <div class="form-check mb-0">
-          <input class="form-check-input" type="checkbox" id="sameCab"
-                 [(ngModel)]="sameCabForAll"
-                 (change)="onSameCabChange()">
-          <label class="form-check-label fw-medium" for="sameCab"
-                 style="font-size:13px;">
-            Same Cab Type for All
-          </label>
-        </div>
-        
-        @if (sameCabForAll && selectedCabTypes.length > 0) {
-          <div class="d-flex align-items-center gap-2">
-            <span style="font-size:13px;" class="text-primary fw-semibold">
-              {{ getSelectedCabTypesDisplay() }}
-            </span>
-            <button type="button"
-                    class="btn btn-link p-0 border-0 bg-transparent"
-                    style="font-size:12px; color:#0d6efd; cursor:pointer;"
-                    (click)="openCabTypesModal()">
-              <i class="bx bx-edit" style="font-size:14px;"></i>
-            </button>
-          </div>
-        }
-        
-        @if (sameCabForAll && selectedCabTypes.length === 0) {
-          <button type="button"
-                  class="btn btn-link p-0 border-0 text-primary"
-                  style="font-size:12px; text-decoration:none;"
-                  (click)="openCabTypesModal()">
-            <i class="bx bx-plus me-1"></i> Select Cab Types
-          </button>
-        }
-      </div>
-    }
+    <!-- INDEPENDENT TRANSPORT ROWS (like Hotels) -->
+    @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
+      <div class="border rounded mb-3 p-3 bg-white">
+        <div class="row g-2 align-items-start">
 
-    <!-- Days | Transport Details | Transportation and Prices -->
-    @if (showTransportForm) {
-      <div class="row g-3">
-        
-        <!-- LEFT: Days Selector (col-2) -->
-        <div class="col-sm-2">
-          <label class="form-label small text-muted mb-1">Days</label>
+          <!-- LEFT: Transport config (col-8) -->
+          <div class="col-sm-8">
 
-          <div style="position:relative;">
-
-            <button type="button"
-                    class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-                    style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
-                    (click)="toggleDaysDropdown()">
-
-              <span style="font-size:13px;">
-                @if (selectedDaysDisplay) {
-                  {{ selectedDaysDisplay }}
-                } @else {
-                  <span class="text-muted">Select days</span>
-                }
-              </span>
-
-              <i class="bx bx-chevron-down" style="font-size:16px;"></i>
-            </button>
-
-            @if (showDaysDropdown) {
-
-              <!-- Backdrop -->
-              <div style="position:fixed;
-                          top:0;
-                          left:0;
-                          right:0;
-                          bottom:0;
-                          z-index:999;"
-                   (click)="closeDaysDropdown()">
-              </div>
-
-              <!-- Dropdown -->
-              <div class="border rounded bg-white shadow-sm"
-                   style="position:absolute;
-                          top:100%;
-                          left:0;
-                          right:0;
-                          z-index:1000;
-                          max-height:200px;
-                          overflow-y:auto;">
-
-                @for (slot of daySlots(); track slot.DayNumber) {
-                  <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
-                         style="font-size:13px;
-                                cursor:pointer;
-                                border-bottom:1px solid #f0f0f0;">
-
-                    <input type="checkbox"
-                           [checked]="selectedDays.includes(slot.DayNumber)"
-                           (change)="onDayToggle(slot.DayNumber)"
-                           style="cursor:pointer;">
-
-                    <span>
-                      Day {{ slot.DayNumber }} — {{ slot.DateLabel }}
-                    </span>
-
-                  </label>
-                }
-
-              </div>
-            }
-
-          </div>
-
-          @if (selectedDays.length > 0) {
-            <div class="text-muted"
-                 style="font-size:11px; margin-top:2px;">
-              {{ selectedDays.length }} day(s) selected
-            </div>
-          }
-
-        </div>
-
-        <!-- MIDDLE: Service Details Form (col-3) -->
-        <div class="col-sm-3">
-          <div class="border rounded p-3">
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <i class="bx bx-car" style="font-size:16px; color:#0066cc;"></i>
-              <div class="fw-semibold small">Transport Service</div>
-            </div>
-
-            <!-- Service Location Search -->
-            <div class="mb-3" style="position:relative;">
-              <label class="form-label small text-muted mb-1">
-                Service Location
-              </label>
-
-              <div style="position:relative;">
-
-                <input type="text"
-                       class="form-control form-control-sm"
-                       placeholder="Search location..."
-                       [(ngModel)]="locationSearchText"
-                       (ngModelChange)="onTransportLocationSearch()"
-                       (focus)="onTransportLocationSearch()"
-                       (blur)="onTransportLocationBlur()"
-                       autocomplete="off">
-
-                @if(locationSearchText.length > 0){
+            <!-- Days / Location / Service / Vehicle / Remove -->
+              <div class="row g-3 mb-4 align-items-start">
+              <!-- Days (Multi-select) -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Days</label>
+                <div style="position:relative;">
                   <button type="button"
-                          class="btn btn-sm p-0 border-0 bg-transparent"
-                          style="
-                            position:absolute;
-                            top:50%;
-                            right:8px;
-                            transform:translateY(-50%);
-                            font-size:14px;
-                            line-height:1;
-                            z-index:10;
-                            color:#999;"
-                          (mousedown)="clearTransportLocation()">
-                    ×
-                  </button>
-                }
-
-                @if(showLocationDropdown && filteredLocations.length > 0){
-                  <div class="border rounded bg-white shadow-sm"
-                       style="
-                         position:absolute;
-                         top:100%;
-                         left:0;
-                         right:0;
-                         z-index:1050;
-                         max-height:200px;
-                         overflow-y:auto;">
-
-                    @for(loc of filteredLocations; track loc.LocationId){
-                      <div class="px-3 py-2"
-                           style="cursor:pointer;font-size:13px;"
-                           (mousedown)="selectTransportLocation(loc)">
-
-                        <div class="fw-semibold">
-                          {{ loc.LocationName }}
-                        </div>
-
-                      </div>
-                    }
-
-                  </div>
-                }
-
-                @if(showLocationDropdown &&
-                    locationSearchText.length > 0 &&
-                    filteredLocations.length === 0){
-
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                       style="
-                         position:absolute;
-                         top:100%;
-                         left:0;
-                         right:0;
-                         z-index:1050;
-                         font-size:13px;">
-                    No locations found
-                  </div>
-
-                }
-
-              </div>
-            </div>
-
-            <!-- Service Type Search -->
-            <div class="mb-3" style="position:relative;">
-              <label class="form-label small text-muted mb-1">Service Type</label>
-
-              <div style="position:relative;">
-
-                <input type="text"
-                       class="form-control form-control-sm"
-                       placeholder="Search service..."
-                       [(ngModel)]="serviceSearchText"
-                       (ngModelChange)="onTransportServiceSearch()"
-                       (focus)="onTransportServiceSearch()"
-                       (blur)="onTransportServiceBlur()"
-                       autocomplete="off"
-                       [disabled]="!currentTransportRow.LocationId">
-
-                @if(serviceSearchText.length > 0){
-                  <button type="button"
-                          class="btn btn-sm p-0 border-0 bg-transparent"
-                          style="
-                            position:absolute;
-                            top:50%;
-                            right:8px;
-                            transform:translateY(-50%);
-                            font-size:24px;
-                            line-height:1;
-                            z-index:10;
-                            color:#ed0b0b;"
-                          (mousedown)="clearTransportService()">
-                    ×
-                  </button>
-                }
-
-                @if(showServiceDropdown && filteredServices.length > 0){
-                  <div class="border rounded bg-white shadow-sm"
-                       style="
-                         position:absolute;
-                         top:100%;
-                         left:0;
-                         right:0;
-                         z-index:1050;
-                         max-height:200px;
-                         overflow-y:auto;">
-
-                    @for(service of filteredServices; track service.IteneraryServiceId){
-                      <div class="px-3 py-2"
-                           style="cursor:pointer;font-size:13px;"
-                           (mousedown)="selectTransportService(service)">
-
-                        <div class="fw-semibold">
-                          {{ service.IteneraryServiceName }}
-                        </div>
-
-                      </div>
-                    }
-
-                  </div>
-                }
-
-                @if(showServiceDropdown &&
-                    serviceSearchText.length > 0 &&
-                    filteredServices.length === 0){
-
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                       style="
-                         position:absolute;
-                         top:100%;
-                         left:0;
-                         right:0;
-                         z-index:1050;
-                         font-size:13px;">
-                    No services found
-                  </div>
-
-                }
-
-              </div>
-
-              @if (!currentTransportRow.LocationId) {
-                <small class="text-muted d-block mt-1">
-                  Select a location first
-                </small>
-              }
-            </div>
-
-          </div>
-        </div>
-
-        <!-- RIGHT: Transportation and Prices Table (col-7) -->
-        <div class="col-sm-7" style="position: relative; z-index: 1001;">
-          <div class="border rounded p-3">
-            <div class="fw-semibold small mb-3">Transportation and Prices</div>
-
-            @if (selectedDays.length === 0) {
-              <div class="text-muted small text-center py-4">
-                <i class="bx bx-info-circle me-2" style="font-size:14px;"></i>
-                Select days to add transport services
-              </div>
-            } @else {
-              <!-- Vehicle Selection + Qty (at top) -->
-              <div class="row g-2 mb-3">
-                <!-- Vehicle Type -->
-                <div class="col-8" style="position:relative;">
-                  <label class="form-label small text-muted mb-1">Vehicle Type</label>
-                  
-                  @if(sameCabForAll) {
-                    <!-- Show Selected Cab Types (Read-only) -->
-                    <div class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-                         style="background:#f8f9fa; border:1px solid #dee2e6; padding:0.375rem 0.5rem;">
-                      <span style="font-size:13px;" class="text-primary fw-semibold">
-                        @if (selectedCabTypes.length > 0) {
-                          {{ getSelectedCabTypesDisplay() }}
-                        } @else {
-                          <span class="text-muted">No cab types selected</span>
-                        }
-                      </span>
-                      <button type="button"
-                              class="btn btn-link p-0 border-0 bg-transparent"
-                              style="font-size:12px; color:#0d6efd; cursor:pointer;"
-                              (click)="openCabTypesModal()">
-                        <i class="bx bx-edit" style="font-size:14px;"></i>
-                      </button>
-                    </div>
-                  } @else {
-                    <!-- Show Vehicle Search Input (Normal mode) -->
-                    <div style="position:relative;">
-                      <input type="text"
-                             class="form-control form-control-sm"
-                             placeholder="Select vehicle..."
-                             [(ngModel)]="transportVehicleSearch"
-                             (ngModelChange)="onTransportVehicleSearch()"
-                             (focus)="onTransportVehicleSearch()"
-                             (blur)="onTransportVehicleBlur()"
-                             autocomplete="off">
-
-                      @if(transportVehicleSearch.length > 0) {
-                        <button type="button"
-                                class="btn btn-sm p-0 border-0 bg-transparent"
-                                style="position:absolute; top:50%; right:8px;
-                                       transform:translateY(-50%); font-size:14px;
-                                       z-index:10; color:#999;"
-                                (mousedown)="clearTransportVehicleGlobal()">×</button>
+                          class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                          style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+                          (click)="toggleTransportDayDropdown(row)">
+                    <span style="font-size:13px;">
+                      @if (row.SelectedDaysDisplay) {
+                        {{ row.SelectedDaysDisplay }}
+                      } @else {
+                        <span class="text-muted">Select days</span>
                       }
+                    </span>
+                    <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+                  </button>
 
-                      @if(transportShowVehicleDropdown && transportFilteredVehicles.length > 0) {
-                        <div class="border rounded bg-white shadow-sm"
-                             style="position:absolute; top:100%; left:0; right:0;
-                                    z-index:1050; max-height:200px; overflow-y:auto;">
-                          @for(vt of transportFilteredVehicles; track vt.VehicleTypeId) {
-                            <div class="px-3 py-2"
-                                 style="cursor:pointer; font-size:13px;"
-                                 (mousedown)="selectTransportVehicleGlobal(vt)">
-                              {{ vt.VehicleTypeName }}
-                            </div>
-                          }
+                  @if (row.ShowDayDropdown) {
+                    <!-- Backdrop -->
+                    <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
+                         (click)="closeTransportDayDropdown(row)"></div>
+
+                    <!-- Dropdown -->
+                    <div class="border rounded bg-white shadow-sm"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; max-height:200px; overflow-y:auto;">
+                      @for (slot of daySlots(); track slot.DayNumber) {
+                        <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                               style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+                          <input type="checkbox"
+                                 [checked]="row.DayNumbers.includes(slot.DayNumber)"
+                                 (change)="onTransportDayToggle(row, slot.DayNumber)"
+                                 style="cursor:pointer;">
+                          <span>Day {{ slot.DayNumber }} — {{ slot.DateLabel }}</span>
+                        </label>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Location -->
+              <div class="col-sm-5">
+                <label class="form-label small text-muted mb-1">Location</label>
+                <div style="position:relative;">
+                  <input type="text"
+                         class="form-control form-control-sm"
+                         placeholder="Search location…"
+                         [(ngModel)]="row.LocationSearch"
+                         (ngModelChange)="onTransportLocationSearch(row)"
+                         (focus)="onTransportLocationSearch(row)"
+                         (blur)="onTransportLocationBlur(row)"
+                         autocomplete="off">
+
+                  @if(row.LocationSearch.length > 0) {
+                    <button type="button"
+                            class="btn btn-sm p-0 border-0 bg-transparent"
+                            style="position:absolute; top:50%; right:8px;
+                                   transform:translateY(-50%); font-size:14px;
+                                   z-index:10; color:#999;"
+                            (mousedown)="clearTransportLocationRow(row)">
+                      ×
+                    </button>
+                  }
+
+                  @if (row.ShowLocationDropdown && row.FilteredLocations.length > 0) {
+                    <div class="border rounded bg-white shadow-sm"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; max-height:200px; overflow-y:auto;">
+                      @for (loc of row.FilteredLocations; track loc.LocationId) {
+                        <div class="px-3 py-2"
+                             style="font-size:13px; cursor:pointer;"
+                             (mousedown)="selectTransportLocationRow(row, loc)">
+                          <div class="fw-semibold">{{ loc.LocationName }}</div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (row.ShowLocationDropdown && row.LocationSearch.length > 0
+                       && row.FilteredLocations.length === 0) {
+                    <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; font-size:13px;">
+                      No locations found
+                    </div>
+                  }
+                </div>
+                @if (row.LocationId > 0) {
+                  <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                    {{ row.LocationName }}
+                  </div>
+                }
+              
+
+              <!-- Service -->
+                <label class="form-label small text-muted mb-1">Service</label>
+                <div style="position:relative;">
+                  <input type="text"
+                         class="form-control form-control-sm"
+                         placeholder="Search service…"
+                         [(ngModel)]="row.ServiceSearch"
+                         (ngModelChange)="onTransportServiceSearch(row)"
+                         (focus)="onTransportServiceSearch(row)"
+                         (blur)="onTransportServiceBlur(row)"
+                         autocomplete="off"
+                         [disabled]="!row.LocationId">
+
+                  @if(row.ServiceSearch.length > 0) {
+                    <button type="button"
+                            class="btn btn-sm p-0 border-0 bg-transparent"
+                            style="position:absolute; top:50%; right:8px;
+                                   transform:translateY(-50%); font-size:14px;
+                                   z-index:10; color:#999;"
+                            (mousedown)="clearTransportServiceRow(row)">
+                      ×
+                    </button>
+                  }
+
+                  @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
+                    <div class="border rounded bg-white shadow-sm"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; max-height:200px; overflow-y:auto;">
+                      @for (svc of row.FilteredServices; track svc.IteneraryServiceId) {
+                        <div class="px-3 py-2"
+                             style="font-size:13px; cursor:pointer;"
+                             (mousedown)="selectTransportServiceRow(row, svc)">
+                          <div class="fw-semibold">{{ svc.IteneraryServiceName }}</div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
+                       && row.FilteredServices.length === 0) {
+                    <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; font-size:13px;">
+                      No services found
+                    </div>
+                  }
+                </div>
+                @if (!row.LocationId) {
+                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                    Select location first
+                  </div>
+                }
+              </div>
+
+              <!-- Vehicle -->
+              <div class="col-sm-4">
+                <label class="form-label small text-muted mb-1">Vehicle</label>
+                <div style="position:relative;">
+                  <input type="text"
+                         class="form-control form-control-sm"
+                         placeholder="Search vehicle…"
+                         [(ngModel)]="row.VehicleSearch"
+                         (ngModelChange)="onTransportVehicleSearch(row)"
+                         (focus)="onTransportVehicleSearch(row)"
+                         (blur)="onTransportVehicleBlur(row)"
+                         autocomplete="off"
+                         [disabled]="!row.IteneraryServiceId">
+
+                  @if(row.VehicleSearch.length > 0) {
+                    <button type="button"
+                            class="btn btn-sm p-0 border-0 bg-transparent"
+                            style="position:absolute; top:50%; right:8px;
+                                   transform:translateY(-50%); font-size:14px;
+                                   z-index:10; color:#999;"
+                            (mousedown)="clearTransportVehicleRow(row)">
+                      ×
+                    </button>
+                  }
+
+                  @if (row.ShowVehicleDropdown && row.FilteredVehicles.length > 0) {
+                    <div class="border rounded bg-white shadow-sm"
+                         style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; max-height:200px; overflow-y:auto;">
+                      @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
+                        <div class="px-3 py-2"
+                             style="font-size:13px; cursor:pointer;"
+                             (mousedown)="selectTransportVehicleRow(row, vt)">
+                          {{ vt.VehicleTypeName }}
                         </div>
                       }
                     </div>
                   }
                 </div>
+                @if (!row.IteneraryServiceId) {
+                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                    Select service first
+                  </div>
+                }
+                              <div>
+                <label class="form-label small text-muted mb-1">Qty</label>
+                <input type="number" class="form-control form-control-sm" style="width:70px;"
+                       [(ngModel)]="row.Qty"
+                       (ngModelChange)="markDirty(); recalculateTransportPrice(row); transportRows.update(r=>[...r])" min="1">
+              </div>
+            </div>
+             
 
-                <!-- Qty (Shared) -->
-                <div class="col-4">
-                  <label class="form-label small text-muted mb-1">Qty.</label>
-                  <input type="number"
-                         class="form-control form-control-sm text-center"
-                         [(ngModel)]="transportQty"
-                         (ngModelChange)="onTransportQtyChange()"
-                         min="1">
+              <!-- Remove -->
+               <div class="col-sm-1 pt-4 text-end">
+                <button mat-icon-button color="warn" (click)="removeTransportRow(row)" matTooltip="Remove">
+                  <mat-icon style="font-size:16px;">close</mat-icon>
+                </button>
+              </div>
+            </div>
+             </div>
+
+    
+
+          <!-- RIGHT: Price panel (col-4) -->
+          <div class="col-sm-4">
+            <div class="border rounded p-3 bg-light h-100">
+              <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
+                <div class="d-flex align-items-center gap-2">
+                  <span>Prices</span>
+                  @if (row.IsSaving) {
+                    <span class="text-muted" style="font-size:11px;">
+                      <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                    </span>
+                  }
                 </div>
+                <button mat-icon-button (click)="EditTransportPrices(row)" matTooltip="Edit prices">
+                  <mat-icon style="font-size:14px;">edit</mat-icon>
+                </button>
               </div>
 
-              <!-- Table: One Row Per Day -->
-              <div style="overflow-x:auto;">
-                <table class="table table-sm mb-0" style="font-size:12px; min-width:500px;">
-                  <thead>
-                    <tr class="text-muted border-bottom">
-                      <th style="min-width:120px;">Day</th>
-                      <th class="text-start" style="width:120px;">Rate (Per Unit)</th>
-                      <th class="text-end" style="width:100px;">Given</th>
-                      <th style="width:28px;"></th>
+              <table class="table table-sm mb-2" style="font-size:12px;">
+                <thead>
+                  <tr class="text-muted">
+                    <th>Day</th>
+                    <th>Date</th>
+                    <th class="text-end">Rate</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (day of row.DayNumbers; track day) {
+                    @let daySlot = daySlots()[day - 1];
+                    <tr>
+                      <td class="fw-semibold text-primary">Day {{ day }}</td>
+                      <td class="text-muted small">{{ daySlot?.DateLabel || '' }}</td>
+                      <td class="text-end">{{ formatCurrency(row.CostPrice) }}</td>
+                      <td class="text-end">{{ row.Qty }}</td>
+                      <td class="text-end fw-semibold">{{ formatCurrency(row.CostPrice * row.Qty) }}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (dayNum of selectedDays; track dayNum) {
-                      @let rowsForDay = getTransportRowsForDay(dayNum);
-                      @let row = rowsForDay[0];
-                      
-                      @if (row) {
-                        <tr style="border-bottom:1px solid #dee2e6;">
-                          <td style="vertical-align:middle; padding:8px;">
-                            <div class="fw-semibold text-primary" style="font-size:13px;">Day {{ dayNum }}</div>
-                            <div class="text-muted" style="font-size:11px;">
-                              {{ daySlots()[dayNum - 1]?.DateLabel }}
-                            </div>
-                          </td>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr class="border-top">
+                    <td colspan="4" class="fw-bold">Total ({{ row.DayNumbers.length }} Day{{ row.DayNumbers.length !== 1 ? 's' : '' }})</td>
+                    <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
+                  </tr>
+                </tfoot>
+              </table>
 
-                          <td class="text-start" style="vertical-align:middle; padding:8px; color:#666; font-size:12px;">
-                            @if(row.CostPrice > 0) {
-                              INR {{ formatCurrency(row.CostPrice) }}
-                            } @else {
-                              —
-                            }
-                          </td>
-
-                          <td class="text-end fw-semibold" style="vertical-align:middle; padding:8px; color:#0066cc; font-size:12px;">
-                            <input type="number"
-                                   class="form-control form-control-sm text-end"
-                                   placeholder="Override"
-                                   [(ngModel)]="row.SellingPrice"
-                                   (ngModelChange)="calculateServiceTotal(row)"
-                                   (blur)="saveServiceRow(row)"
-                                   style="width:100px;">
-                          </td>
-
-                          <td style="vertical-align:end; padding:8px;">
-                            <button mat-icon-button color="warn"
-                                    style="width:22px; height:22px; line-height:22px;"
-                                    (click)="removeServiceRow(row)"
-                                    matTooltip="Remove">
-                              <mat-icon style="font-size:14px;">close</mat-icon>
-                            </button>
-                          </td>
-                        </tr>
-                      }
-                    }
-                  </tbody>
-                  <tfoot>
-                    @if(selectedDays.length > 0) {
-                      <tr class="border-top">
-                        <td colspan="3" class="fw-semibold" style="font-size:12px;">Transport Total</td>
-                        <td class="text-end fw-bold text-primary" style="font-size:12px;">
-                          INR {{ formatCurrency(transportTotal()) }}
-                        </td>
-                        <td></td>
-                      </tr>
-                    }
-                  </tfoot>
-                </table>
-              </div>
-            }
-            
-          </div>
-        </div>
-        
-        <!-- Next Day Button -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <div class="d-flex gap-2">
-            @if (selectedDays.length > 0 && selectedDays.length < daySlots().length) {
-              <button class="btn btn-outline-primary btn-sm"
-                      style="font-size:12px;"
-                      (click)="addNextDay()">
-                <i class="bx bx-chevron-right me-1"></i>
-                Next Day
-              </button>
-            }
-          </div>
-        </div>
-
-        <!-- Totals -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <div></div>
-          <div class="text-end">
-            <div class="text-muted small mb-1">
-              Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}
-            </div>
-            <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-              Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+              <!-- Selling price override -->
+              @if (row.CostPrice > 0) {
+                <div class="mt-2">
+                  <label class="form-label small text-muted mb-1">Final Price (INR) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+                         (ngModelChange)="markDirty(); recalculateTransportPrice(row)" (blur)="saveTransportRow(row)">
+                  <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
+                </div>
+              }
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     }
 
-    <!-- Display existing transport services when form is hidden -->
-    @if (!showTransportForm && getActiveTransportRows().length > 0) {
-      <div class="mt-3">
-        <div class="fw-semibold small text-primary mb-2">Existing Transport Services</div>
-        <div style="overflow-x:auto;">
-          <table class="table table-sm" style="font-size:12px;">
-            <thead>
-              <tr class="text-muted border-bottom">
-                <th>Day</th>
-                <th>Location</th>
-                <th>Service</th>
-                <th>Vehicle</th>
-                <th>Qty</th>
-                <th class="text-end">Rate</th>
+    <!-- Add Buttons -->
+    <div class="d-flex gap-2 mt-2 flex-wrap">
+      <button class="btn btn-outline-primary btn-sm"
+              style="font-size:12px;"
+              (click)="addTransportRow()">
+        <i class="bx bx-plus me-1"></i> Add Transport
+      </button>
+
+      @if (getActiveTransportRows().length > 0) {
+        <button class="btn btn-outline-success btn-sm"
+                style="font-size:12px;"
+                (click)="addSimilarTransport()">
+          <i class="bx bx-copy me-1"></i> Add Similar Transport
+        </button>
+      }
+      <!-- Next Day Button - appears when days are selected and not all days are selected -->
+@if (selectedDays.length > 0 && selectedDays.length < daySlots().length) {
+  <div class="mt-2">
+    <button class="btn btn-outline-primary btn-sm"
+            style="font-size:12px;"
+            (click)="addNextDay()">
+      <i class="bx bx-chevron-right me-1"></i>
+      Next Day (Day {{ getNextDayNumber() }})
+    </button>
+  </div>
+}
+    </div>
+    
+
+    <!-- Transport total -->
+    <div class="d-flex justify-content-end mt-2">
+      <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+        Transport Total: INR {{ formatCurrency(transportTotal()) }}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- EDIT TRANSPORT PRICES MODAL                             -->
+<!-- ════════════════════════════════════════════════════════ -->
+@if (showEditTransportPricesModal && editingTransportRow) {
+  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+
+        <div class="modal-header border-bottom px-4 py-3">
+          <div>
+            <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
+              Edit Transport Prices
+            </h5>
+            <div class="text-muted" style="font-size:12px;">
+              {{ editingTransportRow.VehicleTypeName }} •
+              {{ editingTransportRow.IteneraryServiceName }}
+            </div>
+          </div>
+          <button type="button" class="btn-close" (click)="closeEditTransportPricesModal()"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3">
+          <table class="table table-sm table-bordered" style="font-size:13px;">
+            <thead class="table-light">
+              <tr>
+                <th>Type</th>
+                <th class="text-end">System Rate</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Given Rate</th>
                 <th class="text-end">Total</th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
-              @for (row of getActiveTransportRows(); track row.QuoteServiceId) {
-                <tr style="border-bottom:1px solid #dee2e6;">
-                  <td style="vertical-align:middle;">
-                    <div class="fw-semibold" style="font-size:13px;">Day {{ row.DayNumber }}</div>
-                    <div class="text-muted" style="font-size:10px;">{{ daySlots()[row.DayNumber - 1]?.DateLabel }}</div>
-                  </td>
-                  <td style="vertical-align:middle; font-size:12px;">{{ row.LocationName || '—' }}</td>
-                  <td style="vertical-align:middle; font-size:12px;">{{ row.IteneraryServiceName || '—' }}</td>
-                  <td style="vertical-align:middle; font-size:12px;">{{ row.VehicleTypeName || '—' }}</td>
-                  <td style="vertical-align:middle; width:70px;">
-                    <input type="number" class="form-control form-control-sm text-center"
-                           [(ngModel)]="row.Qty" min="1"
-                           (change)="calculateServiceTotal(row); saveServiceRow(row)"
-                           style="width:60px;">
-                  </td>
-                  <td class="text-end" style="vertical-align:middle;">
-                    INR {{ formatCurrency(row.SellingPrice) }}
-                   </td>
-                  <td class="text-end fw-semibold" style="vertical-align:middle; color:#0066cc;">
-                    INR {{ formatCurrency(row.TotalPrice) }}
-                   </td>
-                  <td class="text-end" style="vertical-align:middle;">
-                    <button mat-icon-button color="warn"
-                            style="width:24px; height:24px; line-height:24px;"
-                            (click)="removeServiceRow(row)"
-                            matTooltip="Remove">
-                      <mat-icon style="font-size:14px;">close</mat-icon>
-                    </button>
-                   </td>
-                </tr>
-              }
+              <tr>
+                <td class="align-middle">
+                  Transport
+                  <div class="text-muted" style="font-size:10px;">per unit</div>
+                </td>
+                <td class="text-end align-middle text-muted">
+                  {{ formatCurrency(editingTransportRow.CostPrice) }}
+                </td>
+                <td class="align-middle" style="width:60px;">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editingTransportRow.Qty"
+                         (ngModelChange)="recalculateEditTransportPrice()"
+                         min="1" style="width:60px;">
+                </td>
+                <td class="align-middle" style="width:110px;">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         [(ngModel)]="editTransportPrices.VehicleRate"
+                         (ngModelChange)="recalculateEditTransportPrice()"
+                         min="0" style="width:110px;">
+                </td>
+                <td class="text-end align-middle fw-semibold">
+                  {{ formatCurrency(editTransportPrices.VehicleRate * editingTransportRow.Qty * editingTransportRow.DayNumbers.length) }}
+                </td>
+              </tr>
             </tbody>
             <tfoot>
-              <tr class="border-top">
-                <td colspan="6" class="fw-semibold" style="font-size:12px;">Transport Total</td>
-                <td class="text-end fw-bold text-primary" style="font-size:12px;">
-                  INR {{ formatCurrency(transportTotal()) }}
+              <tr class="table-light">
+                <td colspan="4" class="fw-bold">Cost Total</td>
+                <td class="text-end fw-bold">
+                  INR {{ formatCurrency(editTransportPrices.ComputedTotal) }}
                 </td>
-                <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
-    }
 
+        <div class="modal-footer border-top">
+          <button class="btn btn-outline-secondary btn-sm px-3"
+                  (click)="closeEditTransportPricesModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm px-4"
+                  (click)="applyEditTransportPrices()">
+            Apply
+          </button>
+        </div>
+
+      </div>
+    </div>
   </div>
-</div>
+}
 
 <!-- ════════════════════════════════════════════════════════ -->
 <!-- SELECT CAB TYPES MODAL                                    -->
