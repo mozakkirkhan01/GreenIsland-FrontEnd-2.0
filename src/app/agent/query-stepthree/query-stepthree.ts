@@ -2608,9 +2608,7 @@ onTransportSellingChange(row: QuoteServiceRow): void {
   this.serviceRows.update(rows => [...rows]);
   this.markDirty();
 }
-closeDaysDropdown(): void {
-  this.showDaysDropdown = false;
-}
+
 
 // Update this method to recalculate based on ALL selected days
 calculateServiceTotal(row: QuoteServiceRow): void {
@@ -2633,9 +2631,7 @@ clearTransportVehicle(row: QuoteServiceRow): void {
   this.serviceRows.update(rows => [...rows]);
   this.markDirty();
 }
-addNextDay() {
-  
-}
+
 
 addActivityRow(slot: DaySlot): void {
   this.markDirty();
@@ -2792,8 +2788,22 @@ lookupVehicleRate(row: QuoteServiceRow): void {
       this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId }))
         .subscribe({ next: () => { } });
     }
-    // Find and remove the row by comparing the object reference
+
+    const dayNumber = row.DayNumber;
     this.serviceRows.update(rows => rows.filter(r => r !== row));
+
+    const stillHasDay = this.serviceRows()
+      .some(r => r.ServiceType === 1
+        && r.QuotePackageTypeId === this.activePackageTypeId()
+        && r.DayNumber === dayNumber);
+
+    if (!stillHasDay) {
+      const index = this.selectedDays.indexOf(dayNumber);
+      if (index > -1) {
+        this.selectedDays.splice(index, 1);
+        this.updateDaysDisplay();
+      }
+    }
   }
 
   // ── function  helpers ───────────────────────────────────────
@@ -2916,4 +2926,151 @@ getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
     if (!queryId) { this.toastr.error('Query ID not found'); return; }
     this.router.navigate(['/agent/query-stepone', queryId]);
   }
+// Add with your other properties
+showTransportForm = false;
+showActivityForm = false;
+selectedDayForActivity = 0;
+selectedActivityId = 0;
+activityQty = 1;
+
+// Add these methods to your component (put them with your other methods, e.g., near addActivityRow)
+
+// Get activity rows
+getActivityRows(): QuoteServiceRow[] {
+  return this.serviceRows().filter(
+    r => r.ServiceType === 2 && r.QuotePackageTypeId === this.activePackageTypeId()
+  );
+}
+
+// Add transport rows for selected days
+addTransportRowsForSelectedDays(): void {
+  if (this.selectedDays.length === 0) {
+    this.toastr.error('Please select at least one day');
+    return;
+  }
+  
+  if (!this.currentTransportRow.LocationId) {
+    this.toastr.error('Please select a service location');
+    return;
+  }
+  
+  if (!this.currentTransportRow.IteneraryServiceId) {
+    this.toastr.error('Please select a service type');
+    return;
+  }
+  
+  if (!this.currentTransportVehicle?.VehicleTypeId) {
+    this.toastr.error('Please select a vehicle type');
+    return;
+  }
+  
+  this.selectedDays.forEach(dayNum => {
+    const daySlot = this.daySlots().find(d => d.DayNumber === dayNum);
+    if (!daySlot) return;
+    
+    // Check if transport already exists for this day
+    const exists = this.serviceRows().some(
+      r => r.ServiceType === 1
+        && r.DayNumber === dayNum
+        && r.QuotePackageTypeId === this.activePackageTypeId()
+        && r.LocationId === this.currentTransportRow.LocationId
+        && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
+    );
+    
+    if (!exists) {
+      this.addTransportRowForSlot(daySlot);
+    }
+  });
+  
+  this.showTransportForm = false;
+  this.resetTransportForm();
+  this.toastr.success(`Transport added for ${this.selectedDays.length} day(s)`);
+}
+
+// Reset transport form
+resetTransportForm(): void {
+  this.locationSearchText = '';
+  this.serviceSearchText = '';
+  this.transportVehicleSearch = '';
+  this.currentTransportRow = {
+    LocationId: 0,
+    LocationName: '',
+    IteneraryServiceId: 0,
+    IteneraryServiceName: '',
+  } as QuoteServiceRow;
+  this.currentTransportVehicle = null;
+  this.transportQty = 1;
+  this.selectedDays = [];
+  this.updateDaysDisplay();
+}
+
+// Add activity row for selected day
+addActivityRowForDay(): void {
+  if (!this.selectedDayForActivity || this.selectedDayForActivity === 0) {
+    this.toastr.error('Please select a day');
+    return;
+  }
+  
+  if (!this.selectedActivityId || this.selectedActivityId === 0) {
+    this.toastr.error('Please select an activity');
+    return;
+  }
+  
+  const slot = this.daySlots().find(d => d.DayNumber === this.selectedDayForActivity);
+  if (slot) {
+    const newRow = {
+      QuoteServiceId: 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: this.activePackageTypeId(),
+      DayNumber: slot.DayNumber,
+      ServiceDate: slot.ServiceDate,
+      ServiceType: 2,
+      IteneraryServiceId: 0,
+      IteneraryServiceName: '',
+      VehicleTypeId: 0,
+      VehicleTypeName: '',
+      SameCabForAll: false,
+      ActivityServiceId: this.selectedActivityId,
+      ActivityServiceName: this.activityList().find(a => a.ActivityServiceId === this.selectedActivityId)?.ActivityServiceName || '',
+      Qty: this.activityQty,
+      CostPrice: 0,
+      SellingPrice: 0,
+      Notes: '',
+      IsSaving: false,
+      LocationId: 0,
+      LocationName: '',
+      FilteredVehicles: [],
+      VehicleTypeSearch: '',
+      ShowVehicleDropdown: false,
+      TotalPrice: 0,
+    };
+    
+    this.serviceRows.update(rows => [...rows, newRow]);
+    this.onActivitySelected(newRow);
+    this.markDirty();
+    
+    this.showActivityForm = false;
+    this.selectedDayForActivity = 0;
+    this.selectedActivityId = 0;
+    this.activityQty = 1;
+    
+    this.toastr.success('Activity added');
+  }
+}
+
+// Also add these if missing:
+addNextDay(): void {
+  if (this.selectedDays.length === 0) return;
+  
+  const nextDayNumber = Math.max(...this.selectedDays) + 1;
+  if (nextDayNumber <= this.daySlots().length) {
+    this.onDayToggle(nextDayNumber);
+  } else {
+    this.toastr.info('No more days available');
+  }
+}
+
+closeDaysDropdown(): void {
+  this.showDaysDropdown = false;
+}
 }
