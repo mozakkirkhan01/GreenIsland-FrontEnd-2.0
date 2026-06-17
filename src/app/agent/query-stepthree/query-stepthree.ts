@@ -2588,6 +2588,8 @@ onTransportQtyChange(): void {
       && row.VehicleTypeId === this.currentTransportVehicle?.VehicleTypeId
       && row.QuotePackageTypeId === this.activePackageTypeId()) {
       row.Qty = this.transportQty;
+      // Calculate Given column: CostPrice × Qty
+      row.SellingPrice = (row.CostPrice || 0) * this.transportQty;
       this.calculateServiceTotal(row);
     }
   });
