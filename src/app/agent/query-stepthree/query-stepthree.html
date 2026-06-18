@@ -90,8 +90,8 @@
               </div>
             </div>
           </div>
-<!-- Package Type Selector -->
-<!-- @if (packageTypes().length > 1) {
+          <!-- Package Type Selector -->
+          <!-- @if (packageTypes().length > 1) {
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
   <span class="text-muted small fw-semibold">Viewing:</span>
   @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
@@ -106,20 +106,18 @@
   }
 </div>
 } -->
-<!-- Package Type Dropdown Selector -->
-<div class="d-flex align-items-center gap-2 mb-3">
-  <label class="text-muted small fw-semibold mb-0">Option:</label>
-  <select class="form-select form-select-sm"
-          style="width: 220px;"
-          [(ngModel)]="activePackageTypeId"
-          (ngModelChange)="setActivePackage($event)">
-    @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
-      <option [value]="pkg.QuotePackageTypeId">
-        {{ $index + 1 }}: {{ pkg.PackageTypeName }}
-      </option>
-    }
-  </select>
-</div>
+          <!-- Package Type Dropdown Selector -->
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <label class="text-muted small fw-semibold mb-0">Option:</label>
+            <select class="form-select form-select-sm" style="width: 220px;" [(ngModel)]="activePackageTypeId"
+              (ngModelChange)="setActivePackage($event)">
+              @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
+              <option [value]="pkg.QuotePackageTypeId">
+                {{ $index + 1 }}: {{ pkg.PackageTypeName }}
+              </option>
+              }
+            </select>
+          </div>
           @for (row of getActiveHotelRows(); track row) {
           <div class="border rounded mb-3 p-3 bg-white">
 
@@ -132,70 +130,59 @@
 
                 <!-- Hotel / Meal / RoomType / Remove row -->
                 <div class="row g-2 mb-2">
-<div class="col-sm-2">
-  <label class="form-label small text-muted mb-1">Nights</label>
-  <div style="position:relative;">
-    <button type="button"
-            class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-            style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
-            (click)="toggleHotelNightDropdown(row)"
-            >
-      <span style="font-size:13px;">
-        @if (row.SelectedNightsDisplay) {
-          {{ row.SelectedNightsDisplay }}
-        } @else {
-          <span class="text-muted">Select nights</span>
-        }
-      </span>
-      <i class="bx bx-chevron-down" style="font-size:16px;"></i>
-    </button>
+                  <div class="col-sm-2">
+                    <label class="form-label small text-muted mb-1">Nights</label>
+                    <div style="position:relative;">
+                      <button type="button"
+                        class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                        style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+                        (click)="toggleHotelNightDropdown(row)">
+                        <span style="font-size:13px;">
+                          @if (row.SelectedNightsDisplay) {
+                          {{ row.SelectedNightsDisplay }}
+                          } @else {
+                          <span class="text-muted">Select nights</span>
+                          }
+                        </span>
+                        <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+                      </button>
 
-    @if (row.ShowNightDropdown) {
-  <!-- Backdrop — closes on outside click -->
-  <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
-       (click)="closeHotelNightDropdown(row)"></div>
+                      @if (row.ShowNightDropdown) {
+                      <!-- Backdrop — closes on outside click -->
+                      <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
+                        (click)="closeHotelNightDropdown(row)"></div>
 
-  <!-- Dropdown -->
-  <div class="border rounded bg-white shadow-sm"
-       style="position:absolute; top:100%; left:0; right:0;
+                      <!-- Dropdown -->
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
               z-index:1000; max-height:200px; overflow-y:auto;">
-    @for (night of nightSlots(); track night.NightNumber) {
-      <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
-             style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
-        <input type="checkbox"
-               [checked]="row.NightNumbers.includes(night.NightNumber)"
-               (change)="onHotelNightToggle(row, night.NightNumber)"
-               style="cursor:pointer;">
-        <span>Night {{ night.NightNumber }} — {{ night.DateLabel }}</span>
-      </label>
-    }
-    <div class="px-3 py-2 border-top text-end">
-      <!-- <button class="btn btn-primary btn-sm px-3"
+                        @for (night of nightSlots(); track night.NightNumber) {
+                        <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                          style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+                          <input type="checkbox" [checked]="row.NightNumbers.includes(night.NightNumber)"
+                            (change)="onHotelNightToggle(row, night.NightNumber)" style="cursor:pointer;">
+                          <span>Night {{ night.NightNumber }} — {{ night.DateLabel }}</span>
+                        </label>
+                        }
+                        <div class="px-3 py-2 border-top text-end">
+                          <!-- <button class="btn btn-primary btn-sm px-3"
               (click)="closeHotelNightDropdown(row)">
         Done
       </button> -->
-    </div>
-  </div>
-}
-  </div>
-</div>
+                        </div>
+                      </div>
+                      }
+                    </div>
+                  </div>
 
-<div class="col-sm-4">
-  <label class="form-label small text-muted mb-1">Hotel</label>
-  <div style="position:relative;">
-    <input type="text"
-           class="form-control form-control-sm"
-           placeholder="Search hotel…"
-           [(ngModel)]="row.HotelSearch"
-           (ngModelChange)="onHotelSearch(row)"
-           (focus)="onHotelSearch(row)"
-           (blur)="onHotelBlur(row)"
-           autocomplete="off">
+                  <div class="col-sm-4">
+                    <label class="form-label small text-muted mb-1">Hotel</label>
+                    <div style="position:relative;">
+                      <input type="text" class="form-control form-control-sm" placeholder="Search hotel…"
+                        [(ngModel)]="row.HotelSearch" (ngModelChange)="onHotelSearch(row)" (focus)="onHotelSearch(row)"
+                        (blur)="onHotelBlur(row)" autocomplete="off">
 
-           @if(row.HotelSearch.length >0){
-                <button type="button"
-            class="btn btn-sm p-0 border-0 bg-transparent"
-            style="
+                      @if(row.HotelSearch.length >0){
+                      <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="
               position:absolute;
               top:50%;
               right:8px;
@@ -204,66 +191,59 @@
               line-height:1;
               z-index:10;
               color:#999;
-            "
-            (mousedown)="clearHotel(row)">
-      ×
-    </button>
-           }
+            " (mousedown)="clearHotel(row)">
+                        ×
+                      </button>
+                      }
 
-    @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
-      <div class="border rounded bg-white shadow-sm"
-           style="position:absolute; top:100%; left:0; right:0;
+                      @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
                   z-index:1000; max-height:200px; overflow-y:auto;">
-        @for (h of row.FilteredHotels; track h.HotelId) {
-          <div class="px-3 py-2 cursor-pointer"
-               style="font-size:13px; cursor:pointer;"
-               (mousedown)="selectHotel(row, h)">
-            <div class="fw-semibold">{{ h.HotelName }}</div>
-            <div class="text-muted" style="font-size:11px;">
-              {{ h.LocationName }} • {{ h.HotelCategoryName }}
-            </div>
-          </div>
-        }
-      </div>
-    }
+                        @for (h of row.FilteredHotels; track h.HotelId) {
+                        <div class="px-3 py-2 cursor-pointer" style="font-size:13px; cursor:pointer;"
+                          (mousedown)="selectHotel(row, h)">
+                          <div class="fw-semibold">{{ h.HotelName }}</div>
+                          <div class="text-muted" style="font-size:11px;">
+                            {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                          </div>
+                        </div>
+                        }
+                      </div>
+                      }
 
-@if (row.ShowDropdown && row.HotelSearch.length > 0
-     && row.FilteredHotels.length === 0) {
+                      @if (row.ShowDropdown && row.HotelSearch.length > 0
+                      && row.FilteredHotels.length === 0) {
 
-  <div class="border rounded bg-white shadow-sm"
-       style="position:absolute;
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute;
               top:100%;
               left:0;
               right:0;
               z-index:1000;">
 
-    <!-- No Result -->
-    <div class="px-3 py-1 text-muted"
-         style="font-size:10px;">
-      No hotels found
-    </div>
+                        <!-- No Result -->
+                        <div class="px-3 py-1 text-muted" style="font-size:10px;">
+                          No hotels found
+                        </div>
 
-    <!-- Add New Hotel -->
-    <div class="px-3 py-2 border-top text-primary"
-         style="font-size:13px;
+                        <!-- Add New Hotel -->
+                        <div class="px-3 py-2 border-top text-primary" style="font-size:13px;
                 cursor:pointer;
-                font-weight:500;"
-         (mousedown)="addNewHotel(row)">
+                font-weight:500;" (mousedown)="addNewHotel(row)">
 
-      <i class="bx bx-plus me-1"></i>
-      Add New Hotel "{{ row.HotelSearch }}"
-    </div>
+                          <i class="bx bx-plus me-1"></i>
+                          Add New Hotel "{{ row.HotelSearch }}"
+                        </div>
 
-  </div>
-}
-  </div>
+                      </div>
+                      }
+                    </div>
 
-  @if (row.HotelId > 0) {
-    <div class="text-muted" style="font-size:11px; margin-top:2px;">
-      {{ row.LocationName }} • {{ row.HotelCategoryName }}
-    </div>
-  }
-</div>
+                    @if (row.HotelId > 0) {
+                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                      {{ row.LocationName }} • {{ row.HotelCategoryName }}
+                    </div>
+                    }
+                  </div>
                   <div class="col-sm-2">
                     <label class="form-label small text-muted mb-1">Meal Plan</label>
                     <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
@@ -322,506 +302,483 @@
                 </div>
 
               </div>
-<!-- RIGHT: Price panel (col-4) - Compact with Date column -->
-<div class="col-sm-4">
-  <div class="border rounded p-3 bg-light h-100">
-    <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
-      <div class="d-flex align-items-center gap-2">
-        <span>Prices</span>
-        @if (row.IsSaving) {
-          <span class="text-muted" style="font-size:11px;">
-            <i class="bx bx-loader-alt bx-spin"></i> Saving…
-          </span>
-        }
-      </div>
-      <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
-        <mat-icon style="font-size:14px;">edit</mat-icon>
-      </button>
-    </div>
-
-    <table class="table table-sm mb-2" style="font-size:12px;">
-      <thead>
-        <tr class="text-muted">
-          <th>Night</th>
-          <th>Date</th>
-          <th class="text-end">Rate</th>
-          <th class="text-end">Qty</th>
-          <th class="text-end">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Loop through each night -->
-        @for (night of row.NightNumbers; track night) {
-          @let nightSlot = nightSlots()[night - 1];
-          
-          <!-- Rooms row -->
-          <tr>
-            <td class="fw-semibold text-primary">Night {{ night }}</td>
-            <td class="text-muted small">{{ nightSlot?.DateLabel || '' }}</td>
-            <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
-            <td class="text-end">{{ row.NoOfRooms }}</td>
-            <td class="text-end fw-semibold">{{ formatCurrency(row.BaseRate * row.NoOfRooms) }}</td>
-          </tr>
-
-          <!-- AWEB -->
-          @if (row.AWEB > 0 && row.AwebRate > 0) {
-            <tr>
-              <td></td>
-              <td class="text-muted small">AWEB</td>
-              <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
-              <td class="text-end">{{ row.AWEB }}</td>
-              <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
-            </tr>
-          }
-
-          <!-- CWEB -->
-          @if (row.CWEB > 0 && row.CwebRate > 0) {
-            <tr>
-              <td></td>
-              <td class="text-muted small">CWEB</td>
-              <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
-              <td class="text-end">{{ row.CWEB }}</td>
-              <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
-            </tr>
-          }
-
-          <!-- CNB -->
-          @if (row.CNB > 0 && row.CnbRate > 0) {
-            <tr>
-              <td></td>
-              <td class="text-muted small">CNB</td>
-              <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
-              <td class="text-end">{{ row.CNB }}</td>
-              <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
-            </tr>
-          }
-        }
-      </tbody>
-      <tfoot>
-        <tr class="border-top">
-          <td colspan="4" class="fw-bold">Total ({{ row.NightNumbers.length }} Nights)</td>
-          <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <!-- Selling price override -->
-    @if (row.BaseRate > 0) {
-      <div class="mt-2">
-        <label class="form-label small text-muted mb-1">Final Price (INR) <span class="text-danger">*</span></label>
-        <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
-          (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
-        <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
-      </div>
-    }
-  </div>
-</div>
-
-            </div>
-          </div>
-          }
-<div class="d-flex gap-2 mt-2 flex-wrap">
-
-  @if (getActiveHotelRows().length === 0) {
-    <button class="btn btn-outline-primary btn-sm"
-            style="font-size:12px;"
-            (click)="addHotelRow()">
-      <i class="bx bx-plus me-1"></i> Add Hotel
-    </button>
-  }
-
-  @if (hasSelectedNight() && getNextUnselectedNight() !== null) {
-    <button class="btn btn-outline-secondary btn-sm"
-            style="font-size:12px;"
-            (click)="addHotelRowForNextNight()">
-      <i class="bx bx-chevron-right me-1"></i>
-      Next Night (Night {{ getNextUnselectedNight() }})
-    </button>
-  }
-
-  @if (getActiveHotelRows().length > 0) {
-    <button class="btn btn-outline-success btn-sm"
-            style="font-size:12px;"
-            (click)="openSimilarHotelsModal()">
-      <i class="bx bx-copy me-1"></i>
-      Add Similar Hotels
-    </button>
-  }
-
-  
-
-</div>
-<!-- Similar Hotels Summary List -->
-@if (getSimilarHotelRows().length > 0) {
-  <div class="mt-3">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-      <div class="fw-semibold small">Similar Hotels</div>
-      <button class="btn btn-link btn-sm p-0 text-primary"
-              style="font-size:12px; text-decoration:none;"
-              (click)="openSimilarHotelsModal()">
-        <i class="bx bx-edit me-1"></i> Edit Similar Hotels
-      </button>
-    </div>
-
-    <div class="border rounded overflow-hidden">
-      @for (row of getSimilarHotelRows(); track row.QuoteHotelId) {
-        <div class="d-flex align-items-center px-3 py-2 border-bottom"
-             style="font-size:13px; background:#fff;">
-
-          <!-- Hotel name + location -->
-          <div style="flex:2; min-width:0;">
-            <div class="fw-semibold text-truncate">{{ row.HotelName }}</div>
-            <div class="text-muted" style="font-size:11px;">
-              {{ row.LocationName }}
-              @if (row.HotelCategoryName) { • {{ row.HotelCategoryName }} }
-              @if (row.RoomTypeName) {
-                <span class="bx bx-tag-alt ms-1" style="font-size:10px;"></span>
-              }
-            </div>
-          </div>
-
-          <!-- Room type + meal plan + pax -->
-          <div style="flex:2; min-width:0;" class="text-muted">
-            {{ row.NoOfRooms }} {{ row.RoomTypeName }} ({{ row.PaxPerRoom }}A)
-            <div style="font-size:11px;">{{ row.MealPlan }}</div>
-          </div>
-
-          <!-- Selling price -->
-          <div style="flex:1;" class="text-end">
-            <span class="text-primary fw-semibold">
-              INR {{ formatCurrency(row.SellingPrice || row.TotalPrice) }}
-            </span>
-          </div>
-
-          <!-- Night date -->
-          <div style="flex:1;" class="text-center text-muted" style="font-size:12px;">
-           @if (nightSlots()[row.NightNumber - 1]; as slot) {
-  ({{ slot.DateLabel }})
-}
-          </div>
-
-          <!-- Remove -->
-          <div>
-            <button mat-icon-button color="warn"
-                    style="width:24px; height:24px; line-height:24px;"
-                    (click)="removeHotelRow(row)"
-                    matTooltip="Remove">
-              <mat-icon style="font-size:14px;">close</mat-icon>
-            </button>
-          </div>
-
-        </div>
-      }
-    </div>
-  </div>
-}
-
-
-
-
-
-
-
-
-
-
-<!-- ════════════════════════════════════════════════════════ -->
-<!-- SIMILAR HOTELS MODAL                                      -->
-<!-- ════════════════════════════════════════════════════════ -->
-@if (showSimilarHotelsModal && similarHotelSourceRow) {
-  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"
-       (click)="closeSimilarHotelsModal()"></div>
-  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-
-        <div class="modal-header border-bottom px-4 py-3">
-          <h5 class="modal-title fw-bold" style="font-size:15px;">Add Similar Hotels</h5>
-          <button type="button" class="btn-close" (click)="closeSimilarHotelsModal()"></button>
-        </div>
-
-        <div class="modal-body px-4 py-3" style="max-height:75vh; overflow-y:auto;">
-
-          <!-- Source hotel summary bar -->
-          <div class="border rounded px-4 py-3 mb-4" style="background:#f8f9fa;">
-            <div class="row g-3">
-              <div class="col-sm-3">
-                <div class="text-muted small">Nights</div>
-                <div class="fw-semibold small">{{ similarHotelSourceRow.SelectedNightsDisplay }}</div>
-              </div>
-              <div class="col-sm-3">
-                <div class="text-muted small">Hotel Name</div>
-                <div class="fw-semibold small">{{ similarHotelSourceRow.HotelName || '—' }}</div>
-                @if (similarHotelSourceRow.LocationName) {
-                  <div class="text-muted" style="font-size:11px;">
-                    {{ similarHotelSourceRow.LocationName }}
-                    @if (similarHotelSourceRow.HotelCategoryName) {
-                      • {{ similarHotelSourceRow.HotelCategoryName }}
-                    }
-                  </div>
-                }
-              </div>
-              <div class="col-sm-3">
-                <div class="text-muted small">Meal Plan</div>
-                <div class="fw-semibold small">{{ similarHotelSourceRow.MealPlan }}</div>
-              </div>
-              <div class="col-sm-3">
-                <div class="text-muted small">Rooms</div>
-                <div class="fw-semibold small">
-                  {{ similarHotelSourceRow.NoOfRooms }} × {{ similarHotelSourceRow.RoomTypeName }}
-                </div>
-                <div class="text-muted" style="font-size:11px;">
-                  {{ similarHotelSourceRow.PaxPerRoom }} Pax/room
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Similar hotel rows -->
-          @for (row of similarHotelRows; track $index; let i = $index) {
-            <div class="border rounded p-3 mb-3 bg-white">
-              <div class="row g-2 align-items-start">
-
-                <!-- Hotel Search -->
-                <div class="col-sm-3">
-                  <label class="form-label small text-muted mb-1">Hotel</label>
-                  <div style="position:relative;">
-                    <input type="text"
-                           class="form-control form-control-sm"
-                           placeholder="Type to search..."
-                           [(ngModel)]="row.HotelSearch"
-                           (ngModelChange)="onSimilarHotelSearch(row)"
-                           (focus)="onSimilarHotelSearch(row)"
-                           (blur)="onSimilarHotelBlur(row)"
-                           autocomplete="off">
-                    @if (row.HotelSearch.length > 0) {
-                      <button type="button"
-                              class="btn btn-sm p-0 border-0 bg-transparent"
-                              style="position:absolute; top:50%; right:8px;
-                                     transform:translateY(-50%); font-size:14px;
-                                     line-height:1; z-index:10; color:#999;"
-                              (mousedown)="clearSimilarHotel(row)">×</button>
-                    }
-                    @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
-                      <div class="border rounded bg-white shadow-sm"
-                           style="position:absolute; top:100%; left:0; right:0;
-                                  z-index:1080; max-height:180px; overflow-y:auto;">
-                        @for (h of row.FilteredHotels; track h.HotelId) {
-                          <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
-                               (mousedown)="selectSimilarHotel(row, h)">
-                            <div class="fw-semibold">{{ h.HotelName }}</div>
-                            <div class="text-muted" style="font-size:11px;">
-                              {{ h.LocationName }} • {{ h.HotelCategoryName }}
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                  @if (row.HotelId > 0) {
-                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
-                      {{ row.LocationName }} • {{ row.HotelCategoryName }}
+              <!-- RIGHT: Price panel (col-4) - Compact with Date column -->
+              <div class="col-sm-4">
+                <div class="border rounded p-3 bg-light h-100">
+                  <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span>Prices</span>
+                      @if (row.IsSaving) {
+                      <span class="text-muted" style="font-size:11px;">
+                        <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                      </span>
+                      }
                     </div>
+                    <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
+                      <mat-icon style="font-size:14px;">edit</mat-icon>
+                    </button>
+                  </div>
+
+                  <table class="table table-sm mb-2" style="font-size:12px;">
+                    <thead>
+                      <tr class="text-muted">
+                        <th>Night</th>
+                        <th>Date</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Loop through each night -->
+                      @for (night of row.NightNumbers; track night) {
+                      @let nightSlot = nightSlots()[night - 1];
+
+                      <!-- Rooms row -->
+                      <tr>
+                        <td class="fw-semibold text-primary">Night {{ night }}</td>
+                        <td class="text-muted small">{{ nightSlot?.DateLabel || '' }}</td>
+                        <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
+                        <td class="text-end">{{ row.NoOfRooms }}</td>
+                        <td class="text-end fw-semibold">{{ formatCurrency(row.BaseRate * row.NoOfRooms) }}</td>
+                      </tr>
+
+                      <!-- AWEB -->
+                      @if (row.AWEB > 0 && row.AwebRate > 0) {
+                      <tr>
+                        <td></td>
+                        <td class="text-muted small">AWEB</td>
+                        <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
+                        <td class="text-end">{{ row.AWEB }}</td>
+                        <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
+                      </tr>
+                      }
+
+                      <!-- CWEB -->
+                      @if (row.CWEB > 0 && row.CwebRate > 0) {
+                      <tr>
+                        <td></td>
+                        <td class="text-muted small">CWEB</td>
+                        <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
+                        <td class="text-end">{{ row.CWEB }}</td>
+                        <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
+                      </tr>
+                      }
+
+                      <!-- CNB -->
+                      @if (row.CNB > 0 && row.CnbRate > 0) {
+                      <tr>
+                        <td></td>
+                        <td class="text-muted small">CNB</td>
+                        <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
+                        <td class="text-end">{{ row.CNB }}</td>
+                        <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
+                      </tr>
+                      }
+                      }
+                    </tbody>
+                    <tfoot>
+                      <tr class="border-top">
+                        <td colspan="4" class="fw-bold">Total ({{ row.NightNumbers.length }} Nights)</td>
+                        <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  <!-- Selling price override -->
+                  @if (row.BaseRate > 0) {
+                  <div class="mt-2">
+                    <label class="form-label small text-muted mb-1">Final Price (INR) <span
+                        class="text-danger">*</span></label>
+                    <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+                      (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
+                    <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
+                  </div>
+                  }
+                </div>
+              </div>
+
+            </div>
+          </div>
+          }
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+
+            @if (getActiveHotelRows().length === 0) {
+            <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addHotelRow()">
+              <i class="bx bx-plus me-1"></i> Add Hotel
+            </button>
+            }
+
+            @if (hasSelectedNight() && getNextUnselectedNight() !== null) {
+            <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;"
+              (click)="addHotelRowForNextNight()">
+              <i class="bx bx-chevron-right me-1"></i>
+              Next Night (Night {{ getNextUnselectedNight() }})
+            </button>
+            }
+
+            @if (getActiveHotelRows().length > 0) {
+            <button class="btn btn-outline-success btn-sm" style="font-size:12px;" (click)="openSimilarHotelsModal()">
+              <i class="bx bx-copy me-1"></i>
+              Add Similar Hotels
+            </button>
+            }
+
+
+
+          </div>
+          <!-- Similar Hotels Summary List -->
+          @if (getSimilarHotelRows().length > 0) {
+          <div class="mt-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="fw-semibold small">Similar Hotels</div>
+              <button class="btn btn-link btn-sm p-0 text-primary" style="font-size:12px; text-decoration:none;"
+                (click)="openSimilarHotelsModal()">
+                <i class="bx bx-edit me-1"></i> Edit Similar Hotels
+              </button>
+            </div>
+
+            <div class="border rounded overflow-hidden">
+              @for (row of getSimilarHotelRows(); track row.QuoteHotelId) {
+              <div class="d-flex align-items-center px-3 py-2 border-bottom" style="font-size:13px; background:#fff;">
+
+                <!-- Hotel name + location -->
+                <div style="flex:2; min-width:0;">
+                  <div class="fw-semibold text-truncate">{{ row.HotelName }}</div>
+                  <div class="text-muted" style="font-size:11px;">
+                    {{ row.LocationName }}
+                    @if (row.HotelCategoryName) { • {{ row.HotelCategoryName }} }
+                    @if (row.RoomTypeName) {
+                    <span class="bx bx-tag-alt ms-1" style="font-size:10px;"></span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Room type + meal plan + pax -->
+                <div style="flex:2; min-width:0;" class="text-muted">
+                  {{ row.NoOfRooms }} {{ row.RoomTypeName }} ({{ row.PaxPerRoom }}A)
+                  <div style="font-size:11px;">{{ row.MealPlan }}</div>
+                </div>
+
+                <!-- Selling price -->
+                <div style="flex:1;" class="text-end">
+                  <span class="text-primary fw-semibold">
+                    INR {{ formatCurrency(row.SellingPrice || row.TotalPrice) }}
+                  </span>
+                </div>
+
+                <!-- Night date -->
+                <div style="flex:1;" class="text-center text-muted" style="font-size:12px;">
+                  @if (nightSlots()[row.NightNumber - 1]; as slot) {
+                  ({{ slot.DateLabel }})
                   }
                 </div>
 
-                <!-- Meal Plan -->
-                <div class="col-sm-2">
-                  <label class="form-label small text-muted mb-1">Meal Plan</label>
-                  <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
-                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
-                    <option value="CP">CP</option>
-                    <option value="MAP">MAP</option>
-                    <option value="AP">AP</option>
-                  </select>
-                </div>
-
-                <!-- Room Type -->
-                <div class="col-sm-2">
-                  <label class="form-label small text-muted mb-1">Room Type</label>
-                  <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
-                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
-                    <option [value]="0">Select room…</option>
-                    @for (rt of row.RoomTypes; track rt.RoomTypeId) {
-                      <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
-                    }
-                  </select>
-                </div>
-
                 <!-- Remove -->
-                <div class="col-auto pt-4">
-                  <button mat-icon-button color="warn"
-                          style="width:24px; height:24px; line-height:24px;"
-                          (click)="removeSimilarHotelRow(i)">
+                <div>
+                  <button mat-icon-button color="warn" style="width:24px; height:24px; line-height:24px;"
+                    (click)="removeHotelRow(row)" matTooltip="Remove">
                     <mat-icon style="font-size:14px;">close</mat-icon>
                   </button>
                 </div>
 
-                <!-- Pax row -->
-                <div class="col-12">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <div>
-                      <label class="form-label small text-muted mb-1">No. of Nights</label>
-                      <input type="text" class="form-control form-control-sm"
-                             style="width:70px; background:#f8f9fa;"
-                             [value]="row.NightNumbers.length" readonly>
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">Pax/room</label>
-                      <input type="number" class="form-control form-control-sm" style="width:70px;"
-                             [(ngModel)]="row.PaxPerRoom"
-                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
-                             min="1">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">No. of rooms</label>
-                      <input type="number" class="form-control form-control-sm" style="width:70px;"
-                             [(ngModel)]="row.NoOfRooms"
-                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
-                             min="1">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">AWEB</label>
-                      <input type="number" class="form-control form-control-sm" style="width:60px;"
-                             [(ngModel)]="row.AWEB"
-                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
-                             min="0">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">CWEB</label>
-                      <input type="number" class="form-control form-control-sm" style="width:60px;"
-                             [(ngModel)]="row.CWEB"
-                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
-                             min="0">
-                    </div>
-                    <div>
-                      <label class="form-label small text-muted mb-1">CNB</label>
-                      <input type="number" class="form-control form-control-sm" style="width:60px;"
-                             [(ngModel)]="row.CNB"
-                             (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]"
-                             min="0">
-                    </div>
-                  </div>
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+
+
+
+
+
+
+
+
+
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- SIMILAR HOTELS MODAL                                      -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          @if (showSimilarHotelsModal && similarHotelSourceRow) {
+          <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"
+            (click)="closeSimilarHotelsModal()"></div>
+          <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+              <div class="modal-content border-0 shadow-lg">
+
+                <div class="modal-header border-bottom px-4 py-3">
+                  <h5 class="modal-title fw-bold" style="font-size:15px;">Add Similar Hotels</h5>
+                  <button type="button" class="btn-close" (click)="closeSimilarHotelsModal()"></button>
                 </div>
 
-                <!-- Price Panel -->
-                <div class="col-12 mt-2">
-                  <div class="border rounded p-3 bg-light">
-                    <div class="d-flex align-items-center justify-content-between fw-semibold small mb-3">
-                      <div class="d-flex align-items-center gap-2">
-                        <span>Prices</span>
-                        @if (row.IsSaving) {
-                          <span class="text-muted" style="font-size:11px;">
-                            <i class="bx bx-loader-alt bx-spin"></i> Saving…
-                          </span>
+                <div class="modal-body px-4 py-3" style="max-height:75vh; overflow-y:auto;">
+
+                  <!-- Source hotel summary bar -->
+                  <div class="border rounded px-4 py-3 mb-4" style="background:#f8f9fa;">
+                    <div class="row g-3">
+                      <div class="col-sm-3">
+                        <div class="text-muted small">Nights</div>
+                        <div class="fw-semibold small">{{ similarHotelSourceRow.SelectedNightsDisplay }}</div>
+                      </div>
+                      <div class="col-sm-3">
+                        <div class="text-muted small">Hotel Name</div>
+                        <div class="fw-semibold small">{{ similarHotelSourceRow.HotelName || '—' }}</div>
+                        @if (similarHotelSourceRow.LocationName) {
+                        <div class="text-muted" style="font-size:11px;">
+                          {{ similarHotelSourceRow.LocationName }}
+                          @if (similarHotelSourceRow.HotelCategoryName) {
+                          • {{ similarHotelSourceRow.HotelCategoryName }}
+                          }
+                        </div>
                         }
                       </div>
-                      <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
-                        <mat-icon style="font-size:14px;">edit</mat-icon>
-                      </button>
-                    </div>
-
-                    <table class="table table-sm mb-2" style="font-size:12px;">
-                      <thead>
-                        <tr class="text-muted">
-                          <th>Night</th>
-                          <th>Date</th>
-                          <th class="text-end">Rate</th>
-                          <th class="text-end">Qty</th>
-                          <th class="text-end">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (night of row.NightNumbers; track night) {
-                          @let nightSlotData = nightSlots()[night - 1];
-                          <tr>
-                            <td class="fw-semibold text-primary">Night {{ night }}</td>
-                            <td class="text-muted small">{{ nightSlotData?.DateLabel || '' }}</td>
-                            <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
-                            <td class="text-end">{{ row.NoOfRooms }}</td>
-                            <td class="text-end fw-semibold">
-                              {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
-                            </td>
-                          </tr>
-                          @if (row.AWEB > 0 && row.AwebRate > 0) {
-                            <tr>
-                              <td></td>
-                              <td class="text-muted small">AWEB</td>
-                              <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
-                              <td class="text-end">{{ row.AWEB }}</td>
-                              <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
-                            </tr>
-                          }
-                          @if (row.CWEB > 0 && row.CwebRate > 0) {
-                            <tr>
-                              <td></td>
-                              <td class="text-muted small">CWEB</td>
-                              <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
-                              <td class="text-end">{{ row.CWEB }}</td>
-                              <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
-                            </tr>
-                          }
-                          @if (row.CNB > 0 && row.CnbRate > 0) {
-                            <tr>
-                              <td></td>
-                              <td class="text-muted small">CNB</td>
-                              <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
-                              <td class="text-end">{{ row.CNB }}</td>
-                              <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
-                            </tr>
-                          }
-                        }
-                      </tbody>
-                      <tfoot>
-                        <tr class="border-top">
-                          <td colspan="4" class="fw-bold">
-                            Total ({{ row.NightNumbers.length }} Night{{ row.NightNumbers.length !== 1 ? 's' : '' }})
-                          </td>
-                          <td class="text-end fw-bold text-primary">
-                            INR {{ formatCurrency(row.TotalPrice) }}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-
-                    @if (row.BaseRate > 0) {
-                      <div class="mt-2">
-                        <label class="form-label small text-muted mb-1">
-                          Final Price (INR) <span class="text-danger">*</span>
-                        </label>
-                        <input type="number" class="form-control form-control-sm"
-                               [(ngModel)]="row.SellingPrice"
-                               (ngModelChange)="similarHotelRows = [...similarHotelRows]">
-                        <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                          Cost: INR {{ formatCurrency(row.TotalPrice) }}
+                      <div class="col-sm-3">
+                        <div class="text-muted small">Meal Plan</div>
+                        <div class="fw-semibold small">{{ similarHotelSourceRow.MealPlan }}</div>
+                      </div>
+                      <div class="col-sm-3">
+                        <div class="text-muted small">Rooms</div>
+                        <div class="fw-semibold small">
+                          {{ similarHotelSourceRow.NoOfRooms }} × {{ similarHotelSourceRow.RoomTypeName }}
+                        </div>
+                        <div class="text-muted" style="font-size:11px;">
+                          {{ similarHotelSourceRow.PaxPerRoom }} Pax/room
                         </div>
                       </div>
-                    }
+                    </div>
                   </div>
+
+                  <!-- Similar hotel rows -->
+                  @for (row of similarHotelRows; track $index; let i = $index) {
+                  <div class="border rounded p-3 mb-3 bg-white">
+                    <div class="row g-2 align-items-start">
+
+                      <!-- Hotel Search -->
+                      <div class="col-sm-3">
+                        <label class="form-label small text-muted mb-1">Hotel</label>
+                        <div style="position:relative;">
+                          <input type="text" class="form-control form-control-sm" placeholder="Type to search..."
+                            [(ngModel)]="row.HotelSearch" (ngModelChange)="onSimilarHotelSearch(row)"
+                            (focus)="onSimilarHotelSearch(row)" (blur)="onSimilarHotelBlur(row)" autocomplete="off">
+                          @if (row.HotelSearch.length > 0) {
+                          <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
+                                     transform:translateY(-50%); font-size:14px;
+                                     line-height:1; z-index:10; color:#999;"
+                            (mousedown)="clearSimilarHotel(row)">×</button>
+                          }
+                          @if (row.ShowDropdown && row.FilteredHotels.length > 0) {
+                          <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+                                  z-index:1080; max-height:180px; overflow-y:auto;">
+                            @for (h of row.FilteredHotels; track h.HotelId) {
+                            <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                              (mousedown)="selectSimilarHotel(row, h)">
+                              <div class="fw-semibold">{{ h.HotelName }}</div>
+                              <div class="text-muted" style="font-size:11px;">
+                                {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                              </div>
+                            </div>
+                            }
+                          </div>
+                          }
+                        </div>
+                        @if (row.HotelId > 0) {
+                        <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                          {{ row.LocationName }} • {{ row.HotelCategoryName }}
+                        </div>
+                        }
+                      </div>
+
+                      <!-- Meal Plan -->
+                      <div class="col-sm-2">
+                        <label class="form-label small text-muted mb-1">Meal Plan</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
+                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                          <option value="CP">CP</option>
+                          <option value="MAP">MAP</option>
+                          <option value="AP">AP</option>
+                        </select>
+                      </div>
+
+                      <!-- Room Type -->
+                      <div class="col-sm-2">
+                        <label class="form-label small text-muted mb-1">Room Type</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
+                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                          <option [value]="0">Select room…</option>
+                          @for (rt of row.RoomTypes; track rt.RoomTypeId) {
+                          <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <!-- Remove -->
+                      <div class="col-auto pt-4">
+                        <button mat-icon-button color="warn" style="width:24px; height:24px; line-height:24px;"
+                          (click)="removeSimilarHotelRow(i)">
+                          <mat-icon style="font-size:14px;">close</mat-icon>
+                        </button>
+                      </div>
+
+                      <!-- Pax row -->
+                      <div class="col-12">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                          <div>
+                            <label class="form-label small text-muted mb-1">No. of Nights</label>
+                            <input type="text" class="form-control form-control-sm"
+                              style="width:70px; background:#f8f9fa;" [value]="row.NightNumbers.length" readonly>
+                          </div>
+                          <div>
+                            <label class="form-label small text-muted mb-1">Pax/room</label>
+                            <input type="number" class="form-control form-control-sm" style="width:70px;"
+                              [(ngModel)]="row.PaxPerRoom"
+                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="1">
+                          </div>
+                          <div>
+                            <label class="form-label small text-muted mb-1">No. of rooms</label>
+                            <input type="number" class="form-control form-control-sm" style="width:70px;"
+                              [(ngModel)]="row.NoOfRooms"
+                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="1">
+                          </div>
+                          <div>
+                            <label class="form-label small text-muted mb-1">AWEB</label>
+                            <input type="number" class="form-control form-control-sm" style="width:60px;"
+                              [(ngModel)]="row.AWEB"
+                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                          </div>
+                          <div>
+                            <label class="form-label small text-muted mb-1">CWEB</label>
+                            <input type="number" class="form-control form-control-sm" style="width:60px;"
+                              [(ngModel)]="row.CWEB"
+                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                          </div>
+                          <div>
+                            <label class="form-label small text-muted mb-1">CNB</label>
+                            <input type="number" class="form-control form-control-sm" style="width:60px;"
+                              [(ngModel)]="row.CNB"
+                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Price Panel -->
+                      <div class="col-12 mt-2">
+                        <div class="border rounded p-3 bg-light">
+                          <div class="d-flex align-items-center justify-content-between fw-semibold small mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                              <span>Prices</span>
+                              @if (row.IsSaving) {
+                              <span class="text-muted" style="font-size:11px;">
+                                <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                              </span>
+                              }
+                            </div>
+                            <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
+                              <mat-icon style="font-size:14px;">edit</mat-icon>
+                            </button>
+                          </div>
+
+                          <table class="table table-sm mb-2" style="font-size:12px;">
+                            <thead>
+                              <tr class="text-muted">
+                                <th>Night</th>
+                                <th>Date</th>
+                                <th class="text-end">Rate</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (night of row.NightNumbers; track night) {
+                              @let nightSlotData = nightSlots()[night - 1];
+                              <tr>
+                                <td class="fw-semibold text-primary">Night {{ night }}</td>
+                                <td class="text-muted small">{{ nightSlotData?.DateLabel || '' }}</td>
+                                <td class="text-end">{{ formatCurrency(row.BaseRate) }}</td>
+                                <td class="text-end">{{ row.NoOfRooms }}</td>
+                                <td class="text-end fw-semibold">
+                                  {{ formatCurrency(row.BaseRate * row.NoOfRooms) }}
+                                </td>
+                              </tr>
+                              @if (row.AWEB > 0 && row.AwebRate > 0) {
+                              <tr>
+                                <td></td>
+                                <td class="text-muted small">AWEB</td>
+                                <td class="text-end">{{ formatCurrency(row.AwebRate) }}</td>
+                                <td class="text-end">{{ row.AWEB }}</td>
+                                <td class="text-end">{{ formatCurrency(row.AwebRate * row.AWEB) }}</td>
+                              </tr>
+                              }
+                              @if (row.CWEB > 0 && row.CwebRate > 0) {
+                              <tr>
+                                <td></td>
+                                <td class="text-muted small">CWEB</td>
+                                <td class="text-end">{{ formatCurrency(row.CwebRate) }}</td>
+                                <td class="text-end">{{ row.CWEB }}</td>
+                                <td class="text-end">{{ formatCurrency(row.CwebRate * row.CWEB) }}</td>
+                              </tr>
+                              }
+                              @if (row.CNB > 0 && row.CnbRate > 0) {
+                              <tr>
+                                <td></td>
+                                <td class="text-muted small">CNB</td>
+                                <td class="text-end">{{ formatCurrency(row.CnbRate) }}</td>
+                                <td class="text-end">{{ row.CNB }}</td>
+                                <td class="text-end">{{ formatCurrency(row.CnbRate * row.CNB) }}</td>
+                              </tr>
+                              }
+                              }
+                            </tbody>
+                            <tfoot>
+                              <tr class="border-top">
+                                <td colspan="4" class="fw-bold">
+                                  Total ({{ row.NightNumbers.length }} Night{{ row.NightNumbers.length !== 1 ? 's' : ''
+                                  }})
+                                </td>
+                                <td class="text-end fw-bold text-primary">
+                                  INR {{ formatCurrency(row.TotalPrice) }}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+
+                          @if (row.BaseRate > 0) {
+                          <div class="mt-2">
+                            <label class="form-label small text-muted mb-1">
+                              Final Price (INR) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+                              (ngModelChange)="similarHotelRows = [...similarHotelRows]">
+                            <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                              Cost: INR {{ formatCurrency(row.TotalPrice) }}
+                            </div>
+                          </div>
+                          }
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                  }
+
+                  <button class="btn btn-outline-primary btn-sm mt-1" style="font-size:12px;"
+                    (click)="addSimilarHotelRow()">
+                    <i class="bx bx-plus me-1"></i> Add More Hotel
+                  </button>
+
+                </div>
+
+                <div class="modal-footer border-top px-4 py-3">
+                  <button class="btn btn-outline-secondary btn-sm px-3"
+                    (click)="closeSimilarHotelsModal()">Cancel</button>
+                  <button class="btn btn-primary btn-sm px-4" (click)="saveSimilarHotels()">Save</button>
                 </div>
 
               </div>
             </div>
+          </div>
           }
 
-          <button class="btn btn-outline-primary btn-sm mt-1" style="font-size:12px;"
-                  (click)="addSimilarHotelRow()">
-            <i class="bx bx-plus me-1"></i> Add More Hotel
-          </button>
-
-        </div>
-
-        <div class="modal-footer border-top px-4 py-3">
-          <button class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closeSimilarHotelsModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm px-4"
-                  (click)="saveSimilarHotels()">Save</button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-}
 
 
 
@@ -834,11 +791,10 @@
 
 
 
+          <div class="text-muted small fst-italic mt-2">
+            No hotels added. Click Add Hotel and select nights.
+          </div>
 
-            <div class="text-muted small fst-italic mt-2">
-              No hotels added. Click Add Hotel and select nights.
-            </div>
-          
 
           <!-- Hotel total -->
           <div class="d-flex justify-content-end mt-2">
@@ -847,238 +803,200 @@
             </div>
           </div>
         </div>
-      </div>  
+      </div>
 
 
       <!-- ═══════════════════════════════════════════════════ -->
-<!-- SPECIAL INCLUSIONS SECTION                          -->
-<!-- ═══════════════════════════════════════════════════ -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body">
-    <div class="d-flex align-items-start gap-3 mb-3">
-      <div class="bg-warning rounded-circle d-flex align-items-center
-                  justify-content-center text-white flex-shrink-0"
-           style="width:40px; height:40px;">
-        <i class="bx bx-star fs-5"></i>
-      </div>
-      <div>
-        <div class="fw-bold fs-6">Any Special Inclusions in Hotels</div>
-        <div class="text-muted small">
-          Add services and select multiple nights for each service.
-        </div>
-      </div>
-    </div>
-
-    <!-- All inclusion rows (no grouping by night) -->
-    @for (row of specialInclusionRows(); track row.QuoteSpecialInclusionId; let idx = $index) {
-      <div class="border rounded p-3 mb-3 bg-white position-relative">
-
-        <!-- Remove button — top right -->
-        <button mat-icon-button color="warn"
-                class="position-absolute"
-                style="top:4px; right:4px; width:24px; height:24px; line-height:24px;"
-                (click)="removeSpecialInclusionRow(row)"
-                matTooltip="Remove">
-          <mat-icon style="font-size:14px;">close</mat-icon>
-        </button>
-
-        <div class="row g-2 align-items-start">
-
-          <!-- Service -->
-          <div class="col-sm-3">
-            <label class="form-label small text-muted mb-1">Service</label>
-            <div style="position:relative;">
-              <input type="text"
-                     class="form-control form-control-sm"
-                     placeholder="Search service…"
-                     [(ngModel)]="row.ServiceSearch"
-                     (ngModelChange)="onServiceSearch(row)"
-                     (focus)="onServiceSearch(row)"
-                     (blur)="onServiceBlur(row)"
-                     autocomplete="off">
-
-              @if (row.ServiceSearch.length > 0) {
-                <button type="button"
-                        class="btn btn-sm p-0 border-0 bg-transparent"
-                        style="position:absolute; top:50%; right:8px;
-                               transform:translateY(-50%); font-size:14px;
-                               line-height:1; z-index:10; color:#999;"
-                        (mousedown)="clearService(row)">
-                  ×
-                </button>
-              }
-
-              @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
-                <div class="border rounded bg-white shadow-sm"
-                     style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; max-height:180px; overflow-y:auto;">
-                  @for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
-                    <div class="px-3 py-2"
-                         style="font-size:13px; cursor:pointer;"
-                         (mousedown)="selectService(row, svc)">
-                      <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
-                      @if (getHotelRateForService(row, svc) > 0) {
-                        <div class="text-muted" style="font-size:11px;">
-                          INR {{ getHotelRateForService(row, svc) | number }}
-                        </div>
-                      } @else {
-                        <div class="text-muted" style="font-size:11px;">
-                          No price set — enter manually
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-
-              @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
-                   && row.FilteredServices.length === 0) {
-                <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                     style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; font-size:13px;">
-                  No services found
-                </div>
-              }
+      <!-- SPECIAL INCLUSIONS SECTION                          -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="bg-warning rounded-circle d-flex align-items-center
+                  justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
+              <i class="bx bx-star fs-5"></i>
+            </div>
+            <div>
+              <div class="fw-bold fs-6">Any Special Inclusions in Hotels</div>
+              <div class="text-muted small">
+                Add services and select multiple nights for each service.
+              </div>
             </div>
           </div>
 
-          <!-- Hotel / Manual Location -->
-          <div class="col-sm-3">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <label class="form-label small text-muted mb-0">Hotel</label>
-              <button type="button"
-                      class="btn btn-sm p-0 border-0 bg-transparent"
-                      style="font-size:11px; color:#666; text-decoration:underline;"
-                      (click)="toggleManualLocation(row)">
-                @if (row.UseManualLocation) { Select Hotel }
-                @else { Enter Location }
-              </button>
-            </div>
+          <!-- All inclusion rows (no grouping by night) -->
+          @for (row of specialInclusionRows(); track row.QuoteSpecialInclusionId; let idx = $index) {
+          <div class="border rounded p-3 mb-3 bg-white position-relative">
 
-            @if (!row.UseManualLocation) {
-              <div style="position:relative;">
-                <input type="text"
-                       class="form-control form-control-sm"
-                       placeholder="Search hotel…"
-                       [(ngModel)]="row.HotelSearch"
-                       (ngModelChange)="onSpecialInclusionHotelSearch(row)"
-                       (focus)="onSpecialInclusionHotelSearch(row)"
-                       (blur)="onSpecialInclusionHotelBlur(row)"
-                       autocomplete="off">
+            <!-- Remove button — top right -->
+            <button mat-icon-button color="warn" class="position-absolute"
+              style="top:4px; right:4px; width:24px; height:24px; line-height:24px;"
+              (click)="removeSpecialInclusionRow(row)" matTooltip="Remove">
+              <mat-icon style="font-size:14px;">close</mat-icon>
+            </button>
 
-                @if (row.HotelSearch.length > 0) {
-                  <button type="button"
-                          class="btn btn-sm p-0 border-0 bg-transparent"
-                          style="position:absolute; top:50%; right:8px;
-                                 transform:translateY(-50%); font-size:14px;
-                                 line-height:1; z-index:10; color:#999;"
-                          (mousedown)="clearSpecialInclusionHotel(row)">
+            <div class="row g-2 align-items-start">
+
+              <!-- Service -->
+              <div class="col-sm-3">
+                <label class="form-label small text-muted mb-1">Service</label>
+                <div style="position:relative;">
+                  <input type="text" class="form-control form-control-sm" placeholder="Search service…"
+                    [(ngModel)]="row.ServiceSearch" (ngModelChange)="onServiceSearch(row)"
+                    (focus)="onServiceSearch(row)" (blur)="onServiceBlur(row)" autocomplete="off">
+
+                  @if (row.ServiceSearch.length > 0) {
+                  <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
+                               transform:translateY(-50%); font-size:14px;
+                               line-height:1; z-index:10; color:#999;" (mousedown)="clearService(row)">
                     ×
                   </button>
-                }
+                  }
 
-                @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
-                  <div class="border rounded bg-white shadow-sm"
-                       style="position:absolute; top:100%; left:0; right:0;
-                              z-index:1000; max-height:180px; overflow-y:auto;">
-                    @for (h of row.FilteredHotels; track h.HotelId) {
-                      <div class="px-3 py-2"
-                           style="font-size:13px; cursor:pointer;"
-                           (mousedown)="selectSpecialInclusionHotel(row, h)">
-                        <div class="fw-semibold">{{ h.HotelName }}</div>
-                        <div class="text-muted" style="font-size:11px;">
-                          {{ h.LocationName }} • {{ h.HotelCategoryName }}
-                        </div>
+                  @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
+                  <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; max-height:180px; overflow-y:auto;">
+                    @for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
+                    <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                      (mousedown)="selectService(row, svc)">
+                      <div class="fw-semibold">{{ svc.SpecialInclusionTypeName }}</div>
+                      @if (getHotelRateForService(row, svc) > 0) {
+                      <div class="text-muted" style="font-size:11px;">
+                        INR {{ getHotelRateForService(row, svc) | number }}
                       </div>
+                      } @else {
+                      <div class="text-muted" style="font-size:11px;">
+                        No price set — enter manually
+                      </div>
+                      }
+                    </div>
                     }
                   </div>
-                }
+                  }
 
-                @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
-                     && row.FilteredHotels.length === 0) {
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                       style="position:absolute; top:100%; left:0; right:0;
+                  @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
+                  && row.FilteredServices.length === 0) {
+                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; font-size:13px;">
+                    No services found
+                  </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Hotel / Manual Location -->
+              <div class="col-sm-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <label class="form-label small text-muted mb-0">Hotel</label>
+                  <button type="button" class="btn btn-sm p-0 border-0 bg-transparent"
+                    style="font-size:11px; color:#666; text-decoration:underline;" (click)="toggleManualLocation(row)">
+                    @if (row.UseManualLocation) { Select Hotel }
+                    @else { Enter Location }
+                  </button>
+                </div>
+
+                @if (!row.UseManualLocation) {
+                <div style="position:relative;">
+                  <input type="text" class="form-control form-control-sm" placeholder="Search hotel…"
+                    [(ngModel)]="row.HotelSearch" (ngModelChange)="onSpecialInclusionHotelSearch(row)"
+                    (focus)="onSpecialInclusionHotelSearch(row)" (blur)="onSpecialInclusionHotelBlur(row)"
+                    autocomplete="off">
+
+                  @if (row.HotelSearch.length > 0) {
+                  <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
+                                 transform:translateY(-50%); font-size:14px;
+                                 line-height:1; z-index:10; color:#999;" (mousedown)="clearSpecialInclusionHotel(row)">
+                    ×
+                  </button>
+                  }
+
+                  @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
+                  <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; max-height:180px; overflow-y:auto;">
+                    @for (h of row.FilteredHotels; track h.HotelId) {
+                    <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                      (mousedown)="selectSpecialInclusionHotel(row, h)">
+                      <div class="fw-semibold">{{ h.HotelName }}</div>
+                      <div class="text-muted" style="font-size:11px;">
+                        {{ h.LocationName }} • {{ h.HotelCategoryName }}
+                      </div>
+                    </div>
+                    }
+                  </div>
+                  }
+
+                  @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
+                  && row.FilteredHotels.length === 0) {
+                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
                               z-index:1000; font-size:13px;">
                     No hotels found
                   </div>
-                }
-              </div>
-            } @else {
-              <input type="text"
-                     class="form-control form-control-sm"
-                     placeholder="Enter location name…"
-                     [(ngModel)]="row.ManualLocationName"
-                     (ngModelChange)="onManualLocationChange(row)"
-                     autocomplete="off">
-              <div class="text-muted" style="font-size:10px; margin-top:2px; font-style:italic;">
-                Manual entry
-              </div>
-            }
-          </div>
-
-          <!-- Nights (Multi-select) -->
-          <div class="col-sm-2">
-            <label class="form-label small text-muted mb-1">Nights</label>
-            <div style="position:relative;">
-              <button type="button"
-                      class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-                      style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
-                      (click)="toggleNightDropdown(row)"
-                      (blur)="onNightDropdownBlur(row)">
-                <span style="font-size:13px;">
-                  @if (row.SelectedNightsDisplay) {
-                    {{ row.SelectedNightsDisplay }}
-                  } @else {
-                    <span class="text-muted">Select nights…</span>
-                  }
-                </span>
-                <i class="bx bx-chevron-down" style="font-size:16px;"></i>
-              </button>
-
-              @if (row.ShowNightDropdown) {
-                <div class="border rounded bg-white shadow-sm"
-                     style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; max-height:200px; overflow-y:auto;">
-                  @for (slot of nightSlots(); track slot.NightNumber) {
-                    <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
-                           style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
-                      <input type="checkbox"
-                             [checked]="row.NightNumbers.includes(slot.NightNumber)"
-                             (change)="onNightToggle(row, slot.NightNumber)"
-                             style="cursor:pointer;">
-                      <span>Night {{ slot.NightNumber }} — {{ slot.DateLabel }}</span>
-                    </label>
                   }
                 </div>
-              }
-            </div>
-            @if (row.NightNumbers.length > 0) {
-              <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                {{ row.NightNumbers.length }} night(s)
+                } @else {
+                <input type="text" class="form-control form-control-sm" placeholder="Enter location name…"
+                  [(ngModel)]="row.ManualLocationName" (ngModelChange)="onManualLocationChange(row)" autocomplete="off">
+                <div class="text-muted" style="font-size:10px; margin-top:2px; font-style:italic;">
+                  Manual entry
+                </div>
+                }
               </div>
-            }
-          </div>
 
-          <!-- Total Price -->
-          <div class="col-sm-2">
-            <label class="form-label small text-muted mb-1">Price (INR)</label>
-            <input type="number" class="form-control form-control-sm"
-                   [(ngModel)]="row.TotalPrice"
-                   (ngModelChange)="markDirty()"
-                   placeholder="e.g. 3000">
-          </div>
+              <!-- Nights (Multi-select) -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Nights</label>
+                <div style="position:relative;">
+                  <button type="button"
+                    class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                    style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+                    (click)="toggleNightDropdown(row)" (blur)="onNightDropdownBlur(row)">
+                    <span style="font-size:13px;">
+                      @if (row.SelectedNightsDisplay) {
+                      {{ row.SelectedNightsDisplay }}
+                      } @else {
+                      <span class="text-muted">Select nights…</span>
+                      }
+                    </span>
+                    <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+                  </button>
 
-          <!-- Comments -->
-          <div class="col-sm-2">
-            <label class="form-label small text-muted mb-1">Comments</label>
-            <input type="text" class="form-control form-control-sm"
-                   [(ngModel)]="row.Comments"
-                   (ngModelChange)="markDirty()"
-                   placeholder="Any comments…">
-          </div>
+                  @if (row.ShowNightDropdown) {
+                  <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+                            z-index:1000; max-height:200px; overflow-y:auto;">
+                    @for (slot of nightSlots(); track slot.NightNumber) {
+                    <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
+                      style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+                      <input type="checkbox" [checked]="row.NightNumbers.includes(slot.NightNumber)"
+                        (change)="onNightToggle(row, slot.NightNumber)" style="cursor:pointer;">
+                      <span>Night {{ slot.NightNumber }} — {{ slot.DateLabel }}</span>
+                    </label>
+                    }
+                  </div>
+                  }
+                </div>
+                @if (row.NightNumbers.length > 0) {
+                <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                  {{ row.NightNumbers.length }} night(s)
+                </div>
+                }
+              </div>
 
-          <!-- Save button -->
-          <!-- <div class="col-12 d-flex justify-content-end">
+              <!-- Total Price -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Price (INR)</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="row.TotalPrice"
+                  (ngModelChange)="markDirty()" placeholder="e.g. 3000">
+              </div>
+
+              <!-- Comments -->
+              <div class="col-sm-2">
+                <label class="form-label small text-muted mb-1">Comments</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="row.Comments"
+                  (ngModelChange)="markDirty()" placeholder="Any comments…">
+              </div>
+
+              <!-- Save button -->
+              <!-- <div class="col-12 d-flex justify-content-end">
             <button class="btn btn-outline-primary btn-sm"
                     style="font-size:12px;"
                     [disabled]="row.IsSaving || row.NightNumbers.length === 0"
@@ -1092,588 +1010,532 @@
             </button>
           </div> -->
 
+            </div>
+          </div>
+          }
+
+          <!-- ── Add Service button ── -->
+          @if (specialInclusionRows().length === 0 || hotelRows().length > 0) {
+          <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;" (click)="addSpecialInclusionRow()">
+            <i class="bx bx-plus me-1"></i> Add Service
+          </button>
+          }
+
+          @if (specialInclusionRows().length === 0) {
+          <div class="text-muted small fst-italic">
+            No special inclusions added. Add hotels first, then add services here.
+          </div>
+          }
+
         </div>
       </div>
-    }
-
-    <!-- ── Add Service button ── -->
-    @if (specialInclusionRows().length === 0 || hotelRows().length > 0) {
-      <button class="btn btn-outline-secondary btn-sm"
-              style="font-size:12px;"
-              (click)="addSpecialInclusionRow()">
-        <i class="bx bx-plus me-1"></i> Add Service
-      </button>
-    }
-
-    @if (specialInclusionRows().length === 0) {
-      <div class="text-muted small fst-italic">
-        No special inclusions added. Add hotels first, then add services here.
-      </div>
-    }
-
-  </div>
-</div>
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
       <!-- ═══════════════════════════════════════════════════ -->
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- TRANSPORTS & ACTIVITIES SECTION                      -->
-<!-- ═══════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
+      <!-- ═══════════════════════════════════════════════════ -->
 
-<div class="bg-white border-bottom px-4 py-3">
-  <div class="card-body">
-    <div class="d-flex align-items-start gap-3 mb-3">
-      <div class="bg-primary rounded-circle d-flex align-items-center
-                  justify-content-center text-white flex-shrink-0"
-           style="width:40px; height:40px;">
-        <i class="bx bx-car fs-5"></i>
-      </div>
-      <div>
-        <div class="fw-bold fs-6">Transports and Activities</div>
-        <div class="text-muted small">
-          Please add the transportation services and Activities (if included) details and the selling cost price for each service.
-        </div>
-        <div class="text-muted small mt-1">
-          <i class="bx bx-info-circle" style="font-size:13px;"></i>
-          Tip: To speed up the process of adding multiple services, use Next Day or Duplicate actions.
-        </div>
-      </div>
-    </div>
+      <div class="bg-white border-bottom px-4 py-3">
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="bg-primary rounded-circle d-flex align-items-center
+                  justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
+              <i class="bx bx-car fs-5"></i>
+            </div>
+            <div>
+              <div class="fw-bold fs-6">Transports and Activities</div>
+              <div class="text-muted small">
+                Please add the transportation services and Activities (if included) details and the selling cost price
+                for each service.
+              </div>
+              <div class="text-muted small mt-1">
+                <i class="bx bx-info-circle" style="font-size:13px;"></i>
+                Tip: To speed up the process of adding multiple services, use Next Day or Duplicate actions.
+              </div>
+            </div>
+          </div>
 
-    <!-- Same Cab Type for All - Global setting -->
-    <div class="mb-4 p-2 border rounded d-flex align-items-center gap-3"
-         style="background:#f0f7ff;">
-      <div class="form-check mb-0">
-        <input class="form-check-input" type="checkbox" id="sameCab"
-               [(ngModel)]="sameCabForAll"
-               (change)="onSameCabChange()">
-        <label class="form-check-label fw-medium" for="sameCab"
-               style="font-size:13px;">
-          Same Cab Type for All
-        </label>
-      </div>
-      
-      @if (sameCabForAll && selectedCabTypes.length > 0) {
-        <div class="d-flex align-items-center gap-2">
-          <span style="font-size:13px;" class="text-primary fw-semibold">
-            {{ getSelectedCabTypesDisplay() }}
-          </span>
-          <button type="button"
-                  class="btn btn-link p-0 border-0 bg-transparent"
-                  style="font-size:12px; color:#0d6efd; cursor:pointer;"
-                  (click)="openCabTypesModal()">
-            <i class="bx bx-edit" style="font-size:14px;"></i>
-          </button>
-        </div>
-      }
-      
-      @if (sameCabForAll && selectedCabTypes.length === 0) {
-        <button type="button"
-                class="btn btn-link p-0 border-0 text-primary"
-                style="font-size:12px; text-decoration:none;"
-                (click)="openCabTypesModal()">
-          <i class="bx bx-plus me-1"></i> Select Cab Types
-        </button>
-      }
-    </div>
+          <!-- Same Cab Type for All - Global setting -->
+          <div class="mb-4 p-2 border rounded d-flex align-items-center gap-3" style="background:#f0f7ff;">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="sameCab" [(ngModel)]="sameCabForAll"
+                (change)="onSameCabChange()">
+              <label class="form-check-label fw-medium" for="sameCab" style="font-size:13px;">
+                Same Cab Type for All
+              </label>
+            </div>
 
-    <!-- INDEPENDENT TRANSPORT ROWS (like Hotels) -->
-    @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
-      <div class="border rounded mb-3 p-3 bg-white">
-        <div class="row g-2 align-items-start">
+            @if (sameCabForAll && selectedCabTypes.length > 0) {
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:13px;" class="text-primary fw-semibold">
+                {{ getSelectedCabTypesDisplay() }}
+              </span>
+              <button type="button" class="btn btn-link p-0 border-0 bg-transparent"
+                style="font-size:12px; color:#0d6efd; cursor:pointer;" (click)="openCabTypesModal()">
+                <i class="bx bx-edit" style="font-size:14px;"></i>
+              </button>
+            </div>
+            }
 
-          <!-- LEFT: Transport config (col-8) -->
-          <div class="col-sm-8">
+            @if (sameCabForAll && selectedCabTypes.length === 0) {
+            <button type="button" class="btn btn-link p-0 border-0 text-primary"
+              style="font-size:12px; text-decoration:none;" (click)="openCabTypesModal()">
+              <i class="bx bx-plus me-1"></i> Select Cab Types
+            </button>
+            }
+          </div>
 
-            <!-- Days / Location / Service / Vehicle / Remove -->
-              <div class="row g-3 mb-4 align-items-start">
-              <!-- Days (Multi-select) -->
-              <div class="col-sm-2">
-                <label class="form-label small text-muted mb-1">Days</label>
-                <div style="position:relative;">
-                  <button type="button"
-                          class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
-                          style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
-                          (click)="toggleTransportDayDropdown(row)">
-                    <span style="font-size:13px;">
-                      @if (row.SelectedDaysDisplay) {
-                        {{ row.SelectedDaysDisplay }}
-                      } @else {
-                        <span class="text-muted">Select days</span>
-                      }
-                    </span>
-                    <i class="bx bx-chevron-down" style="font-size:16px;"></i>
-                  </button>
+          <!-- INDEPENDENT TRANSPORT ROWS (like Hotels) -->
+          @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
+          <div class="border rounded mb-3 p-3 bg-white">
+            <div class="row g-2 align-items-start">
 
-                  @if (row.ShowDayDropdown) {
-                    <!-- Backdrop -->
-                    <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
-                         (click)="closeTransportDayDropdown(row)"></div>
+              <!-- LEFT: Transport config (col-8) -->
+              <div class="col-sm-8">
 
-                    <!-- Dropdown -->
-                    <div class="border rounded bg-white shadow-sm"
-                         style="position:absolute; top:100%; left:0; right:0;
+                <!-- Days / Location / Service / Vehicle / Remove -->
+                <div class="row g-3 mb-4 align-items-start">
+                  <!-- Days (Multi-select) -->
+                  <div class="col-sm-2">
+                    <label class="form-label small text-muted mb-1">Days</label>
+                    <div style="position:relative;">
+                      <button type="button"
+                        class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
+                        style="background:#fff; border:1px solid #dee2e6; padding:0.25rem 0.5rem;"
+                        (click)="toggleTransportDayDropdown(row)">
+                        <span style="font-size:13px;">
+                          @if (row.SelectedDaysDisplay) {
+                          {{ row.SelectedDaysDisplay }}
+                          } @else {
+                          <span class="text-muted">Select days</span>
+                          }
+                        </span>
+                        <i class="bx bx-chevron-down" style="font-size:16px;"></i>
+                      </button>
+
+                      @if (row.ShowDayDropdown) {
+                      <!-- Backdrop -->
+                      <div style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;"
+                        (click)="closeTransportDayDropdown(row)"></div>
+
+                      <!-- Dropdown -->
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
                                 z-index:1000; max-height:200px; overflow-y:auto;">
-                      @for (slot of daySlots(); track slot.DayNumber) {
+                        @for (slot of daySlots(); track slot.DayNumber) {
                         <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
-                               style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
-                          <input type="checkbox"
-                                 [checked]="row.DayNumbers.includes(slot.DayNumber)"
-                                 (change)="onTransportDayToggle(row, slot.DayNumber)"
-                                 style="cursor:pointer;">
+                          style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
+                          <input type="checkbox" [checked]="row.DayNumbers.includes(slot.DayNumber)"
+                            (change)="onTransportDayToggle(row, slot.DayNumber)" style="cursor:pointer;">
                           <span>Day {{ slot.DayNumber }} — {{ slot.DateLabel }}</span>
                         </label>
+                        }
+                      </div>
                       }
                     </div>
-                  }
-                </div>
-              </div>
+                  </div>
 
-              <!-- Location -->
-              <div class="col-sm-5">
-                <label class="form-label small text-muted mb-1">Location</label>
-                <div style="position:relative;">
-                  <input type="text"
-                         class="form-control form-control-sm"
-                         placeholder="Search location…"
-                         [(ngModel)]="row.LocationSearch"
-                         (ngModelChange)="onTransportLocationSearch(row)"
-                         (focus)="onTransportLocationSearch(row)"
-                         (blur)="onTransportLocationBlur(row)"
-                         autocomplete="off">
+                  <!-- Location -->
+                  <div class="col-sm-5">
+                    <label class="form-label small text-muted mb-1">Location</label>
+                    <div style="position:relative;">
+                      <input type="text" class="form-control form-control-sm" placeholder="Search location…"
+                        [(ngModel)]="row.LocationSearch" (ngModelChange)="onTransportLocationSearch(row)"
+                        (focus)="onTransportLocationSearch(row)" (blur)="onTransportLocationBlur(row)"
+                        autocomplete="off">
 
-                  @if(row.LocationSearch.length > 0) {
-                    <button type="button"
-                            class="btn btn-sm p-0 border-0 bg-transparent"
-                            style="position:absolute; top:50%; right:8px;
+                      @if(row.LocationSearch.length > 0) {
+                      <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
                                    transform:translateY(-50%); font-size:14px;
-                                   z-index:10; color:#999;"
-                            (mousedown)="clearTransportLocationRow(row)">
-                      ×
-                    </button>
-                  }
+                                   z-index:10; color:#999;" (mousedown)="clearTransportLocationRow(row)">
+                        ×
+                      </button>
+                      }
 
-                  @if (row.ShowLocationDropdown && row.FilteredLocations.length > 0) {
-                    <div class="border rounded bg-white shadow-sm"
-                         style="position:absolute; top:100%; left:0; right:0;
+                      @if (row.ShowLocationDropdown && row.FilteredLocations.length > 0) {
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
                                 z-index:1000; max-height:200px; overflow-y:auto;">
-                      @for (loc of row.FilteredLocations; track loc.LocationId) {
-                        <div class="px-3 py-2"
-                             style="font-size:13px; cursor:pointer;"
-                             (mousedown)="selectTransportLocationRow(row, loc)">
+                        @for (loc of row.FilteredLocations; track loc.LocationId) {
+                        <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                          (mousedown)="selectTransportLocationRow(row, loc)">
                           <div class="fw-semibold">{{ loc.LocationName }}</div>
                         </div>
+                        }
+                      </div>
+                      }
+
+                      @if (row.ShowLocationDropdown && row.LocationSearch.length > 0
+                      && row.FilteredLocations.length === 0) {
+                      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; font-size:13px;">
+                        No locations found
+                      </div>
                       }
                     </div>
-                  }
-
-                  @if (row.ShowLocationDropdown && row.LocationSearch.length > 0
-                       && row.FilteredLocations.length === 0) {
-                    <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                         style="position:absolute; top:100%; left:0; right:0;
-                                z-index:1000; font-size:13px;">
-                      No locations found
+                    @if (row.LocationId > 0) {
+                    <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                      {{ row.LocationName }}
                     </div>
-                  }
-                </div>
-                @if (row.LocationId > 0) {
-                  <div class="text-muted" style="font-size:11px; margin-top:2px;">
-                    {{ row.LocationName }}
-                  </div>
-                }
-              
+                    }
 
-              <!-- Service -->
-                <label class="form-label small text-muted mb-1">Service</label>
-                <div style="position:relative;">
-                  <input type="text"
-                         class="form-control form-control-sm"
-                         placeholder="Search service…"
-                         [(ngModel)]="row.ServiceSearch"
-                         (ngModelChange)="onTransportServiceSearch(row)"
-                         (focus)="onTransportServiceSearch(row)"
-                         (blur)="onTransportServiceBlur(row)"
-                         autocomplete="off"
-                         [disabled]="!row.LocationId">
 
-                  @if(row.ServiceSearch.length > 0) {
-                    <button type="button"
-                            class="btn btn-sm p-0 border-0 bg-transparent"
-                            style="position:absolute; top:50%; right:8px;
+                    <!-- Service -->
+                    <label class="form-label small text-muted mb-1">Service</label>
+                    <div style="position:relative;">
+                      <input type="text" class="form-control form-control-sm" placeholder="Search service…"
+                        [(ngModel)]="row.ServiceSearch" (ngModelChange)="onTransportServiceSearch(row)"
+                        (focus)="onTransportServiceSearch(row)" (blur)="onTransportServiceBlur(row)" autocomplete="off"
+                        [disabled]="!row.LocationId">
+
+                      @if(row.ServiceSearch.length > 0) {
+                      <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
                                    transform:translateY(-50%); font-size:14px;
-                                   z-index:10; color:#999;"
-                            (mousedown)="clearTransportServiceRow(row)">
-                      ×
-                    </button>
-                  }
+                                   z-index:10; color:#999;" (mousedown)="clearTransportServiceRow(row)">
+                        ×
+                      </button>
+                      }
 
-                  @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
-                    <div class="border rounded bg-white shadow-sm"
-                         style="position:absolute; top:100%; left:0; right:0;
+                      @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
                                 z-index:1000; max-height:200px; overflow-y:auto;">
-                      @for (svc of row.FilteredServices; track svc.IteneraryServiceId) {
-                        <div class="px-3 py-2"
-                             style="font-size:13px; cursor:pointer;"
-                             (mousedown)="selectTransportServiceRow(row, svc)">
+                        @for (svc of row.FilteredServices; track svc.IteneraryServiceId) {
+                        <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                          (mousedown)="selectTransportServiceRow(row, svc)">
                           <div class="fw-semibold">{{ svc.IteneraryServiceName }}</div>
                         </div>
+                        }
+                      </div>
+                      }
+
+                      @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
+                      && row.FilteredServices.length === 0) {
+                      <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
+                                z-index:1000; font-size:13px;">
+                        No services found
+                      </div>
                       }
                     </div>
-                  }
-
-                  @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
-                       && row.FilteredServices.length === 0) {
-                    <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                         style="position:absolute; top:100%; left:0; right:0;
-                                z-index:1000; font-size:13px;">
-                      No services found
+                    @if (!row.LocationId) {
+                    <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                      Select location first
                     </div>
-                  }
-                </div>
-                @if (!row.LocationId) {
-                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                    Select location first
+                    }
                   </div>
-                }
-              </div>
 
-              <!-- Vehicle -->
-              <div class="col-sm-4">
-                <label class="form-label small text-muted mb-1">Vehicle</label>
-                <div style="position:relative;">
-                  <input type="text"
-                         class="form-control form-control-sm"
-                         placeholder="Search vehicle…"
-                         [(ngModel)]="row.VehicleSearch"
-                         (ngModelChange)="onTransportVehicleSearch(row)"
-                         (focus)="onTransportVehicleSearch(row)"
-                         (blur)="onTransportVehicleBlur(row)"
-                         autocomplete="off"
-                         [disabled]="!row.IteneraryServiceId">
+                  <!-- Vehicle -->
+                  <div class="col-sm-4">
+                    <label class="form-label small text-muted mb-1">Vehicle</label>
+                    <div style="position:relative;">
+                      <input type="text" class="form-control form-control-sm" placeholder="Search vehicle…"
+                        [(ngModel)]="row.VehicleSearch" (ngModelChange)="onTransportVehicleSearch(row)"
+                        (focus)="onTransportVehicleSearch(row)" (blur)="onTransportVehicleBlur(row)" autocomplete="off"
+                        [disabled]="!row.IteneraryServiceId">
 
-                  @if(row.VehicleSearch.length > 0) {
-                    <button type="button"
-                            class="btn btn-sm p-0 border-0 bg-transparent"
-                            style="position:absolute; top:50%; right:8px;
+                      @if(row.VehicleSearch.length > 0) {
+                      <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
                                    transform:translateY(-50%); font-size:14px;
-                                   z-index:10; color:#999;"
-                            (mousedown)="clearTransportVehicleRow(row)">
-                      ×
-                    </button>
-                  }
+                                   z-index:10; color:#999;" (mousedown)="clearTransportVehicleRow(row)">
+                        ×
+                      </button>
+                      }
 
-                  @if (row.ShowVehicleDropdown && row.FilteredVehicles.length > 0) {
-                    <div class="border rounded bg-white shadow-sm"
-                         style="position:absolute; top:100%; left:0; right:0;
+                      @if (row.ShowVehicleDropdown && row.FilteredVehicles.length > 0) {
+                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
                                 z-index:1000; max-height:200px; overflow-y:auto;">
-                      @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
-                        <div class="px-3 py-2"
-                             style="font-size:13px; cursor:pointer;"
-                             (mousedown)="selectTransportVehicleRow(row, vt)">
+                        @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
+                        <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                          (mousedown)="selectTransportVehicleRow(row, vt)">
                           {{ vt.VehicleTypeName }}
                         </div>
+                        }
+                      </div>
                       }
                     </div>
-                  }
-                </div>
-                @if (!row.IteneraryServiceId) {
-                  <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                    Select service first
+                    @if (!row.IteneraryServiceId) {
+                    <div class="text-muted" style="font-size:10px; margin-top:2px;">
+                      Select service first
+                    </div>
+                    }
+                    <div>
+                      <label class="form-label small text-muted mb-1">Qty</label>
+                      <input type="number" class="form-control form-control-sm" style="width:70px;"
+                        [(ngModel)]="row.Qty"
+                        (ngModelChange)="markDirty(); recalculateTransportPrice(row); transportRows.update(r=>[...r])"
+                        min="1">
+                    </div>
                   </div>
-                }
-                              <div>
-                <label class="form-label small text-muted mb-1">Qty</label>
-                <input type="number" class="form-control form-control-sm" style="width:70px;"
-                       [(ngModel)]="row.Qty"
-                       (ngModelChange)="markDirty(); recalculateTransportPrice(row); transportRows.update(r=>[...r])" min="1">
+
+
+                  <!-- Remove -->
+                  <div class="col-sm-1 pt-4 text-end">
+                    <button mat-icon-button color="warn" (click)="removeTransportRow(row)" matTooltip="Remove">
+                      <mat-icon style="font-size:16px;">close</mat-icon>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-             
 
-              <!-- Remove -->
-               <div class="col-sm-1 pt-4 text-end">
-                <button mat-icon-button color="warn" (click)="removeTransportRow(row)" matTooltip="Remove">
-                  <mat-icon style="font-size:16px;">close</mat-icon>
-                </button>
-              </div>
-            </div>
-             </div>
 
-    
 
-          <!-- RIGHT: Price panel (col-4) -->
-          <div class="col-sm-4">
-            <div class="border rounded p-3 bg-light h-100">
-              <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
-                <div class="d-flex align-items-center gap-2">
-                  <span>Prices</span>
-                  @if (row.IsSaving) {
-                    <span class="text-muted" style="font-size:11px;">
-                      <i class="bx bx-loader-alt bx-spin"></i> Saving…
-                    </span>
+              <!-- RIGHT: Price panel (col-4) -->
+              <div class="col-sm-4">
+                <div class="border rounded p-3 bg-light h-100">
+                  <div class="d-flex align-items-center justify-content-between fw-semibold small mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span>Prices</span>
+                      @if (row.IsSaving) {
+                      <span class="text-muted" style="font-size:11px;">
+                        <i class="bx bx-loader-alt bx-spin"></i> Saving…
+                      </span>
+                      }
+                    </div>
+                    <button mat-icon-button (click)="EditTransportPrices(row)" matTooltip="Edit prices">
+                      <mat-icon style="font-size:14px;">edit</mat-icon>
+                    </button>
+                  </div>
+
+                  <table class="table table-sm mb-2" style="font-size:12px;">
+                    <thead>
+                      <tr class="text-muted">
+                        <th>Day</th>
+                        <th>Date</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (day of row.DayNumbers; track day) {
+                      @let daySlot = daySlots()[day - 1];
+                      <tr>
+                        <td class="fw-semibold text-primary">Day {{ day }}</td>
+                        <td class="text-muted small">{{ daySlot?.DateLabel || '' }}</td>
+                        <td class="text-end">{{ formatCurrency(row.CostPrice) }}</td>
+                        <td class="text-end">{{ row.Qty }}</td>
+                        <td class="text-end fw-semibold">{{ formatCurrency(row.CostPrice * row.Qty) }}</td>
+                      </tr>
+                      }
+                    </tbody>
+                    <tfoot>
+                      <tr class="border-top">
+                        <td colspan="4" class="fw-bold">Total ({{ row.DayNumbers.length }} Day{{ row.DayNumbers.length
+                          !== 1 ? 's' : '' }})</td>
+                        <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  <!-- Selling price override -->
+                  @if (row.CostPrice > 0) {
+                  <div class="mt-2">
+                    <label class="form-label small text-muted mb-1">Final Price (INR) <span
+                        class="text-danger">*</span></label>
+                    <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
+                      (ngModelChange)="markDirty(); recalculateTransportPrice(row)" (blur)="saveTransportRow(row)">
+                    <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
+                  </div>
                   }
                 </div>
-                <button mat-icon-button (click)="EditTransportPrices(row)" matTooltip="Edit prices">
-                  <mat-icon style="font-size:14px;">edit</mat-icon>
-                </button>
               </div>
 
-              <table class="table table-sm mb-2" style="font-size:12px;">
-                <thead>
-                  <tr class="text-muted">
-                    <th>Day</th>
-                    <th>Date</th>
-                    <th class="text-end">Rate</th>
-                    <th class="text-end">Qty</th>
-                    <th class="text-end">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (day of row.DayNumbers; track day) {
-                    @let daySlot = daySlots()[day - 1];
-                    <tr>
-                      <td class="fw-semibold text-primary">Day {{ day }}</td>
-                      <td class="text-muted small">{{ daySlot?.DateLabel || '' }}</td>
-                      <td class="text-end">{{ formatCurrency(row.CostPrice) }}</td>
-                      <td class="text-end">{{ row.Qty }}</td>
-                      <td class="text-end fw-semibold">{{ formatCurrency(row.CostPrice * row.Qty) }}</td>
-                    </tr>
-                  }
-                </tbody>
-                <tfoot>
-                  <tr class="border-top">
-                    <td colspan="4" class="fw-bold">Total ({{ row.DayNumbers.length }} Day{{ row.DayNumbers.length !== 1 ? 's' : '' }})</td>
-                    <td class="text-end fw-bold text-primary">INR {{ formatCurrency(row.TotalPrice) }}</td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              <!-- Selling price override -->
-              @if (row.CostPrice > 0) {
-                <div class="mt-2">
-                  <label class="form-label small text-muted mb-1">Final Price (INR) <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
-                         (ngModelChange)="markDirty(); recalculateTransportPrice(row)" (blur)="saveTransportRow(row)">
-                  <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
-                </div>
-              }
             </div>
+          </div>
+          }
+
+          <!-- Add Buttons -->
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addTransportRow()">
+              <i class="bx bx-plus me-1"></i> Add Transport
+            </button>
+
+            <button class="btn btn-outline-success btn-sm" style="font-size:12px;" (click)="addActivityTicket()">
+              <i class="bx bx-copy me-1"></i> Add Activity / Ticket
+            </button>
+            <!-- Next Day Button - appears when days are selected and not all days are selected -->
+            @if (selectedDays().length > 0 && selectedDays().length < daySlots().length) { <div class="mt-2">
+              <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addNextDay()">
+                <i class="bx bx-chevron-right me-1"></i>
+                Next Day (Day {{ getNextDayNumber() }})
+              </button>
+          </div>
+          }
+        </div>
+
+
+        <!-- Transport total -->
+        <div class="d-flex justify-content-end mt-2">
+          <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
+            Transport Total: INR {{ formatCurrency(transportTotal()) }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════ -->
+    <!-- EDIT TRANSPORT PRICES MODAL                             -->
+    <!-- ════════════════════════════════════════════════════════ -->
+    @if (showEditTransportPricesModal && editingTransportRow) {
+    <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+    <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+
+          <div class="modal-header border-bottom px-4 py-3">
+            <div>
+              <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
+                Edit Transport Prices
+              </h5>
+              <div class="text-muted" style="font-size:12px;">
+                {{ editingTransportRow.VehicleTypeName }} •
+                {{ editingTransportRow.IteneraryServiceName }}
+              </div>
+            </div>
+            <button type="button" class="btn-close" (click)="closeEditTransportPricesModal()"></button>
+          </div>
+
+          <div class="modal-body px-4 py-3">
+            <table class="table table-sm table-bordered" style="font-size:13px;">
+              <thead class="table-light">
+                <tr>
+                  <th>Type</th>
+                  <th class="text-end">System Rate</th>
+                  <th class="text-end">Qty</th>
+                  <th class="text-end">Given Rate</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="align-middle">
+                    Transport
+                    <div class="text-muted" style="font-size:10px;">per unit</div>
+                  </td>
+                  <td class="text-end align-middle text-muted">
+                    {{ formatCurrency(editingTransportRow.CostPrice) }}
+                  </td>
+                  <td class="align-middle" style="width:60px;">
+                    <input type="number" class="form-control form-control-sm text-end"
+                      [(ngModel)]="editingTransportRow.Qty" (ngModelChange)="recalculateEditTransportPrice()" min="1"
+                      style="width:60px;">
+                  </td>
+                  <td class="align-middle" style="width:110px;">
+                    <input type="number" class="form-control form-control-sm text-end"
+                      [(ngModel)]="editTransportPrices.VehicleRate" (ngModelChange)="recalculateEditTransportPrice()"
+                      min="0" style="width:110px;">
+                  </td>
+                  <td class="text-end align-middle fw-semibold">
+                    {{ formatCurrency(editTransportPrices.VehicleRate * editingTransportRow.Qty *
+                    editingTransportRow.DayNumbers.length) }}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="table-light">
+                  <td colspan="4" class="fw-bold">Cost Total</td>
+                  <td class="text-end fw-bold">
+                    INR {{ formatCurrency(editTransportPrices.ComputedTotal) }}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="modal-footer border-top">
+            <button class="btn btn-outline-secondary btn-sm px-3"
+              (click)="closeEditTransportPricesModal()">Cancel</button>
+            <button class="btn btn-primary btn-sm px-4" (click)="applyEditTransportPrices()">
+              Apply
+            </button>
           </div>
 
         </div>
       </div>
+    </div>
     }
 
-    <!-- Add Buttons -->
-    <div class="d-flex gap-2 mt-2 flex-wrap">
-      <button class="btn btn-outline-primary btn-sm"
-              style="font-size:12px;"
-              (click)="addTransportRow()">
-        <i class="bx bx-plus me-1"></i> Add Transport
-      </button>
-
-      @if (getActiveTransportRows().length > 0) {
-        <button class="btn btn-outline-success btn-sm"
-                style="font-size:12px;"
-                (click)="addSimilarTransport()">
-          <i class="bx bx-copy me-1"></i> Add Similar Transport
-        </button>
-      }
-      <!-- Next Day Button - appears when days are selected and not all days are selected -->
-@if (selectedDays.length > 0 && selectedDays.length < daySlots().length) {
-  <div class="mt-2">
-    <button class="btn btn-outline-primary btn-sm"
-            style="font-size:12px;"
-            (click)="addNextDay()">
-      <i class="bx bx-chevron-right me-1"></i>
-      Next Day (Day {{ getNextDayNumber() }})
-    </button>
-  </div>
-}
-    </div>
-    
-
-    <!-- Transport total -->
-    <div class="d-flex justify-content-end mt-2">
-      <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-        Transport Total: INR {{ formatCurrency(transportTotal()) }}
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════ -->
-<!-- EDIT TRANSPORT PRICES MODAL                             -->
-<!-- ════════════════════════════════════════════════════════ -->
-@if (showEditTransportPricesModal && editingTransportRow) {
-  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
-  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-
-        <div class="modal-header border-bottom px-4 py-3">
-          <div>
-            <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
-              Edit Transport Prices
+    <!-- ════════════════════════════════════════════════════════ -->
+    <!-- SELECT CAB TYPES MODAL                                    -->
+    <!-- ════════════════════════════════════════════════════════ -->
+    @if (showCabTypesModal) {
+    <div class="modal-backdrop fade show" style="z-index:1090; backdrop-filter:blur(3px);"
+      (click)="closeCabTypesModal()"></div>
+    <div class="modal fade show d-block" style="z-index:1100;" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header border-bottom px-4 py-3">
+            <h5 class="modal-title fw-bold" style="font-size:15px;">
+              Select Cab Types
             </h5>
-            <div class="text-muted" style="font-size:12px;">
-              {{ editingTransportRow.VehicleTypeName }} •
-              {{ editingTransportRow.IteneraryServiceName }}
-            </div>
+            <button type="button" class="btn-close" (click)="closeCabTypesModal()"></button>
           </div>
-          <button type="button" class="btn-close" (click)="closeEditTransportPricesModal()"></button>
-        </div>
-
-        <div class="modal-body px-4 py-3">
-          <table class="table table-sm table-bordered" style="font-size:13px;">
-            <thead class="table-light">
-              <tr>
-                <th>Type</th>
-                <th class="text-end">System Rate</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Given Rate</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="align-middle">
-                  Transport
-                  <div class="text-muted" style="font-size:10px;">per unit</div>
-                </td>
-                <td class="text-end align-middle text-muted">
-                  {{ formatCurrency(editingTransportRow.CostPrice) }}
-                </td>
-                <td class="align-middle" style="width:60px;">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editingTransportRow.Qty"
-                         (ngModelChange)="recalculateEditTransportPrice()"
-                         min="1" style="width:60px;">
-                </td>
-                <td class="align-middle" style="width:110px;">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editTransportPrices.VehicleRate"
-                         (ngModelChange)="recalculateEditTransportPrice()"
-                         min="0" style="width:110px;">
-                </td>
-                <td class="text-end align-middle fw-semibold">
-                  {{ formatCurrency(editTransportPrices.VehicleRate * editingTransportRow.Qty * editingTransportRow.DayNumbers.length) }}
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr class="table-light">
-                <td colspan="4" class="fw-bold">Cost Total</td>
-                <td class="text-end fw-bold">
-                  INR {{ formatCurrency(editTransportPrices.ComputedTotal) }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <div class="modal-footer border-top">
-          <button class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closeEditTransportPricesModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm px-4"
-                  (click)="applyEditTransportPrices()">
-            Apply
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-}
-
-<!-- ════════════════════════════════════════════════════════ -->
-<!-- SELECT CAB TYPES MODAL                                    -->
-<!-- ════════════════════════════════════════════════════════ -->
-@if (showCabTypesModal) {
-  <div class="modal-backdrop fade show" style="z-index:1090; backdrop-filter:blur(3px);" 
-       (click)="closeCabTypesModal()"></div>
-  <div class="modal fade show d-block" style="z-index:1100;" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header border-bottom px-4 py-3">
-          <h5 class="modal-title fw-bold" style="font-size:15px;">
-            Select Cab Types
-          </h5>
-          <button type="button" class="btn-close" (click)="closeCabTypesModal()"></button>
-        </div>
-        <div class="modal-body px-4 py-3">
-          <table class="table table-sm" style="font-size:13px;">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th class="text-end">Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (cabType of cabTypesList; track $index; let i = $index) {
+          <div class="modal-body px-4 py-3">
+            <table class="table table-sm" style="font-size:13px;">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th class="text-end">Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (cabType of cabTypesList; track $index; let i = $index) {
                 <tr>
                   <td>
-                    <select class="form-select form-select-sm"
-                            [(ngModel)]="cabType.VehicleTypeId"
-                            (ngModelChange)="onCabTypeSelected(cabType)">
+                    <select class="form-select form-select-sm" [(ngModel)]="cabType.VehicleTypeId"
+                      (ngModelChange)="onCabTypeSelected(cabType)">
                       <option [value]="0">Select vehicle…</option>
                       @for (vt of vehicleTypeList(); track vt.VehicleTypeId) {
-                        <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
+                      <option [value]="vt.VehicleTypeId">{{ vt.VehicleTypeName }}</option>
                       }
                     </select>
                   </td>
                   <td class="text-end" style="width:100px;">
-                    <input type="number" class="form-control form-control-sm text-end"
-                           [(ngModel)]="cabType.Quantity"
-                           min="1">
+                    <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="cabType.Quantity"
+                      min="1">
                   </td>
                   <td class="text-end" style="width:30px;">
-                    <button type="button" class="btn btn-link p-0 border-0 text-danger"
-                            style="font-size:16px;"
-                            (click)="removeCabType(i)">
+                    <button type="button" class="btn btn-link p-0 border-0 text-danger" style="font-size:16px;"
+                      (click)="removeCabType(i)">
                       ×
                     </button>
                   </td>
                 </tr>
-              }
-            </tbody>
-          </table>
-          <button type="button" class="btn btn-link btn-sm p-0 text-primary"
-                  style="font-size:12px; text-decoration:none;"
-                  (click)="addCabType()">
-            <i class="bx bx-plus me-1"></i> Add More
-          </button>
-        </div>
-        <div class="modal-footer border-top px-4 py-3">
-          <button type="button" class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closeCabTypesModal()">Cancel</button>
-          <button type="button" class="btn btn-primary btn-sm px-4"
-                  (click)="saveCabTypes()">Set Cab Types</button>
+                }
+              </tbody>
+            </table>
+            <button type="button" class="btn btn-link btn-sm p-0 text-primary"
+              style="font-size:12px; text-decoration:none;" (click)="addCabType()">
+              <i class="bx bx-plus me-1"></i> Add More
+            </button>
+          </div>
+          <div class="modal-footer border-top px-4 py-3">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3"
+              (click)="closeCabTypesModal()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm px-4" (click)="saveCabTypes()">Set Cab Types</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-}
+    }
 
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- SUMMARY SECTION                                      -->
-      <!-- ═══════════════════════════════════════════════════ -->
-
-
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- INTERNAL NOTES                                       -->
-      <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SUMMARY SECTION                                      -->
+    <!-- ═══════════════════════════════════════════════════ -->
 
 
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- FINAL PRICE PREVIEW                                  -->
-      <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- INTERNAL NOTES                                       -->
+    <!-- ═══════════════════════════════════════════════════ -->
 
 
-      <!-- Save / Cancel -->
-      <!-- <div class="d-flex gap-3 pb-4">
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FINAL PRICE PREVIEW                                  -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+
+    <!-- Save / Cancel -->
+    <!-- <div class="d-flex gap-3 pb-4">
       <button mat-raised-button color="primary"
               style="min-width:130px;"
               (click)="saveQuote()"
@@ -1684,16 +1546,16 @@
       <button mat-stroked-button (click)="cancel()">Cancel</button>
     </div> -->
 
-    </div>
-
-    } @else if (!loading()) {
-    <div class="text-center text-muted py-5">
-      <i class="bx bx-error-circle fs-1 d-block mb-2 opacity-25"></i>
-      <p>Trip details not found.</p>
-    </div>
-    }
-
   </div>
+
+  } @else if (!loading()) {
+  <div class="text-center text-muted py-5">
+    <i class="bx bx-error-circle fs-1 d-block mb-2 opacity-25"></i>
+    <p>Trip details not found.</p>
+  </div>
+  }
+
+</div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════ -->
@@ -1762,39 +1624,32 @@
 <!--Modal create new hotel -->
 <!--Modal create new hotel -->
 @if (showNewHotelModal) {
-  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
-  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+<div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+<div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
 
-        <div class="modal-header border-bottom px-4 py-3">
-          <h5 class="modal-title fw-bold" style="font-size:15px;">
-            <i class="bx bx-hotel me-2"></i> Add New Hotel
-          </h5>
-          <button type="button" class="btn-close" (click)="closeNewHotelModal()"></button>
-        </div>
+      <div class="modal-header border-bottom px-4 py-3">
+        <h5 class="modal-title fw-bold" style="font-size:15px;">
+          <i class="bx bx-hotel me-2"></i> Add New Hotel
+        </h5>
+        <button type="button" class="btn-close" (click)="closeNewHotelModal()"></button>
+      </div>
 
-        <div class="modal-body px-4 py-3">
+      <div class="modal-body px-4 py-3">
 
-          <!-- Hotel Details -->
-          <div class="row g-3 mb-4">
-           <div class="col-sm-4">
-              <label class="form-label small fw-semibold">Location <span class="text-danger">*</span></label>
-              <div style="position:relative;">
-                <input type="text"
-                       class="form-control form-control-sm"
-                       placeholder="Search location..."
-                       [(ngModel)]="locationSearchText"
-                       (ngModelChange)="onLocationSearch()"
-                       (focus)="onLocationSearch()"
-                       (blur)="onLocationBlur()"
-                       autocomplete="off">
-                
-                <!-- Clear button -->
-                @if (locationSearchText.length > 0) {
-                  <button type="button"
-                          class="btn btn-sm p-0 border-0 bg-transparent"
-                          style="
+        <!-- Hotel Details -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Location <span class="text-danger">*</span></label>
+            <div style="position:relative;">
+              <input type="text" class="form-control form-control-sm" placeholder="Search location..."
+                [(ngModel)]="locationSearchText" (ngModelChange)="onLocationSearch()" (focus)="onLocationSearch()"
+                (blur)="onLocationBlur()" autocomplete="off">
+
+              <!-- Clear button -->
+              @if (locationSearchText.length > 0) {
+              <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="
                             position:absolute;
                             top:50%;
                             right:8px;
@@ -1803,269 +1658,243 @@
                             line-height:1;
                             z-index:10;
                             color:#999;
-                          "
-                          (mousedown)="clearLocation()">
-                    ×
-                  </button>
-                }
-                
-                @if (showLocationDropdown && filteredLocations.length > 0) {
-                  <div class="border rounded bg-white shadow-sm"
-                       style="position:absolute; top:100%; left:0; right:0;
-                              z-index:1000; max-height:180px; overflow-y:auto;">
-                   <!-- Location dropdown items -->
-@for (l of filteredLocations; track l.LocationId) {
-  <div class="px-3 py-2"
-       style="font-size:13px; cursor:pointer;"
-       (mousedown)="$event.preventDefault(); selectLocation(l)">
-    {{ l.LocationName }}
-  </div>
-}
-                  </div>
-                }
+                          " (mousedown)="clearLocation()">
+                ×
+              </button>
+              }
 
-                @if (showLocationDropdown && locationSearchText.length > 0
-                     && filteredLocations.length === 0) {
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted"
-                       style="position:absolute; top:100%; left:0; right:0;
-                              z-index:1000; font-size:13px;">
-                    No locations found
-                  </div>
+              @if (showLocationDropdown && filteredLocations.length > 0) {
+              <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; max-height:180px; overflow-y:auto;">
+                <!-- Location dropdown items -->
+                @for (l of filteredLocations; track l.LocationId) {
+                <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+                  (mousedown)="$event.preventDefault(); selectLocation(l)">
+                  {{ l.LocationName }}
+                </div>
                 }
               </div>
-            </div>
-            <div class="col-sm-3">
-              <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
-              <select class="form-select form-select-sm" [(ngModel)]="newHotel.HotelCategoryId">
-                <option [value]="0">Select category…</option>
-                @for (c of hotelCategoryList(); track c.HotelCategoryId) {
-                  <option [value]="c.HotelCategoryId">{{ c.HotelCategoryName }}</option>
-                }
-              </select>
-            </div>
-            <div class="col-sm-4">
-              <label class="form-label small fw-semibold">Hotel Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm"
-                     [(ngModel)]="newHotel.HotelName"
-                     placeholder="Enter hotel name">
+              }
+
+              @if (showLocationDropdown && locationSearchText.length > 0
+              && filteredLocations.length === 0) {
+              <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
+                              z-index:1000; font-size:13px;">
+                No locations found
+              </div>
+              }
             </div>
           </div>
-
-          <!-- Room Types -->
-          <div class="mb-2 d-flex align-items-center justify-content-between">
-            <div class="fw-semibold small">Room Types</div>
-            <button class="btn btn-outline-primary btn-sm" style="font-size:12px;"
-                    (click)="addNewRoomTypeRow()">
-              <i class="bx bx-plus me-1"></i> Add Room Type
-            </button>
+          <div class="col-sm-3">
+            <label class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" [(ngModel)]="newHotel.HotelCategoryId">
+              <option [value]="0">Select category…</option>
+              @for (c of hotelCategoryList(); track c.HotelCategoryId) {
+              <option [value]="c.HotelCategoryId">{{ c.HotelCategoryName }}</option>
+              }
+            </select>
           </div>
-
-          <table class="table table-sm table-bordered" style="font-size:13px;">
-            <thead class="table-light">
-              <tr>
-                <th style="width:30px;">#</th>
-                <th>Room Type Name</th>
-                <th style="width:40px;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (rt of newRoomTypes; track $index; let i = $index) {
-                <tr>
-                  <td class="text-muted align-middle">{{ i + 1 }}</td>
-                  <td>
-                    <input type="text" class="form-control form-control-sm"
-                           [(ngModel)]="rt.RoomTypeName"
-                           placeholder="e.g. Deluxe Room">
-                  </td>
-                  <td class="text-center align-middle">
-                    <button mat-icon-button color="warn"
-                            style="width:24px;height:24px;line-height:24px;"
-                            (click)="removeNewRoomTypeRow(i)">
-                      <mat-icon style="font-size:14px;">close</mat-icon>
-                    </button>
-                  </td>
-                </tr>
-              }
-              @if (newRoomTypes.length === 0) {
-                <tr>
-                  <td colspan="3" class="text-center text-muted py-3" style="font-size:12px;">
-                    No room types added yet. Click "Add Room Type" to add.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Hotel Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="newHotel.HotelName"
+              placeholder="Enter hotel name">
+          </div>
         </div>
 
-        <div class="modal-footer border-top px-4 py-3">
-          @if (newHotelSaving) {
-            <span class="text-muted small me-3">
-              <i class="bx bx-loader-alt bx-spin"></i> Saving…
-            </span>
-          }
-          <button class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closeNewHotelModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm px-4"
-                  (click)="saveNewHotel()"
-                  [disabled]="newHotelSaving">
-            Save Hotel
+        <!-- Room Types -->
+        <div class="mb-2 d-flex align-items-center justify-content-between">
+          <div class="fw-semibold small">Room Types</div>
+          <button class="btn btn-outline-primary btn-sm" style="font-size:12px;" (click)="addNewRoomTypeRow()">
+            <i class="bx bx-plus me-1"></i> Add Room Type
           </button>
         </div>
 
+        <table class="table table-sm table-bordered" style="font-size:13px;">
+          <thead class="table-light">
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>Room Type Name</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (rt of newRoomTypes; track $index; let i = $index) {
+            <tr>
+              <td class="text-muted align-middle">{{ i + 1 }}</td>
+              <td>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="rt.RoomTypeName"
+                  placeholder="e.g. Deluxe Room">
+              </td>
+              <td class="text-center align-middle">
+                <button mat-icon-button color="warn" style="width:24px;height:24px;line-height:24px;"
+                  (click)="removeNewRoomTypeRow(i)">
+                  <mat-icon style="font-size:14px;">close</mat-icon>
+                </button>
+              </td>
+            </tr>
+            }
+            @if (newRoomTypes.length === 0) {
+            <tr>
+              <td colspan="3" class="text-center text-muted py-3" style="font-size:12px;">
+                No room types added yet. Click "Add Room Type" to add.
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+
       </div>
+
+      <div class="modal-footer border-top px-4 py-3">
+        @if (newHotelSaving) {
+        <span class="text-muted small me-3">
+          <i class="bx bx-loader-alt bx-spin"></i> Saving…
+        </span>
+        }
+        <button class="btn btn-outline-secondary btn-sm px-3" (click)="closeNewHotelModal()">Cancel</button>
+        <button class="btn btn-primary btn-sm px-4" (click)="saveNewHotel()" [disabled]="newHotelSaving">
+          Save Hotel
+        </button>
+      </div>
+
     </div>
   </div>
+</div>
 }
- <!-- Edit Prices Modal -->
+<!-- Edit Prices Modal -->
 @if (showEditPricesModal && editingHotelRow) {
-  <div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
-  <div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+<div class="modal-backdrop fade show" style="z-index:1060; backdrop-filter:blur(3px);"></div>
+<div class="modal fade show d-block" style="z-index:1070;" tabindex="-1">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
 
-        <div class="modal-header border-bottom px-4 py-3">
-          <div>
-            <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
-              Edit Prices
-            </h5>
-            <div class="text-muted" style="font-size:12px;">
-              {{ editingHotelRow.HotelName }} •
-              {{ editingHotelRow.MealPlan }} •
-              {{ editingHotelRow.RoomTypeName }}
-            </div>
+      <div class="modal-header border-bottom px-4 py-3">
+        <div>
+          <h5 class="modal-title fw-bold mb-0" style="font-size:15px;">
+            Edit Prices
+          </h5>
+          <div class="text-muted" style="font-size:12px;">
+            {{ editingHotelRow.HotelName }} •
+            {{ editingHotelRow.MealPlan }} •
+            {{ editingHotelRow.RoomTypeName }}
           </div>
-          <button type="button" class="btn-close" (click)="closeEditPricesModal()"></button>
         </div>
+        <button type="button" class="btn-close" (click)="closeEditPricesModal()"></button>
+      </div>
 
-        <div class="modal-body px-4 py-3">
+      <div class="modal-body px-4 py-3">
 
-          <table class="table table-sm table-bordered" style="font-size:13px;">
-            <thead class="table-light">
-              <tr>
-                <th>Type</th>
-                <th class="text-end">System Rate</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Given Rate</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
+        <table class="table table-sm table-bordered" style="font-size:13px;">
+          <thead class="table-light">
+            <tr>
+              <th>Type</th>
+              <th class="text-end">System Rate</th>
+              <th class="text-end">Qty</th>
+              <th class="text-end">Given Rate</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
 
-              <!-- Rooms -->
-              <tr>
-                <td class="align-middle">
-                  Rooms
-                  <div class="text-muted" style="font-size:10px;">per room/night</div>
-                </td>
-                <td class="text-end align-middle text-muted">
-                  {{ formatCurrency(editingHotelRow.BaseRate) }}
-                </td>
-                <td class="align-middle" style="width:60px;">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editingHotelRow.NoOfRooms"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="1" style="width:60px;">
-                </td>
-                <td class="align-middle" style="width:110px;">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editPrices.RoomRate"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:110px;">
-                </td>
-                <td class="text-end align-middle fw-semibold">
-                  {{ formatCurrency(editPrices.RoomRate * editingHotelRow.NoOfRooms) }}
-                </td>
-              </tr>
+            <!-- Rooms -->
+            <tr>
+              <td class="align-middle">
+                Rooms
+                <div class="text-muted" style="font-size:10px;">per room/night</div>
+              </td>
+              <td class="text-end align-middle text-muted">
+                {{ formatCurrency(editingHotelRow.BaseRate) }}
+              </td>
+              <td class="align-middle" style="width:60px;">
+                <input type="number" class="form-control form-control-sm text-end"
+                  [(ngModel)]="editingHotelRow.NoOfRooms" (ngModelChange)="recalculateEditPrice()" min="1"
+                  style="width:60px;">
+              </td>
+              <td class="align-middle" style="width:110px;">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editPrices.RoomRate"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:110px;">
+              </td>
+              <td class="text-end align-middle fw-semibold">
+                {{ formatCurrency(editPrices.RoomRate * editingHotelRow.NoOfRooms) }}
+              </td>
+            </tr>
 
-              <!-- AWEB -->
-              <tr>
-                <td class="align-middle">
-                  AWEB
-                </td>
-                <td class="text-end align-middle text-muted">
-                  {{ formatCurrency(editingHotelRow.AwebRate) }}
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editingHotelRow.AWEB"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:60px;">
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editPrices.AwebRate"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:110px;">
-                </td>
-                <td class="text-end align-middle fw-semibold">
-                  {{ formatCurrency(editPrices.AwebRate * editingHotelRow.AWEB) }}
-                </td>
-              </tr>
+            <!-- AWEB -->
+            <tr>
+              <td class="align-middle">
+                AWEB
+              </td>
+              <td class="text-end align-middle text-muted">
+                {{ formatCurrency(editingHotelRow.AwebRate) }}
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editingHotelRow.AWEB"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:60px;">
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editPrices.AwebRate"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:110px;">
+              </td>
+              <td class="text-end align-middle fw-semibold">
+                {{ formatCurrency(editPrices.AwebRate * editingHotelRow.AWEB) }}
+              </td>
+            </tr>
 
-              <!-- CWEB -->
-              <tr>
-                <td class="align-middle">
-                  CWEB
-                </td>
-                <td class="text-end align-middle text-muted">
-                  {{ formatCurrency(editingHotelRow.CwebRate) }}
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editingHotelRow.CWEB"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:60px;">
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editPrices.CwebRate"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:110px;">
-                </td>
-                <td class="text-end align-middle fw-semibold">
-                  {{ formatCurrency(editPrices.CwebRate * editingHotelRow.CWEB) }}
-                </td>
-              </tr>
+            <!-- CWEB -->
+            <tr>
+              <td class="align-middle">
+                CWEB
+              </td>
+              <td class="text-end align-middle text-muted">
+                {{ formatCurrency(editingHotelRow.CwebRate) }}
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editingHotelRow.CWEB"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:60px;">
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editPrices.CwebRate"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:110px;">
+              </td>
+              <td class="text-end align-middle fw-semibold">
+                {{ formatCurrency(editPrices.CwebRate * editingHotelRow.CWEB) }}
+              </td>
+            </tr>
 
-              <!-- CNB -->
-              <tr>
-                <td class="align-middle">
-                  CNB
-                </td>
-                <td class="text-end align-middle text-muted">
-                  {{ formatCurrency(editingHotelRow.CnbRate) }}
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editingHotelRow.CNB"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:60px;">
-                </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm text-end"
-                         [(ngModel)]="editPrices.CnbRate"
-                         (ngModelChange)="recalculateEditPrice()"
-                         min="0" style="width:110px;">
-                </td>
-                <td class="text-end align-middle fw-semibold">
-                  {{ formatCurrency(editPrices.CnbRate * editingHotelRow.CNB) }}
-                </td>
-              </tr>
+            <!-- CNB -->
+            <tr>
+              <td class="align-middle">
+                CNB
+              </td>
+              <td class="text-end align-middle text-muted">
+                {{ formatCurrency(editingHotelRow.CnbRate) }}
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editingHotelRow.CNB"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:60px;">
+              </td>
+              <td class="align-middle">
+                <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="editPrices.CnbRate"
+                  (ngModelChange)="recalculateEditPrice()" min="0" style="width:110px;">
+              </td>
+              <td class="text-end align-middle fw-semibold">
+                {{ formatCurrency(editPrices.CnbRate * editingHotelRow.CNB) }}
+              </td>
+            </tr>
 
-            </tbody>
-            <tfoot>
-              <tr class="table-light">
-                <td colspan="4" class="fw-bold">Cost Total</td>
-                <td class="text-end fw-bold">
-                  INR {{ formatCurrency(editPrices.ComputedTotal) }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+          </tbody>
+          <tfoot>
+            <tr class="table-light">
+              <td colspan="4" class="fw-bold">Cost Total</td>
+              <td class="text-end fw-bold">
+                INR {{ formatCurrency(editPrices.ComputedTotal) }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
 
-          <!-- Selling price -->
-          <!-- <div class="border rounded p-3 bg-light mt-3">
+        <!-- Selling price -->
+        <!-- <div class="border rounded p-3 bg-light mt-3">
             <div class="row g-2 align-items-center">
               <div class="col-sm-6">
                 <label class="form-label small fw-semibold mb-1">
@@ -2095,19 +1924,17 @@
             </div>
           </div> -->
 
-        </div>
-
-        <div class="modal-footer border-top  ">
-          <button class="btn btn-outline-secondary btn-sm px-3"
-                  (click)="closeEditPricesModal()">Cancel</button>
-          <button class="btn btn-primary btn-sm px-4"
-                  (click)="applyEditPrices()">
-            Apply
-          </button>
-        </div>
-
       </div>
+
+      <div class="modal-footer border-top  ">
+        <button class="btn btn-outline-secondary btn-sm px-3" (click)="closeEditPricesModal()">Cancel</button>
+        <button class="btn btn-primary btn-sm px-4" (click)="applyEditPrices()">
+          Apply
+        </button>
+      </div>
+
     </div>
   </div>
+</div>
 }
 <app-unsaved-changes-dialog></app-unsaved-changes-dialog>

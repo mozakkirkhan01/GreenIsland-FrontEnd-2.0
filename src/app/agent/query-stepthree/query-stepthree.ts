@@ -140,13 +140,13 @@ export interface QuoteServiceRow {
   SellingPrice: number;
   Notes: string;
   IsSaving: boolean;
-    // ADD THESE
+  // ADD THESE
   LocationId: number;
   LocationName: string;
-   FilteredVehicles?: any[]; // Replace 'any' with your Vehicle type
+  FilteredVehicles?: any[]; // Replace 'any' with your Vehicle type
   VehicleTypeSearch?: string;
   ShowVehicleDropdown?: boolean;
-    TotalPrice: number;
+  TotalPrice: number;
 }
 
 
@@ -170,7 +170,7 @@ export interface QuoteTransportRow {
   TotalPrice: number;
   Notes: string;
   IsSaving: boolean;
-  
+
   // UI search fields (per row - like hotel row pattern)
   LocationSearch: string;
   FilteredLocations: any[];
@@ -242,8 +242,8 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   packageTypes = signal<PackageTypeRow[]>([]);
 
   specialInclusionRows = signal<QuoteSpecialInclusionRow[]>([]);
-specialInclusionMasterList = signal<any[]>([]);
-transportRows = signal<QuoteTransportRow[]>([]);
+  specialInclusionMasterList = signal<any[]>([]);
+  transportRows = signal<QuoteTransportRow[]>([]);
   loadData = inject(LoadDataService);
 
   hotelList = signal<any[]>([]);
@@ -256,19 +256,19 @@ transportRows = signal<QuoteTransportRow[]>([]);
   serviceRows = signal<QuoteServiceRow[]>([]);
 
   // New hotel model
-newHotel = {
-  HotelName: '',
-  LocationId: 0,
-  HotelCategoryId: 0,
-};
-newRoomTypes: { RoomTypeName: string }[] = [];
-showNewHotelModal = false;
-newHotelSaving = false;
-pendingHotelRow: QuoteHotelRow | null = null; // which row triggered add
+  newHotel = {
+    HotelName: '',
+    LocationId: 0,
+    HotelCategoryId: 0,
+  };
+  newRoomTypes: { RoomTypeName: string }[] = [];
+  showNewHotelModal = false;
+  newHotelSaving = false;
+  pendingHotelRow: QuoteHotelRow | null = null; // which row triggered add
 
-// Master lists for modal dropdowns
-locationList = signal<any[]>([]);
-hotelCategoryList = signal<any[]>([]);
+  // Master lists for modal dropdowns
+  locationList = signal<any[]>([]);
+  hotelCategoryList = signal<any[]>([]);
 
   // UI state
   showPkgModal = false;
@@ -281,26 +281,26 @@ hotelCategoryList = signal<any[]>([]);
 
 
   //transport
-  
+
 
   // ── Night & Day slots ─────────────────────────────────────
-nightSlots = computed<NightSlot[]>(() => {
-  const trip = this.tripInfo();
-  if (!trip) return [];
-  const slots: NightSlot[] = [];
-  const start = new Date(trip.StartDate);
-  for (let i = 0; i < trip.NoOfNights; i++) {
-    const d = new Date(start);
-    d.setDate(d.getDate() + i);
-    slots.push({
-      NightNumber: i + 1,
-      StayDate: d,
-      DateLabel: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
-      DayLabel: d.toLocaleDateString('en-IN', { weekday: 'short' }),
-    });
-  }
-  return slots;
-});
+  nightSlots = computed<NightSlot[]>(() => {
+    const trip = this.tripInfo();
+    if (!trip) return [];
+    const slots: NightSlot[] = [];
+    const start = new Date(trip.StartDate);
+    for (let i = 0; i < trip.NoOfNights; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      slots.push({
+        NightNumber: i + 1,
+        StayDate: d,
+        DateLabel: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+        DayLabel: d.toLocaleDateString('en-IN', { weekday: 'short' }),
+      });
+    }
+    return slots;
+  });
 
   daySlots = computed<DaySlot[]>(() => {
     const trip = this.tripInfo();
@@ -328,11 +328,11 @@ nightSlots = computed<NightSlot[]>(() => {
   );
 
 
-transportTotal = computed(() => {
-  return this.transportRows()
-    .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
-    .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
-});
+  transportTotal = computed(() => {
+    return this.transportRows()
+      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
+      .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
+  });
 
   activityTotal = computed(() =>
     this.serviceRows()
@@ -366,48 +366,48 @@ transportTotal = computed(() => {
   }
   packageTypesLoaded = false;
   fetchPackageTypesSeparately(): void {
-  // Don't do anything if we already have package types
-  if (this.packageTypes().length > 0) {
-    console.log('Package types already exist, skipping fetch');
-    return;
-  }
-  
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-  
-  console.log('Fetching package types directly for QueryStepOneId:', this.QueryStepOneId);
-  
-  // Use the new getPackageTypesByQuery endpoint
-  this.service.getPackageTypesByQuery(enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
-    next: (r: any) => {
-      console.log('Direct package types response:', r);
-      if (r.Message === ConstantData.SuccessMessage && r.PackageTypes && r.PackageTypes.length > 0) {
-        // Found package types - use them
-        this.packageTypes.set(r.PackageTypes);
-        this.activePackageTypeId.set(r.PackageTypes[0].QuotePackageTypeId);
-        this.packageTypesLoaded = true;
-        console.log('Package types loaded successfully:', this.packageTypes());
-      } else {
-        // No package types found
-        console.log('No package types found for QueryStepOneId:', this.QueryStepOneId);
-        this.packageTypesLoaded = true;
-        
-        // Only create default for brand new quotes (QuoteId === 0)
-        if (this.QuoteId === 0) {
-          console.log('New quote - creating default package type');
-          this.autoCreateDefaultPackageType();
-        } else {
-          console.log('Existing quote has no package types - waiting for user to add');
-        }
-      }
-    },
-    error: (err) => {
-      console.error('Error fetching package types:', err);
-      this.packageTypesLoaded = true;
+    // Don't do anything if we already have package types
+    if (this.packageTypes().length > 0) {
+      console.log('Package types already exist, skipping fetch');
+      return;
     }
-  });
-}
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    console.log('Fetching package types directly for QueryStepOneId:', this.QueryStepOneId);
+
+    // Use the new getPackageTypesByQuery endpoint
+    this.service.getPackageTypesByQuery(enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
+      next: (r: any) => {
+        console.log('Direct package types response:', r);
+        if (r.Message === ConstantData.SuccessMessage && r.PackageTypes && r.PackageTypes.length > 0) {
+          // Found package types - use them
+          this.packageTypes.set(r.PackageTypes);
+          this.activePackageTypeId.set(r.PackageTypes[0].QuotePackageTypeId);
+          this.packageTypesLoaded = true;
+          console.log('Package types loaded successfully:', this.packageTypes());
+        } else {
+          // No package types found
+          console.log('No package types found for QueryStepOneId:', this.QueryStepOneId);
+          this.packageTypesLoaded = true;
+
+          // Only create default for brand new quotes (QuoteId === 0)
+          if (this.QuoteId === 0) {
+            console.log('New quote - creating default package type');
+            this.autoCreateDefaultPackageType();
+          } else {
+            console.log('Existing quote has no package types - waiting for user to add');
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching package types:', err);
+        this.packageTypesLoaded = true;
+      }
+    });
+  }
 
   // ── Load all data ─────────────────────────────────────────
   loadAll(): void {
@@ -447,30 +447,32 @@ transportTotal = computed(() => {
           this.gstPercent = r.Quote.GstPercent ?? 5;
         }
 
-        
-      // ========== FIXED PACKAGE TYPES HANDLING ==========
-      // Always fetch package types directly using the dedicated endpoint
-      // This ensures we get the correct data regardless of what QuoteDetail returns
-      this.fetchPackageTypesSeparately();
-      // ========== END PACKAGE TYPES HANDLING ==========
 
-  // First hotel is main, rest are similar
- if (r.Hotels?.length > 0) {
-  const allHotels = r.Hotels.map((h: any) => this.mapHotelRow(h));
-  
-  if (allHotels.length > 0) {
-    // Set first hotel as main
-    this.hotelRows.set([allHotels[0]]);
-    
-    // Set remaining hotels as similar
-    if (allHotels.length > 1) {
-      this.similarHotels.set(allHotels.slice(1));
-    }
-  }
-}
+        // ========== FIXED PACKAGE TYPES HANDLING ==========
+        // Always fetch package types directly using the dedicated endpoint
+        // This ensures we get the correct data regardless of what QuoteDetail returns
+        this.fetchPackageTypesSeparately();
+        // ========== END PACKAGE TYPES HANDLING ==========
+
+        // First hotel is main, rest are similar
+        if (r.Hotels?.length > 0) {
+          const allHotels = r.Hotels.map((h: any) => this.mapHotelRow(h));
+
+          if (allHotels.length > 0) {
+            // Set first hotel as main
+            this.hotelRows.set([allHotels[0]]);
+
+            // Set remaining hotels as similar
+            if (allHotels.length > 1) {
+              this.similarHotels.set(allHotels.slice(1));
+            }
+          }
+        }
 
         if (r.Services?.length > 0) {
           this.serviceRows.set(r.Services.map((s: any) => this.mapServiceRow(s)));
+          // ✅ Sync selected days from loaded services
+          this.syncSelectedDaysFromTransportRows();
         }
 
         if (destId === 0) {
@@ -478,49 +480,49 @@ transportTotal = computed(() => {
           this.loading.set(false);
           return;
         }
-forkJoin({
-  hotels: this.service.getHotelList(enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })),
-  itinerary: this.service.getIteneraryServiceList(enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })),
-  activities: this.service.getActivityServiceList(enc({ DestinationId: destId, LocationId: 0 })),
-  vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
-  locations: this.service.getLocationList(enc({ DestinationId: destId, LocationId: 0 })),
-  hotelCategories: this.service.getHotelCategoryList(enc({ HotelCategoryId: 0 })),
-  specialInclusionTypes: this.service.getSpecialInclusionTypeList(enc({ SpecialInclusionTypeId: 0 })),
-}).subscribe({
-  next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories, specialInclusionTypes  }) => {
-    const h = hotels as any;
-    const i = itinerary as any;
-    const a = activities as any;
-    const v = vehicles as any;
-    const l = locations as any;
-    const hc = hotelCategories as any;
-     const sit = specialInclusionTypes as any;
-    if (sit.Message === ConstantData.SuccessMessage)
-      this.specialInclusionMasterList.set(sit.SpecialInclusionTypeList ?? []);
+        forkJoin({
+          hotels: this.service.getHotelList(enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })),
+          itinerary: this.service.getIteneraryServiceList(enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })),
+          activities: this.service.getActivityServiceList(enc({ DestinationId: destId, LocationId: 0 })),
+          vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
+          locations: this.service.getLocationList(enc({ DestinationId: destId, LocationId: 0 })),
+          hotelCategories: this.service.getHotelCategoryList(enc({ HotelCategoryId: 0 })),
+          specialInclusionTypes: this.service.getSpecialInclusionTypeList(enc({ SpecialInclusionTypeId: 0 })),
+        }).subscribe({
+          next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories, specialInclusionTypes }) => {
+            const h = hotels as any;
+            const i = itinerary as any;
+            const a = activities as any;
+            const v = vehicles as any;
+            const l = locations as any;
+            const hc = hotelCategories as any;
+            const sit = specialInclusionTypes as any;
+            if (sit.Message === ConstantData.SuccessMessage)
+              this.specialInclusionMasterList.set(sit.SpecialInclusionTypeList ?? []);
 
-    if (h.Message === ConstantData.SuccessMessage)
-      this.hotelList.set(h.HotelList ?? []);
-    else
-      this.toastr.warning('No hotels found: ' + h.Message);
+            if (h.Message === ConstantData.SuccessMessage)
+              this.hotelList.set(h.HotelList ?? []);
+            else
+              this.toastr.warning('No hotels found: ' + h.Message);
 
-    if (i.Message === ConstantData.SuccessMessage)
-      this.itineraryList.set(i.IteneraryServiceList ?? []);
-    if (a.Message === ConstantData.SuccessMessage)
-      this.activityList.set(a.ActivityServiceList ?? []);
-    if (v.Message === ConstantData.SuccessMessage)
-      this.vehicleTypeList.set(v.VehicleTypeList ?? []);
-    if (l.Message === ConstantData.SuccessMessage)
-      this.locationList.set(l.LocationList ?? []);
-    if (hc.Message === ConstantData.SuccessMessage)
-      this.hotelCategoryList.set(hc.HotelCategoryList ?? []);
+            if (i.Message === ConstantData.SuccessMessage)
+              this.itineraryList.set(i.IteneraryServiceList ?? []);
+            if (a.Message === ConstantData.SuccessMessage)
+              this.activityList.set(a.ActivityServiceList ?? []);
+            if (v.Message === ConstantData.SuccessMessage)
+              this.vehicleTypeList.set(v.VehicleTypeList ?? []);
+            if (l.Message === ConstantData.SuccessMessage)
+              this.locationList.set(l.LocationList ?? []);
+            if (hc.Message === ConstantData.SuccessMessage)
+              this.hotelCategoryList.set(hc.HotelCategoryList ?? []);
 
-    this.loading.set(false);
-  },
-  error: () => {
-    this.toastr.error('Error loading master data');
-    this.loading.set(false);
-  }
-});
+            this.loading.set(false);
+          },
+          error: () => {
+            this.toastr.error('Error loading master data');
+            this.loading.set(false);
+          }
+        });
       },
       error: (err: any) => {
         this.toastr.error('Error loading quote: ' + err.status);
@@ -528,55 +530,55 @@ forkJoin({
       }
     });
   }
-autoCreateDefaultPackageType(): void {
-  // Don't create if we already have package types
-  if (this.packageTypes().length > 0) {
-    console.log('Package types already exist, skipping auto-create');
-    return;
-  }
-  
-  // Don't create for existing quotes
-  if (this.QuoteId > 0) {
-    console.log('Existing quote (QuoteId > 0), skipping auto-create');
-    return;
-  }
-  
-  console.log('Creating default package type for new quote');
-  
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-
-  const payload = {
-    QueryStepOneId: this.QueryStepOneId,
-    CreatedBy: this.staffLogin.StaffLoginId,
-    PackageTypes: [{ QuotePackageTypeId: 0, PackageTypeName: 'Deluxe Package' }],
-  };
-
-  this.service.savePackageTypes(enc(payload)).subscribe({
-    next: (r: any) => {
-      console.log('Save package types response:', r);
-      if (r.Message === ConstantData.SuccessMessage) {
-        const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
-          QuotePackageTypeId: p.QuotePackageTypeId,
-          PackageTypeName: p.PackageTypeName,
-        }));
-        this.packageTypes.set(saved);
-        if (saved.length > 0) {
-          this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
-        }
-        this.packageTypesLoaded = true;
-        this.toastr.success('Default package type created');
-      } else {
-        this.toastr.error(r.Message);
-      }
-    },
-    error: (err) => {
-      console.error('Error creating default package type:', err);
-      this.toastr.error('Error creating default package type');
+  autoCreateDefaultPackageType(): void {
+    // Don't create if we already have package types
+    if (this.packageTypes().length > 0) {
+      console.log('Package types already exist, skipping auto-create');
+      return;
     }
-  });
-}
+
+    // Don't create for existing quotes
+    if (this.QuoteId > 0) {
+      console.log('Existing quote (QuoteId > 0), skipping auto-create');
+      return;
+    }
+
+    console.log('Creating default package type for new quote');
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    const payload = {
+      QueryStepOneId: this.QueryStepOneId,
+      CreatedBy: this.staffLogin.StaffLoginId,
+      PackageTypes: [{ QuotePackageTypeId: 0, PackageTypeName: 'Deluxe Package' }],
+    };
+
+    this.service.savePackageTypes(enc(payload)).subscribe({
+      next: (r: any) => {
+        console.log('Save package types response:', r);
+        if (r.Message === ConstantData.SuccessMessage) {
+          const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
+            QuotePackageTypeId: p.QuotePackageTypeId,
+            PackageTypeName: p.PackageTypeName,
+          }));
+          this.packageTypes.set(saved);
+          if (saved.length > 0) {
+            this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
+          }
+          this.packageTypesLoaded = true;
+          this.toastr.success('Default package type created');
+        } else {
+          this.toastr.error(r.Message);
+        }
+      },
+      error: (err) => {
+        console.error('Error creating default package type:', err);
+        this.toastr.error('Error creating default package type');
+      }
+    });
+  }
   // ── Map rows ──────────────────────────────────────────────
   private mapHotelRow(h: any): QuoteHotelRow {
     return {
@@ -595,78 +597,78 @@ autoCreateDefaultPackageType(): void {
       BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
       TotalPrice: h.SellingPrice ?? 0,
       RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: h.HotelName ?? '',
-    FilteredHotels: [],
-    ShowDropdown: false,
-    ShowNightDropdown: false,
-    SelectedNightsDisplay: `Night ${h.NightNumber}`,
+      FilteredHotels: [],
+      ShowDropdown: false,
+      ShowNightDropdown: false,
+      SelectedNightsDisplay: `Night ${h.NightNumber}`,
     };
   }
 
-private mapServiceRow(s: any): QuoteServiceRow {
-  return {
-    QuoteServiceId: s.QuoteServiceId, 
-    QuoteId: s.QuoteId,
-    QuotePackageTypeId: s.QuotePackageTypeId,
-    DayNumber: s.DayNumber, 
-    ServiceDate: new Date(s.ServiceDate),
-    ServiceType: s.ServiceType,
-    IteneraryServiceId: s.IteneraryServiceId ?? 0,
-    IteneraryServiceName: s.IteneraryServiceName ?? '',
-    VehicleTypeId: s.VehicleTypeId ?? 0,
-    VehicleTypeName: s.VehicleTypeName ?? '',
-    SameCabForAll: s.SameCabForAll ?? false,
-    ActivityServiceId: s.ActivityServiceId ?? 0,
-    ActivityServiceName: s.ActivityServiceName ?? '',
-    Qty: s.Qty ?? 1, 
-    CostPrice: s.CostPrice ?? 0,
-    SellingPrice: s.SellingPrice ?? 0, 
-    Notes: s.Notes ?? '',
-    IsSaving: false,    
-    LocationId: s.LocationId ?? 0,
-    LocationName: s.LocationName ?? '',
-    VehicleTypeSearch: s.VehicleTypeName ?? '',
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    TotalPrice: 0,  // ← ADD THIS
-  };
-}
+  private mapServiceRow(s: any): QuoteServiceRow {
+    return {
+      QuoteServiceId: s.QuoteServiceId,
+      QuoteId: s.QuoteId,
+      QuotePackageTypeId: s.QuotePackageTypeId,
+      DayNumber: s.DayNumber,
+      ServiceDate: new Date(s.ServiceDate),
+      ServiceType: s.ServiceType,
+      IteneraryServiceId: s.IteneraryServiceId ?? 0,
+      IteneraryServiceName: s.IteneraryServiceName ?? '',
+      VehicleTypeId: s.VehicleTypeId ?? 0,
+      VehicleTypeName: s.VehicleTypeName ?? '',
+      SameCabForAll: s.SameCabForAll ?? false,
+      ActivityServiceId: s.ActivityServiceId ?? 0,
+      ActivityServiceName: s.ActivityServiceName ?? '',
+      Qty: s.Qty ?? 1,
+      CostPrice: s.CostPrice ?? 0,
+      SellingPrice: s.SellingPrice ?? 0,
+      Notes: s.Notes ?? '',
+      IsSaving: false,
+      LocationId: s.LocationId ?? 0,
+      LocationName: s.LocationName ?? '',
+      VehicleTypeSearch: s.VehicleTypeName ?? '',
+      FilteredVehicles: [],
+      ShowVehicleDropdown: false,
+      TotalPrice: 0,  // ← ADD THIS
+    };
+  }
 
 
-private mapServiceToTransportRow(s: QuoteServiceRow): QuoteTransportRow {
-  const slot = this.daySlots().find(d => d.DayNumber === s.DayNumber);
-  return {
-    QuoteServiceId: s.QuoteServiceId,
-    QuoteId: s.QuoteId,
-    QuotePackageTypeId: s.QuotePackageTypeId,
-    DayNumbers: [s.DayNumber],
-    DayNumber: s.DayNumber,
-    ServiceDate: s.ServiceDate,
-    LocationId: s.LocationId,
-    LocationName: s.LocationName,
-    IteneraryServiceId: s.IteneraryServiceId,
-    IteneraryServiceName: s.IteneraryServiceName,
-    VehicleTypeId: s.VehicleTypeId,
-    VehicleTypeName: s.VehicleTypeName,
-    SameCabForAll: s.SameCabForAll,
-    Qty: s.Qty,
-    CostPrice: s.CostPrice,
-    SellingPrice: s.SellingPrice,
-    TotalPrice: s.TotalPrice,
-    Notes: s.Notes,
-    IsSaving: false,
-    LocationSearch: s.LocationName,
-    FilteredLocations: [],
-    ShowLocationDropdown: false,
-    ServiceSearch: s.IteneraryServiceName,
-    FilteredServices: [],
-    ShowServiceDropdown: false,
-    VehicleSearch: s.VehicleTypeName,
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    ShowDayDropdown: false,
-    SelectedDaysDisplay: `Day ${s.DayNumber}`,
-  };
-}
+  private mapServiceToTransportRow(s: QuoteServiceRow): QuoteTransportRow {
+    const slot = this.daySlots().find(d => d.DayNumber === s.DayNumber);
+    return {
+      QuoteServiceId: s.QuoteServiceId,
+      QuoteId: s.QuoteId,
+      QuotePackageTypeId: s.QuotePackageTypeId,
+      DayNumbers: [s.DayNumber],
+      DayNumber: s.DayNumber,
+      ServiceDate: s.ServiceDate,
+      LocationId: s.LocationId,
+      LocationName: s.LocationName,
+      IteneraryServiceId: s.IteneraryServiceId,
+      IteneraryServiceName: s.IteneraryServiceName,
+      VehicleTypeId: s.VehicleTypeId,
+      VehicleTypeName: s.VehicleTypeName,
+      SameCabForAll: s.SameCabForAll,
+      Qty: s.Qty,
+      CostPrice: s.CostPrice,
+      SellingPrice: s.SellingPrice,
+      TotalPrice: s.TotalPrice,
+      Notes: s.Notes,
+      IsSaving: false,
+      LocationSearch: s.LocationName,
+      FilteredLocations: [],
+      ShowLocationDropdown: false,
+      ServiceSearch: s.IteneraryServiceName,
+      FilteredServices: [],
+      ShowServiceDropdown: false,
+      VehicleSearch: s.VehicleTypeName,
+      FilteredVehicles: [],
+      ShowVehicleDropdown: false,
+      ShowDayDropdown: false,
+      SelectedDaysDisplay: `Day ${s.DayNumber}`,
+    };
+  }
 
   // ── Package Types Modal ───────────────────────────────────
   openPkgModal(): void {
@@ -742,12 +744,12 @@ private mapServiceToTransportRow(s: QuoteServiceRow): QuoteTransportRow {
     );
   }
 
-getActiveHotelRows(): QuoteHotelRow[] {
-  // Return ONLY main hotels (not similar hotels)
-  return this.hotelRows().filter(
-    r => r.QuotePackageTypeId === this.activePackageTypeId()
-  );
-}
+  getActiveHotelRows(): QuoteHotelRow[] {
+    // Return ONLY main hotels (not similar hotels)
+    return this.hotelRows().filter(
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
 
   addHotelRow(slot?: NightSlot): void {
     const selectedSlot = slot ?? this.nightSlots()[0];
@@ -766,108 +768,108 @@ getActiveHotelRows(): QuoteHotelRow[] {
       RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
       NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
       CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
-      TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],HotelSearch: '',
-    FilteredHotels: [],
-    ShowDropdown: false,
-    ShowNightDropdown: false,
-    SelectedNightsDisplay: `Night ${selectedSlot.NightNumber}`,
+      TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: '',
+      FilteredHotels: [],
+      ShowDropdown: false,
+      ShowNightDropdown: false,
+      SelectedNightsDisplay: `Night ${selectedSlot.NightNumber}`,
     }]);
   }
 
-onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
-  const index = row.NightNumbers.indexOf(nightNumber);
-  if (index > -1) {
-    row.NightNumbers.splice(index, 1);
-  } else {
-    row.NightNumbers.push(nightNumber);
-    row.NightNumbers.sort((a, b) => a - b);
+  onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
+    const index = row.NightNumbers.indexOf(nightNumber);
+    if (index > -1) {
+      row.NightNumbers.splice(index, 1);
+    } else {
+      row.NightNumbers.push(nightNumber);
+      row.NightNumbers.sort((a, b) => a - b);
+    }
+
+    if (row.NightNumbers.length > 0) {
+      const firstNight = row.NightNumbers[0];
+      const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
+      row.NightNumber = firstNight;
+      if (slot) row.StayDate = slot.StayDate;
+    }
+
+    this.updateHotelNightsDisplay(row);
+    this.hotelRows.update(rows => [...rows]);
+    if (row.HotelId > 0 && row.RoomTypeId > 0) {
+      this.lookupHotelRate(row);
+    }
+    this.markDirty();
   }
 
-  if (row.NightNumbers.length > 0) {
-    const firstNight = row.NightNumbers[0];
-    const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
-    row.NightNumber = firstNight;
-    if (slot) row.StayDate = slot.StayDate;
+  updateHotelNightsDisplay(row: QuoteHotelRow): void {
+    if (row.NightNumbers.length === 0) {
+      row.SelectedNightsDisplay = '';
+    } else if (row.NightNumbers.length === 1) {
+      row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
+    } else {
+      row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
+    }
   }
 
-  this.updateHotelNightsDisplay(row);
-  this.hotelRows.update(rows => [...rows]);
-  if (row.HotelId > 0 && row.RoomTypeId > 0) {
-    this.lookupHotelRate(row);
+  toggleHotelNightDropdown(row: QuoteHotelRow): void {
+    row.ShowNightDropdown = !row.ShowNightDropdown;
+    this.hotelRows.update(rows => [...rows]);
   }
-  this.markDirty();
-}
 
-updateHotelNightsDisplay(row: QuoteHotelRow): void {
-  if (row.NightNumbers.length === 0) {
-    row.SelectedNightsDisplay = '';
-  } else if (row.NightNumbers.length === 1) {
-    row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
-  } else {
-    row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
+  closeHotelNightDropdown(row: QuoteHotelRow): void {
+    row.ShowNightDropdown = false;
+    this.hotelRows.update(rows => [...rows]);
   }
-}
 
-toggleHotelNightDropdown(row: QuoteHotelRow): void {
-  row.ShowNightDropdown = !row.ShowNightDropdown;
-  this.hotelRows.update(rows => [...rows]);
-}
+  onHotelSearch(row: QuoteHotelRow): void {
+    const query = (row.HotelSearch ?? '').toLowerCase().trim();
 
-closeHotelNightDropdown(row: QuoteHotelRow): void {
-  row.ShowNightDropdown = false;
-  this.hotelRows.update(rows => [...rows]);
-}
+    // If empty → show first 4 hotels
+    if (!query) {
+      row.FilteredHotels = this.hotelList().slice(0, 4);
+      row.ShowDropdown = true;
+      this.hotelRows.update(rows => [...rows]);
+      return;
+    }
 
-onHotelSearch(row: QuoteHotelRow): void {
-  const query = (row.HotelSearch ?? '').toLowerCase().trim();
+    // Search results
+    row.FilteredHotels = this.hotelList()
+      .filter(h =>
+        h.HotelName.toLowerCase().includes(query) ||
+        h.LocationName?.toLowerCase().includes(query)
+      )
+      .slice(0, 4);
 
-  // If empty → show first 4 hotels
-  if (!query) {
-    row.FilteredHotels = this.hotelList().slice(0, 4);
     row.ShowDropdown = true;
     this.hotelRows.update(rows => [...rows]);
-    return;
   }
 
-  // Search results
-  row.FilteredHotels = this.hotelList()
-    .filter(h =>
-      h.HotelName.toLowerCase().includes(query) ||
-      h.LocationName?.toLowerCase().includes(query)
-    )
-    .slice(0, 4);
-
-  row.ShowDropdown = true;
-  this.hotelRows.update(rows => [...rows]);
-}
-
-selectHotel(row: QuoteHotelRow, hotel: any): void {
-  this.clearHotel(row);
-  row.HotelId = hotel.HotelId;
-  row.HotelName = hotel.HotelName;
-  row.HotelSearch = hotel.HotelName;
-  row.LocationName = hotel.LocationName;
-  row.HotelCategoryName = hotel.HotelCategoryName;
-  row.ShowDropdown = false;
-  row.FilteredHotels = [];
-  this.hotelRows.update(rows => [...rows]);
-  this.markDirty();
-  this.onHotelSelected(row);
-}
-
-onHotelBlur(row: QuoteHotelRow): void {
-  // Delay to allow mousedown on dropdown item to fire first
-  setTimeout(() => {
+  selectHotel(row: QuoteHotelRow, hotel: any): void {
+    this.clearHotel(row);
+    row.HotelId = hotel.HotelId;
+    row.HotelName = hotel.HotelName;
+    row.HotelSearch = hotel.HotelName;
+    row.LocationName = hotel.LocationName;
+    row.HotelCategoryName = hotel.HotelCategoryName;
     row.ShowDropdown = false;
-    // If user typed something but didn't select, reset to last valid hotel
-    if (row.HotelId > 0) {
-      row.HotelSearch = row.HotelName;
-    } else {
-      row.HotelSearch = '';
-    }
+    row.FilteredHotels = [];
     this.hotelRows.update(rows => [...rows]);
-  }, 200);
-}
+    this.markDirty();
+    this.onHotelSelected(row);
+  }
+
+  onHotelBlur(row: QuoteHotelRow): void {
+    // Delay to allow mousedown on dropdown item to fire first
+    setTimeout(() => {
+      row.ShowDropdown = false;
+      // If user typed something but didn't select, reset to last valid hotel
+      if (row.HotelId > 0) {
+        row.HotelSearch = row.HotelName;
+      } else {
+        row.HotelSearch = '';
+      }
+      this.hotelRows.update(rows => [...rows]);
+    }, 200);
+  }
   onHotelSelected(row: QuoteHotelRow): void {
     this.markDirty();
     let hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
@@ -884,887 +886,887 @@ onHotelBlur(row: QuoteHotelRow): void {
       });
       this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
         next: (r: any) => {
-if (r.Message === ConstantData.SuccessMessage) {
+          if (r.Message === ConstantData.SuccessMessage) {
 
-  row.RoomTypes = r.RoomTypeList ?? [];
+            row.RoomTypes = r.RoomTypeList ?? [];
 
-  // No room type found
-  if (row.RoomTypes.length === 0) {
-    this.toastr.warning(
-      `No room types configured for ${row.HotelName}`
-    );
-  }
+            // No room type found
+            if (row.RoomTypes.length === 0) {
+              this.toastr.warning(
+                `No room types configured for ${row.HotelName}`
+              );
+            }
 
-  row.RoomTypeId =
-    row.RoomTypes.length > 0
-      ? row.RoomTypes[0].RoomTypeId
-      : 0;
+            row.RoomTypeId =
+              row.RoomTypes.length > 0
+                ? row.RoomTypes[0].RoomTypeId
+                : 0;
 
-  this.hotelRows.update(rows => [...rows]);
+            this.hotelRows.update(rows => [...rows]);
 
-  // Only lookup price if room type exists
-  if (row.RoomTypeId > 0) {
-    this.lookupHotelRate(row);
-  }
-} else {
+            // Only lookup price if room type exists
+            if (row.RoomTypeId > 0) {
+              this.lookupHotelRate(row);
+            }
+          } else {
             this.toastr.error('Failed to load room types: ' + r.Message);
           }
         },
         error: () => this.toastr.error('Error loading room types')
       });
       // Add to onHotelSelected after getRoomTypeList success
-this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
-  .subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        row.SpecialInclusions = r.SpecialInclusionList ?? [];  // ← correct key
-        this.hotelRows.update(rows => [...rows]);
-      }
-    }
-  });
+      this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
+        .subscribe({
+          next: (r: any) => {
+            if (r.Message === ConstantData.SuccessMessage) {
+              row.SpecialInclusions = r.SpecialInclusionList ?? [];  // ← correct key
+              this.hotelRows.update(rows => [...rows]);
+            }
+          }
+        });
     }
   }
   getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
-  return this.specialInclusionRows().filter(r => r.NightNumbers.includes(nightNumber));
-}
-
-// Get all hotels for a night to populate hotel dropdown in special inclusions
-getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
-  return this.hotelRows().filter(
-    r => r.NightNumber === nightNumber
-      && r.QuotePackageTypeId === this.activePackageTypeId()
-      && r.HotelId > 0
-  );
-}
-
-clearHotel(row: QuoteHotelRow): void {
-  row.HotelSearch = '';
-  row.HotelId = 0;
-  row.HotelName = '';
-  row.LocationName = '';
-  row.HotelCategoryName = '';
-  row.RoomTypeId = 0;
-  row.RoomTypes = [];
-  row.FilteredHotels = [];
-  row.AWEB = 0;
-  row.NoOfRooms = 1;
-  row.ShowDropdown = false;
-
-  // RESET ALL PRICE FIELDS when clearing
-  row.BaseRate = 0;
-  row.AwebRate = 0;
-  row.CwebRate = 0;
-  row.CnbRate = 0;
-  row.CostPrice = 0;
-  row.SellingPrice = 0;
-  row.TotalPrice = 0;
-  
-
-  this.hotelRows.update(rows => [...rows]);
-  this.markDirty();
-}
-addNewHotel(row: QuoteHotelRow): void {
-  this.pendingHotelRow = row;
-  this.newHotel = { HotelName: row.HotelSearch, LocationId: 0, HotelCategoryId: 0 };
-  this.newRoomTypes = [{ RoomTypeName: '' }];
-  this.showNewHotelModal = true;
-}
-
-closeNewHotelModal(): void {
-  this.showNewHotelModal = false;
-  this.pendingHotelRow = null;
-  this.newHotel = { HotelName: '', LocationId: 0, HotelCategoryId: 0 };
-  this.newRoomTypes = [{ RoomTypeName: '' }];
-  
-  // Reset search fields
-  this.locationSearchText = '';
-  this.categorySearchText = '';
-  this.filteredLocations = [];
-  this.filteredCategories = [];
-  this.showLocationDropdown = false;
-  this.showCategoryDropdown = false;
-}
-
-addNewRoomTypeRow(): void {
-  this.newRoomTypes.push({ RoomTypeName: '' });
-}
-
-removeNewRoomTypeRow(i: number): void {
-  this.newRoomTypes.splice(i, 1);
-}
-
-onNewHotelLocationChange(): void {
-  // optional: filter anything by location if needed
-}
-
-saveNewHotel(): void {
-  if (!this.newHotel.HotelName?.trim()) {
-    this.toastr.error('Hotel name is required'); return;
-  }
-  if (!this.newHotel.LocationId) {
-    this.toastr.error('Location is required'); return;
-  }
-  if (!this.newHotel.HotelCategoryId) {
-    this.toastr.error('Hotel category is required'); return;
-  }
-  if (this.newRoomTypes.length === 0) {
-    this.toastr.error('Add at least one room type'); return;
-  }
-  const invalidRt = this.newRoomTypes.find(rt => !rt.RoomTypeName?.trim());
-  if (invalidRt) {
-    this.toastr.error('Room type name cannot be empty'); return;
+    return this.specialInclusionRows().filter(r => r.NightNumbers.includes(nightNumber));
   }
 
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
+  // Get all hotels for a night to populate hotel dropdown in special inclusions
+  getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
+    return this.hotelRows().filter(
+      r => r.NightNumber === nightNumber
+        && r.QuotePackageTypeId === this.activePackageTypeId()
+        && r.HotelId > 0
+    );
+  }
 
-  this.newHotelSaving = true;
+  clearHotel(row: QuoteHotelRow): void {
+    row.HotelSearch = '';
+    row.HotelId = 0;
+    row.HotelName = '';
+    row.LocationName = '';
+    row.HotelCategoryName = '';
+    row.RoomTypeId = 0;
+    row.RoomTypes = [];
+    row.FilteredHotels = [];
+    row.AWEB = 0;
+    row.NoOfRooms = 1;
+    row.ShowDropdown = false;
 
-  const trip = this.tripInfo();
-  this.service.saveNewHotel(enc({
-    HotelId: 0,
-    HotelName: this.newHotel.HotelName.trim(),
-    DestinationId: trip?.DestinationId ?? 0,
-    LocationId: this.newHotel.LocationId,
-    HotelCategoryId: this.newHotel.HotelCategoryId,
-    Status: 1,
-    CreatedBy: this.staffLogin.StaffLoginId,
-    RoomTypes: this.newRoomTypes.map(rt => ({ RoomTypeName: rt.RoomTypeName.trim() })),
-  })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        const newHotelId = r.HotelId;
+    // RESET ALL PRICE FIELDS when clearing
+    row.BaseRate = 0;
+    row.AwebRate = 0;
+    row.CwebRate = 0;
+    row.CnbRate = 0;
+    row.CostPrice = 0;
+    row.SellingPrice = 0;
+    row.TotalPrice = 0;
 
-        // Add to hotelList signal so it appears in search
-        const location = this.locationList().find(l => l.LocationId === this.newHotel.LocationId);
-        const category = this.hotelCategoryList().find(c => c.HotelCategoryId === this.newHotel.HotelCategoryId);
 
-        const newHotelEntry = {
-          HotelId: newHotelId,
-          HotelName: this.newHotel.HotelName.trim(),
-          LocationId: this.newHotel.LocationId,
-          LocationName: location?.LocationName ?? '',
-          HotelCategoryId: this.newHotel.HotelCategoryId,
-          HotelCategoryName: category?.HotelCategoryName ?? '',
-        };
+    this.hotelRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+  addNewHotel(row: QuoteHotelRow): void {
+    this.pendingHotelRow = row;
+    this.newHotel = { HotelName: row.HotelSearch, LocationId: 0, HotelCategoryId: 0 };
+    this.newRoomTypes = [{ RoomTypeName: '' }];
+    this.showNewHotelModal = true;
+  }
 
-        this.hotelList.update(list => [...list, newHotelEntry]);
+  closeNewHotelModal(): void {
+    this.showNewHotelModal = false;
+    this.pendingHotelRow = null;
+    this.newHotel = { HotelName: '', LocationId: 0, HotelCategoryId: 0 };
+    this.newRoomTypes = [{ RoomTypeName: '' }];
 
-        // Auto-select in the row that triggered add
-        if (this.pendingHotelRow) {
-          this.selectHotel(this.pendingHotelRow, newHotelEntry);
-        }
+    // Reset search fields
+    this.locationSearchText = '';
+    this.categorySearchText = '';
+    this.filteredLocations = [];
+    this.filteredCategories = [];
+    this.showLocationDropdown = false;
+    this.showCategoryDropdown = false;
+  }
 
-        this.toastr.success('Hotel saved successfully');
-        this.closeNewHotelModal();
-      } else {
-        this.toastr.error(r.Message);
-      }
-      this.newHotelSaving = false;
-    },
-    error: () => {
-      this.toastr.error('Error saving hotel');
-      this.newHotelSaving = false;
+  addNewRoomTypeRow(): void {
+    this.newRoomTypes.push({ RoomTypeName: '' });
+  }
+
+  removeNewRoomTypeRow(i: number): void {
+    this.newRoomTypes.splice(i, 1);
+  }
+
+  onNewHotelLocationChange(): void {
+    // optional: filter anything by location if needed
+  }
+
+  saveNewHotel(): void {
+    if (!this.newHotel.HotelName?.trim()) {
+      this.toastr.error('Hotel name is required'); return;
     }
-  });
-}
-
-
-
-// Similar Hotels Modal
-showSimilarHotelsModal = false;
-similarHotelSourceRow: QuoteHotelRow | null = null;
-similarHotelRows: QuoteHotelRow[] = [];
-// Add this with your other signals
-similarHotels = signal<QuoteHotelRow[]>([]);
-
-
-getNextUnselectedNight(): number | null {
-  const allNights = this.nightSlots().map(n => n.NightNumber);
-  const usedNights = new Set(
-    this.getActiveHotelRows().flatMap(r => r.NightNumbers)
-  );
-  return allNights.find(n => !usedNights.has(n)) ?? null;
-}
-
-addHotelRowForNextNight(): void {
-  const nextNight = this.getNextUnselectedNight();
-  if (nextNight === null) return;
-  const slot = this.nightSlots().find(n => n.NightNumber === nextNight);
-  if (slot) this.addHotelRow(slot);
-}
-
-openSimilarHotelsModal(): void {
-  const mainHotels = this.getActiveHotelRows();
-  if (mainHotels.length === 0) {
-    this.toastr.warning('No main hotels found. Please add a hotel first.');
-    return;
-  }
-  
-  // First hotel is the source/reference
-  this.similarHotelSourceRow = mainHotels[0];
-  
-  // Load existing similar hotels
-  const existingSimilar = this.similarHotels();
-  
-  if (existingSimilar.length === 0) {
-    // Create one empty row as template
-    this.similarHotelRows = [{
-      ...this.createEmptyHotelRow(),
-      MealPlan: mainHotels[0].MealPlan,
-      NightNumbers: [...mainHotels[0].NightNumbers],
-      SelectedNightsDisplay: mainHotels[0].SelectedNightsDisplay,
-      NoOfRooms: mainHotels[0].NoOfRooms,
-      PaxPerRoom: mainHotels[0].PaxPerRoom,
-      AWEB: mainHotels[0].AWEB,
-      CWEB: mainHotels[0].CWEB,
-      CNB: mainHotels[0].CNB,
-    }];
-  } else {
-    // Load existing similar hotels
-    this.similarHotelRows = existingSimilar.map(row => ({
-      ...this.createEmptyHotelRow(),
-      QuoteHotelId: row.QuoteHotelId,
-      HotelId: row.HotelId,
-      HotelName: row.HotelName,
-      HotelSearch: row.HotelName,
-      LocationName: row.LocationName,
-      HotelCategoryName: row.HotelCategoryName,
-      RoomTypeId: row.RoomTypeId,
-      RoomTypeName: row.RoomTypeName,
-      MealPlan: row.MealPlan,
-      NightNumbers: [...row.NightNumbers],
-      NightNumber: row.NightNumber,
-      StayDate: row.StayDate,
-      SelectedNightsDisplay: row.SelectedNightsDisplay,
-      NoOfRooms: row.NoOfRooms,
-      PaxPerRoom: row.PaxPerRoom,
-      AWEB: row.AWEB,
-      CWEB: row.CWEB,
-      CNB: row.CNB,
-      BaseRate: row.BaseRate,
-      AwebRate: row.AwebRate,
-      CwebRate: row.CwebRate,
-      CnbRate: row.CnbRate,
-      CostPrice: row.CostPrice,
-      SellingPrice: row.SellingPrice,
-      TotalPrice: row.TotalPrice,
-      RoomTypes: [...row.RoomTypes],
-      IsSaving: false,
-      SpecialInclusions: [],
-      FilteredHotels: [],
-      ShowDropdown: false,
-      ShowNightDropdown: false,
-    }));
-  }
-  
-  this.showSimilarHotelsModal = true;
-}
-
-closeSimilarHotelsModal(): void {
-  this.showSimilarHotelsModal = false;
-  this.similarHotelSourceRow = null;
-  this.similarHotelRows = [];
-}
-
-private createEmptyHotelRow(): QuoteHotelRow {
-  const slot = this.nightSlots()[0];
-  return {
-    QuoteHotelId: 0, QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    NightNumber: slot?.NightNumber ?? 1,
-    NightNumbers: [slot?.NightNumber ?? 1],
-    StayDate: slot?.StayDate ?? new Date(),
-    HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
-    RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
-    NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
-    CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
-    TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],
-    HotelSearch: '', FilteredHotels: [], ShowDropdown: false,
-    ShowNightDropdown: false, SelectedNightsDisplay: '',
-  };
-}
-
-addSimilarHotelRow(): void {
-  const src = this.similarHotelSourceRow!;
-  this.similarHotelRows.push({
-    ...this.createEmptyHotelRow(),
-    MealPlan: src.MealPlan,
-    NightNumbers: [...src.NightNumbers],
-    NightNumber: src.NightNumber,
-    StayDate: src.StayDate,
-    SelectedNightsDisplay: src.SelectedNightsDisplay,
-    NoOfRooms: src.NoOfRooms,
-    PaxPerRoom: src.PaxPerRoom,
-    AWEB: src.AWEB, CWEB: src.CWEB, CNB: src.CNB,
-  });
-}
-
-// Remove from modal by index
-removeSimilarHotelRow(i: number): void {
-  this.similarHotelRows.splice(i, 1);
-  this.similarHotelRows = [...this.similarHotelRows];
-  this.markDirty();
-}
-
-// Remove from summary list by row object
-removeSimilarHotel(row: QuoteHotelRow): void {
-  if (confirm(`Remove ${row.HotelName} from similar hotels?`)) {
-    if (row.QuoteHotelId > 0) {
-      const enc = (d: object): RequestModel => ({
-        request: this.local.encrypt(JSON.stringify(d)).toString()
-      });
-      this.service.deleteQuoteHotel(enc({ QuoteHotelId: row.QuoteHotelId }))
-        .subscribe({
-          next: () => {
-            this.similarHotels.update(hotels => hotels.filter(h => h.QuoteHotelId !== row.QuoteHotelId));
-            this.toastr.success('Similar hotel removed');
-            this.markDirty();
-          },
-          error: () => this.toastr.error('Error removing hotel')
-        });
-    } else {
-      this.similarHotels.update(hotels => hotels.filter(h => h !== row));
-      this.markDirty();
+    if (!this.newHotel.LocationId) {
+      this.toastr.error('Location is required'); return;
     }
-  }
-}
+    if (!this.newHotel.HotelCategoryId) {
+      this.toastr.error('Hotel category is required'); return;
+    }
+    if (this.newRoomTypes.length === 0) {
+      this.toastr.error('Add at least one room type'); return;
+    }
+    const invalidRt = this.newRoomTypes.find(rt => !rt.RoomTypeName?.trim());
+    if (invalidRt) {
+      this.toastr.error('Room type name cannot be empty'); return;
+    }
 
-onSimilarHotelSearch(row: QuoteHotelRow): void {
-  const query = (row.HotelSearch ?? '').toLowerCase().trim();
-  row.FilteredHotels = !query
-    ? this.hotelList().slice(0, 4)
-    : this.hotelList()
-        .filter(h => h.HotelName.toLowerCase().includes(query) ||
-                     h.LocationName?.toLowerCase().includes(query))
-        .slice(0, 4);
-  row.ShowDropdown = true;
-  this.similarHotelRows = [...this.similarHotelRows];
-}
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
 
-selectSimilarHotel(row: QuoteHotelRow, hotel: any): void {
+    this.newHotelSaving = true;
 
-  row.HotelId = hotel.HotelId;
-  row.HotelName = hotel.HotelName;
-  row.HotelSearch = hotel.HotelName;
-  row.LocationName = hotel.LocationName;
-  row.HotelCategoryName = hotel.HotelCategoryName;
-
-  row.ShowDropdown = false;
-  row.FilteredHotels = [];
-
-  // Force UI refresh
-  this.similarHotelRows = [...this.similarHotelRows];
-
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-
-  this.service.getRoomTypeList(enc({ HotelId: hotel.HotelId }))
-    .subscribe({
+    const trip = this.tripInfo();
+    this.service.saveNewHotel(enc({
+      HotelId: 0,
+      HotelName: this.newHotel.HotelName.trim(),
+      DestinationId: trip?.DestinationId ?? 0,
+      LocationId: this.newHotel.LocationId,
+      HotelCategoryId: this.newHotel.HotelCategoryId,
+      Status: 1,
+      CreatedBy: this.staffLogin.StaffLoginId,
+      RoomTypes: this.newRoomTypes.map(rt => ({ RoomTypeName: rt.RoomTypeName.trim() })),
+    })).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
+          const newHotelId = r.HotelId;
 
-          row.RoomTypes = r.RoomTypeList ?? [];
-          row.RoomTypeId = row.RoomTypes[0]?.RoomTypeId ?? 0;
+          // Add to hotelList signal so it appears in search
+          const location = this.locationList().find(l => l.LocationId === this.newHotel.LocationId);
+          const category = this.hotelCategoryList().find(c => c.HotelCategoryId === this.newHotel.HotelCategoryId);
 
-          // Force refresh again
-          this.similarHotelRows = [...this.similarHotelRows];
+          const newHotelEntry = {
+            HotelId: newHotelId,
+            HotelName: this.newHotel.HotelName.trim(),
+            LocationId: this.newHotel.LocationId,
+            LocationName: location?.LocationName ?? '',
+            HotelCategoryId: this.newHotel.HotelCategoryId,
+            HotelCategoryName: category?.HotelCategoryName ?? '',
+          };
 
-          if (row.RoomTypeId > 0) {
-            this.lookupHotelRate(row);
+          this.hotelList.update(list => [...list, newHotelEntry]);
+
+          // Auto-select in the row that triggered add
+          if (this.pendingHotelRow) {
+            this.selectHotel(this.pendingHotelRow, newHotelEntry);
           }
+
+          this.toastr.success('Hotel saved successfully');
+          this.closeNewHotelModal();
+        } else {
+          this.toastr.error(r.Message);
         }
+        this.newHotelSaving = false;
+      },
+      error: () => {
+        this.toastr.error('Error saving hotel');
+        this.newHotelSaving = false;
       }
     });
-}
-
-onSimilarHotelBlur(row: QuoteHotelRow): void {
-  setTimeout(() => {
-    row.ShowDropdown = false;
-    if (!row.HotelId) row.HotelSearch = '';
-  }, 200);
-}
-
-clearSimilarHotel(row: QuoteHotelRow): void {
-  row.HotelSearch = ''; row.HotelId = 0; row.HotelName = '';
-  row.RoomTypes = []; row.RoomTypeId = 0;
-  row.BaseRate = 0; row.FilteredHotels = []; row.ShowDropdown = false;
-  this.similarHotelRows = [...this.similarHotelRows];
-}
-
-saveSimilarHotels(): void {
-  // Filter out rows that have valid hotel and room type selected
-  const valid = this.similarHotelRows.filter(r => r.HotelId > 0 && r.RoomTypeId > 0);
-  
-  if (valid.length === 0) { 
-    this.toastr.error('Please add at least one valid hotel with room type selected'); 
-    return; 
   }
-  
-  // Save each similar hotel to database and collect them
-  const savedSimilarHotels: QuoteHotelRow[] = [];
-  
-  valid.forEach((modalRow) => {
-    if (modalRow.QuoteHotelId > 0) {
-      // Update existing similar hotel
-      this.saveHotelRow(modalRow);
-      savedSimilarHotels.push(modalRow);
-    } else {
-      // Create new similar hotel
-      const newRow: QuoteHotelRow = {
+
+
+
+  // Similar Hotels Modal
+  showSimilarHotelsModal = false;
+  similarHotelSourceRow: QuoteHotelRow | null = null;
+  similarHotelRows: QuoteHotelRow[] = [];
+  // Add this with your other signals
+  similarHotels = signal<QuoteHotelRow[]>([]);
+
+
+  getNextUnselectedNight(): number | null {
+    const allNights = this.nightSlots().map(n => n.NightNumber);
+    const usedNights = new Set(
+      this.getActiveHotelRows().flatMap(r => r.NightNumbers)
+    );
+    return allNights.find(n => !usedNights.has(n)) ?? null;
+  }
+
+  addHotelRowForNextNight(): void {
+    const nextNight = this.getNextUnselectedNight();
+    if (nextNight === null) return;
+    const slot = this.nightSlots().find(n => n.NightNumber === nextNight);
+    if (slot) this.addHotelRow(slot);
+  }
+
+  openSimilarHotelsModal(): void {
+    const mainHotels = this.getActiveHotelRows();
+    if (mainHotels.length === 0) {
+      this.toastr.warning('No main hotels found. Please add a hotel first.');
+      return;
+    }
+
+    // First hotel is the source/reference
+    this.similarHotelSourceRow = mainHotels[0];
+
+    // Load existing similar hotels
+    const existingSimilar = this.similarHotels();
+
+    if (existingSimilar.length === 0) {
+      // Create one empty row as template
+      this.similarHotelRows = [{
         ...this.createEmptyHotelRow(),
-        QuoteHotelId: 0,
-        QuoteId: this.QuoteId,
-        QuotePackageTypeId: this.activePackageTypeId(),
-        HotelId: modalRow.HotelId,
-        HotelName: modalRow.HotelName,
-        LocationName: modalRow.LocationName,
-        HotelCategoryName: modalRow.HotelCategoryName,
-        RoomTypeId: modalRow.RoomTypeId,
-        RoomTypeName: modalRow.RoomTypeName,
-        MealPlan: modalRow.MealPlan,
-        NightNumbers: [...modalRow.NightNumbers],
-        NightNumber: modalRow.NightNumbers[0],
-        StayDate: this.nightSlots()[modalRow.NightNumbers[0] - 1]?.StayDate || new Date(),
-        SelectedNightsDisplay: modalRow.SelectedNightsDisplay,
-        NoOfRooms: modalRow.NoOfRooms,
-        PaxPerRoom: modalRow.PaxPerRoom,
-        AWEB: modalRow.AWEB,
-        CWEB: modalRow.CWEB,
-        CNB: modalRow.CNB,
-        BaseRate: modalRow.BaseRate,
-        AwebRate: modalRow.AwebRate,
-        CwebRate: modalRow.CwebRate,
-        CnbRate: modalRow.CnbRate,
-        CostPrice: modalRow.CostPrice,
-        SellingPrice: modalRow.SellingPrice,
-        TotalPrice: modalRow.TotalPrice,
-        RoomTypes: [...modalRow.RoomTypes],
+        MealPlan: mainHotels[0].MealPlan,
+        NightNumbers: [...mainHotels[0].NightNumbers],
+        SelectedNightsDisplay: mainHotels[0].SelectedNightsDisplay,
+        NoOfRooms: mainHotels[0].NoOfRooms,
+        PaxPerRoom: mainHotels[0].PaxPerRoom,
+        AWEB: mainHotels[0].AWEB,
+        CWEB: mainHotels[0].CWEB,
+        CNB: mainHotels[0].CNB,
+      }];
+    } else {
+      // Load existing similar hotels
+      this.similarHotelRows = existingSimilar.map(row => ({
+        ...this.createEmptyHotelRow(),
+        QuoteHotelId: row.QuoteHotelId,
+        HotelId: row.HotelId,
+        HotelName: row.HotelName,
+        HotelSearch: row.HotelName,
+        LocationName: row.LocationName,
+        HotelCategoryName: row.HotelCategoryName,
+        RoomTypeId: row.RoomTypeId,
+        RoomTypeName: row.RoomTypeName,
+        MealPlan: row.MealPlan,
+        NightNumbers: [...row.NightNumbers],
+        NightNumber: row.NightNumber,
+        StayDate: row.StayDate,
+        SelectedNightsDisplay: row.SelectedNightsDisplay,
+        NoOfRooms: row.NoOfRooms,
+        PaxPerRoom: row.PaxPerRoom,
+        AWEB: row.AWEB,
+        CWEB: row.CWEB,
+        CNB: row.CNB,
+        BaseRate: row.BaseRate,
+        AwebRate: row.AwebRate,
+        CwebRate: row.CwebRate,
+        CnbRate: row.CnbRate,
+        CostPrice: row.CostPrice,
+        SellingPrice: row.SellingPrice,
+        TotalPrice: row.TotalPrice,
+        RoomTypes: [...row.RoomTypes],
         IsSaving: false,
         SpecialInclusions: [],
         FilteredHotels: [],
         ShowDropdown: false,
         ShowNightDropdown: false,
-        HotelSearch: modalRow.HotelName,
-      };
-      this.saveHotelRow(newRow);
-      savedSimilarHotels.push(newRow);
+      }));
     }
-  });
-  
-  // Update the similar hotels signal
-  this.similarHotels.set(savedSimilarHotels);
-  
-  this.markDirty();
-  this.closeSimilarHotelsModal();
-  this.toastr.success(`${savedSimilarHotels.length} similar hotel(s) saved successfully`);
-}
 
-hasSelectedNight(): boolean {
-  return this.getActiveHotelRows()
-    .some(r => r.NightNumbers && r.NightNumbers.length > 0);
-}
-getSimilarHotelRows(): QuoteHotelRow[] {
-  // Simply return the similar hotels signal
-  return this.similarHotels();
-}
-
-
-
-// Add these with your other properties
-
-// Location autocomplete
-locationSearchText = '';
-filteredLocations: any[] = [];
-showLocationDropdown = false;
-
-// Category autocomplete
-categorySearchText = '';
-filteredCategories: any[] = [];
-showCategoryDropdown = false;
-// ── Location Search Methods ─────────────────────────────────
-onLocationSearch(): void {
-  const query = (this.locationSearchText ?? '').toLowerCase().trim();
-
-  if (!query) {
-    // Show first 5 locations when empty
-    this.filteredLocations = this.locationList().slice(0, 5);
-  } else {
-    // Filter locations
-    this.filteredLocations = this.locationList()
-      .filter(l => l.LocationName.toLowerCase().includes(query))
-      .slice(0, 5);
-  }
-  
-  this.showLocationDropdown = true;
-}
-
-
-
-onLocationBlur(): void {
-  this.showLocationDropdown = false;
-  if (this.newHotel.LocationId === 0) {
-    this.locationSearchText = '';
-  }
-}
-
-clearLocation(): void {
-  this.locationSearchText = '';
-  this.newHotel.LocationId = 0;
-  this.filteredLocations = [];
-  this.showLocationDropdown = false;
-}
-
-// ── Category Search Methods ─────────────────────────────────
-onCategorySearch(): void {
-  const query = (this.categorySearchText ?? '').toLowerCase().trim();
-
-  if (!query) {
-    // Show first 5 categories when empty
-    this.filteredCategories = this.hotelCategoryList().slice(0, 5);
-  } else {
-    // Filter categories
-    this.filteredCategories = this.hotelCategoryList()
-      .filter(c => c.HotelCategoryName.toLowerCase().includes(query))
-      .slice(0, 5);
-  }
-  
-  this.showCategoryDropdown = true;
-}
-
-selectCategory(category: any): void {
-  this.newHotel.HotelCategoryId = category.HotelCategoryId;
-  this.categorySearchText = category.HotelCategoryName;
-  this.showCategoryDropdown = false;
-  this.filteredCategories = [];
-}
-
-onCategoryBlur(): void {
-  setTimeout(() => {
-    this.showCategoryDropdown = false;
-    // If no category selected but text exists, clear it
-    if (this.newHotel.HotelCategoryId === 0 && this.categorySearchText) {
-      this.categorySearchText = '';
-    }
-  }, 200);
-}
-
-
-
-addSpecialInclusionRow(): void {
-  const firstHotel = this.getDestinationHotels()[0];
-  this.markDirty();
-  this.specialInclusionRows.update(rows => [...rows, {
-    QuoteSpecialInclusionId: 0,
-    QuoteId: this.QuoteId,
-    QuoteHotelId: 0,
-    HotelId: firstHotel?.HotelId ?? 0,
-    NightNumbers: [],
-    SpecialInclusionId: 0,
-    SpecialInclusionName: '',
-    HotelName: firstHotel?.HotelName ?? '',
-    TotalPrice: 0,
-    Comments: '',
-    AvailableServices: this.specialInclusionMasterList(),
-    IsSaving: false, 
-    ServiceSearch: '', 
-    FilteredServices: [],
-    ShowServiceDropdown: false,
-    HotelSearch: firstHotel?.HotelName ?? '',
-    FilteredHotels: [],
-    ShowHotelDropdown: false,
-    ManualLocationName: '',
-    UseManualLocation: false,
-    ShowNightDropdown: false,
-    SelectedNightsDisplay: '',
-  }]);
-  if (firstHotel?.HotelId) {
-    this.loadSpecialInclusionsForHotel(firstHotel.HotelId);
-  }
-}
-
-saveSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
-  // Validate required fields
-  if (!row.SpecialInclusionId || row.SpecialInclusionId === 0) {
-    this.toastr.error('Please select a service');
-    return;
-  }
-  
-  if (row.TotalPrice <= 0) {
-    this.toastr.error('Please enter a valid price');
-    return;
-  }
-  
-  if (row.UseManualLocation) {
-    if (!row.ManualLocationName?.trim()) {
-      this.toastr.error('Please enter a location name');
-      return;
-    }
-  } else {
-    if (row.QuoteHotelId <= 0) {
-      this.toastr.error('Please select a hotel');
-      return;
-    }
+    this.showSimilarHotelsModal = true;
   }
 
-  row.IsSaving = true;
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
+  closeSimilarHotelsModal(): void {
+    this.showSimilarHotelsModal = false;
+    this.similarHotelSourceRow = null;
+    this.similarHotelRows = [];
+  }
 
-  const payload = {
-    QuoteSpecialInclusionId: row.QuoteSpecialInclusionId,
-    QuoteId: this.QuoteId,
-    QuoteHotelId: row.UseManualLocation ? 0 : row.QuoteHotelId,
-    NightNumbers: row.NightNumbers,
-    SpecialInclusionId: row.SpecialInclusionId,
-    TotalPrice: row.TotalPrice,
-    Comments: row.Comments,
-    UseManualLocation: row.UseManualLocation,
-    ManualLocationName: row.ManualLocationName || null,
-  };
+  private createEmptyHotelRow(): QuoteHotelRow {
+    const slot = this.nightSlots()[0];
+    return {
+      QuoteHotelId: 0, QuoteId: this.QuoteId,
+      QuotePackageTypeId: this.activePackageTypeId(),
+      NightNumber: slot?.NightNumber ?? 1,
+      NightNumbers: [slot?.NightNumber ?? 1],
+      StayDate: slot?.StayDate ?? new Date(),
+      HotelId: 0, HotelName: '', LocationName: '', HotelCategoryName: '',
+      RoomTypeId: 0, RoomTypeName: '', MealPlan: 'MAP',
+      NoOfRooms: 1, PaxPerRoom: 2, AWEB: 0, CWEB: 0, CNB: 0,
+      CostPrice: 0, SellingPrice: 0, BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
+      TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],
+      HotelSearch: '', FilteredHotels: [], ShowDropdown: false,
+      ShowNightDropdown: false, SelectedNightsDisplay: '',
+    };
+  }
 
-  this.service.saveQuoteSpecialInclusion(enc(payload)).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        row.QuoteSpecialInclusionId = r.QuoteSpecialInclusionId;
-        this.toastr.success('Service added successfully');
-        this.markClean();
+  addSimilarHotelRow(): void {
+    const src = this.similarHotelSourceRow!;
+    this.similarHotelRows.push({
+      ...this.createEmptyHotelRow(),
+      MealPlan: src.MealPlan,
+      NightNumbers: [...src.NightNumbers],
+      NightNumber: src.NightNumber,
+      StayDate: src.StayDate,
+      SelectedNightsDisplay: src.SelectedNightsDisplay,
+      NoOfRooms: src.NoOfRooms,
+      PaxPerRoom: src.PaxPerRoom,
+      AWEB: src.AWEB, CWEB: src.CWEB, CNB: src.CNB,
+    });
+  }
+
+  // Remove from modal by index
+  removeSimilarHotelRow(i: number): void {
+    this.similarHotelRows.splice(i, 1);
+    this.similarHotelRows = [...this.similarHotelRows];
+    this.markDirty();
+  }
+
+  // Remove from summary list by row object
+  removeSimilarHotel(row: QuoteHotelRow): void {
+    if (confirm(`Remove ${row.HotelName} from similar hotels?`)) {
+      if (row.QuoteHotelId > 0) {
+        const enc = (d: object): RequestModel => ({
+          request: this.local.encrypt(JSON.stringify(d)).toString()
+        });
+        this.service.deleteQuoteHotel(enc({ QuoteHotelId: row.QuoteHotelId }))
+          .subscribe({
+            next: () => {
+              this.similarHotels.update(hotels => hotels.filter(h => h.QuoteHotelId !== row.QuoteHotelId));
+              this.toastr.success('Similar hotel removed');
+              this.markDirty();
+            },
+            error: () => this.toastr.error('Error removing hotel')
+          });
       } else {
-        this.toastr.error(r.Message);
+        this.similarHotels.update(hotels => hotels.filter(h => h !== row));
+        this.markDirty();
       }
-      row.IsSaving = false;
-    },
-    error: () => {
-      this.toastr.error('Error saving service');
-      row.IsSaving = false;
     }
-  });
-}
-
-onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotel: any): void {
-  if (!hotel) return;
-  row.HotelId = hotel.HotelId;
-  row.QuoteHotelId = 0;
-  row.HotelName = hotel.HotelName;
-  // Keep master list — don't restrict to hotel's inclusions
-  row.AvailableServices = this.specialInclusionMasterList();
-  row.SpecialInclusionId = 0;
-  row.ServiceSearch = '';
-  row.TotalPrice = 0;
-  this.loadSpecialInclusionsForHotel(row.HotelId);
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
-  const svc = row.AvailableServices.find(
-    s => Number(s.SpecialInclusionId) === Number(row.SpecialInclusionId)
-  );
-
-  if (svc) {
-    row.SpecialInclusionName = svc.SpecialInclusionTypeName ?? svc.SpecialInclusionName ?? '';
-    row.TotalPrice            = Number(svc.Rate ?? svc.ApRate ?? 0);
-  } else {
-    row.TotalPrice = 0;
-  }
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-//special inclusion serach
-onServiceSearch(row: QuoteSpecialInclusionRow): void {
-  const query = (row.ServiceSearch ?? '').toLowerCase().trim();
-  const source = this.specialInclusionMasterList(); // ← always master list
-
-  if (!query) {
-    row.FilteredServices = source.slice(0, 6);
-    row.ShowServiceDropdown = true;
-    this.specialInclusionRows.update(rows => [...rows]);
-    return;
   }
 
-  row.FilteredServices = source
-    .filter(s => s.SpecialInclusionTypeName.toLowerCase().includes(query))
-    .slice(0, 6);
-
-  row.ShowServiceDropdown = true;
-  this.specialInclusionRows.update(rows => [...rows]);
-}
-selectService(row: QuoteSpecialInclusionRow, svc: any): void {
-  row.SpecialInclusionId = svc.SpecialInclusionTypeId; // ← type ID now
-  row.SpecialInclusionName = svc.SpecialInclusionTypeName;
-  row.ServiceSearch = svc.SpecialInclusionTypeName;
-  row.ShowServiceDropdown = false;
-  row.FilteredServices = [];
-
-  row.TotalPrice = this.getHotelRateForService(row, svc);
-
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-onServiceBlur(row: QuoteSpecialInclusionRow): void {
-  setTimeout(() => {
-    row.ShowServiceDropdown = false;
-    if (row.SpecialInclusionId > 0) {
-      row.ServiceSearch = row.SpecialInclusionName;
-    } else {
-      row.ServiceSearch = '';
-    }
-    this.specialInclusionRows.update(rows => [...rows]);
-  }, 200);
-}
-clearService(row: QuoteSpecialInclusionRow): void {
-  row.ServiceSearch = '';
-  row.SpecialInclusionId = 0;
-  row.SpecialInclusionName = '';
-  row.TotalPrice = 0;
-  row.FilteredServices = [];
-  row.ShowServiceDropdown = false;
-
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-// Hotel search methods for Special Inclusions
-onSpecialInclusionHotelSearch(row: QuoteSpecialInclusionRow): void {
-  const query = (row.HotelSearch ?? '').toLowerCase().trim();
-  const hotels = this.getDestinationHotels();
-
-  if (!query) {
-    row.FilteredHotels = hotels.slice(0, 6);
-    row.ShowHotelDropdown = true;
-    this.specialInclusionRows.update(rows => [...rows]);
-    return;
+  onSimilarHotelSearch(row: QuoteHotelRow): void {
+    const query = (row.HotelSearch ?? '').toLowerCase().trim();
+    row.FilteredHotels = !query
+      ? this.hotelList().slice(0, 4)
+      : this.hotelList()
+        .filter(h => h.HotelName.toLowerCase().includes(query) ||
+          h.LocationName?.toLowerCase().includes(query))
+        .slice(0, 4);
+    row.ShowDropdown = true;
+    this.similarHotelRows = [...this.similarHotelRows];
   }
 
-  row.FilteredHotels = hotels
-    .filter(h => h.HotelName.toLowerCase().includes(query))
-    .slice(0, 6);
+  selectSimilarHotel(row: QuoteHotelRow, hotel: any): void {
 
-  row.ShowHotelDropdown = true;
-  this.specialInclusionRows.update(rows => [...rows]);
-}
+    row.HotelId = hotel.HotelId;
+    row.HotelName = hotel.HotelName;
+    row.HotelSearch = hotel.HotelName;
+    row.LocationName = hotel.LocationName;
+    row.HotelCategoryName = hotel.HotelCategoryName;
 
-selectSpecialInclusionHotel(row: QuoteSpecialInclusionRow, hotel: any): void {
-  row.HotelId = hotel.HotelId;
-  row.HotelName = hotel.HotelName;
-  row.HotelSearch = hotel.HotelName;
-  row.ShowHotelDropdown = false;
-  row.FilteredHotels = [];
-  row.QuoteHotelId = 0;
-  row.AvailableServices = this.specialInclusionMasterList();
-  row.SpecialInclusionId = 0;
-  row.ServiceSearch = '';
-
-  this.loadSpecialInclusionsForHotel(row.HotelId);
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-onSpecialInclusionHotelBlur(row: QuoteSpecialInclusionRow): void {
-  setTimeout(() => {
-    row.ShowHotelDropdown = false;
-    if (row.HotelId > 0) {
-      row.HotelSearch = row.HotelName;
-    } else {
-      row.HotelSearch = '';
-    }
-    this.specialInclusionRows.update(rows => [...rows]);
-  }, 200);
-}
-
-clearSpecialInclusionHotel(row: QuoteSpecialInclusionRow): void {
-  row.HotelSearch = '';
-  row.HotelId = 0;
-  row.HotelName = '';
-  row.FilteredHotels = [];
-  row.ShowHotelDropdown = false;
-  row.SpecialInclusionId = 0;
-  row.ServiceSearch = '';
-  row.TotalPrice = 0;
-
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-// Toggle between hotel selection and manual location entry
-toggleManualLocation(row: QuoteSpecialInclusionRow): void {
-  if (row.UseManualLocation) {
-    // Switching back to hotel selection
-    row.UseManualLocation = false;
-    row.ManualLocationName = '';
-    row.HotelSearch = row.HotelName;
-  } else {
-    // Switching to manual location
-    row.UseManualLocation = true;
-    row.HotelSearch = '';
+    row.ShowDropdown = false;
     row.FilteredHotels = [];
-    row.ShowHotelDropdown = false;
-    row.ManualLocationName = row.HotelName;
-    row.HotelId = 0;
-  }
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
 
-// Save manual location entry
-onManualLocationChange(row: QuoteSpecialInclusionRow): void {
-  this.markDirty();
-  this.specialInclusionRows.update(rows => [...rows]);
-}
+    // Force UI refresh
+    this.similarHotelRows = [...this.similarHotelRows];
 
-// Night selection methods
-onNightToggle(row: QuoteSpecialInclusionRow, nightNumber: number): void {
-  const index = row.NightNumbers.indexOf(nightNumber);
-  if (index > -1) {
-    row.NightNumbers.splice(index, 1);
-  } else {
-    row.NightNumbers.push(nightNumber);
-    row.NightNumbers.sort((a, b) => a - b);
-  }
-  this.updateNightsDisplay(row);
-  this.specialInclusionRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-updateNightsDisplay(row: QuoteSpecialInclusionRow): void {
-  if (row.NightNumbers.length === 0) {
-    row.SelectedNightsDisplay = '';
-  } else if (row.NightNumbers.length === 1) {
-    row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
-  } else {
-    row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
-  }
-}
-
-toggleNightDropdown(row: QuoteSpecialInclusionRow): void {
-  row.ShowNightDropdown = !row.ShowNightDropdown;
-  this.specialInclusionRows.update(rows => [...rows]);
-}
-
-onNightDropdownBlur(row: QuoteSpecialInclusionRow): void {
-  setTimeout(() => {
-    row.ShowNightDropdown = false;
-    this.specialInclusionRows.update(rows => [...rows]);
-  }, 150);
-}
-
-removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
-  this.markDirty();
-  if (row.QuoteSpecialInclusionId > 0) {
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
-    this.service.deleteQuoteSpecialInclusion(
-      enc({ QuoteSpecialInclusionId: row.QuoteSpecialInclusionId })
-    ).subscribe({ next: () => {} });
+
+    this.service.getRoomTypeList(enc({ HotelId: hotel.HotelId }))
+      .subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+
+            row.RoomTypes = r.RoomTypeList ?? [];
+            row.RoomTypeId = row.RoomTypes[0]?.RoomTypeId ?? 0;
+
+            // Force refresh again
+            this.similarHotelRows = [...this.similarHotelRows];
+
+            if (row.RoomTypeId > 0) {
+              this.lookupHotelRate(row);
+            }
+          }
+        }
+      });
   }
-  // Find and remove the row by comparing the object reference
-  this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
-}
+
+  onSimilarHotelBlur(row: QuoteHotelRow): void {
+    setTimeout(() => {
+      row.ShowDropdown = false;
+      if (!row.HotelId) row.HotelSearch = '';
+    }, 200);
+  }
+
+  clearSimilarHotel(row: QuoteHotelRow): void {
+    row.HotelSearch = ''; row.HotelId = 0; row.HotelName = '';
+    row.RoomTypes = []; row.RoomTypeId = 0;
+    row.BaseRate = 0; row.FilteredHotels = []; row.ShowDropdown = false;
+    this.similarHotelRows = [...this.similarHotelRows];
+  }
+
+  saveSimilarHotels(): void {
+    // Filter out rows that have valid hotel and room type selected
+    const valid = this.similarHotelRows.filter(r => r.HotelId > 0 && r.RoomTypeId > 0);
+
+    if (valid.length === 0) {
+      this.toastr.error('Please add at least one valid hotel with room type selected');
+      return;
+    }
+
+    // Save each similar hotel to database and collect them
+    const savedSimilarHotels: QuoteHotelRow[] = [];
+
+    valid.forEach((modalRow) => {
+      if (modalRow.QuoteHotelId > 0) {
+        // Update existing similar hotel
+        this.saveHotelRow(modalRow);
+        savedSimilarHotels.push(modalRow);
+      } else {
+        // Create new similar hotel
+        const newRow: QuoteHotelRow = {
+          ...this.createEmptyHotelRow(),
+          QuoteHotelId: 0,
+          QuoteId: this.QuoteId,
+          QuotePackageTypeId: this.activePackageTypeId(),
+          HotelId: modalRow.HotelId,
+          HotelName: modalRow.HotelName,
+          LocationName: modalRow.LocationName,
+          HotelCategoryName: modalRow.HotelCategoryName,
+          RoomTypeId: modalRow.RoomTypeId,
+          RoomTypeName: modalRow.RoomTypeName,
+          MealPlan: modalRow.MealPlan,
+          NightNumbers: [...modalRow.NightNumbers],
+          NightNumber: modalRow.NightNumbers[0],
+          StayDate: this.nightSlots()[modalRow.NightNumbers[0] - 1]?.StayDate || new Date(),
+          SelectedNightsDisplay: modalRow.SelectedNightsDisplay,
+          NoOfRooms: modalRow.NoOfRooms,
+          PaxPerRoom: modalRow.PaxPerRoom,
+          AWEB: modalRow.AWEB,
+          CWEB: modalRow.CWEB,
+          CNB: modalRow.CNB,
+          BaseRate: modalRow.BaseRate,
+          AwebRate: modalRow.AwebRate,
+          CwebRate: modalRow.CwebRate,
+          CnbRate: modalRow.CnbRate,
+          CostPrice: modalRow.CostPrice,
+          SellingPrice: modalRow.SellingPrice,
+          TotalPrice: modalRow.TotalPrice,
+          RoomTypes: [...modalRow.RoomTypes],
+          IsSaving: false,
+          SpecialInclusions: [],
+          FilteredHotels: [],
+          ShowDropdown: false,
+          ShowNightDropdown: false,
+          HotelSearch: modalRow.HotelName,
+        };
+        this.saveHotelRow(newRow);
+        savedSimilarHotels.push(newRow);
+      }
+    });
+
+    // Update the similar hotels signal
+    this.similarHotels.set(savedSimilarHotels);
+
+    this.markDirty();
+    this.closeSimilarHotelsModal();
+    this.toastr.success(`${savedSimilarHotels.length} similar hotel(s) saved successfully`);
+  }
+
+  hasSelectedNight(): boolean {
+    return this.getActiveHotelRows()
+      .some(r => r.NightNumbers && r.NightNumbers.length > 0);
+  }
+  getSimilarHotelRows(): QuoteHotelRow[] {
+    // Simply return the similar hotels signal
+    return this.similarHotels();
+  }
+
+
+
+  // Add these with your other properties
+
+  // Location autocomplete
+  locationSearchText = '';
+  filteredLocations: any[] = [];
+  showLocationDropdown = false;
+
+  // Category autocomplete
+  categorySearchText = '';
+  filteredCategories: any[] = [];
+  showCategoryDropdown = false;
+  // ── Location Search Methods ─────────────────────────────────
+  onLocationSearch(): void {
+    const query = (this.locationSearchText ?? '').toLowerCase().trim();
+
+    if (!query) {
+      // Show first 5 locations when empty
+      this.filteredLocations = this.locationList().slice(0, 5);
+    } else {
+      // Filter locations
+      this.filteredLocations = this.locationList()
+        .filter(l => l.LocationName.toLowerCase().includes(query))
+        .slice(0, 5);
+    }
+
+    this.showLocationDropdown = true;
+  }
+
+
+
+  onLocationBlur(): void {
+    this.showLocationDropdown = false;
+    if (this.newHotel.LocationId === 0) {
+      this.locationSearchText = '';
+    }
+  }
+
+  clearLocation(): void {
+    this.locationSearchText = '';
+    this.newHotel.LocationId = 0;
+    this.filteredLocations = [];
+    this.showLocationDropdown = false;
+  }
+
+  // ── Category Search Methods ─────────────────────────────────
+  onCategorySearch(): void {
+    const query = (this.categorySearchText ?? '').toLowerCase().trim();
+
+    if (!query) {
+      // Show first 5 categories when empty
+      this.filteredCategories = this.hotelCategoryList().slice(0, 5);
+    } else {
+      // Filter categories
+      this.filteredCategories = this.hotelCategoryList()
+        .filter(c => c.HotelCategoryName.toLowerCase().includes(query))
+        .slice(0, 5);
+    }
+
+    this.showCategoryDropdown = true;
+  }
+
+  selectCategory(category: any): void {
+    this.newHotel.HotelCategoryId = category.HotelCategoryId;
+    this.categorySearchText = category.HotelCategoryName;
+    this.showCategoryDropdown = false;
+    this.filteredCategories = [];
+  }
+
+  onCategoryBlur(): void {
+    setTimeout(() => {
+      this.showCategoryDropdown = false;
+      // If no category selected but text exists, clear it
+      if (this.newHotel.HotelCategoryId === 0 && this.categorySearchText) {
+        this.categorySearchText = '';
+      }
+    }, 200);
+  }
+
+
+
+  addSpecialInclusionRow(): void {
+    const firstHotel = this.getDestinationHotels()[0];
+    this.markDirty();
+    this.specialInclusionRows.update(rows => [...rows, {
+      QuoteSpecialInclusionId: 0,
+      QuoteId: this.QuoteId,
+      QuoteHotelId: 0,
+      HotelId: firstHotel?.HotelId ?? 0,
+      NightNumbers: [],
+      SpecialInclusionId: 0,
+      SpecialInclusionName: '',
+      HotelName: firstHotel?.HotelName ?? '',
+      TotalPrice: 0,
+      Comments: '',
+      AvailableServices: this.specialInclusionMasterList(),
+      IsSaving: false,
+      ServiceSearch: '',
+      FilteredServices: [],
+      ShowServiceDropdown: false,
+      HotelSearch: firstHotel?.HotelName ?? '',
+      FilteredHotels: [],
+      ShowHotelDropdown: false,
+      ManualLocationName: '',
+      UseManualLocation: false,
+      ShowNightDropdown: false,
+      SelectedNightsDisplay: '',
+    }]);
+    if (firstHotel?.HotelId) {
+      this.loadSpecialInclusionsForHotel(firstHotel.HotelId);
+    }
+  }
+
+  saveSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
+    // Validate required fields
+    if (!row.SpecialInclusionId || row.SpecialInclusionId === 0) {
+      this.toastr.error('Please select a service');
+      return;
+    }
+
+    if (row.TotalPrice <= 0) {
+      this.toastr.error('Please enter a valid price');
+      return;
+    }
+
+    if (row.UseManualLocation) {
+      if (!row.ManualLocationName?.trim()) {
+        this.toastr.error('Please enter a location name');
+        return;
+      }
+    } else {
+      if (row.QuoteHotelId <= 0) {
+        this.toastr.error('Please select a hotel');
+        return;
+      }
+    }
+
+    row.IsSaving = true;
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    const payload = {
+      QuoteSpecialInclusionId: row.QuoteSpecialInclusionId,
+      QuoteId: this.QuoteId,
+      QuoteHotelId: row.UseManualLocation ? 0 : row.QuoteHotelId,
+      NightNumbers: row.NightNumbers,
+      SpecialInclusionId: row.SpecialInclusionId,
+      TotalPrice: row.TotalPrice,
+      Comments: row.Comments,
+      UseManualLocation: row.UseManualLocation,
+      ManualLocationName: row.ManualLocationName || null,
+    };
+
+    this.service.saveQuoteSpecialInclusion(enc(payload)).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          row.QuoteSpecialInclusionId = r.QuoteSpecialInclusionId;
+          this.toastr.success('Service added successfully');
+          this.markClean();
+        } else {
+          this.toastr.error(r.Message);
+        }
+        row.IsSaving = false;
+      },
+      error: () => {
+        this.toastr.error('Error saving service');
+        row.IsSaving = false;
+      }
+    });
+  }
+
+  onSpecialInclusionHotelChange(row: QuoteSpecialInclusionRow, hotel: any): void {
+    if (!hotel) return;
+    row.HotelId = hotel.HotelId;
+    row.QuoteHotelId = 0;
+    row.HotelName = hotel.HotelName;
+    // Keep master list — don't restrict to hotel's inclusions
+    row.AvailableServices = this.specialInclusionMasterList();
+    row.SpecialInclusionId = 0;
+    row.ServiceSearch = '';
+    row.TotalPrice = 0;
+    this.loadSpecialInclusionsForHotel(row.HotelId);
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  onSpecialInclusionServiceChange(row: QuoteSpecialInclusionRow): void {
+    const svc = row.AvailableServices.find(
+      s => Number(s.SpecialInclusionId) === Number(row.SpecialInclusionId)
+    );
+
+    if (svc) {
+      row.SpecialInclusionName = svc.SpecialInclusionTypeName ?? svc.SpecialInclusionName ?? '';
+      row.TotalPrice = Number(svc.Rate ?? svc.ApRate ?? 0);
+    } else {
+      row.TotalPrice = 0;
+    }
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  //special inclusion serach
+  onServiceSearch(row: QuoteSpecialInclusionRow): void {
+    const query = (row.ServiceSearch ?? '').toLowerCase().trim();
+    const source = this.specialInclusionMasterList(); // ← always master list
+
+    if (!query) {
+      row.FilteredServices = source.slice(0, 6);
+      row.ShowServiceDropdown = true;
+      this.specialInclusionRows.update(rows => [...rows]);
+      return;
+    }
+
+    row.FilteredServices = source
+      .filter(s => s.SpecialInclusionTypeName.toLowerCase().includes(query))
+      .slice(0, 6);
+
+    row.ShowServiceDropdown = true;
+    this.specialInclusionRows.update(rows => [...rows]);
+  }
+  selectService(row: QuoteSpecialInclusionRow, svc: any): void {
+    row.SpecialInclusionId = svc.SpecialInclusionTypeId; // ← type ID now
+    row.SpecialInclusionName = svc.SpecialInclusionTypeName;
+    row.ServiceSearch = svc.SpecialInclusionTypeName;
+    row.ShowServiceDropdown = false;
+    row.FilteredServices = [];
+
+    row.TotalPrice = this.getHotelRateForService(row, svc);
+
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+  onServiceBlur(row: QuoteSpecialInclusionRow): void {
+    setTimeout(() => {
+      row.ShowServiceDropdown = false;
+      if (row.SpecialInclusionId > 0) {
+        row.ServiceSearch = row.SpecialInclusionName;
+      } else {
+        row.ServiceSearch = '';
+      }
+      this.specialInclusionRows.update(rows => [...rows]);
+    }, 200);
+  }
+  clearService(row: QuoteSpecialInclusionRow): void {
+    row.ServiceSearch = '';
+    row.SpecialInclusionId = 0;
+    row.SpecialInclusionName = '';
+    row.TotalPrice = 0;
+    row.FilteredServices = [];
+    row.ShowServiceDropdown = false;
+
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // Hotel search methods for Special Inclusions
+  onSpecialInclusionHotelSearch(row: QuoteSpecialInclusionRow): void {
+    const query = (row.HotelSearch ?? '').toLowerCase().trim();
+    const hotels = this.getDestinationHotels();
+
+    if (!query) {
+      row.FilteredHotels = hotels.slice(0, 6);
+      row.ShowHotelDropdown = true;
+      this.specialInclusionRows.update(rows => [...rows]);
+      return;
+    }
+
+    row.FilteredHotels = hotels
+      .filter(h => h.HotelName.toLowerCase().includes(query))
+      .slice(0, 6);
+
+    row.ShowHotelDropdown = true;
+    this.specialInclusionRows.update(rows => [...rows]);
+  }
+
+  selectSpecialInclusionHotel(row: QuoteSpecialInclusionRow, hotel: any): void {
+    row.HotelId = hotel.HotelId;
+    row.HotelName = hotel.HotelName;
+    row.HotelSearch = hotel.HotelName;
+    row.ShowHotelDropdown = false;
+    row.FilteredHotels = [];
+    row.QuoteHotelId = 0;
+    row.AvailableServices = this.specialInclusionMasterList();
+    row.SpecialInclusionId = 0;
+    row.ServiceSearch = '';
+
+    this.loadSpecialInclusionsForHotel(row.HotelId);
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  onSpecialInclusionHotelBlur(row: QuoteSpecialInclusionRow): void {
+    setTimeout(() => {
+      row.ShowHotelDropdown = false;
+      if (row.HotelId > 0) {
+        row.HotelSearch = row.HotelName;
+      } else {
+        row.HotelSearch = '';
+      }
+      this.specialInclusionRows.update(rows => [...rows]);
+    }, 200);
+  }
+
+  clearSpecialInclusionHotel(row: QuoteSpecialInclusionRow): void {
+    row.HotelSearch = '';
+    row.HotelId = 0;
+    row.HotelName = '';
+    row.FilteredHotels = [];
+    row.ShowHotelDropdown = false;
+    row.SpecialInclusionId = 0;
+    row.ServiceSearch = '';
+    row.TotalPrice = 0;
+
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // Toggle between hotel selection and manual location entry
+  toggleManualLocation(row: QuoteSpecialInclusionRow): void {
+    if (row.UseManualLocation) {
+      // Switching back to hotel selection
+      row.UseManualLocation = false;
+      row.ManualLocationName = '';
+      row.HotelSearch = row.HotelName;
+    } else {
+      // Switching to manual location
+      row.UseManualLocation = true;
+      row.HotelSearch = '';
+      row.FilteredHotels = [];
+      row.ShowHotelDropdown = false;
+      row.ManualLocationName = row.HotelName;
+      row.HotelId = 0;
+    }
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // Save manual location entry
+  onManualLocationChange(row: QuoteSpecialInclusionRow): void {
+    this.markDirty();
+    this.specialInclusionRows.update(rows => [...rows]);
+  }
+
+  // Night selection methods
+  onNightToggle(row: QuoteSpecialInclusionRow, nightNumber: number): void {
+    const index = row.NightNumbers.indexOf(nightNumber);
+    if (index > -1) {
+      row.NightNumbers.splice(index, 1);
+    } else {
+      row.NightNumbers.push(nightNumber);
+      row.NightNumbers.sort((a, b) => a - b);
+    }
+    this.updateNightsDisplay(row);
+    this.specialInclusionRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  updateNightsDisplay(row: QuoteSpecialInclusionRow): void {
+    if (row.NightNumbers.length === 0) {
+      row.SelectedNightsDisplay = '';
+    } else if (row.NightNumbers.length === 1) {
+      row.SelectedNightsDisplay = `Night ${row.NightNumbers[0]}`;
+    } else {
+      row.SelectedNightsDisplay = `${row.NightNumbers.length} nights selected`;
+    }
+  }
+
+  toggleNightDropdown(row: QuoteSpecialInclusionRow): void {
+    row.ShowNightDropdown = !row.ShowNightDropdown;
+    this.specialInclusionRows.update(rows => [...rows]);
+  }
+
+  onNightDropdownBlur(row: QuoteSpecialInclusionRow): void {
+    setTimeout(() => {
+      row.ShowNightDropdown = false;
+      this.specialInclusionRows.update(rows => [...rows]);
+    }, 150);
+  }
+
+  removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
+    this.markDirty();
+    if (row.QuoteSpecialInclusionId > 0) {
+      const enc = (d: object): RequestModel => ({
+        request: this.local.encrypt(JSON.stringify(d)).toString()
+      });
+      this.service.deleteQuoteSpecialInclusion(
+        enc({ QuoteSpecialInclusionId: row.QuoteSpecialInclusionId })
+      ).subscribe({ next: () => { } });
+    }
+    // Find and remove the row by comparing the object reference
+    this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
+  }
   lookupHotelRate(row: QuoteHotelRow): void {
     if (!row.HotelId || !row.RoomTypeId) return;
     const enc = (d: object): RequestModel => ({
@@ -1783,24 +1785,24 @@ removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
       }))
     }).subscribe({
       next: ({ rate, charges }: any) => {
-if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+        if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
 
-  const r = rate.Rate;
+          const r = rate.Rate;
 
-  row.BaseRate = row.MealPlan === 'CP'
-    ? (r.CpRate ?? 0)
-    : row.MealPlan === 'MAP'
-      ? (r.MapRate ?? 0)
-      : (r.ApRate ?? 0);
+          row.BaseRate = row.MealPlan === 'CP'
+            ? (r.CpRate ?? 0)
+            : row.MealPlan === 'MAP'
+              ? (r.MapRate ?? 0)
+              : (r.ApRate ?? 0);
 
-} else {
+        } else {
 
-  this.toastr.warning(
-    `No price configured for ${row.HotelName}`
-  );
+          this.toastr.warning(
+            `No price configured for ${row.HotelName}`
+          );
 
-  row.BaseRate = 0;
-}
+          row.BaseRate = 0;
+        }
 
         if (charges.Message === ConstantData.SuccessMessage) {
           const ch = charges.Charges ?? [];
@@ -1887,265 +1889,269 @@ if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
     this.hotelRows.update(rows => rows.filter(r => r !== row));
   }
 
-// State
-showEditPricesModal = false;
-editingHotelRow: QuoteHotelRow | null = null;
-editPrices = {
-  RoomRate: 0,
-  AwebRate: 0,
-  CwebRate: 0,
-  CnbRate: 0,
-  SellingPrice: 0,
-  ComputedTotal: 0,
-};
-
-// Open modal
-EditPrices(row: QuoteHotelRow): void {
-  this.editingHotelRow = row;
-  this.editPrices = {
-    RoomRate: row.BaseRate,
-    AwebRate: row.AwebRate,
-    CwebRate: row.CwebRate,
-    CnbRate: row.CnbRate,
-    SellingPrice: row.SellingPrice,
-    ComputedTotal: row.CostPrice,
+  // State
+  showEditPricesModal = false;
+  editingHotelRow: QuoteHotelRow | null = null;
+  editPrices = {
+    RoomRate: 0,
+    AwebRate: 0,
+    CwebRate: 0,
+    CnbRate: 0,
+    SellingPrice: 0,
+    ComputedTotal: 0,
   };
-  this.showEditPricesModal = true;
-}
 
-closeEditPricesModal(): void {
-  this.showEditPricesModal = false;
-  this.editingHotelRow = null;
-}
-
-recalculateEditPrice(): void {
-  if (!this.editingHotelRow) return;
-  const row = this.editingHotelRow;
-  this.editPrices.ComputedTotal =
-    (this.editPrices.RoomRate * (row.NoOfRooms || 0)) +
-    (this.editPrices.AwebRate * (row.AWEB || 0)) +
-    (this.editPrices.CwebRate * (row.CWEB || 0)) +
-    (this.editPrices.CnbRate  * (row.CNB  || 0));
-}
-
-applyEditPrices(): void {
-  if (!this.editingHotelRow) return;
-  const row = this.editingHotelRow;
-
-  // Apply back to row
-  row.BaseRate     = this.editPrices.RoomRate;
-  row.AwebRate     = this.editPrices.AwebRate;
-  row.CwebRate     = this.editPrices.CwebRate;
-  row.CnbRate      = this.editPrices.CnbRate;
-  row.CostPrice    = this.editPrices.ComputedTotal;
-  row.TotalPrice   = this.editPrices.ComputedTotal;
-  row.SellingPrice = this.editPrices.SellingPrice;
-
-  this.hotelRows.update(rows => [...rows]);
-  this.markDirty();
-  this.saveHotelRow(row);
-  this.recalculatePrice(row);
-  this.closeEditPricesModal();
-}
-
-
-
-// Cab types & days
-showCabTypesModal = false;
-selectedCabTypes: any[] = [];
-cabTypesList: any[] = [];
-selectedDays: number[] = [];
-selectedDayForForm = 0;
-currentTransportRow: QuoteServiceRow = {} as QuoteServiceRow;
-// Transport form state — separate from hotel modal
-transportLocationSearchText = '';
-transportFilteredLocations: any[] = [];
-transportShowLocationDropdown = false;
-
-transportServiceSearchText = '';
-transportFilteredServices: any[] = [];
-transportShowServiceDropdown = false;
-
-onSameCabChange(): void {
-  if (!this.sameCabForAll) {
-    this.selectedCabTypes = [];
-    // ✅ Clear vehicle selection from all rows when unchecking
-    const activeRows = this.getActiveTransportRows();
-    activeRows.forEach(row => {
-      row.VehicleTypeId = 0;
-      row.VehicleTypeName = '';
-      row.VehicleSearch = '';
-      row.CostPrice = 0;
-      row.SellingPrice = 0;
-      row.TotalPrice = 0;
-    });
-    this.transportRows.update(rows => [...rows]);
-    this.transportVehicleSearch = '';
-    this.currentTransportVehicle = null;
+  // Open modal
+  EditPrices(row: QuoteHotelRow): void {
+    this.editingHotelRow = row;
+    this.editPrices = {
+      RoomRate: row.BaseRate,
+      AwebRate: row.AwebRate,
+      CwebRate: row.CwebRate,
+      CnbRate: row.CnbRate,
+      SellingPrice: row.SellingPrice,
+      ComputedTotal: row.CostPrice,
+    };
+    this.showEditPricesModal = true;
   }
-}
 
-openCabTypesModal(): void {
-  this.cabTypesList = this.selectedCabTypes.length > 0
-    ? this.selectedCabTypes.map(c => ({ ...c }))
-    : [{ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 }];
-  this.showCabTypesModal = true;
-}
-
-closeCabTypesModal(): void {
-  this.showCabTypesModal = false;
-}
-
-onCabTypeSelected(cabType: any): void {
-  const vt = this.vehicleTypeList().find(
-    v => Number(v.VehicleTypeId) === Number(cabType.VehicleTypeId)
-  );
-
-  if (vt) {
-    cabType.VehicleTypeName = vt.VehicleTypeName;
+  closeEditPricesModal(): void {
+    this.showEditPricesModal = false;
+    this.editingHotelRow = null;
   }
-}
-addCabType(): void {
-  this.cabTypesList.push({ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 });
-}
 
-removeCabType(i: number): void {
-  this.cabTypesList.splice(i, 1);
-}
-
-saveCabTypes(): void {
-  const invalid = this.cabTypesList.find(c => !c.VehicleTypeId || c.Quantity < 1);
-  if (invalid) {
-    this.toastr.error('Select vehicle type and quantity for all');
-    return;
+  recalculateEditPrice(): void {
+    if (!this.editingHotelRow) return;
+    const row = this.editingHotelRow;
+    this.editPrices.ComputedTotal =
+      (this.editPrices.RoomRate * (row.NoOfRooms || 0)) +
+      (this.editPrices.AwebRate * (row.AWEB || 0)) +
+      (this.editPrices.CwebRate * (row.CWEB || 0)) +
+      (this.editPrices.CnbRate * (row.CNB || 0));
   }
-  this.selectedCabTypes = this.cabTypesList.map(c => ({ ...c }));
-  
-  // ✅ UPDATE ALL EXISTING TRANSPORT ROWS WITH THE FIRST CAB TYPE
-  if (this.selectedCabTypes.length > 0) {
-    const firstCab = this.selectedCabTypes[0];
-    
-    // Update the global transport state
-    this.transportVehicleSearch = firstCab.VehicleTypeName;
-    this.currentTransportVehicle = firstCab;
-    this.transportQty = firstCab.Quantity;
-    
-    // ✅ UPDATE ALL EXISTING TRANSPORT ROWS
-    const activeRows = this.getActiveTransportRows();
-    activeRows.forEach(row => {
-      // Update vehicle in the row
-      row.VehicleTypeId = firstCab.VehicleTypeId;
-      row.VehicleTypeName = firstCab.VehicleTypeName;
-      row.VehicleSearch = firstCab.VehicleTypeName;
-      row.Qty = firstCab.Quantity;
-      
-      // Lookup rate if service is selected
-      if (row.IteneraryServiceId > 0) {
-        this.lookupTransportRate(row);
-      }
-    });
-    
-    // Force UI refresh
-    this.transportRows.update(rows => [...rows]);
-    
-    // ✅ Create rows for all selected days if service is selected
-    if (this.selectedDays.length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
-      this.selectTransportVehicleGlobal(firstCab);
+
+  applyEditPrices(): void {
+    if (!this.editingHotelRow) return;
+    const row = this.editingHotelRow;
+
+    // Apply back to row
+    row.BaseRate = this.editPrices.RoomRate;
+    row.AwebRate = this.editPrices.AwebRate;
+    row.CwebRate = this.editPrices.CwebRate;
+    row.CnbRate = this.editPrices.CnbRate;
+    row.CostPrice = this.editPrices.ComputedTotal;
+    row.TotalPrice = this.editPrices.ComputedTotal;
+    row.SellingPrice = this.editPrices.SellingPrice;
+
+    this.hotelRows.update(rows => [...rows]);
+    this.markDirty();
+    this.saveHotelRow(row);
+    this.recalculatePrice(row);
+    this.closeEditPricesModal();
+  }
+
+
+
+  // Cab types & days
+  showCabTypesModal = false;
+  selectedCabTypes: any[] = [];
+  cabTypesList: any[] = [];
+  selectedDays = signal<number[]>([]);
+  selectedDayForForm = 0;
+  currentTransportRow: QuoteServiceRow = {} as QuoteServiceRow;
+  // Transport form state — separate from hotel modal
+  transportLocationSearchText = '';
+  transportFilteredLocations: any[] = [];
+  transportShowLocationDropdown = false;
+
+  transportServiceSearchText = '';
+  transportFilteredServices: any[] = [];
+  transportShowServiceDropdown = false;
+
+  onSameCabChange(): void {
+    if (!this.sameCabForAll) {
+      this.selectedCabTypes = [];
+      // ✅ Clear vehicle selection from all rows when unchecking
+      const activeRows = this.getActiveTransportRows();
+      activeRows.forEach(row => {
+        row.VehicleTypeId = 0;
+        row.VehicleTypeName = '';
+        row.VehicleSearch = '';
+        row.CostPrice = 0;
+        row.SellingPrice = 0;
+        row.TotalPrice = 0;
+      });
+      this.transportRows.update(rows => [...rows]);
+      this.transportVehicleSearch = '';
+      this.currentTransportVehicle = null;
     }
   }
-  
-  this.closeCabTypesModal();
-  this.markDirty();
-  this.toastr.success('Cab types updated for all transport rows');
-}
 
-
-
-getSelectedCabTypesDisplay(): string {
-  return this.selectedCabTypes
-    .map(c => `${c.VehicleTypeName}`)
-    .join(' + ');
-    
-}
-
-
-// getActiveTransportRows(): QuoteServiceRow[] {
-//   if (this.selectedDays.length === 0) {
-//     return this.serviceRows().filter(
-//       r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
-//     );
-//   }
-//   return this.serviceRows().filter(
-//     r => r.ServiceType === 1
-//       && r.QuotePackageTypeId === this.activePackageTypeId()
-//       && this.selectedDays.includes(r.DayNumber)
-//   );
-// }
-
-toggleDay(dayNumber: number): void {
-  const idx = this.selectedDays.indexOf(dayNumber);
-  if (idx > -1) {
-    this.selectedDays.splice(idx, 1);
-  } else {
-    this.selectedDays.push(dayNumber);
-    this.selectedDays.sort((a, b) => a - b);
-  }
-}
-
-toggleAllDays(): void {
-  if (this.selectedDays.length === this.daySlots().length) {
-    this.selectedDays = [];
-  } else {
-    this.selectedDays = this.daySlots().map(d => d.DayNumber);
-  }
-}
-
-allDaysSelected(): boolean {
-  const slots = this.daySlots();
-  return slots.length > 0 && this.selectedDays.length === slots.length;
-}
-
-addTransportRow(slot?: DaySlot): void {
-  const selectedSlot = slot ?? this.daySlots()[0];
-  if (!selectedSlot) {
-    this.toastr.error('No days available for this trip');
-    return;
+  openCabTypesModal(): void {
+    this.cabTypesList = this.selectedCabTypes.length > 0
+      ? this.selectedCabTypes.map(c => ({ ...c }))
+      : [{ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 }];
+    this.showCabTypesModal = true;
   }
 
-  this.markDirty();
-  this.transportRows.update(rows => [...rows, {
-    QuoteServiceId: 0,
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    DayNumbers: [selectedSlot.DayNumber],
-    DayNumber: selectedSlot.DayNumber,
-    ServiceDate: selectedSlot.ServiceDate,
-    LocationId: 0,
-    LocationName: '',
-    IteneraryServiceId: 0,
-    IteneraryServiceName: '',
-    VehicleTypeId: 0,
-    VehicleTypeName: '',
-    SameCabForAll: false,
-    Qty: 1,
-    CostPrice: 0,
-    SellingPrice: 0,
-    TotalPrice: 0,
-    Notes: '',
-    IsSaving: false,
-    LocationSearch: '',
-    FilteredLocations: [],
-    ShowLocationDropdown: false,
-    ServiceSearch: '',
-    FilteredServices: [],
-    ShowServiceDropdown: false,
-    VehicleSearch: '',
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    ShowDayDropdown: false,
-    SelectedDaysDisplay: `Day ${selectedSlot.DayNumber}`,
-  }]);
-}
+  closeCabTypesModal(): void {
+    this.showCabTypesModal = false;
+  }
+
+  onCabTypeSelected(cabType: any): void {
+    const vt = this.vehicleTypeList().find(
+      v => Number(v.VehicleTypeId) === Number(cabType.VehicleTypeId)
+    );
+
+    if (vt) {
+      cabType.VehicleTypeName = vt.VehicleTypeName;
+    }
+  }
+  addCabType(): void {
+    this.cabTypesList.push({ VehicleTypeId: 0, VehicleTypeName: '', Quantity: 1 });
+  }
+
+  removeCabType(i: number): void {
+    this.cabTypesList.splice(i, 1);
+  }
+
+  saveCabTypes(): void {
+    const invalid = this.cabTypesList.find(c => !c.VehicleTypeId || c.Quantity < 1);
+    if (invalid) {
+      this.toastr.error('Select vehicle type and quantity for all');
+      return;
+    }
+    this.selectedCabTypes = this.cabTypesList.map(c => ({ ...c }));
+
+    // ✅ UPDATE ALL EXISTING TRANSPORT ROWS WITH THE FIRST CAB TYPE
+    if (this.selectedCabTypes.length > 0) {
+      const firstCab = this.selectedCabTypes[0];
+
+      // Update the global transport state
+      this.transportVehicleSearch = firstCab.VehicleTypeName;
+      this.currentTransportVehicle = firstCab;
+      this.transportQty = firstCab.Quantity;
+
+      // ✅ UPDATE ALL EXISTING TRANSPORT ROWS
+      const activeRows = this.getActiveTransportRows();
+      activeRows.forEach(row => {
+        // Update vehicle in the row
+        row.VehicleTypeId = firstCab.VehicleTypeId;
+        row.VehicleTypeName = firstCab.VehicleTypeName;
+        row.VehicleSearch = firstCab.VehicleTypeName;
+        row.Qty = firstCab.Quantity;
+
+        // Lookup rate if service is selected
+        if (row.IteneraryServiceId > 0) {
+          this.lookupTransportRate(row);
+        }
+      });
+
+      // Force UI refresh
+      this.transportRows.update(rows => [...rows]);
+
+      // ✅ Create rows for all selected days if service is selected
+      if (this.selectedDays().length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
+        this.selectTransportVehicleGlobal(firstCab);
+      }
+    }
+
+    this.closeCabTypesModal();
+    this.markDirty();
+    this.toastr.success('Cab types updated for all transport rows');
+  }
+
+
+
+  getSelectedCabTypesDisplay(): string {
+    return this.selectedCabTypes
+      .map(c => `${c.VehicleTypeName}`)
+      .join(' + ');
+
+  }
+
+
+  // getActiveTransportRows(): QuoteServiceRow[] {
+  //   if (this.selectedDays.length === 0) {
+  //     return this.serviceRows().filter(
+  //       r => r.ServiceType === 1 && r.QuotePackageTypeId === this.activePackageTypeId()
+  //     );
+  //   }
+  //   return this.serviceRows().filter(
+  //     r => r.ServiceType === 1
+  //       && r.QuotePackageTypeId === this.activePackageTypeId()
+  //       && this.selectedDays.includes(r.DayNumber)
+  //   );
+  // }
+
+  toggleDay(dayNumber: number): void {
+    const current = this.selectedDays();
+    const idx = current.indexOf(dayNumber);
+    if (idx > -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(dayNumber);
+      current.sort((a, b) => a - b);
+    }
+    this.selectedDays.set([...current]);
+  }
+
+  toggleAllDays(): void {
+    if (this.selectedDays().length === this.daySlots().length) {
+      this.selectedDays.set([]);
+    } else {
+      this.selectedDays.set(this.daySlots().map(d => d.DayNumber));
+    }
+  }
+
+  allDaysSelected(): boolean {
+    const slots = this.daySlots();
+    return slots.length > 0 && this.selectedDays().length === slots.length;
+  }
+
+  addTransportRow(slot?: DaySlot): void {
+    const selectedSlot = slot ?? this.daySlots()[0];
+    if (!selectedSlot) {
+      this.toastr.error('No days available for this trip');
+      return;
+    }
+
+    this.markDirty();
+    this.transportRows.update(rows => [...rows, {
+      QuoteServiceId: 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: this.activePackageTypeId(),
+      DayNumbers: [selectedSlot.DayNumber],
+      DayNumber: selectedSlot.DayNumber,
+      ServiceDate: selectedSlot.ServiceDate,
+      LocationId: 0,
+      LocationName: '',
+      IteneraryServiceId: 0,
+      IteneraryServiceName: '',
+      VehicleTypeId: 0,
+      VehicleTypeName: '',
+      SameCabForAll: false,
+      Qty: 1,
+      CostPrice: 0,
+      SellingPrice: 0,
+      TotalPrice: 0,
+      Notes: '',
+      IsSaving: false,
+      LocationSearch: '',
+      FilteredLocations: [],
+      ShowLocationDropdown: false,
+      ServiceSearch: '',
+      FilteredServices: [],
+      ShowServiceDropdown: false,
+      VehicleSearch: '',
+      FilteredVehicles: [],
+      ShowVehicleDropdown: false,
+      ShowDayDropdown: false,
+      SelectedDaysDisplay: `Day ${selectedSlot.DayNumber}`,
+    }]);
+    // ✅ Sync selected days after adding
+    this.syncSelectedDaysFromTransportRows();
+  }
 
   // ── Service rows ──────────────────────────────────────────
   getServiceRowsForDay(dayNumber: number): QuoteServiceRow[] {
@@ -2154,590 +2160,594 @@ addTransportRow(slot?: DaySlot): void {
         && r.QuotePackageTypeId === this.activePackageTypeId()
     );
   }
-//   addTransportRowQuick(): void {
-//   if (this.selectedDays.length === 0) {
-//     this.toastr.error('Select at least one day');
-//     return;
-//   }
-//   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
-//   if (daySlot) {
-//     this.addTransportRow();
-//   }
-// }
+  //   addTransportRowQuick(): void {
+  //   if (this.selectedDays.length === 0) {
+  //     this.toastr.error('Select at least one day');
+  //     return;
+  //   }
+  //   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+  //   if (daySlot) {
+  //     this.addTransportRow();
+  //   }
+  // }
 
-// addActivityRowQuick(): void {
-//   if (this.selectedDays.length === 0) {
-//     this.toastr.error('Select at least one day');
-//     return;
-//   }
-//   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
-//   if (daySlot) {
-//     this.addActivityRow(daySlot);
-//   }
-// }
-// For the col-sm-7 day summary (keeps day filter)
+  // addActivityRowQuick(): void {
+  //   if (this.selectedDays.length === 0) {
+  //     this.toastr.error('Select at least one day');
+  //     return;
+  //   }
+  //   const daySlot = this.daySlots().find(d => d.DayNumber === this.selectedDays[0]);
+  //   if (daySlot) {
+  //     this.addActivityRow(daySlot);
+  //   }
+  // }
+  // For the col-sm-7 day summary (keeps day filter)
 
 
-getActiveTransportRows(): QuoteTransportRow[] {
-  return this.transportRows().filter(
-    r => r.QuotePackageTypeId === this.activePackageTypeId()
-  );
-}
+  getActiveTransportRows(): QuoteTransportRow[] {
+    return this.transportRows().filter(
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
 
-// For the col-sm-7 day summary table only
-getTransportRowsForDay(dayNumber: number): QuoteServiceRow[] {
-  return this.serviceRows().filter(
-    r => r.ServiceType === 1
-      && r.DayNumber === dayNumber
-      && r.QuotePackageTypeId === this.activePackageTypeId()
-  );
-}
+  // For the col-sm-7 day summary table only
+  getTransportRowsForDay(dayNumber: number): QuoteServiceRow[] {
+    return this.serviceRows().filter(
+      r => r.ServiceType === 1
+        && r.DayNumber === dayNumber
+        && r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
 
-isVehicleSelectionRow(row: QuoteServiceRow, index: number): boolean {
-  const rows = this.getActiveTransportRows();
-  return rows.findIndex(r =>
-    r.QuotePackageTypeId === row.QuotePackageTypeId
+  isVehicleSelectionRow(row: QuoteServiceRow, index: number): boolean {
+    const rows = this.getActiveTransportRows();
+    return rows.findIndex(r =>
+      r.QuotePackageTypeId === row.QuotePackageTypeId
       && r.IteneraryServiceId === row.IteneraryServiceId
       && r.LocationId === row.LocationId
-  ) === index;
-}
+    ) === index;
+  }
 
-removeTransportRowsForDay(dayNumber: number): void {
-  this.serviceRows.update(rows => rows.filter(
-    r => !(r.ServiceType === 1
-      && r.QuotePackageTypeId === this.activePackageTypeId()
-      && r.DayNumber === dayNumber)
-  ));
-}
+  removeTransportRowsForDay(dayNumber: number): void {
+    this.serviceRows.update(rows => rows.filter(
+      r => !(r.ServiceType === 1
+        && r.QuotePackageTypeId === this.activePackageTypeId()
+        && r.DayNumber === dayNumber)
+    ));
+  }
 
-showDaysDropdown = false;
-selectedDaysDisplay = '';
+  showDaysDropdown = false;
+  selectedDaysDisplay = '';
 
-onDayToggle(dayNumber: number): void {
-  const index = this.selectedDays.indexOf(dayNumber);
-  if (index > -1) {
-    this.selectedDays.splice(index, 1);
-    this.removeTransportRowsForDay(dayNumber);
-  } else {
-    this.selectedDays.push(dayNumber);
-    this.selectedDays.sort((a, b) => a - b);
+  onDayToggle(dayNumber: number): void {
+    const current = [...this.selectedDays()];
+    const index = current.indexOf(dayNumber);
+    if (index > -1) {
+      current.splice(index, 1);
+      this.removeTransportRowsForDay(dayNumber);
+    } else {
+      current.push(dayNumber);
+      current.sort((a, b) => a - b);
 
-    if (this.currentTransportRow.LocationId > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
-      const daySlot = this.daySlots().find(d => d.DayNumber === dayNumber);
-      if (daySlot) {
-        const exists = this.serviceRows().some(
+      if (this.currentTransportRow.LocationId > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
+        const daySlot = this.daySlots().find(d => d.DayNumber === dayNumber);
+        if (daySlot) {
+          const exists = this.serviceRows().some(
+            r => r.ServiceType === 1
+              && r.DayNumber === dayNumber
+              && r.QuotePackageTypeId === this.activePackageTypeId()
+              && r.LocationId === this.currentTransportRow.LocationId
+              && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
+          );
+          if (!exists) {
+            this.addTransportRowForSlot(daySlot);
+          }
+        }
+      }
+    }
+
+    this.selectedDays.set(current);
+    this.updateDaysDisplay();
+    this.serviceRows.update(rows => [...rows]); // ← trigger UI refresh
+  }
+
+  updateDaysDisplay(): void {
+    const days = this.selectedDays();
+    if (days.length === 0) {
+      this.selectedDaysDisplay = '';
+    } else if (days.length === 1) {
+      this.selectedDaysDisplay = `Day ${days[0]}`;
+    } else {
+      this.selectedDaysDisplay = `${days.length} days selected`;
+    }
+  }
+
+  toggleDaysDropdown(): void {
+    this.showDaysDropdown = !this.showDaysDropdown;
+  }
+
+  onDaysDropdownBlur(): void {
+    setTimeout(() => {
+      this.showDaysDropdown = false;
+    }, 150);
+  }
+
+  onLocationSearchChange(): void {
+    const query = (this.locationSearchText ?? '').toLowerCase().trim();
+
+    if (!query) {
+      this.filteredLocations = this.itineraryList().slice(0, 6);
+      this.showLocationDropdown = true;
+      return;
+    }
+
+    this.filteredLocations = this.itineraryList()
+      .filter(it => it.IteneraryServiceName.toLowerCase().includes(query))
+      .slice(0, 6);
+
+    this.showLocationDropdown = true;
+  }
+
+  selectLocation(location: any): void {
+    this.currentTransportRow.IteneraryServiceId = location.IteneraryServiceId;
+    this.currentTransportRow.IteneraryServiceName = location.IteneraryServiceName;
+    this.locationSearchText = location.ItineraryServiceName;
+    this.showLocationDropdown = false;
+    this.filteredLocations = [];
+  }
+
+  onLocationSearchBlur(): void {
+    setTimeout(() => {
+      this.showLocationDropdown = false;
+      if (this.currentTransportRow.IteneraryServiceId > 0) {
+        this.locationSearchText = this.currentTransportRow.IteneraryServiceName;
+      } else {
+        this.locationSearchText = '';
+      }
+    }, 200);
+  }
+
+  clearLocationSearch(): void {
+    this.locationSearchText = '';
+    // this.currentTransportRow.ItineraryServiceId = 0;
+    // this.currentTransportRow.ItineraryServiceName = '';
+    this.filteredLocations = [];
+    this.showLocationDropdown = false;
+  }
+
+  // Service Type search
+  serviceTypeSearchText = '';
+  filteredServiceTypes: any[] = [];
+  showServiceTypeDropdown = false;
+
+  onServiceTypeSearchChange(): void {
+    const query = (this.serviceTypeSearchText ?? '').toLowerCase().trim();
+    const vehicles = this.sameCabForAll && this.selectedCabTypes.length > 0
+      ? this.selectedCabTypes
+      : this.vehicleTypeList();
+
+    if (!query) {
+      this.filteredServiceTypes = vehicles.slice(0, 6);
+      this.showServiceTypeDropdown = true;
+      return;
+    }
+
+    this.filteredServiceTypes = vehicles
+      .filter(v => v.VehicleTypeName.toLowerCase().includes(query))
+      .slice(0, 6);
+
+    this.showServiceTypeDropdown = true;
+  }
+
+  selectServiceType(serviceType: any): void {
+    this.currentTransportRow.VehicleTypeId = serviceType.VehicleTypeId;
+    this.currentTransportRow.VehicleTypeName = serviceType.VehicleTypeName;
+    this.serviceTypeSearchText = serviceType.VehicleTypeName;
+    this.showServiceTypeDropdown = false;
+    this.filteredServiceTypes = [];
+    this.onVehicleSelected(this.currentTransportRow);
+  }
+
+  onServiceTypeSearchBlur(): void {
+    setTimeout(() => {
+      this.showServiceTypeDropdown = false;
+      if (this.currentTransportRow.VehicleTypeId > 0) {
+        this.serviceTypeSearchText = this.currentTransportRow.VehicleTypeName;
+      } else {
+        this.serviceTypeSearchText = '';
+      }
+    }, 200);
+  }
+
+  clearServiceTypeSearch(): void {
+    this.serviceTypeSearchText = '';
+    this.currentTransportRow.VehicleTypeId = 0;
+    this.currentTransportRow.VehicleTypeName = '';
+    this.filteredServiceTypes = [];
+    this.showServiceTypeDropdown = false;
+  }
+
+  // Transport Service search properties
+
+
+  serviceSearchText = '';
+  filteredServices: any[] = [];
+  showServiceDropdown = false;
+
+  // Available data for transport
+  availableLocations: any[] = [];
+  availableServices: any[] = [];
+
+
+
+  // Transport Service - Location & Service search (following Special Inclusions pattern)
+
+
+  selectTransportLocation(loc: any): void {
+    this.currentTransportRow.LocationId = loc.LocationId;
+    this.currentTransportRow.LocationName = loc.LocationName;
+    this.locationSearchText = loc.LocationName;
+    this.showLocationDropdown = false;
+
+    // ✅ IMPORTANT: Load services for THIS location from backend
+    this.loadServicesByLocation(loc.LocationId);
+    this.serviceRows.update(rows => [...rows]); // ← refresh table
+  }
+
+
+  //clear transport
+  clearTransportLocation(): void {
+
+    this.locationSearchText = '';
+
+    this.currentTransportRow.LocationId = 0;
+    this.currentTransportRow.LocationName = '';
+
+    this.serviceSearchText = '';
+    this.filteredServices = [];
+
+    this.showLocationDropdown = false;
+  }
+
+  selectTransportService(service: any): void {
+    this.currentTransportRow.IteneraryServiceId = service.IteneraryServiceId;
+    this.currentTransportRow.IteneraryServiceName = service.IteneraryServiceName;
+    this.serviceSearchText = service.IteneraryServiceName;
+    this.showServiceDropdown = false;
+    this.loadVehiclesForService(service.IteneraryServiceId);
+
+    // ✅ Auto-create transport rows for all selected days
+    if (this.selectedDays().length > 0) {
+      const selectedDaySlots = this.selectedDays()
+        .map((dayNum: number) => this.daySlots().find(d => d.DayNumber === dayNum))
+        .filter((slot: DaySlot | undefined) => slot !== undefined) as DaySlot[];
+
+      selectedDaySlots.forEach(daySlot => {
+        const existingRow = this.serviceRows().find(
           r => r.ServiceType === 1
-            && r.DayNumber === dayNumber
+            && r.DayNumber === daySlot.DayNumber
+            && r.QuotePackageTypeId === this.activePackageTypeId()
+            && r.LocationId === this.currentTransportRow.LocationId
+        );
+
+        if (!existingRow) {
+          this.addTransportRowForSlot(daySlot);
+        }
+      });
+    }
+
+    this.serviceRows.update(rows => [...rows]); // ← refresh table
+  }
+  // DELETE THIS ENTIRE METHOD
+  loadVehiclesForService(iteneraryServiceId: number): void {
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getVehicleServiceRateList(enc({
+      IteneraryServiceId: iteneraryServiceId
+    })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.availableVehiclesForService = r.VehicleRateList ?? [];
+        }
+      }
+    });
+  }
+
+  availableVehiclesForService: any[] = [];
+  clearTransportService(): void {
+
+    this.serviceSearchText = '';
+
+    this.currentTransportRow.IteneraryServiceId = 0;
+    this.currentTransportRow.IteneraryServiceName = '';
+
+    this.showServiceDropdown = false;
+  }
+
+
+
+
+  loadLocationsByDestination(): void {
+    const trip = this.tripInfo();
+    if (!trip || !trip.DestinationId) {
+      return;
+    }
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getLocationsByDestination(enc({ DestinationId: trip.DestinationId }))
+      .subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            this.availableLocations = r.LocationList ?? [];
+          }
+        },
+        error: (err) => {
+          console.error('Error loading locations:', err);
+          this.toastr.error('Failed to load locations');
+        }
+      });
+  }
+
+
+
+  loadServicesByLocation(locationId: number): void {
+    if (!locationId) {
+      this.filteredServices = [];
+      return;
+    }
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getItineraryServicesByLocation(enc({ LocationId: locationId }))
+      .subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            // Filter to this location's services only
+            this.filteredServices = r.ItineraryServiceList ?? [];
+            this.showServiceDropdown = false;
+          } else {
+            this.toastr.warning('No services available for this location');
+            this.filteredServices = [];
+          }
+        },
+        error: () => {
+          this.toastr.error('Failed to load services for this location');
+          this.filteredServices = [];
+        }
+      });
+  }
+
+
+  addTransportRowForSlot(slot: DaySlot): void {
+    this.markDirty();
+
+    // ✅ If "Same Cab For All" is enabled, pre-select the first cab
+    let prefilledVehicleId = 0;
+    let prefilledVehicleName = '';
+
+    if (this.sameCabForAll && this.selectedCabTypes.length > 0) {
+      prefilledVehicleId = this.selectedCabTypes[0].VehicleTypeId;
+      prefilledVehicleName = this.selectedCabTypes[0].VehicleTypeName;
+    }
+
+    const newRow: QuoteServiceRow = {
+      QuoteServiceId: 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: this.activePackageTypeId(),
+      DayNumber: slot.DayNumber,
+      ServiceDate: slot.ServiceDate,
+      ServiceType: 1,
+      IteneraryServiceId: this.currentTransportRow.IteneraryServiceId ?? 0,
+      IteneraryServiceName: this.currentTransportRow.IteneraryServiceName ?? '',
+      VehicleTypeId: prefilledVehicleId,  // ✅ Pre-filled if sameCabForAll
+      VehicleTypeName: prefilledVehicleName,
+      SameCabForAll: this.sameCabForAll,
+      ActivityServiceId: 0,
+      ActivityServiceName: '',
+      Qty: 1,
+      CostPrice: 0,
+      SellingPrice: 0,
+      Notes: '',
+      IsSaving: false,
+      LocationId: this.currentTransportRow.LocationId ?? 0,
+      LocationName: this.currentTransportRow.LocationName ?? '',
+      VehicleTypeSearch: prefilledVehicleName,  // ✅ Show in input
+      FilteredVehicles: [],
+      ShowVehicleDropdown: false,
+      TotalPrice: 0,
+    };
+
+    this.serviceRows.update(rows => [...rows, newRow]);
+    this.syncSelectedDaysFromTransportRows();
+
+    // ✅ If vehicle was auto-selected, lookup rate immediately
+    if (prefilledVehicleId > 0 && newRow.IteneraryServiceId > 0) {
+      setTimeout(() => this.lookupVehicleRate(newRow), 100);
+    }
+  }
+
+  // ── Transport state ──
+  currentTransportVehicle: any = null;
+  transportVehicleSearch = '';
+  transportFilteredVehicles: any[] = [];
+  transportShowVehicleDropdown = false;
+  transportQty = 1; // ✅ Single shared qty
+
+  selectTransportVehicleGlobal(vt: any): void {
+    this.currentTransportVehicle = vt;
+    this.transportVehicleSearch = vt.VehicleTypeName;
+    this.transportShowVehicleDropdown = false;
+    this.transportFilteredVehicles = [];
+
+    // ✅ UPDATE ALL EXISTING ROWS WITH THIS VEHICLE
+    const activeRows = this.getActiveTransportRows();
+    activeRows.forEach(row => {
+      row.VehicleTypeId = vt.VehicleTypeId;
+      row.VehicleTypeName = vt.VehicleTypeName;
+      row.VehicleSearch = vt.VehicleTypeName;
+      row.Qty = this.transportQty;
+
+      if (row.IteneraryServiceId > 0) {
+        this.lookupTransportRate(row);
+      }
+    });
+
+    // Force UI refresh
+    this.transportRows.update(rows => [...rows]);
+
+    // ✅ Also create rows for selected days if service is selected
+    if (this.selectedDays.length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
+      this.selectedDays().forEach((dayNum: number) => {
+        const daySlot = this.daySlots().find(d => d.DayNumber === dayNum);
+        if (!daySlot) return;
+
+        const existingRow = this.serviceRows().find(
+          r => r.ServiceType === 1
+            && r.DayNumber === dayNum
             && r.QuotePackageTypeId === this.activePackageTypeId()
             && r.LocationId === this.currentTransportRow.LocationId
             && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
         );
-        if (!exists) {
-          this.addTransportRowForSlot(daySlot);
-        }
-      }
-    }
-  }
 
-  this.updateDaysDisplay();
-  this.serviceRows.update(rows => [...rows]); // ← trigger UI refresh
-}
-
-updateDaysDisplay(): void {
-  if (this.selectedDays.length === 0) {
-    this.selectedDaysDisplay = '';
-  } else if (this.selectedDays.length === 1) {
-    this.selectedDaysDisplay = `Day ${this.selectedDays[0]}`;
-  } else {
-    this.selectedDaysDisplay = `${this.selectedDays.length} days selected`;
-  }
-}
-
-toggleDaysDropdown(): void {
-  this.showDaysDropdown = !this.showDaysDropdown;
-}
-
-onDaysDropdownBlur(): void {
-  setTimeout(() => {
-    this.showDaysDropdown = false;
-  }, 150);
-}
-
-onLocationSearchChange(): void {
-  const query = (this.locationSearchText ?? '').toLowerCase().trim();
-
-  if (!query) {
-    this.filteredLocations = this.itineraryList().slice(0, 6);
-    this.showLocationDropdown = true;
-    return;
-  }
-
-  this.filteredLocations = this.itineraryList()
-    .filter(it => it.IteneraryServiceName.toLowerCase().includes(query))
-    .slice(0, 6);
-
-  this.showLocationDropdown = true;
-}
-
-selectLocation(location: any): void {
-  this.currentTransportRow.IteneraryServiceId = location.IteneraryServiceId;
-  this.currentTransportRow.IteneraryServiceName = location.IteneraryServiceName;
-  this.locationSearchText = location.ItineraryServiceName;
-  this.showLocationDropdown = false;
-  this.filteredLocations = [];
-}
-
-onLocationSearchBlur(): void {
-  setTimeout(() => {
-    this.showLocationDropdown = false;
-    if (this.currentTransportRow.IteneraryServiceId > 0) {
-      this.locationSearchText = this.currentTransportRow.IteneraryServiceName;
-    } else {
-      this.locationSearchText = '';
-    }
-  }, 200);
-}
-
-clearLocationSearch(): void {
-  this.locationSearchText = '';
-  // this.currentTransportRow.ItineraryServiceId = 0;
-  // this.currentTransportRow.ItineraryServiceName = '';
-  this.filteredLocations = [];
-  this.showLocationDropdown = false;
-}
-
-// Service Type search
-serviceTypeSearchText = '';
-filteredServiceTypes: any[] = [];
-showServiceTypeDropdown = false;
-
-onServiceTypeSearchChange(): void {
-  const query = (this.serviceTypeSearchText ?? '').toLowerCase().trim();
-  const vehicles = this.sameCabForAll && this.selectedCabTypes.length > 0
-    ? this.selectedCabTypes
-    : this.vehicleTypeList();
-
-  if (!query) {
-    this.filteredServiceTypes = vehicles.slice(0, 6);
-    this.showServiceTypeDropdown = true;
-    return;
-  }
-
-  this.filteredServiceTypes = vehicles
-    .filter(v => v.VehicleTypeName.toLowerCase().includes(query))
-    .slice(0, 6);
-
-  this.showServiceTypeDropdown = true;
-}
-
-selectServiceType(serviceType: any): void {
-  this.currentTransportRow.VehicleTypeId = serviceType.VehicleTypeId;
-  this.currentTransportRow.VehicleTypeName = serviceType.VehicleTypeName;
-  this.serviceTypeSearchText = serviceType.VehicleTypeName;
-  this.showServiceTypeDropdown = false;
-  this.filteredServiceTypes = [];
-  this.onVehicleSelected(this.currentTransportRow);
-}
-
-onServiceTypeSearchBlur(): void {
-  setTimeout(() => {
-    this.showServiceTypeDropdown = false;
-    if (this.currentTransportRow.VehicleTypeId > 0) {
-      this.serviceTypeSearchText = this.currentTransportRow.VehicleTypeName;
-    } else {
-      this.serviceTypeSearchText = '';
-    }
-  }, 200);
-}
-
-clearServiceTypeSearch(): void {
-  this.serviceTypeSearchText = '';
-  this.currentTransportRow.VehicleTypeId = 0;
-  this.currentTransportRow.VehicleTypeName = '';
-  this.filteredServiceTypes = [];
-  this.showServiceTypeDropdown = false;
-}
-
-// Transport Service search properties
-
-
-serviceSearchText = '';
-filteredServices: any[] = [];
-showServiceDropdown = false;
-
-// Available data for transport
-availableLocations: any[] = [];
-availableServices: any[] = [];
-
-
-
-// Transport Service - Location & Service search (following Special Inclusions pattern)
-
-
-selectTransportLocation(loc: any): void {
-  this.currentTransportRow.LocationId = loc.LocationId;
-  this.currentTransportRow.LocationName = loc.LocationName;
-  this.locationSearchText = loc.LocationName;
-  this.showLocationDropdown = false;
-  
-  // ✅ IMPORTANT: Load services for THIS location from backend
-  this.loadServicesByLocation(loc.LocationId);
-  this.serviceRows.update(rows => [...rows]); // ← refresh table
-}
-
-
-//clear transport
-clearTransportLocation(): void {
-
-  this.locationSearchText = '';
-
-  this.currentTransportRow.LocationId = 0;
-  this.currentTransportRow.LocationName = '';
-
-  this.serviceSearchText = '';
-  this.filteredServices = [];
-
-  this.showLocationDropdown = false;
-}
-
-selectTransportService(service: any): void {
-  this.currentTransportRow.IteneraryServiceId = service.IteneraryServiceId;
-  this.currentTransportRow.IteneraryServiceName = service.IteneraryServiceName;
-  this.serviceSearchText = service.IteneraryServiceName;
-  this.showServiceDropdown = false;
-  this.loadVehiclesForService(service.IteneraryServiceId);
-  
-  // ✅ Auto-create transport rows for all selected days
-  if (this.selectedDays.length > 0) {
-    const selectedDaySlots = this.selectedDays
-      .map(dayNum => this.daySlots().find(d => d.DayNumber === dayNum))
-      .filter(slot => slot !== undefined) as DaySlot[];
-    
-    selectedDaySlots.forEach(daySlot => {
-      const existingRow = this.serviceRows().find(
-        r => r.ServiceType === 1 
-          && r.DayNumber === daySlot.DayNumber 
-          && r.QuotePackageTypeId === this.activePackageTypeId()
-          && r.LocationId === this.currentTransportRow.LocationId
-      );
-      
-      if (!existingRow) {
-        this.addTransportRowForSlot(daySlot);
-      }
-    });
-  }
-  
-  this.serviceRows.update(rows => [...rows]); // ← refresh table
-}
-// DELETE THIS ENTIRE METHOD
-loadVehiclesForService(iteneraryServiceId: number): void {
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-
-  this.service.getVehicleServiceRateList(enc({
-    IteneraryServiceId: iteneraryServiceId
-  })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        this.availableVehiclesForService = r.VehicleRateList ?? [];
-      }
-    }
-  });
-}
-
-availableVehiclesForService: any[] = [];
-clearTransportService(): void {
-
-  this.serviceSearchText = '';
-
-  this.currentTransportRow.IteneraryServiceId = 0;
-  this.currentTransportRow.IteneraryServiceName = '';
-
-  this.showServiceDropdown = false;
-}
-
-
-
-
-loadLocationsByDestination(): void {
-  const trip = this.tripInfo();
-  if (!trip || !trip.DestinationId) {
-    return;
-  }
- 
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
- 
-  this.service.getLocationsByDestination(enc({ DestinationId: trip.DestinationId }))
-    .subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          this.availableLocations = r.LocationList ?? [];
-        }
-      },
-      error: (err) => {
-        console.error('Error loading locations:', err);
-        this.toastr.error('Failed to load locations');
-      }
-    });
-}
-
-
-
-loadServicesByLocation(locationId: number): void {
-  if (!locationId) {
-    this.filteredServices = [];
-    return;
-  }
- 
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
- 
-  this.service.getItineraryServicesByLocation(enc({ LocationId: locationId }))
-    .subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          // Filter to this location's services only
-          this.filteredServices = r.ItineraryServiceList ?? [];
-          this.showServiceDropdown = false;
+        if (existingRow) {
+          existingRow.VehicleTypeId = vt.VehicleTypeId;
+          existingRow.VehicleTypeName = vt.VehicleTypeName;
+          existingRow.Qty = this.transportQty;
+          this.lookupVehicleRate(existingRow);
         } else {
-          this.toastr.warning('No services available for this location');
-          this.filteredServices = [];
+          const newRow: QuoteServiceRow = {
+            QuoteServiceId: 0,
+            QuoteId: this.QuoteId,
+            QuotePackageTypeId: this.activePackageTypeId(),
+            DayNumber: dayNum,
+            ServiceDate: daySlot.ServiceDate,
+            ServiceType: 1,
+            IteneraryServiceId: this.currentTransportRow.IteneraryServiceId,
+            IteneraryServiceName: this.currentTransportRow.IteneraryServiceName,
+            VehicleTypeId: vt.VehicleTypeId,
+            VehicleTypeName: vt.VehicleTypeName,
+            SameCabForAll: this.sameCabForAll,
+            ActivityServiceId: 0,
+            ActivityServiceName: '',
+            Qty: this.transportQty,
+            CostPrice: 0,
+            SellingPrice: 0,
+            Notes: '',
+            IsSaving: false,
+            LocationId: this.currentTransportRow.LocationId,
+            LocationName: this.currentTransportRow.LocationName,
+            VehicleTypeSearch: vt.VehicleTypeName,
+            FilteredVehicles: [],
+            ShowVehicleDropdown: false,
+            TotalPrice: 0,
+          };
+          this.serviceRows.update(rows => [...rows, newRow]);
+          this.lookupVehicleRate(newRow);
         }
-      },
-      error: () => {
-        this.toastr.error('Failed to load services for this location');
-        this.filteredServices = [];
-      }
-    });
-}
+      });
 
-
-addTransportRowForSlot(slot: DaySlot): void {
-  this.markDirty();
-  
-  // ✅ If "Same Cab For All" is enabled, pre-select the first cab
-  let prefilledVehicleId = 0;
-  let prefilledVehicleName = '';
-  
-  if (this.sameCabForAll && this.selectedCabTypes.length > 0) {
-    prefilledVehicleId = this.selectedCabTypes[0].VehicleTypeId;
-    prefilledVehicleName = this.selectedCabTypes[0].VehicleTypeName;
-  }
- 
-  const newRow: QuoteServiceRow = {
-    QuoteServiceId: 0,
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    DayNumber: slot.DayNumber,
-    ServiceDate: slot.ServiceDate,
-    ServiceType: 1,
-    IteneraryServiceId: this.currentTransportRow.IteneraryServiceId ?? 0,
-    IteneraryServiceName: this.currentTransportRow.IteneraryServiceName ?? '',
-    VehicleTypeId: prefilledVehicleId,  // ✅ Pre-filled if sameCabForAll
-    VehicleTypeName: prefilledVehicleName,
-    SameCabForAll: this.sameCabForAll,
-    ActivityServiceId: 0,
-    ActivityServiceName: '',
-    Qty: 1,
-    CostPrice: 0,
-    SellingPrice: 0,
-    Notes: '',
-    IsSaving: false,
-    LocationId: this.currentTransportRow.LocationId ?? 0,
-    LocationName: this.currentTransportRow.LocationName ?? '',
-    VehicleTypeSearch: prefilledVehicleName,  // ✅ Show in input
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    TotalPrice: 0,
-  };
-  
-  this.serviceRows.update(rows => [...rows, newRow]);
-  
-  // ✅ If vehicle was auto-selected, lookup rate immediately
-  if (prefilledVehicleId > 0 && newRow.IteneraryServiceId > 0) {
-    setTimeout(() => this.lookupVehicleRate(newRow), 100);
-  }
-}
-
-// ── Transport state ──
-currentTransportVehicle: any = null;
-transportVehicleSearch = '';
-transportFilteredVehicles: any[] = [];
-transportShowVehicleDropdown = false;
-transportQty = 1; // ✅ Single shared qty
-
-selectTransportVehicleGlobal(vt: any): void {
-  this.currentTransportVehicle = vt;
-  this.transportVehicleSearch = vt.VehicleTypeName;
-  this.transportShowVehicleDropdown = false;
-  this.transportFilteredVehicles = [];
-  
-  // ✅ UPDATE ALL EXISTING ROWS WITH THIS VEHICLE
-  const activeRows = this.getActiveTransportRows();
-  activeRows.forEach(row => {
-    row.VehicleTypeId = vt.VehicleTypeId;
-    row.VehicleTypeName = vt.VehicleTypeName;
-    row.VehicleSearch = vt.VehicleTypeName;
-    row.Qty = this.transportQty;
-    
-    if (row.IteneraryServiceId > 0) {
-      this.lookupTransportRate(row);
+      this.serviceRows.update(rows => [...rows]);
     }
-  });
-  
-  // Force UI refresh
-  this.transportRows.update(rows => [...rows]);
-  
-  // ✅ Also create rows for selected days if service is selected
-  if (this.selectedDays.length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
-    this.selectedDays.forEach(dayNum => {
-      const daySlot = this.daySlots().find(d => d.DayNumber === dayNum);
-      if (!daySlot) return;
-      
-      const existingRow = this.serviceRows().find(
-        r => r.ServiceType === 1
-          && r.DayNumber === dayNum
-          && r.QuotePackageTypeId === this.activePackageTypeId()
-          && r.LocationId === this.currentTransportRow.LocationId
-          && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
-      );
-      
-      if (existingRow) {
-        existingRow.VehicleTypeId = vt.VehicleTypeId;
-        existingRow.VehicleTypeName = vt.VehicleTypeName;
-        existingRow.Qty = this.transportQty;
-        this.lookupVehicleRate(existingRow);
-      } else {
-        const newRow: QuoteServiceRow = {
-          QuoteServiceId: 0,
-          QuoteId: this.QuoteId,
-          QuotePackageTypeId: this.activePackageTypeId(),
-          DayNumber: dayNum,
-          ServiceDate: daySlot.ServiceDate,
-          ServiceType: 1,
-          IteneraryServiceId: this.currentTransportRow.IteneraryServiceId,
-          IteneraryServiceName: this.currentTransportRow.IteneraryServiceName,
-          VehicleTypeId: vt.VehicleTypeId,
-          VehicleTypeName: vt.VehicleTypeName,
-          SameCabForAll: this.sameCabForAll,
-          ActivityServiceId: 0,
-          ActivityServiceName: '',
-          Qty: this.transportQty,
-          CostPrice: 0,
-          SellingPrice: 0,
-          Notes: '',
-          IsSaving: false,
-          LocationId: this.currentTransportRow.LocationId,
-          LocationName: this.currentTransportRow.LocationName,
-          VehicleTypeSearch: vt.VehicleTypeName,
-          FilteredVehicles: [],
-          ShowVehicleDropdown: false,
-          TotalPrice: 0,
-        };
-        this.serviceRows.update(rows => [...rows, newRow]);
-        this.lookupVehicleRate(newRow);
+
+    this.markDirty();
+  }
+  clearTransportVehicleGlobal(): void {
+    this.transportVehicleSearch = '';
+    this.currentTransportVehicle = null;
+    this.transportFilteredVehicles = [];
+    this.transportShowVehicleDropdown = false;
+    this.transportQty = 1;
+
+    this.serviceRows.update(rows =>
+      rows.filter(r => !(r.ServiceType === 1 && r.VehicleTypeId > 0 && r.QuotePackageTypeId === this.activePackageTypeId()))
+    );
+  }
+  onTransportQtyChange(): void {
+    // Update qty for ALL rows with current vehicle
+    this.serviceRows().forEach(row => {
+      if (row.ServiceType === 1
+        && row.VehicleTypeId === this.currentTransportVehicle?.VehicleTypeId
+        && row.QuotePackageTypeId === this.activePackageTypeId()) {
+        row.Qty = this.transportQty;
+        // Calculate Given column: CostPrice × Qty
+        row.SellingPrice = (row.CostPrice || 0) * this.transportQty;
+        this.calculateServiceTotal(row);
       }
     });
-    
+    this.serviceRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+
+  onTransportSellingChange(row: QuoteServiceRow): void {
+    const days = this.selectedDays.length > 0
+      ? this.selectedDays.length
+      : this.daySlots().length;
+    row.TotalPrice = (row.SellingPrice ?? 0) * (row.Qty ?? 1) * days;
+    this.serviceRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+
+  // Update this method to recalculate based on ALL selected days
+  calculateServiceTotal(row: QuoteServiceRow): void {
+    const totalDays = this.selectedDays.length > 0 ? this.selectedDays.length : 1;
+    const sellingTotal = (row.SellingPrice || 0) * (row.Qty || 1) * totalDays;
+    row.TotalPrice = sellingTotal;
     this.serviceRows.update(rows => [...rows]);
   }
-  
-  this.markDirty();
-}
-clearTransportVehicleGlobal(): void {
-  this.transportVehicleSearch = '';
-  this.currentTransportVehicle = null;
-  this.transportFilteredVehicles = [];
-  this.transportShowVehicleDropdown = false;
-  this.transportQty = 1;
-  
-  this.serviceRows.update(rows =>
-    rows.filter(r => !(r.ServiceType === 1 && r.VehicleTypeId > 0 && r.QuotePackageTypeId === this.activePackageTypeId()))
-  );
-}
-onTransportQtyChange(): void {
-  // Update qty for ALL rows with current vehicle
-  this.serviceRows().forEach(row => {
-    if (row.ServiceType === 1
-      && row.VehicleTypeId === this.currentTransportVehicle?.VehicleTypeId
-      && row.QuotePackageTypeId === this.activePackageTypeId()) {
-      row.Qty = this.transportQty;
-      // Calculate Given column: CostPrice × Qty
-      row.SellingPrice = (row.CostPrice || 0) * this.transportQty;
-      this.calculateServiceTotal(row);
-    }
-  });
-  this.serviceRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-
-onTransportSellingChange(row: QuoteServiceRow): void {
-  const days = this.selectedDays.length > 0
-    ? this.selectedDays.length
-    : this.daySlots().length;
-  row.TotalPrice = (row.SellingPrice ?? 0) * (row.Qty ?? 1) * days;
-  this.serviceRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-
-// Update this method to recalculate based on ALL selected days
-calculateServiceTotal(row: QuoteServiceRow): void {
-  const totalDays = this.selectedDays.length > 0 ? this.selectedDays.length : 1;
-  const sellingTotal = (row.SellingPrice || 0) * (row.Qty || 1) * totalDays;
-  row.TotalPrice = sellingTotal;
-  this.serviceRows.update(rows => [...rows]);
-}
 
 
 
-clearTransportVehicle(row: QuoteServiceRow): void {
-  row.VehicleTypeSearch = '';
-  row.VehicleTypeId = 0;
-  row.VehicleTypeName = '';
-  row.FilteredVehicles = [];
-  row.ShowVehicleDropdown = false;
-  row.CostPrice = 0;
-  row.SellingPrice = 0;
-  this.serviceRows.update(rows => [...rows]);
-  this.markDirty();
-}
+  clearTransportVehicle(row: QuoteServiceRow): void {
+    row.VehicleTypeSearch = '';
+    row.VehicleTypeId = 0;
+    row.VehicleTypeName = '';
+    row.FilteredVehicles = [];
+    row.ShowVehicleDropdown = false;
+    row.CostPrice = 0;
+    row.SellingPrice = 0;
+    this.serviceRows.update(rows => [...rows]);
+    this.markDirty();
+  }
 
 
-addActivityRow(slot: DaySlot): void {
-  this.markDirty();
-  this.serviceRows.update(rows => [...rows, {
-    QuoteServiceId: 0, 
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    DayNumber: slot.DayNumber, 
-    ServiceDate: slot.ServiceDate,
-    ServiceType: 2,
-    IteneraryServiceId: 0, 
-    IteneraryServiceName: '',
-    VehicleTypeId: 0, 
-    VehicleTypeName: '', 
-    SameCabForAll: false,
-    ActivityServiceId: 0, 
-    ActivityServiceName: '',
-    Qty: 1, 
-    CostPrice: 0, 
-    SellingPrice: 0, 
-    Notes: '', 
-    IsSaving: false,
-    LocationId: 0,
-    LocationName: '',
-    FilteredVehicles: [],
-    VehicleTypeSearch: '',
-    ShowVehicleDropdown: false,
-    TotalPrice: 0,  // ← ADD THIS
-  }]);
-}
+  addActivityRow(slot: DaySlot): void {
+    this.markDirty();
+    this.serviceRows.update(rows => [...rows, {
+      QuoteServiceId: 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: this.activePackageTypeId(),
+      DayNumber: slot.DayNumber,
+      ServiceDate: slot.ServiceDate,
+      ServiceType: 2,
+      IteneraryServiceId: 0,
+      IteneraryServiceName: '',
+      VehicleTypeId: 0,
+      VehicleTypeName: '',
+      SameCabForAll: false,
+      ActivityServiceId: 0,
+      ActivityServiceName: '',
+      Qty: 1,
+      CostPrice: 0,
+      SellingPrice: 0,
+      Notes: '',
+      IsSaving: false,
+      LocationId: 0,
+      LocationName: '',
+      FilteredVehicles: [],
+      VehicleTypeSearch: '',
+      ShowVehicleDropdown: false,
+      TotalPrice: 0,  // ← ADD THIS
+    }]);
+  }
 
   onItinerarySelected(row: QuoteServiceRow): void {
     this.markDirty();
@@ -2758,48 +2768,48 @@ addActivityRow(slot: DaySlot): void {
 
 
 
-lookupVehicleRate(row: QuoteServiceRow): void {
-  if (!row.IteneraryServiceId || !row.VehicleTypeId) {
-    if (row.VehicleTypeId > 0 && !row.IteneraryServiceId) {
-      this.toastr.warning('Select service location and service first');
-    }
-    return;
-  }
- 
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
- 
-  this.service.getVehicleRateByDate(enc({
-    IteneraryServiceId: row.IteneraryServiceId,
-    VehicleTypeId: row.VehicleTypeId,
-    ServiceDate: row.ServiceDate,
-  })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage && r.Rate) {
-        // ✅ Get base rate per unit
-        const baseRate = r.Rate.RateAmount ?? 0;
-        row.CostPrice = baseRate;
-        row.SellingPrice = baseRate;
- 
-        // ✅ Calculate total with day multiplier
-        this.calculateServiceTotal(row);
- 
-        this.serviceRows.update(rows => [...rows]);
-        this.markDirty();
-      } else {
-        row.CostPrice = 0;
-        row.SellingPrice = 0;
-        this.toastr.warning(
-          `No rate found for ${row.VehicleTypeName} on this service`
-        );
+  lookupVehicleRate(row: QuoteServiceRow): void {
+    if (!row.IteneraryServiceId || !row.VehicleTypeId) {
+      if (row.VehicleTypeId > 0 && !row.IteneraryServiceId) {
+        this.toastr.warning('Select service location and service first');
       }
-    },
-    error: () => {
-      this.toastr.error('Error loading vehicle rate');
+      return;
     }
-  });
-}
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getVehicleRateByDate(enc({
+      IteneraryServiceId: row.IteneraryServiceId,
+      VehicleTypeId: row.VehicleTypeId,
+      ServiceDate: row.ServiceDate,
+    })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
+          // ✅ Get base rate per unit
+          const baseRate = r.Rate.RateAmount ?? 0;
+          row.CostPrice = baseRate;
+          row.SellingPrice = baseRate;
+
+          // ✅ Calculate total with day multiplier
+          this.calculateServiceTotal(row);
+
+          this.serviceRows.update(rows => [...rows]);
+          this.markDirty();
+        } else {
+          row.CostPrice = 0;
+          row.SellingPrice = 0;
+          this.toastr.warning(
+            `No rate found for ${row.VehicleTypeName} on this service`
+          );
+        }
+      },
+      error: () => {
+        this.toastr.error('Error loading vehicle rate');
+      }
+    });
+  }
 
   onActivitySelected(row: QuoteServiceRow): void {
     this.markDirty();
@@ -2874,47 +2884,49 @@ lookupVehicleRate(row: QuoteServiceRow): void {
         && r.DayNumber === dayNumber);
 
     if (!stillHasDay) {
-      const index = this.selectedDays.indexOf(dayNumber);
+      const index = this.selectedDays().indexOf(dayNumber);
       if (index > -1) {
-        this.selectedDays.splice(index, 1);
+        const current = [...this.selectedDays()];
+        current.splice(index, 1);
+        this.selectedDays.set(current);
         this.updateDaysDisplay();
       }
     }
   }
 
   // ── function  helpers ───────────────────────────────────────
-formatDate(date: any): string {
-  const formatted = this.loadData.loadDateTime(date);
-  return formatted ? formatted : '';
-}
+  formatDate(date: any): string {
+    const formatted = this.loadData.loadDateTime(date);
+    return formatted ? formatted : '';
+  }
 
-getDestinationHotels(): any[] {
-  return this.hotelList();
-}
+  getDestinationHotels(): any[] {
+    return this.hotelList();
+  }
 
-private loadSpecialInclusionsForHotel(hotelId: number): void {
-  if (!hotelId || this.specialInclusionsByHotel[hotelId]) return;
+  private loadSpecialInclusionsForHotel(hotelId: number): void {
+    if (!hotelId || this.specialInclusionsByHotel[hotelId]) return;
 
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
 
-  this.service.getSpecialInclusionList(enc({ HotelId: hotelId })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        this.specialInclusionsByHotel[hotelId] = r.SpecialInclusionList ?? [];
-        this.specialInclusionRows.update(rows => [...rows]);
+    this.service.getSpecialInclusionList(enc({ HotelId: hotelId })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.specialInclusionsByHotel[hotelId] = r.SpecialInclusionList ?? [];
+          this.specialInclusionRows.update(rows => [...rows]);
+        }
       }
-    }
-  });
-}
+    });
+  }
 
-getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
-  const match = this.specialInclusionsByHotel[row.HotelId]?.find(
-    (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
-  );
-  return match?.Rate ?? 0;
-}
+  getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
+    const match = this.specialInclusionsByHotel[row.HotelId]?.find(
+      (si: any) => si.SpecialInclusionTypeId === svc.SpecialInclusionTypeId
+    );
+    return match?.Rate ?? 0;
+  }
 
   // ── Summary helpers ───────────────────────────────────────
   get summaryHotels(): QuoteHotelRow[] {
@@ -3002,763 +3014,728 @@ getHotelRateForService(row: QuoteSpecialInclusionRow, svc: any): number {
     if (!queryId) { this.toastr.error('Query ID not found'); return; }
     this.router.navigate(['/agent/query-stepone', queryId]);
   }
-// Add with your other properties
-showTransportForm = false;
-showActivityForm = false;
-selectedDayForActivity = 0;
-selectedActivityId = 0;
-activityQty = 1;
+  // Add with your other properties
+  showTransportForm = false;
+  showActivityForm = false;
+  selectedDayForActivity = 0;
+  selectedActivityId = 0;
+  activityQty = 1;
 
-// Add these methods to your component (put them with your other methods, e.g., near addActivityRow)
+  // Add these methods to your component (put them with your other methods, e.g., near addActivityRow)
 
-// Get activity rows
-getActivityRows(): QuoteServiceRow[] {
-  return this.serviceRows().filter(
-    r => r.ServiceType === 2 && r.QuotePackageTypeId === this.activePackageTypeId()
-  );
-}
-
-// Add transport rows for selected days
-addTransportRowsForSelectedDays(): void {
-  if (this.selectedDays.length === 0) {
-    this.toastr.error('Please select at least one day');
-    return;
-  }
-  
-  if (!this.currentTransportRow.LocationId) {
-    this.toastr.error('Please select a service location');
-    return;
-  }
-  
-  if (!this.currentTransportRow.IteneraryServiceId) {
-    this.toastr.error('Please select a service type');
-    return;
-  }
-  
-  if (!this.currentTransportVehicle?.VehicleTypeId) {
-    this.toastr.error('Please select a vehicle type');
-    return;
-  }
-  
-  this.selectedDays.forEach(dayNum => {
-    const daySlot = this.daySlots().find(d => d.DayNumber === dayNum);
-    if (!daySlot) return;
-    
-    // Check if transport already exists for this day
-    const exists = this.serviceRows().some(
-      r => r.ServiceType === 1
-        && r.DayNumber === dayNum
-        && r.QuotePackageTypeId === this.activePackageTypeId()
-        && r.LocationId === this.currentTransportRow.LocationId
-        && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
+  // Get activity rows
+  getActivityRows(): QuoteServiceRow[] {
+    return this.serviceRows().filter(
+      r => r.ServiceType === 2 && r.QuotePackageTypeId === this.activePackageTypeId()
     );
-    
-    if (!exists) {
-      this.addTransportRowForSlot(daySlot);
+  }
+
+  // Add transport rows for selected days
+  addTransportRowsForSelectedDays(): void {
+    if (this.selectedDays.length === 0) {
+      this.toastr.error('Please select at least one day');
+      return;
     }
-  });
-  
-  this.showTransportForm = false;
-  this.resetTransportForm();
-  this.toastr.success(`Transport added for ${this.selectedDays.length} day(s)`);
-}
 
-// Reset transport form
-resetTransportForm(): void {
-  this.locationSearchText = '';
-  this.serviceSearchText = '';
-  this.transportVehicleSearch = '';
-  this.currentTransportRow = {
-    LocationId: 0,
-    LocationName: '',
-    IteneraryServiceId: 0,
-    IteneraryServiceName: '',
-  } as QuoteServiceRow;
-  this.currentTransportVehicle = null;
-  this.transportQty = 1;
-  this.selectedDays = [];
-  this.updateDaysDisplay();
-}
+    if (!this.currentTransportRow.LocationId) {
+      this.toastr.error('Please select a service location');
+      return;
+    }
 
-// Add activity row for selected day
-addActivityRowForDay(): void {
-  if (!this.selectedDayForActivity || this.selectedDayForActivity === 0) {
-    this.toastr.error('Please select a day');
-    return;
+    if (!this.currentTransportRow.IteneraryServiceId) {
+      this.toastr.error('Please select a service type');
+      return;
+    }
+
+    if (!this.currentTransportVehicle?.VehicleTypeId) {
+      this.toastr.error('Please select a vehicle type');
+      return;
+    }
+
+    this.selectedDays().forEach((dayNum: number) => {
+      const daySlot = this.daySlots().find(d => d.DayNumber === dayNum);
+      if (!daySlot) return;
+
+      // Check if transport already exists for this day
+      const exists = this.serviceRows().some(
+        r => r.ServiceType === 1
+          && r.DayNumber === dayNum
+          && r.QuotePackageTypeId === this.activePackageTypeId()
+          && r.LocationId === this.currentTransportRow.LocationId
+          && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
+      );
+
+      if (!exists) {
+        this.addTransportRowForSlot(daySlot);
+      }
+    });
+
+    this.showTransportForm = false;
+    this.resetTransportForm();
+    this.toastr.success(`Transport added for ${this.selectedDays().length} day(s)`);
   }
-  
-  if (!this.selectedActivityId || this.selectedActivityId === 0) {
-    this.toastr.error('Please select an activity');
-    return;
+
+  // Reset transport form
+  resetTransportForm(): void {
+    this.locationSearchText = '';
+    this.serviceSearchText = '';
+    this.transportVehicleSearch = '';
+    this.currentTransportRow = {
+      LocationId: 0,
+      LocationName: '',
+      IteneraryServiceId: 0,
+      IteneraryServiceName: '',
+    } as QuoteServiceRow;
+    this.currentTransportVehicle = null;
+    this.transportQty = 1;
+    this.selectedDays.set([]);
+    this.updateDaysDisplay();
   }
-  
-  const slot = this.daySlots().find(d => d.DayNumber === this.selectedDayForActivity);
-  if (slot) {
-    const newRow = {
+
+  // Add activity row for selected day
+  addActivityRowForDay(): void {
+    if (!this.selectedDayForActivity || this.selectedDayForActivity === 0) {
+      this.toastr.error('Please select a day');
+      return;
+    }
+
+    if (!this.selectedActivityId || this.selectedActivityId === 0) {
+      this.toastr.error('Please select an activity');
+      return;
+    }
+
+    const slot = this.daySlots().find(d => d.DayNumber === this.selectedDayForActivity);
+    if (slot) {
+      const newRow = {
+        QuoteServiceId: 0,
+        QuoteId: this.QuoteId,
+        QuotePackageTypeId: this.activePackageTypeId(),
+        DayNumber: slot.DayNumber,
+        ServiceDate: slot.ServiceDate,
+        ServiceType: 2,
+        IteneraryServiceId: 0,
+        IteneraryServiceName: '',
+        VehicleTypeId: 0,
+        VehicleTypeName: '',
+        SameCabForAll: false,
+        ActivityServiceId: this.selectedActivityId,
+        ActivityServiceName: this.activityList().find(a => a.ActivityServiceId === this.selectedActivityId)?.ActivityServiceName || '',
+        Qty: this.activityQty,
+        CostPrice: 0,
+        SellingPrice: 0,
+        Notes: '',
+        IsSaving: false,
+        LocationId: 0,
+        LocationName: '',
+        FilteredVehicles: [],
+        VehicleTypeSearch: '',
+        ShowVehicleDropdown: false,
+        TotalPrice: 0,
+      };
+
+      this.serviceRows.update(rows => [...rows, newRow]);
+      this.onActivitySelected(newRow);
+      this.markDirty();
+
+      this.showActivityForm = false;
+      this.selectedDayForActivity = 0;
+      this.selectedActivityId = 0;
+      this.activityQty = 1;
+
+      this.toastr.success('Activity added');
+    }
+  }
+
+
+  closeDaysDropdown(): void {
+    this.showDaysDropdown = false;
+  }
+
+
+
+
+  onTransportDayToggle(row: QuoteTransportRow, dayNumber: number): void {
+    const index = row.DayNumbers.indexOf(dayNumber);
+    if (index > -1) {
+      row.DayNumbers.splice(index, 1);
+    } else {
+      row.DayNumbers.push(dayNumber);
+      row.DayNumbers.sort((a, b) => a - b);
+    }
+
+    if (row.DayNumbers.length > 0) {
+      const firstDay = row.DayNumbers[0];
+      const slot = this.daySlots().find(d => d.DayNumber === firstDay);
+      row.DayNumber = firstDay;
+      if (slot) row.ServiceDate = slot.ServiceDate;
+    }
+
+    this.updateTransportDaysDisplay(row);
+    this.transportRows.update(rows => [...rows]);
+
+    if (row.LocationId > 0 && row.IteneraryServiceId > 0 && row.VehicleTypeId > 0) {
+      this.lookupTransportRate(row);
+    }
+
+    // ✅ Sync selected days after toggling
+    this.syncSelectedDaysFromTransportRows();
+    this.markDirty();
+  }
+
+  updateTransportDaysDisplay(row: QuoteTransportRow): void {
+    if (row.DayNumbers.length === 0) {
+      row.SelectedDaysDisplay = '';
+    } else if (row.DayNumbers.length === 1) {
+      row.SelectedDaysDisplay = `Day ${row.DayNumbers[0]}`;
+    } else {
+      row.SelectedDaysDisplay = `${row.DayNumbers.length} days selected`;
+    }
+  }
+
+  toggleTransportDayDropdown(row: QuoteTransportRow): void {
+    row.ShowDayDropdown = !row.ShowDayDropdown;
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  closeTransportDayDropdown(row: QuoteTransportRow): void {
+    row.ShowDayDropdown = false;
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  // ── Location Search (Per Row) ─────────────────────────────
+  onTransportLocationSearch(row: QuoteTransportRow): void {
+    const query = (row.LocationSearch ?? '').toLowerCase().trim();
+    const locations = this.locationList();
+
+    if (!query) {
+      row.FilteredLocations = locations.slice(0, 4);
+    } else {
+      row.FilteredLocations = locations
+        .filter(l => l.LocationName.toLowerCase().includes(query))
+        .slice(0, 4);
+    }
+    row.ShowLocationDropdown = true;
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  selectTransportLocationRow(row: QuoteTransportRow, loc: any): void {
+    row.LocationId = loc.LocationId;
+    row.LocationName = loc.LocationName;
+    row.LocationSearch = loc.LocationName;
+    row.ShowLocationDropdown = false;
+    row.FilteredLocations = [];
+
+    // Load services for this location
+    this.loadServicesForTransportRow(row, loc.LocationId);
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  onTransportLocationBlur(row: QuoteTransportRow): void {
+    setTimeout(() => {
+      row.ShowLocationDropdown = false;
+      if (row.LocationId > 0) {
+        row.LocationSearch = row.LocationName;
+      } else {
+        row.LocationSearch = '';
+      }
+      this.transportRows.update(rows => [...rows]);
+    }, 200);
+  }
+
+  clearTransportLocationRow(row: QuoteTransportRow): void {
+    row.LocationSearch = '';
+    row.LocationId = 0;
+    row.LocationName = '';
+    row.FilteredLocations = [];
+    row.ShowLocationDropdown = false;
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // ── Service Search (Per Row) ──────────────────────────────
+  onTransportServiceSearch(row: QuoteTransportRow): void {
+    const query = (row.ServiceSearch ?? '').toLowerCase().trim();
+
+    // Filter services by selected location
+    const services = this.itineraryList()
+      .filter(s => s.LocationId === row.LocationId || !row.LocationId);
+
+    if (!query) {
+      row.FilteredServices = services.slice(0, 4);
+    } else {
+      row.FilteredServices = services
+        .filter(s => s.IteneraryServiceName.toLowerCase().includes(query))
+        .slice(0, 4);
+    }
+    row.ShowServiceDropdown = true;
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  selectTransportServiceRow(row: QuoteTransportRow, svc: any): void {
+    row.IteneraryServiceId = svc.IteneraryServiceId;
+    row.IteneraryServiceName = svc.IteneraryServiceName;
+    row.ServiceSearch = svc.IteneraryServiceName;
+    row.ShowServiceDropdown = false;
+    row.FilteredServices = [];
+
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+
+    if (row.VehicleTypeId > 0) {
+      this.lookupTransportRate(row);
+    }
+  }
+
+  onTransportServiceBlur(row: QuoteTransportRow): void {
+    setTimeout(() => {
+      row.ShowServiceDropdown = false;
+      if (row.IteneraryServiceId > 0) {
+        row.ServiceSearch = row.IteneraryServiceName;
+      } else {
+        row.ServiceSearch = '';
+      }
+      this.transportRows.update(rows => [...rows]);
+    }, 200);
+  }
+
+  clearTransportServiceRow(row: QuoteTransportRow): void {
+    row.ServiceSearch = '';
+    row.IteneraryServiceId = 0;
+    row.IteneraryServiceName = '';
+    row.FilteredServices = [];
+    row.ShowServiceDropdown = false;
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // ── Vehicle Search (Per Row) ──────────────────────────────
+  onTransportVehicleSearch(row: QuoteTransportRow): void {
+    const query = (row.VehicleSearch ?? '').toLowerCase().trim();
+
+    // Use vehicleTypeList as source
+    const vehicles = this.vehicleTypeList();
+
+    if (!query) {
+      row.FilteredVehicles = vehicles.slice(0, 6);
+    } else {
+      row.FilteredVehicles = vehicles
+        .filter(v => v.VehicleTypeName.toLowerCase().includes(query))
+        .slice(0, 6);
+    }
+
+    row.ShowVehicleDropdown = true;
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  selectTransportVehicleRow(row: QuoteTransportRow, vt: any): void {
+    row.VehicleTypeId = vt.VehicleTypeId;
+    row.VehicleTypeName = vt.VehicleTypeName;
+    row.VehicleSearch = vt.VehicleTypeName;
+    row.ShowVehicleDropdown = false;
+    row.FilteredVehicles = [];
+
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+
+    // Lookup rate if service is selected
+    if (row.IteneraryServiceId > 0) {
+      this.lookupTransportRate(row);
+    }
+  }
+
+  onTransportVehicleBlur(row: QuoteTransportRow): void {
+    setTimeout(() => {
+      row.ShowVehicleDropdown = false;
+      if (row.VehicleTypeId > 0) {
+        row.VehicleSearch = row.VehicleTypeName;
+      } else {
+        row.VehicleSearch = '';
+      }
+      this.transportRows.update(rows => [...rows]);
+    }, 200);
+  }
+
+  clearTransportVehicleRow(row: QuoteTransportRow): void {
+    row.VehicleSearch = '';
+    row.VehicleTypeId = 0;
+    row.VehicleTypeName = '';
+    row.FilteredVehicles = [];
+    row.ShowVehicleDropdown = false;
+    row.CostPrice = 0;
+    row.SellingPrice = 0;
+    row.TotalPrice = 0;
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+
+  // ── Load Services for Transport Row ─────────────────────────
+  loadServicesForTransportRow(row: QuoteTransportRow, locationId: number): void {
+    if (!locationId) {
+      row.FilteredServices = [];
+      return;
+    }
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getItineraryServicesByLocation(enc({ LocationId: locationId }))
+      .subscribe({
+        next: (r: any) => {
+          if (r.Message === ConstantData.SuccessMessage) {
+            row.FilteredServices = r.ItineraryServiceList ?? [];
+          } else {
+            row.FilteredServices = [];
+          }
+          this.transportRows.update(rows => [...rows]);
+        },
+        error: () => {
+          row.FilteredServices = [];
+          this.transportRows.update(rows => [...rows]);
+        }
+      });
+  }
+
+  // ── Rate Lookup & Price Calculation ───────────────────────
+  lookupTransportRate(row: QuoteTransportRow): void {
+    if (!row.IteneraryServiceId || !row.VehicleTypeId) return;
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    const firstDay = row.DayNumbers[0] ?? row.DayNumber;
+    const daySlot = this.daySlots().find(d => d.DayNumber === firstDay);
+
+    this.service.getVehicleRateByDate(enc({
+      IteneraryServiceId: row.IteneraryServiceId,
+      VehicleTypeId: row.VehicleTypeId,
+      ServiceDate: daySlot?.ServiceDate || row.ServiceDate,
+    })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
+          row.CostPrice = r.Rate.RateAmount ?? 0;
+          row.SellingPrice = row.CostPrice;
+        } else {
+          row.CostPrice = 0;
+          row.SellingPrice = 0;
+          this.toastr.warning(`No rate found for ${row.VehicleTypeName}`);
+        }
+        this.recalculateTransportPrice(row);
+        this.transportRows.update(rows => [...rows]);
+      },
+      error: () => {
+        this.toastr.error('Error loading vehicle rate');
+      }
+    });
+  }
+  recalculateTransportPrice(row: QuoteTransportRow): void {
+    const days = row.DayNumbers.length || 1;
+    const total = (row.CostPrice || 0) * (row.Qty || 1) * days;
+    row.TotalPrice = total;
+
+    // If SellingPrice is not set or less than cost, set to cost
+    if (!row.SellingPrice || row.SellingPrice < total) {
+      row.SellingPrice = total;
+    }
+
+    this.transportRows.update(rows => [...rows]);
+  }
+
+  saveTransportRow(row: QuoteTransportRow): void {
+    if (!row.LocationId || !row.IteneraryServiceId || !row.VehicleTypeId) return;
+    if (row.DayNumbers.length === 0) {
+      this.toastr.error('Please select at least one day');
+      return;
+    }
+
+    row.IsSaving = true;
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    const firstDay = row.DayNumbers[0];
+    const slot = this.daySlots().find(d => d.DayNumber === firstDay);
+
+    this.service.saveQuoteService(enc({
+      QuoteServiceId: row.QuoteServiceId,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId,
+      DayNumber: firstDay,
+      ServiceDate: slot?.ServiceDate || row.ServiceDate,
+      ServiceType: 1, // Transport
+      IteneraryServiceId: row.IteneraryServiceId,
+      VehicleTypeId: row.VehicleTypeId,
+      SameCabForAll: row.SameCabForAll,
+      Qty: row.Qty,
+      CostPrice: row.CostPrice,
+      SellingPrice: row.SellingPrice,
+      Notes: row.Notes,
+    })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          row.QuoteServiceId = r.QuoteServiceId;
+          this.markClean();
+        } else {
+          this.toastr.error(r.Message);
+        }
+        row.IsSaving = false;
+      },
+      error: () => { row.IsSaving = false; }
+    });
+  }
+
+  removeTransportRow(row: QuoteTransportRow): void {
+    this.markDirty();
+
+    if (row.QuoteServiceId > 0) {
+      const enc = (d: object): RequestModel => ({
+        request: this.local.encrypt(JSON.stringify(d)).toString()
+      });
+      this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId }))
+        .subscribe({
+          next: () => {
+            this.toastr.success('Transport removed');
+            // ✅ Sync after deletion
+            this.syncSelectedDaysFromTransportRows();
+          },
+          error: () => {
+            this.toastr.error('Error removing transport');
+          }
+        });
+    }
+
+    this.transportRows.update(rows => rows.filter(r => r !== row));
+    // ✅ Sync after removal
+    this.syncSelectedDaysFromTransportRows();
+  }
+  // ── Helper Methods (Like Hotels) ───────────────────────────
+  hasSelectedTransportDay(): boolean {
+    return this.getActiveTransportRows()
+      .some(r => r.DayNumbers && r.DayNumbers.length > 0);
+  }
+
+  getNextUnselectedTransportDay(): number | null {
+    const allDays = this.daySlots().map(d => d.DayNumber);
+    const usedDays = new Set(
+      this.getActiveTransportRows().flatMap(r => r.DayNumbers)
+    );
+    return allDays.find(d => !usedDays.has(d)) ?? null;
+  }
+
+  addTransportRowForNextDay(): void {
+    const nextDay = this.getNextUnselectedTransportDay();
+    if (nextDay === null) return;
+    const slot = this.daySlots().find(d => d.DayNumber === nextDay);
+    if (slot) this.addTransportRow(slot);
+  }
+
+  // ── Similar Transports Modal (Optional) ───────────────────
+  showSimilarTransportsModal = false;
+  similarTransportSourceRow: QuoteTransportRow | null = null;
+  similarTransportRows: QuoteTransportRow[] = [];
+
+  openSimilarTransportsModal(): void {
+    const mainTransports = this.getActiveTransportRows();
+    if (mainTransports.length === 0) {
+      this.toastr.warning('No main transports found. Please add a transport first.');
+      return;
+    }
+
+    this.similarTransportSourceRow = mainTransports[0];
+    this.similarTransportRows = [{
+      ...this.createEmptyTransportRow(),
+      DayNumbers: [...mainTransports[0].DayNumbers],
+      SelectedDaysDisplay: mainTransports[0].SelectedDaysDisplay,
+      Qty: mainTransports[0].Qty,
+    }];
+
+    this.showSimilarTransportsModal = true;
+  }
+
+  createEmptyTransportRow(): QuoteTransportRow {
+    const slot = this.daySlots()[0];
+    return {
       QuoteServiceId: 0,
       QuoteId: this.QuoteId,
       QuotePackageTypeId: this.activePackageTypeId(),
-      DayNumber: slot.DayNumber,
-      ServiceDate: slot.ServiceDate,
-      ServiceType: 2,
+      DayNumbers: [slot?.DayNumber ?? 1],
+      DayNumber: slot?.DayNumber ?? 1,
+      ServiceDate: slot?.ServiceDate ?? new Date(),
+      LocationId: 0,
+      LocationName: '',
       IteneraryServiceId: 0,
       IteneraryServiceName: '',
       VehicleTypeId: 0,
       VehicleTypeName: '',
       SameCabForAll: false,
-      ActivityServiceId: this.selectedActivityId,
-      ActivityServiceName: this.activityList().find(a => a.ActivityServiceId === this.selectedActivityId)?.ActivityServiceName || '',
-      Qty: this.activityQty,
+      Qty: 1,
       CostPrice: 0,
       SellingPrice: 0,
+      TotalPrice: 0,
       Notes: '',
       IsSaving: false,
-      LocationId: 0,
-      LocationName: '',
+      LocationSearch: '',
+      FilteredLocations: [],
+      ShowLocationDropdown: false,
+      ServiceSearch: '',
+      FilteredServices: [],
+      ShowServiceDropdown: false,
+      VehicleSearch: '',
       FilteredVehicles: [],
-      VehicleTypeSearch: '',
       ShowVehicleDropdown: false,
-      TotalPrice: 0,
+      ShowDayDropdown: false,
+      SelectedDaysDisplay: '',
     };
-    
-    this.serviceRows.update(rows => [...rows, newRow]);
-    this.onActivitySelected(newRow);
-    this.markDirty();
-    
-    this.showActivityForm = false;
-    this.selectedDayForActivity = 0;
-    this.selectedActivityId = 0;
-    this.activityQty = 1;
-    
-    this.toastr.success('Activity added');
-  }
-}
-
-
-closeDaysDropdown(): void {
-  this.showDaysDropdown = false;
-}
-
-
-
-
-onTransportDayToggle(row: QuoteTransportRow, dayNumber: number): void {
-  const index = row.DayNumbers.indexOf(dayNumber);
-  if (index > -1) {
-    row.DayNumbers.splice(index, 1);
-  } else {
-    row.DayNumbers.push(dayNumber);
-    row.DayNumbers.sort((a, b) => a - b);
   }
 
-  if (row.DayNumbers.length > 0) {
-    const firstDay = row.DayNumbers[0];
-    const slot = this.daySlots().find(d => d.DayNumber === firstDay);
-    row.DayNumber = firstDay;
-    if (slot) row.ServiceDate = slot.ServiceDate;
-  }
-
-  this.updateTransportDaysDisplay(row);
-  this.transportRows.update(rows => [...rows]);
-  
-  if (row.LocationId > 0 && row.IteneraryServiceId > 0 && row.VehicleTypeId > 0) {
-    this.lookupTransportRate(row);
-  }
-  this.markDirty();
-}
-
-updateTransportDaysDisplay(row: QuoteTransportRow): void {
-  if (row.DayNumbers.length === 0) {
-    row.SelectedDaysDisplay = '';
-  } else if (row.DayNumbers.length === 1) {
-    row.SelectedDaysDisplay = `Day ${row.DayNumbers[0]}`;
-  } else {
-    row.SelectedDaysDisplay = `${row.DayNumbers.length} days selected`;
-  }
-}
-
-toggleTransportDayDropdown(row: QuoteTransportRow): void {
-  row.ShowDayDropdown = !row.ShowDayDropdown;
-  this.transportRows.update(rows => [...rows]);
-}
-
-closeTransportDayDropdown(row: QuoteTransportRow): void {
-  row.ShowDayDropdown = false;
-  this.transportRows.update(rows => [...rows]);
-}
-
-// ── Location Search (Per Row) ─────────────────────────────
-onTransportLocationSearch(row: QuoteTransportRow): void {
-  const query = (row.LocationSearch ?? '').toLowerCase().trim();
-  const locations = this.locationList();
-
-  if (!query) {
-    row.FilteredLocations = locations.slice(0, 4);
-  } else {
-    row.FilteredLocations = locations
-      .filter(l => l.LocationName.toLowerCase().includes(query))
-      .slice(0, 4);
-  }
-  row.ShowLocationDropdown = true;
-  this.transportRows.update(rows => [...rows]);
-}
-
-selectTransportLocationRow(row: QuoteTransportRow, loc: any): void {
-  row.LocationId = loc.LocationId;
-  row.LocationName = loc.LocationName;
-  row.LocationSearch = loc.LocationName;
-  row.ShowLocationDropdown = false;
-  row.FilteredLocations = [];
-  
-  // Load services for this location
-  this.loadServicesForTransportRow(row, loc.LocationId);
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-onTransportLocationBlur(row: QuoteTransportRow): void {
-  setTimeout(() => {
-    row.ShowLocationDropdown = false;
-    if (row.LocationId > 0) {
-      row.LocationSearch = row.LocationName;
-    } else {
-      row.LocationSearch = '';
-    }
-    this.transportRows.update(rows => [...rows]);
-  }, 200);
-}
-
-clearTransportLocationRow(row: QuoteTransportRow): void {
-  row.LocationSearch = '';
-  row.LocationId = 0;
-  row.LocationName = '';
-  row.FilteredLocations = [];
-  row.ShowLocationDropdown = false;
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-// ── Service Search (Per Row) ──────────────────────────────
-onTransportServiceSearch(row: QuoteTransportRow): void {
-  const query = (row.ServiceSearch ?? '').toLowerCase().trim();
-  
-  // Filter services by selected location
-  const services = this.itineraryList()
-    .filter(s => s.LocationId === row.LocationId || !row.LocationId);
-
-  if (!query) {
-    row.FilteredServices = services.slice(0, 4);
-  } else {
-    row.FilteredServices = services
-      .filter(s => s.IteneraryServiceName.toLowerCase().includes(query))
-      .slice(0, 4);
-  }
-  row.ShowServiceDropdown = true;
-  this.transportRows.update(rows => [...rows]);
-}
-
-selectTransportServiceRow(row: QuoteTransportRow, svc: any): void {
-  row.IteneraryServiceId = svc.IteneraryServiceId;
-  row.IteneraryServiceName = svc.IteneraryServiceName;
-  row.ServiceSearch = svc.IteneraryServiceName;
-  row.ShowServiceDropdown = false;
-  row.FilteredServices = [];
-  
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-  
-  if (row.VehicleTypeId > 0) {
-    this.lookupTransportRate(row);
-  }
-}
-
-onTransportServiceBlur(row: QuoteTransportRow): void {
-  setTimeout(() => {
-    row.ShowServiceDropdown = false;
-    if (row.IteneraryServiceId > 0) {
-      row.ServiceSearch = row.IteneraryServiceName;
-    } else {
-      row.ServiceSearch = '';
-    }
-    this.transportRows.update(rows => [...rows]);
-  }, 200);
-}
-
-clearTransportServiceRow(row: QuoteTransportRow): void {
-  row.ServiceSearch = '';
-  row.IteneraryServiceId = 0;
-  row.IteneraryServiceName = '';
-  row.FilteredServices = [];
-  row.ShowServiceDropdown = false;
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-// ── Vehicle Search (Per Row) ──────────────────────────────
-onTransportVehicleSearch(row: QuoteTransportRow): void {
-  const query = (row.VehicleSearch ?? '').toLowerCase().trim();
-  
-  // Use vehicleTypeList as source
-  const vehicles = this.vehicleTypeList();
-  
-  if (!query) {
-    row.FilteredVehicles = vehicles.slice(0, 6);
-  } else {
-    row.FilteredVehicles = vehicles
-      .filter(v => v.VehicleTypeName.toLowerCase().includes(query))
-      .slice(0, 6);
-  }
-  
-  row.ShowVehicleDropdown = true;
-  this.transportRows.update(rows => [...rows]);
-}
-
-selectTransportVehicleRow(row: QuoteTransportRow, vt: any): void {
-  row.VehicleTypeId = vt.VehicleTypeId;
-  row.VehicleTypeName = vt.VehicleTypeName;
-  row.VehicleSearch = vt.VehicleTypeName;
-  row.ShowVehicleDropdown = false;
-  row.FilteredVehicles = [];
-  
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-  
-  // Lookup rate if service is selected
-  if (row.IteneraryServiceId > 0) {
-    this.lookupTransportRate(row);
-  }
-}
-
-onTransportVehicleBlur(row: QuoteTransportRow): void {
-  setTimeout(() => {
-    row.ShowVehicleDropdown = false;
-    if (row.VehicleTypeId > 0) {
-      row.VehicleSearch = row.VehicleTypeName;
-    } else {
-      row.VehicleSearch = '';
-    }
-    this.transportRows.update(rows => [...rows]);
-  }, 200);
-}
-
-clearTransportVehicleRow(row: QuoteTransportRow): void {
-  row.VehicleSearch = '';
-  row.VehicleTypeId = 0;
-  row.VehicleTypeName = '';
-  row.FilteredVehicles = [];
-  row.ShowVehicleDropdown = false;
-  row.CostPrice = 0;
-  row.SellingPrice = 0;
-  row.TotalPrice = 0;
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-}
-
-// ── Load Services for Transport Row ─────────────────────────
-loadServicesForTransportRow(row: QuoteTransportRow, locationId: number): void {
-  if (!locationId) {
-    row.FilteredServices = [];
-    return;
-  }
-  
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-  
-  this.service.getItineraryServicesByLocation(enc({ LocationId: locationId }))
-    .subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          row.FilteredServices = r.ItineraryServiceList ?? [];
-        } else {
-          row.FilteredServices = [];
-        }
-        this.transportRows.update(rows => [...rows]);
-      },
-      error: () => {
-        row.FilteredServices = [];
-        this.transportRows.update(rows => [...rows]);
-      }
-    });
-}
-
-// ── Rate Lookup & Price Calculation ───────────────────────
-lookupTransportRate(row: QuoteTransportRow): void {
-  if (!row.IteneraryServiceId || !row.VehicleTypeId) return;
-  
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-  
-  const firstDay = row.DayNumbers[0] ?? row.DayNumber;
-  const daySlot = this.daySlots().find(d => d.DayNumber === firstDay);
-  
-  this.service.getVehicleRateByDate(enc({
-    IteneraryServiceId: row.IteneraryServiceId,
-    VehicleTypeId: row.VehicleTypeId,
-    ServiceDate: daySlot?.ServiceDate || row.ServiceDate,
-  })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage && r.Rate) {
-        row.CostPrice = r.Rate.RateAmount ?? 0;
-        row.SellingPrice = row.CostPrice;
-      } else {
-        row.CostPrice = 0;
-        row.SellingPrice = 0;
-        this.toastr.warning(`No rate found for ${row.VehicleTypeName}`);
-      }
-      this.recalculateTransportPrice(row);
-      this.transportRows.update(rows => [...rows]);
-    },
-    error: () => {
-      this.toastr.error('Error loading vehicle rate');
-    }
-  });
-}
-recalculateTransportPrice(row: QuoteTransportRow): void {
-  const days = row.DayNumbers.length || 1;
-  const total = (row.CostPrice || 0) * (row.Qty || 1) * days;
-  row.TotalPrice = total;
-  
-  // If SellingPrice is not set or less than cost, set to cost
-  if (!row.SellingPrice || row.SellingPrice < total) {
-    row.SellingPrice = total;
-  }
-  
-  this.transportRows.update(rows => [...rows]);
-}
-
-saveTransportRow(row: QuoteTransportRow): void {
-  if (!row.LocationId || !row.IteneraryServiceId || !row.VehicleTypeId) return;
-  if (row.DayNumbers.length === 0) {
-    this.toastr.error('Please select at least one day');
-    return;
-  }
-
-  row.IsSaving = true;
-  const enc = (d: object): RequestModel => ({
-    request: this.local.encrypt(JSON.stringify(d)).toString()
-  });
-
-  const firstDay = row.DayNumbers[0];
-  const slot = this.daySlots().find(d => d.DayNumber === firstDay);
-  
-  this.service.saveQuoteService(enc({
-    QuoteServiceId: row.QuoteServiceId,
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: row.QuotePackageTypeId,
-    DayNumber: firstDay,
-    ServiceDate: slot?.ServiceDate || row.ServiceDate,
-    ServiceType: 1, // Transport
-    IteneraryServiceId: row.IteneraryServiceId,
-    VehicleTypeId: row.VehicleTypeId,
-    SameCabForAll: row.SameCabForAll,
-    Qty: row.Qty,
-    CostPrice: row.CostPrice,
-    SellingPrice: row.SellingPrice,
-    Notes: row.Notes,
-  })).subscribe({
-    next: (r: any) => {
-      if (r.Message === ConstantData.SuccessMessage) {
-        row.QuoteServiceId = r.QuoteServiceId;
-        this.markClean();
-      } else {
-        this.toastr.error(r.Message);
-      }
-      row.IsSaving = false;
-    },
-    error: () => { row.IsSaving = false; }
-  });
-}
-
-removeTransportRow(row: QuoteTransportRow): void {
-  this.markDirty();
-  
-  if (row.QuoteServiceId > 0) {
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
-    this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId }))
-      .subscribe({ 
-        next: () => {
-          this.toastr.success('Transport removed');
-        },
-        error: () => {
-          this.toastr.error('Error removing transport');
-        }
-      });
-  }
-  
-  this.transportRows.update(rows => rows.filter(r => r !== row));
-}
-// ── Helper Methods (Like Hotels) ───────────────────────────
-hasSelectedTransportDay(): boolean {
-  return this.getActiveTransportRows()
-    .some(r => r.DayNumbers && r.DayNumbers.length > 0);
-}
-
-getNextUnselectedTransportDay(): number | null {
-  const allDays = this.daySlots().map(d => d.DayNumber);
-  const usedDays = new Set(
-    this.getActiveTransportRows().flatMap(r => r.DayNumbers)
-  );
-  return allDays.find(d => !usedDays.has(d)) ?? null;
-}
-
-addTransportRowForNextDay(): void {
-  const nextDay = this.getNextUnselectedTransportDay();
-  if (nextDay === null) return;
-  const slot = this.daySlots().find(d => d.DayNumber === nextDay);
-  if (slot) this.addTransportRow(slot);
-}
-
-// ── Similar Transports Modal (Optional) ───────────────────
-showSimilarTransportsModal = false;
-similarTransportSourceRow: QuoteTransportRow | null = null;
-similarTransportRows: QuoteTransportRow[] = [];
-
-openSimilarTransportsModal(): void {
-  const mainTransports = this.getActiveTransportRows();
-  if (mainTransports.length === 0) {
-    this.toastr.warning('No main transports found. Please add a transport first.');
-    return;
-  }
-  
-  this.similarTransportSourceRow = mainTransports[0];
-  this.similarTransportRows = [{
-    ...this.createEmptyTransportRow(),
-    DayNumbers: [...mainTransports[0].DayNumbers],
-    SelectedDaysDisplay: mainTransports[0].SelectedDaysDisplay,
-    Qty: mainTransports[0].Qty,
-  }];
-  
-  this.showSimilarTransportsModal = true;
-}
-
-createEmptyTransportRow(): QuoteTransportRow {
-  const slot = this.daySlots()[0];
-  return {
-    QuoteServiceId: 0,
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    DayNumbers: [slot?.DayNumber ?? 1],
-    DayNumber: slot?.DayNumber ?? 1,
-    ServiceDate: slot?.ServiceDate ?? new Date(),
-    LocationId: 0,
-    LocationName: '',
-    IteneraryServiceId: 0,
-    IteneraryServiceName: '',
-    VehicleTypeId: 0,
-    VehicleTypeName: '',
-    SameCabForAll: false,
-    Qty: 1,
-    CostPrice: 0,
+  // ── Edit Transport Prices Modal ───────────────────────────
+  showEditTransportPricesModal = false;
+  editingTransportRow: QuoteTransportRow | null = null;
+  editTransportPrices = {
+    VehicleRate: 0,
     SellingPrice: 0,
-    TotalPrice: 0,
-    Notes: '',
-    IsSaving: false,
-    LocationSearch: '',
-    FilteredLocations: [],
-    ShowLocationDropdown: false,
-    ServiceSearch: '',
-    FilteredServices: [],
-    ShowServiceDropdown: false,
-    VehicleSearch: '',
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    ShowDayDropdown: false,
-    SelectedDaysDisplay: '',
+    ComputedTotal: 0,
   };
-}
 
-// ── Edit Transport Prices Modal ───────────────────────────
-showEditTransportPricesModal = false;
-editingTransportRow: QuoteTransportRow | null = null;
-editTransportPrices = {
-  VehicleRate: 0,
-  SellingPrice: 0,
-  ComputedTotal: 0,
-};
-
-EditTransportPrices(row: QuoteTransportRow): void {
-  this.editingTransportRow = row;
-  this.editTransportPrices = {
-    VehicleRate: row.CostPrice,
-    SellingPrice: row.SellingPrice,
-    ComputedTotal: row.TotalPrice,
-  };
-  this.showEditTransportPricesModal = true;
-}
-
-closeEditTransportPricesModal(): void {
-  this.showEditTransportPricesModal = false;
-  this.editingTransportRow = null;
-}
-
-applyEditTransportPrices(): void {
-  if (!this.editingTransportRow) return;
-  const row = this.editingTransportRow;
-  
-  row.CostPrice = this.editTransportPrices.VehicleRate;
-  row.SellingPrice = this.editTransportPrices.SellingPrice;
-  this.recalculateTransportPrice(row);
-  
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-  this.saveTransportRow(row);
-  this.closeEditTransportPricesModal();
-}
-recalculateEditTransportPrice(): void {
-  if (!this.editingTransportRow) return;
-  const row = this.editingTransportRow;
-  
-  // Calculate total: Rate × Qty × Number of days
-  const days = row.DayNumbers.length || 1;
-  this.editTransportPrices.ComputedTotal = 
-    (this.editTransportPrices.VehicleRate || 0) * (row.Qty || 1) * days;
-}
-addSimilarTransport(): void {
-  const activeRows = this.getActiveTransportRows();
-  if (activeRows.length === 0) {
-    this.toastr.warning('No transport rows to copy. Please add a transport first.');
-    return;
+  EditTransportPrices(row: QuoteTransportRow): void {
+    this.editingTransportRow = row;
+    this.editTransportPrices = {
+      VehicleRate: row.CostPrice,
+      SellingPrice: row.SellingPrice,
+      ComputedTotal: row.TotalPrice,
+    };
+    this.showEditTransportPricesModal = true;
   }
-  
-  // Use the first row as source
-  const sourceRow = activeRows[0];
-  
-  // Create a new row with copied values
-  const newRow: QuoteTransportRow = {
-    QuoteServiceId: 0,
-    QuoteId: this.QuoteId,
-    QuotePackageTypeId: this.activePackageTypeId(),
-    DayNumbers: [...sourceRow.DayNumbers],
-    DayNumber: sourceRow.DayNumbers[0] || 1,
-    ServiceDate: sourceRow.ServiceDate,
-    LocationId: sourceRow.LocationId,
-    LocationName: sourceRow.LocationName,
-    LocationSearch: sourceRow.LocationName,
-    IteneraryServiceId: sourceRow.IteneraryServiceId,
-    IteneraryServiceName: sourceRow.IteneraryServiceName,
-    ServiceSearch: sourceRow.IteneraryServiceName,
-    VehicleTypeId: sourceRow.VehicleTypeId,
-    VehicleTypeName: sourceRow.VehicleTypeName,
-    VehicleSearch: sourceRow.VehicleTypeName,
-    SameCabForAll: sourceRow.SameCabForAll,
-    Qty: sourceRow.Qty,
-    CostPrice: sourceRow.CostPrice,
-    SellingPrice: sourceRow.SellingPrice,
-    TotalPrice: sourceRow.TotalPrice,
-    Notes: '',
-    IsSaving: false,
-    FilteredLocations: [],
-    ShowLocationDropdown: false,
-    FilteredServices: [],
-    ShowServiceDropdown: false,
-    FilteredVehicles: [],
-    ShowVehicleDropdown: false,
-    ShowDayDropdown: false,
-    SelectedDaysDisplay: sourceRow.SelectedDaysDisplay,
-  };
-  
-  this.transportRows.update(rows => [...rows, newRow]);
-  this.markDirty();
-  this.toastr.success('Similar transport added');
-}
-// Get the next available day number (not already selected)
-getNextDayNumber(): number {
-  const allDays = this.daySlots().map(d => d.DayNumber);
-  const usedDays = new Set(this.selectedDays);
-  
-  // Find the next day after the last selected day
-  const sortedSelected = [...this.selectedDays].sort((a, b) => a - b);
-  const lastSelected = sortedSelected[sortedSelected.length - 1] || 0;
-  
-  // Find the next day number that is not already selected
-  for (let day = lastSelected + 1; day <= allDays.length; day++) {
-    if (!usedDays.has(day)) {
-      return day;
+
+  closeEditTransportPricesModal(): void {
+    this.showEditTransportPricesModal = false;
+    this.editingTransportRow = null;
+  }
+
+  applyEditTransportPrices(): void {
+    if (!this.editingTransportRow) return;
+    const row = this.editingTransportRow;
+
+    row.CostPrice = this.editTransportPrices.VehicleRate;
+    row.SellingPrice = this.editTransportPrices.SellingPrice;
+    this.recalculateTransportPrice(row);
+
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+    this.saveTransportRow(row);
+    this.closeEditTransportPricesModal();
+  }
+  recalculateEditTransportPrice(): void {
+    if (!this.editingTransportRow) return;
+    const row = this.editingTransportRow;
+
+    // Calculate total: Rate × Qty × Number of days
+    const days = row.DayNumbers.length || 1;
+    this.editTransportPrices.ComputedTotal =
+      (this.editTransportPrices.VehicleRate || 0) * (row.Qty || 1) * days;
+  }
+
+  // Get the next available day number (not already selected)
+  getNextDayNumber(): number {
+    const allDays = this.daySlots().map(d => d.DayNumber);
+    const usedDays = new Set(this.selectedDays());
+
+    // Find the next day after the last selected day
+    const sortedSelected = [...this.selectedDays()].sort((a, b) => a - b);
+    const lastSelected = sortedSelected[sortedSelected.length - 1] || 0;
+
+    // Find the next day number that is not already selected
+    for (let day = lastSelected + 1; day <= allDays.length; day++) {
+      if (!usedDays.has(day)) {
+        return day;
+      }
     }
-  }
-  
-  // If no next day found, return the first unselected day
-  for (let day = 1; day <= allDays.length; day++) {
-    if (!usedDays.has(day)) {
-      return day;
-    }
-  }
-  
-  return 0; // All days are selected
-}
 
-// Add next day and create transport row for it
-addNextDay(): void {
-  const nextDay = this.getNextDayNumber();
-  if (nextDay === 0) {
-    this.toastr.info('All days are already selected');
-    return;
+    // If no next day found, return the first unselected day
+    for (let day = 1; day <= allDays.length; day++) {
+      if (!usedDays.has(day)) {
+        return day;
+      }
+    }
+
+    return 0; // All days are selected
   }
-  
-  // Add the day to selected days
-  this.selectedDays.push(nextDay);
-  this.selectedDays.sort((a, b) => a - b);
-  this.updateDaysDisplay();
-  
-  // Get the day slot
-  const daySlot = this.daySlots().find(d => d.DayNumber === nextDay);
-  if (!daySlot) return;
-  
-  // If location and service are already selected (from currentTransportRow)
-  if (this.currentTransportRow.LocationId > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
-    // Check if transport already exists for this day
-    const exists = this.serviceRows().some(
-      r => r.ServiceType === 1
-        && r.DayNumber === nextDay
+
+  // Add next day and create transport row for it
+  // Add next day and create transport row for it
+  addNextDay(): void {
+    const nextDay = this.getNextDayNumber();
+    if (nextDay === 0) {
+      this.toastr.info('All days are already selected');
+      return;
+    }
+
+    // Add the day to selected days
+    const current = [...this.selectedDays()];
+    current.push(nextDay);
+    current.sort((a, b) => a - b);
+    this.selectedDays.set(current);
+    this.updateDaysDisplay();
+
+    // Get the day slot
+    const daySlot = this.daySlots().find(d => d.DayNumber === nextDay);
+    if (!daySlot) return;
+
+    // Check if transport already exists for this day (any transport row)
+    const exists = this.transportRows().some(
+      r => r.DayNumbers.includes(nextDay)
         && r.QuotePackageTypeId === this.activePackageTypeId()
-        && r.LocationId === this.currentTransportRow.LocationId
-        && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
     );
-    
+
     if (!exists) {
-      // Create transport row for this day
-      this.addTransportRowForSlot(daySlot);
-      
-      // If Same Cab For All is enabled, apply the selected vehicle
+      // Create a new empty transport row for this day
+      this.addTransportRow(daySlot);
+
+      // If Same Cab For All is enabled, apply the selected vehicle to the new row
       if (this.sameCabForAll && this.selectedCabTypes.length > 0) {
         const firstCab = this.selectedCabTypes[0];
-        // Find the newly created row and update it
-        const newRow = this.serviceRows().find(
-          r => r.ServiceType === 1
-            && r.DayNumber === nextDay
+        // Find the newly created row
+        const newRow = this.transportRows().find(
+          r => r.DayNumbers.includes(nextDay)
             && r.QuotePackageTypeId === this.activePackageTypeId()
-            && r.LocationId === this.currentTransportRow.LocationId
-            && r.IteneraryServiceId === this.currentTransportRow.IteneraryServiceId
         );
         if (newRow) {
           newRow.VehicleTypeId = firstCab.VehicleTypeId;
           newRow.VehicleTypeName = firstCab.VehicleTypeName;
+          newRow.VehicleSearch = firstCab.VehicleTypeName;
           newRow.Qty = firstCab.Quantity || 1;
-          this.lookupVehicleRate(newRow);
+          // Lookup rate if service is selected (it won't be yet)
+          if (newRow.IteneraryServiceId > 0) {
+            this.lookupTransportRate(newRow);
+          }
+          this.transportRows.update(rows => [...rows]);
         }
       }
-      
-      this.toastr.success(`Transport added for Day ${nextDay}`);
+
+      this.toastr.success(`Transport row created for Day ${nextDay}`);
     } else {
       this.toastr.info(`Transport already exists for Day ${nextDay}`);
     }
-  } else {
-    this.toastr.warning('Please select location and service first');
-    // Still select the day but notify user
-  }
-  
-  // Trigger UI refresh
-  this.serviceRows.update(rows => [...rows]);
-  this.transportRows.update(rows => [...rows]);
-  this.markDirty();
-}
 
-// Also update the onDayToggle method to better handle next day integration
-// (Already exists, but we can add a small enhancement)
-// Your existing onDayToggle should work fine, but make sure it updates selectedDays
+    // Trigger UI refresh
+    this.transportRows.update(rows => [...rows]);
+    this.markDirty();
+  }
+  // Add this method to sync selected days from all transport rows
+  syncSelectedDaysFromTransportRows(): void {
+    const allDayNumbers = new Set<number>();
+
+    // Collect all DayNumbers from active transport rows
+    this.getActiveTransportRows().forEach(row => {
+      row.DayNumbers.forEach(day => allDayNumbers.add(day));
+    });
+
+    // Convert to sorted array
+    const days = Array.from(allDayNumbers).sort((a, b) => a - b);
+    this.selectedDays.set(days);
+    this.updateDaysDisplay();
+  }
 
 }
