@@ -1409,58 +1409,89 @@
     </div>
 
     <!-- RIGHT: Tickets and Prices -->
-    <div class="col-sm-5">
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <div class="fw-semibold small">Tickets and Prices</div>
-        <button mat-icon-button style="width:24px; height:24px; line-height:24px;"
-          (click)="addActivityEntryRow(row)" matTooltip="Add ticket row" [disabled]="!row.ActivityServiceId">
-          <mat-icon style="font-size:16px;">add</mat-icon>
-        </button>
-      </div>
+<div class="col-sm-5">
+  <div class="fw-semibold small mb-2">Tickets and Prices</div>
 
-      <table class="table table-sm mb-0" style="font-size:12px;">
-        <thead>
-          <tr class="text-muted">
-            <th style="width:55px;">Qty.</th>
-            <th>Date</th>
-            <th class="text-end">Rate</th>
-            <th class="text-end">Given</th>
-            <th style="width:20px;"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (entry of row.Entries; track entry.DayNumber) {
-          <tr>
-            <td>
-              <input type="number" class="form-control form-control-sm" style="width:55px;"
-                [(ngModel)]="entry.Qty" (ngModelChange)="markDirty(); onActivityEntryChange(row, entry)" min="1">
-            </td>
-            <td class="text-muted">{{ formatDayDate(entry.ServiceDate) }}</td>
-            <td class="text-end">
-              <span class="text-muted">INR</span>
-              @if (entry.Rate > 0) { {{ formatCurrency(entry.Rate) }} } @else { <span class="text-warning">N/A</span> }
-            </td>
-            <td class="text-end" style="width:80px;">
-              <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="entry.GivenPrice"
-                (ngModelChange)="markDirty(); onActivityEntryChange(row, entry)" (blur)="saveActivityEntry(row, entry)" min="0">
-            </td>
-            <td class="text-end">
-              <button type="button" class="btn btn-link p-0 border-0 text-danger" style="font-size:14px;"
-                (click)="removeActivityEntryRow(row, entry)">×</button>
-            </td>
-          </tr>
+  <table class="table table-sm mb-0" style="font-size:12px;">
+    <thead>
+      <tr class="text-muted">
+        <th style="width:110px;">
+          Type
+          <button mat-icon-button style="width:20px; height:20px; line-height:20px; vertical-align:middle;"
+            (click)="addTypeGroup(row)" matTooltip="Add type" [disabled]="!row.ActivityServiceId">
+            <mat-icon style="font-size:14px;">add</mat-icon>
+          </button>
+        </th>
+        <th style="width:50px;">Qty.</th>
+        <th>Date</th>
+        <th class="text-end">Rate</th>
+        <th class="text-end">Given</th>
+        <th style="width:20px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (group of row.TypeGroups; track group.GroupId) {
+      @for (entry of group.Entries; track entry.DayNumber; let gi = $index) {
+      <tr>
+        <td>
+          @if (gi === 0) {
+          <div style="position:relative;">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to search…"
+              [(ngModel)]="group.TypeSearch" (focus)="onTypeSearch(group)" (blur)="onTypeBlur(group)" autocomplete="off">
+            @if (group.ShowTypeDropdown) {
+            <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0; z-index:1000;">
+              @for (opt of PAX_TYPE_OPTIONS; track opt.value) {
+              <label class="px-2 py-1 mb-0 d-flex align-items-center gap-2" style="font-size:12px; cursor:pointer;"
+                (mousedown)="selectPaxType(row, group, opt.value, opt.label)">
+                <input type="radio" [checked]="group.PaxType === opt.value" style="cursor:pointer;">
+                <span>{{ opt.label }}</span>
+              </label>
+              }
+            </div>
+            }
+          </div>
           }
-        </tbody>
-      </table>
+        </td>
 
-      @if (row.ActivityServiceId > 0) {
-      <div class="d-flex justify-content-end mt-2">
-        <span class="badge bg-light text-dark border" style="font-size:11px;">
-          Total: INR {{ formatCurrency(getActivityRowTotal(row)) }}
-        </span>
-      </div>
+        <td>
+          @if (gi === 0) {
+          <input type="number" class="form-control form-control-sm" style="width:55px;"
+            [(ngModel)]="group.Qty" (ngModelChange)="onGroupQtyChange(row, group)" min="1">
+          }
+        </td>
+
+        <td class="text-muted">{{ formatDayDate(entry.ServiceDate) }}</td>
+
+        <td class="text-end">
+          <span class="text-muted">INR</span>
+          @if (entry.Rate > 0) { {{ formatCurrency(entry.Rate) }} } @else { <span class="text-warning">N/A</span> }
+        </td>
+
+        <td class="text-end" style="width:75px;">
+          <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="entry.GivenPrice"
+            (ngModelChange)="onActivityEntryChange(row)" (blur)="saveActivityEntry(row, group, entry)" min="0">
+        </td>
+
+        <td class="text-end">
+          @if (gi === 0) {
+          <button type="button" class="btn btn-link p-0 border-0 text-danger" style="font-size:14px;"
+            (click)="removeTypeGroup(row, group)">×</button>
+          }
+        </td>
+      </tr>
       }
-    </div>
+      }
+    </tbody>
+  </table>
+
+  @if (row.TypeGroups.length > 0) {
+  <div class="d-flex justify-content-end mt-2">
+    <span class="badge bg-light text-dark border" style="font-size:11px;">
+      Total: INR {{ formatCurrency(getActivityRowTotal(row)) }}
+    </span>
+  </div>
+  }
+</div>
   </div>
 </div>
 }

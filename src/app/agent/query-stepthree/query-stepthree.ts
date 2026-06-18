@@ -120,6 +120,55 @@ export interface QuoteHotelRow {
   ShowNightDropdown: boolean;
   SelectedNightsDisplay: string;
 }
+export type ActivityPaxType = 'Adult' | 'Child' | 'ChildBelowTwoYear';
+
+export interface ActivityDateRate {
+  DayNumber: number;
+  ServiceDate: Date;
+  AdultRate: number;
+  ChildAboveTwoYear: number;
+  ChildBelowTwoYear: number;
+}
+
+export interface ActivityTicketEntry {
+  QuoteServiceId: number;
+  DayNumber: number;
+  ServiceDate: Date;
+  Rate: number;        // resolved per pax type — read-only
+  GivenPrice: number;  // editable selling price
+  IsSaving: boolean;
+}
+
+export interface ActivityTypeGroup {
+  GroupId: number;
+  PaxType: ActivityPaxType | '';
+  PaxTypeLabel: string;
+  TypeSearch: string;
+  ShowTypeDropdown: boolean;
+  Qty: number;                     // one Qty per group, applies across all its dates
+  Entries: ActivityTicketEntry[];
+}
+
+export interface ActivityTicketRow {
+  RowId: number;
+  QuotePackageTypeId: number;
+
+  LocationId: number;
+  LocationName: string;
+  LocationSearch: string;
+  FilteredLocations: any[];
+  ShowLocationDropdown: boolean;
+
+  ActivityServiceId: number;
+  ActivityServiceName: string;
+  TicketTypeSearch: string;
+  FilteredActivityServices: any[];
+  ShowTicketTypeDropdown: boolean;
+
+  DateRates: ActivityDateRate[];   // master rate per day, fetched once per ActivityService
+  TypeGroups: ActivityTypeGroup[];
+  Entries: ActivityTicketEntry[];  // flat list of entries for backward compatibility
+}
 
 export interface QuoteServiceRow {
   QuoteServiceId: number;
@@ -193,26 +242,6 @@ export interface ActivityTicketEntry {
   GivenPrice: number;  // selling price, editable
   IsSaving: boolean;
 }
-
-export interface ActivityTicketRow {
-  RowId: number;
-  QuotePackageTypeId: number;
-
-  LocationId: number;
-  LocationName: string;
-  LocationSearch: string;
-  FilteredLocations: any[];
-  ShowLocationDropdown: boolean;
-
-  ActivityServiceId: number;
-  ActivityServiceName: string;
-  TicketTypeSearch: string;
-  FilteredActivityServices: any[];
-  ShowTicketTypeDropdown: boolean;
-
-  Entries: ActivityTicketEntry[];
-}
-
 
 @Component({
   selector: 'app-query-stepthree',
@@ -3620,6 +3649,11 @@ activityTotal = computed(() =>
   // ── Edit Transport Prices Modal ───────────────────────────
   showEditTransportPricesModal = false;
   editingTransportRow: QuoteTransportRow | null = null;
+PAX_TYPE_OPTIONS: { value: ActivityPaxType; label: string }[] = [
+  { value: 'Adult', label: 'Adult' },
+  { value: 'Child', label: 'Child (Above 2 Yrs)' },
+  { value: 'ChildBelowTwoYear', label: 'Child (Below 2 Yrs)' },
+];
   editTransportPrices = {
     VehicleRate: 0,
     SellingPrice: 0,
@@ -3779,6 +3813,8 @@ addActivityTicketRow(): void {
     FilteredLocations: [], ShowLocationDropdown: false,
     ActivityServiceId: 0, ActivityServiceName: '', TicketTypeSearch: '',
     FilteredActivityServices: [], ShowTicketTypeDropdown: false,
+    DateRates: [],
+    TypeGroups: [],
     Entries: [],
   };
   this.activityTicketRows.update(rows => [...rows, newRow]);
@@ -3855,9 +3891,17 @@ selectActivityType(row: ActivityTicketRow, svc: any): void {
   row.TicketTypeSearch = svc.ActivityServiceName;
   row.ShowTicketTypeDropdown = false;
   row.FilteredActivityServices = [];
+  
+  // Clear existing data
+  row.DateRates = [];
+  row.TypeGroups = [];
+  row.Entries = [];
+  
   this.activityTicketRows.update(rows => [...rows]);
   this.markDirty();
-  this.populateActivityEntries(row);
+  
+  // Load rates for this activity (this will also create default groups)
+  this.loadDateRates(row);
 }
 
 onActivityTypeBlur(row: ActivityTicketRow): void {
@@ -3939,12 +3983,197 @@ removeActivityEntryRow(row: ActivityTicketRow, entry: ActivityTicketEntry): void
   this.activityTicketRows.update(rows => [...rows]);
 }
 
-onActivityEntryChange(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
+
+
+
+
+formatDayDate(d: Date): string {
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+}
+// ── Master rate, fetched once per day for the whole row (covers all pax types) ──
+loadDateRates(row: ActivityTicketRow): void {
+  if (!row.ActivityServiceId) return;
+  
+  const enc = (d: object): RequestModel => ({ 
+    request: this.local.encrypt(JSON.stringify(d)).toString() 
+  });
+  
+  const slots = this.daySlots();
+  
+  // Initialize DateRates array with ALL days
+  row.DateRates = slots.map(s => ({
+    DayNumber: s.DayNumber,
+    ServiceDate: s.ServiceDate,
+    AdultRate: 0,
+    ChildAboveTwoYear: 0,
+    ChildBelowTwoYear: 0,
+  }));
+
+  let completedRequests = 0;
+  const totalRequests = slots.length;
+
+  // Fetch rates for ALL days
+  slots.forEach((s, idx) => {
+    this.service.getActivityRateByDate(enc({
+      ActivityServiceId: row.ActivityServiceId,
+      ServiceDate: this.formatDate(s.ServiceDate),
+    })).subscribe({
+      next: (r: any) => {
+        const dr = row.DateRates[idx];
+        
+        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
+          // Populate ALL THREE rates from the response
+          dr.AdultRate = r.Rate.AdultRate ?? 0;
+          dr.ChildAboveTwoYear = r.Rate.ChildAboveTwoYear ?? 0;
+          dr.ChildBelowTwoYear = r.Rate.ChildBelowTwoYear ?? 0;
+          
+          console.log(`Rates for Day ${dr.DayNumber}:`, {
+            Adult: dr.AdultRate,
+            ChildAbove2: dr.ChildAboveTwoYear,
+            ChildBelow2: dr.ChildBelowTwoYear
+          });
+        } else {
+          console.warn(`No rate found for day ${s.DayNumber}:`, r.Message);
+        }
+
+        completedRequests++;
+        
+        // When ALL requests complete, update the UI
+        if (completedRequests === totalRequests) {
+          // Update any existing TypeGroups with the new rates
+          row.TypeGroups.forEach(group => {
+            if (group.PaxType) {
+              group.Entries.forEach(entry => {
+                const dateRate = row.DateRates.find(d => d.DayNumber === entry.DayNumber);
+                if (dateRate) {
+                  entry.Rate = this.resolveRateForType(dateRate, group.PaxType);
+                  // Don't override if user has manually set a price
+                  if (!entry.GivenPrice || entry.GivenPrice === 0) {
+                    entry.GivenPrice = entry.Rate;
+                  }
+                }
+              });
+            }
+          });
+
+          // If no TypeGroups exist AND we have rates, create default groups
+          if (row.TypeGroups.length === 0 && row.DateRates.length > 0) {
+            this.addDefaultTypeGroups(row);
+          }
+
+          this.activityTicketRows.update(rows => [...rows]);
+          this.markDirty();
+        }
+      },
+      error: (err) => {
+        console.error(`Error loading rate for day ${s.DayNumber}:`, err);
+        completedRequests++;
+        
+        if (completedRequests === totalRequests) {
+          this.activityTicketRows.update(rows => [...rows]);
+        }
+      }
+    });
+  });
+}
+
+resolveRateForType(dr: ActivityDateRate, type: ActivityPaxType | ''): number {
+  if (!dr) return 0;
+  
+  // Match the exact field names from your database
+  switch (type) {
+    case 'Adult':
+      return dr.AdultRate ?? 0;
+    case 'Child':
+      // This maps to ChildAboveTwoYear from your database
+      return dr.ChildAboveTwoYear ?? 0;
+    case 'ChildBelowTwoYear':
+      return dr.ChildBelowTwoYear ?? 0;
+    default:
+      return 0;
+  }
+}
+
+// ── Type groups ───────────────────────────────────────────
+addTypeGroup(row: ActivityTicketRow): void {
+  if (!row.ActivityServiceId) {
+    this.toastr.error('Select a ticket/package type first');
+    return;
+  }
+  const group: ActivityTypeGroup = {
+    GroupId: ++this.activityRowCounter,
+    PaxType: '', PaxTypeLabel: '', TypeSearch: '', ShowTypeDropdown: false,
+    Qty: 1,
+    Entries: row.DateRates.map(dr => ({
+      QuoteServiceId: 0, DayNumber: dr.DayNumber, ServiceDate: dr.ServiceDate,
+      Qty: 1, Rate: 0, GivenPrice: 0, IsSaving: false,
+    })),
+  };
+  row.TypeGroups.push(group);
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+removeTypeGroup(row: ActivityTicketRow, group: ActivityTypeGroup): void {
+  this.markDirty();
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  group.Entries.forEach(e => {
+    if (e.QuoteServiceId > 0) {
+      this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => {} });
+    }
+  });
+  row.TypeGroups = row.TypeGroups.filter(g => g !== group);
   this.activityTicketRows.update(rows => [...rows]);
 }
 
-saveActivityEntry(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
-  if (!row.ActivityServiceId) return;
+onTypeSearch(group: ActivityTypeGroup): void {
+  group.ShowTypeDropdown = true;
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+selectPaxType(row: ActivityTicketRow, group: ActivityTypeGroup, type: ActivityPaxType, label: string): void {
+  group.PaxType = type;
+  group.PaxTypeLabel = label;
+  group.TypeSearch = label;
+  group.ShowTypeDropdown = false;
+
+  // Update rates for ALL entries in this group
+  group.Entries.forEach(e => {
+    const dr = row.DateRates.find(d => d.DayNumber === e.DayNumber);
+    if (dr) {
+      const resolvedRate = this.resolveRateForType(dr, type);
+      e.Rate = resolvedRate;
+      // Only set GivenPrice if not manually set or zero
+      if (!e.GivenPrice || e.GivenPrice === 0) {
+        e.GivenPrice = resolvedRate;
+      }
+    }
+  });
+
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+onTypeBlur(group: ActivityTypeGroup): void {
+  setTimeout(() => {
+    group.ShowTypeDropdown = false;
+    group.TypeSearch = group.PaxTypeLabel;
+    this.activityTicketRows.update(rows => [...rows]);
+  }, 200);
+}
+
+onGroupQtyChange(row: ActivityTicketRow, group: ActivityTypeGroup): void {
+  this.markDirty();
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+onActivityEntryChange(row: ActivityTicketRow): void {
+  this.markDirty();
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+saveActivityEntry(row: ActivityTicketRow, group: ActivityTypeGroup, entry: ActivityTicketEntry): void {
+  if (!row.ActivityServiceId || !group.PaxType) return;
   entry.IsSaving = true;
   const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
   this.service.saveQuoteService(enc({
@@ -3955,9 +4184,10 @@ saveActivityEntry(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
     ServiceDate: this.formatDate(entry.ServiceDate),
     ServiceType: 2,
     ActivityServiceId: row.ActivityServiceId,
-    Qty: entry.Qty,
-    CostPrice: (entry.Rate || 0) * (entry.Qty || 1),
-    SellingPrice: (entry.GivenPrice || 0) * (entry.Qty || 1),
+    Qty: group.Qty,
+    Notes: group.PaxTypeLabel,
+    CostPrice: (entry.Rate || 0) * (group.Qty || 1),
+    SellingPrice: (entry.GivenPrice || 0) * (group.Qty || 1),
   })).subscribe({
     next: (r: any) => {
       if (r.Message === ConstantData.SuccessMessage) {
@@ -3973,11 +4203,80 @@ saveActivityEntry(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
 }
 
 getActivityRowTotal(row: ActivityTicketRow): number {
-  return row.Entries.reduce((s, e) => s + (e.GivenPrice || 0) * (e.Qty || 1), 0);
+  // Calculate total from TypeGroups
+  return row.TypeGroups.reduce((sum, g) =>
+    sum + g.Entries.reduce((s, e) => s + (e.GivenPrice || 0) * (g.Qty || 1), 0), 0);
 }
+addDefaultTypeGroups(row: ActivityTicketRow): void {
+  if (!row.ActivityServiceId || row.DateRates.length === 0) {
+    console.warn('Cannot create default groups: No activity or date rates');
+    return;
+  }
 
-formatDayDate(d: Date): string {
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  console.log('Creating default groups with rates:', row.DateRates);
+
+  // Group 1: Adult
+  const adultGroup: ActivityTypeGroup = {
+    GroupId: ++this.activityRowCounter,
+    PaxType: 'Adult',
+    PaxTypeLabel: 'Adult',
+    TypeSearch: 'Adult',
+    ShowTypeDropdown: false,
+    Qty: 1,
+    Entries: row.DateRates.map(dr => ({
+      QuoteServiceId: 0,
+      DayNumber: dr.DayNumber,
+      ServiceDate: dr.ServiceDate,
+      Qty: 1,
+      Rate: dr.AdultRate || 0,
+      GivenPrice: dr.AdultRate || 0,
+      IsSaving: false,
+    })),
+  };
+
+  // Group 2: Child (Above 2 Yrs) - maps to ChildAboveTwoYear
+  const childAboveGroup: ActivityTypeGroup = {
+    GroupId: ++this.activityRowCounter,
+    PaxType: 'Child',
+    PaxTypeLabel: 'Child (Above 2 Yrs)',
+    TypeSearch: 'Child (Above 2 Yrs)',
+    ShowTypeDropdown: false,
+    Qty: 1,
+    Entries: row.DateRates.map(dr => ({
+      QuoteServiceId: 0,
+      DayNumber: dr.DayNumber,
+      ServiceDate: dr.ServiceDate,
+      Qty: 1,
+      Rate: dr.ChildAboveTwoYear || 0,
+      GivenPrice: dr.ChildAboveTwoYear || 0,
+      IsSaving: false,
+    })),
+  };
+
+  // Group 3: Child (Below 2 Yrs) - maps to ChildBelowTwoYear
+  const childBelowGroup: ActivityTypeGroup = {
+    GroupId: ++this.activityRowCounter,
+    PaxType: 'ChildBelowTwoYear',
+    PaxTypeLabel: 'Child (Below 2 Yrs)',
+    TypeSearch: 'Child (Below 2 Yrs)',
+    ShowTypeDropdown: false,
+    Qty: 1,
+    Entries: row.DateRates.map(dr => ({
+      QuoteServiceId: 0,
+      DayNumber: dr.DayNumber,
+      ServiceDate: dr.ServiceDate,
+      Qty: 1,
+      Rate: dr.ChildBelowTwoYear || 0,
+      GivenPrice: dr.ChildBelowTwoYear || 0,
+      IsSaving: false,
+    })),
+  };
+
+  // Set all three groups
+  row.TypeGroups = [adultGroup, childAboveGroup, childBelowGroup];
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+  
+  console.log('Default groups created successfully');
 }
-
 }
