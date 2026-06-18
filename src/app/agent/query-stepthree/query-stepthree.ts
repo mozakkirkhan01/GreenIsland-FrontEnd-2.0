@@ -184,7 +184,34 @@ export interface QuoteTransportRow {
   ShowDayDropdown: boolean;        // Like hotel ShowNightDropdown
   SelectedDaysDisplay: string;     // Like hotel SelectedNightsDisplay
 }
+export interface ActivityTicketEntry {
+  QuoteServiceId: number;
+  DayNumber: number;
+  ServiceDate: Date;
+  Qty: number;
+  Rate: number;        // system rate, read-only
+  GivenPrice: number;  // selling price, editable
+  IsSaving: boolean;
+}
 
+export interface ActivityTicketRow {
+  RowId: number;
+  QuotePackageTypeId: number;
+
+  LocationId: number;
+  LocationName: string;
+  LocationSearch: string;
+  FilteredLocations: any[];
+  ShowLocationDropdown: boolean;
+
+  ActivityServiceId: number;
+  ActivityServiceName: string;
+  TicketTypeSearch: string;
+  FilteredActivityServices: any[];
+  ShowTicketTypeDropdown: boolean;
+
+  Entries: ActivityTicketEntry[];
+}
 
 
 @Component({
@@ -334,11 +361,11 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
   });
 
-  activityTotal = computed(() =>
-    this.serviceRows()
-      .filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === this.activePackageTypeId())
-      .reduce((s, r) => s + (r.SellingPrice || 0), 0)
-  );
+activityTotal = computed(() =>
+  this.activityTicketRows()
+    .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
+    .reduce((s, r) => s + this.getActivityRowTotal(r), 0)
+);
 
   totalCost = computed(() =>
     this.hotelTotal() + this.transportTotal() + this.activityTotal()
@@ -3737,5 +3764,220 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     this.selectedDays.set(days);
     this.updateDaysDisplay();
   }
+activityTicketRows = signal<ActivityTicketRow[]>([]);
+private activityRowCounter = 0;
+getActiveActivityRows(): ActivityTicketRow[] {
+  return this.activityTicketRows().filter(r => r.QuotePackageTypeId === this.activePackageTypeId());
+}
+
+addActivityTicketRow(): void {
+  this.markDirty();
+  const newRow: ActivityTicketRow = {
+    RowId: ++this.activityRowCounter,
+    QuotePackageTypeId: this.activePackageTypeId(),
+    LocationId: 0, LocationName: '', LocationSearch: '',
+    FilteredLocations: [], ShowLocationDropdown: false,
+    ActivityServiceId: 0, ActivityServiceName: '', TicketTypeSearch: '',
+    FilteredActivityServices: [], ShowTicketTypeDropdown: false,
+    Entries: [],
+  };
+  this.activityTicketRows.update(rows => [...rows, newRow]);
+}
+
+removeActivityTicketRow(row: ActivityTicketRow): void {
+  this.markDirty();
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  row.Entries.forEach(e => {
+    if (e.QuoteServiceId > 0) {
+      this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => {} });
+    }
+  });
+  this.activityTicketRows.update(rows => rows.filter(r => r !== row));
+}
+
+// ── Name (Location) search ──────────────────────────────
+onActivityLocationSearch(row: ActivityTicketRow): void {
+  const query = (row.LocationSearch ?? '').toLowerCase().trim();
+  const locations = this.locationList();
+  row.FilteredLocations = !query
+    ? locations.slice(0, 6)
+    : locations.filter(l => l.LocationName.toLowerCase().includes(query)).slice(0, 6);
+  row.ShowLocationDropdown = true;
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+selectActivityLocation(row: ActivityTicketRow, loc: any): void {
+  row.LocationId = loc.LocationId;
+  row.LocationName = loc.LocationName;
+  row.LocationSearch = loc.LocationName;
+  row.ShowLocationDropdown = false;
+  row.FilteredLocations = [];
+  row.ActivityServiceId = 0;
+  row.ActivityServiceName = '';
+  row.TicketTypeSearch = '';
+  row.Entries = [];
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+onActivityLocationBlur(row: ActivityTicketRow): void {
+  setTimeout(() => {
+    row.ShowLocationDropdown = false;
+    row.LocationSearch = row.LocationId > 0 ? row.LocationName : '';
+    this.activityTicketRows.update(rows => [...rows]);
+  }, 200);
+}
+
+clearActivityLocation(row: ActivityTicketRow): void {
+  row.LocationId = 0; row.LocationName = ''; row.LocationSearch = '';
+  row.FilteredLocations = []; row.ShowLocationDropdown = false;
+  row.ActivityServiceId = 0; row.ActivityServiceName = ''; row.TicketTypeSearch = '';
+  row.Entries = [];
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+// ── Ticket/Package Type (ActivityService, filtered by LocationId) ──
+onActivityTypeSearch(row: ActivityTicketRow): void {
+  if (!row.LocationId) return;
+  const query = (row.TicketTypeSearch ?? '').toLowerCase().trim();
+  const services = this.activityList().filter(a => a.LocationId === row.LocationId);
+  row.FilteredActivityServices = !query
+    ? services.slice(0, 6)
+    : services.filter(a => a.ActivityServiceName.toLowerCase().includes(query)).slice(0, 6);
+  row.ShowTicketTypeDropdown = true;
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+selectActivityType(row: ActivityTicketRow, svc: any): void {
+  row.ActivityServiceId = svc.ActivityServiceId;
+  row.ActivityServiceName = svc.ActivityServiceName;
+  row.TicketTypeSearch = svc.ActivityServiceName;
+  row.ShowTicketTypeDropdown = false;
+  row.FilteredActivityServices = [];
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+  this.populateActivityEntries(row);
+}
+
+onActivityTypeBlur(row: ActivityTicketRow): void {
+  setTimeout(() => {
+    row.ShowTicketTypeDropdown = false;
+    row.TicketTypeSearch = row.ActivityServiceId > 0 ? row.ActivityServiceName : '';
+    this.activityTicketRows.update(rows => [...rows]);
+  }, 200);
+}
+
+clearActivityType(row: ActivityTicketRow): void {
+  row.ActivityServiceId = 0; row.ActivityServiceName = ''; row.TicketTypeSearch = '';
+  row.FilteredActivityServices = []; row.ShowTicketTypeDropdown = false;
+  row.Entries = [];
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+// ── Per-day ticket entries ──────────────────────────────
+populateActivityEntries(row: ActivityTicketRow): void {
+  if (row.Entries.length > 0) {
+    row.Entries.forEach(e => this.lookupActivityRate(row, e));
+    return;
+  }
+  row.Entries = this.daySlots().map(s => ({
+    QuoteServiceId: 0,
+    DayNumber: s.DayNumber,
+    ServiceDate: s.ServiceDate,
+    Qty: 1,
+    Rate: 0,
+    GivenPrice: 0,
+    IsSaving: false,
+  }));
+  row.Entries.forEach(e => this.lookupActivityRate(row, e));
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+lookupActivityRate(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
+  if (!row.ActivityServiceId) return;
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  this.service.getActivityRateByDate(enc({
+    ActivityServiceId: row.ActivityServiceId,
+    ServiceDate: this.formatDate(entry.ServiceDate),
+  })).subscribe({
+    next: (r: any) => {
+      entry.Rate = (r.Message === ConstantData.SuccessMessage && r.Rate) ? (r.Rate.AdultRate ?? 0) : 0;
+      if (!entry.GivenPrice) entry.GivenPrice = entry.Rate;
+      this.activityTicketRows.update(rows => [...rows]);
+    }
+  });
+}
+
+addActivityEntryRow(row: ActivityTicketRow): void {
+  if (!row.ActivityServiceId) {
+    this.toastr.error('Select a ticket/package type first');
+    return;
+  }
+  const usedDays = new Set(row.Entries.map(e => e.DayNumber));
+  const nextSlot = this.daySlots().find(s => !usedDays.has(s.DayNumber)) ?? this.daySlots()[this.daySlots().length - 1];
+  const newEntry: ActivityTicketEntry = {
+    QuoteServiceId: 0,
+    DayNumber: nextSlot?.DayNumber ?? row.Entries.length + 1,
+    ServiceDate: nextSlot?.ServiceDate ?? new Date(),
+    Qty: 1, Rate: 0, GivenPrice: 0, IsSaving: false,
+  };
+  row.Entries.push(newEntry);
+  this.lookupActivityRate(row, newEntry);
+  this.activityTicketRows.update(rows => [...rows]);
+  this.markDirty();
+}
+
+removeActivityEntryRow(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
+  this.markDirty();
+  if (entry.QuoteServiceId > 0) {
+    const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+    this.service.deleteQuoteService(enc({ QuoteServiceId: entry.QuoteServiceId })).subscribe({ next: () => {} });
+  }
+  row.Entries = row.Entries.filter(e => e !== entry);
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+onActivityEntryChange(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
+  this.activityTicketRows.update(rows => [...rows]);
+}
+
+saveActivityEntry(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
+  if (!row.ActivityServiceId) return;
+  entry.IsSaving = true;
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  this.service.saveQuoteService(enc({
+    QuoteServiceId: entry.QuoteServiceId,
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: row.QuotePackageTypeId,
+    DayNumber: entry.DayNumber,
+    ServiceDate: this.formatDate(entry.ServiceDate),
+    ServiceType: 2,
+    ActivityServiceId: row.ActivityServiceId,
+    Qty: entry.Qty,
+    CostPrice: (entry.Rate || 0) * (entry.Qty || 1),
+    SellingPrice: (entry.GivenPrice || 0) * (entry.Qty || 1),
+  })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        entry.QuoteServiceId = r.QuoteServiceId;
+        this.markClean();
+      } else {
+        this.toastr.error(r.Message);
+      }
+      entry.IsSaving = false;
+    },
+    error: () => { entry.IsSaving = false; }
+  });
+}
+
+getActivityRowTotal(row: ActivityTicketRow): number {
+  return row.Entries.reduce((s, e) => s + (e.GivenPrice || 0) * (e.Qty || 1), 0);
+}
+
+formatDayDate(d: Date): string {
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+}
 
 }
