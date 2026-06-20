@@ -1090,6 +1090,9 @@
           <!-- INDEPENDENT TRANSPORT ROWS (like Hotels) -->
           @for (row of getActiveTransportRows(); track row.QuoteServiceId; let i = $index) {
           <div class="border rounded mb-3 p-3 bg-white">
+            <div class="d-flex align-items-center gap-2 text-primary fw-semibold" style="font-size:13px;">
+      <i class="bx bx-car"></i> Transport Service
+    </div>
             <div class="row g-2 align-items-start">
 
               <!-- LEFT: Transport config (col-8) -->
@@ -1223,48 +1226,72 @@
                     }
                   </div>
 
-                  <!-- Vehicle -->
-                  <div class="col-sm-4">
-                    <label class="form-label small text-muted mb-1">Vehicle</label>
-                    <div style="position:relative;">
-                      <input type="text" class="form-control form-control-sm" placeholder="Search vehicle…"
-                        [(ngModel)]="row.VehicleSearch" (ngModelChange)="onTransportVehicleSearch(row)"
-                        (focus)="onTransportVehicleSearch(row)" (blur)="onTransportVehicleBlur(row)" autocomplete="off"
-                        [disabled]="!row.IteneraryServiceId">
+<!-- Vehicle -->
+<div class="col-sm-4">
+  <label class="form-label small text-muted mb-1">Vehicle</label>
 
-                      @if(row.VehicleSearch.length > 0) {
-                      <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
-                                   transform:translateY(-50%); font-size:14px;
-                                   z-index:10; color:#999;" (mousedown)="clearTransportVehicleRow(row)">
-                        ×
-                      </button>
-                      }
+  @if (sameCabForAll) {
+  <!-- Locked display — same cab type applies to every row -->
+  <div class="form-control form-control-sm d-flex align-items-center justify-content-between bg-light"
+    style="cursor:default;">
+    @if (row.VehicleTypeName) {
+    <span class="fw-semibold">{{ row.VehicleTypeName }}</span>
+    } @else {
+    <span class="text-muted">No cab type set</span>
+    }
+    <i class="bx bx-lock-alt text-muted" style="font-size:13px;"></i>
+  </div>
+  <div class="text-muted" style="font-size:10px; margin-top:2px;">
+    Using global cab type —
+    <button type="button" class="btn btn-link p-0 border-0" style="font-size:10px; text-decoration:underline;"
+      (click)="openCabTypesModal()">change</button>
+  </div>
+  } @else {
+  <div style="position:relative;">
+    <input type="text" class="form-control form-control-sm" placeholder="Search vehicle…"
+      [(ngModel)]="row.VehicleSearch" (ngModelChange)="onTransportVehicleSearch(row)"
+      (focus)="onTransportVehicleSearch(row)" (blur)="onTransportVehicleBlur(row)" autocomplete="off"
+      [disabled]="!row.IteneraryServiceId">
 
-                      @if (row.ShowVehicleDropdown && row.FilteredVehicles.length > 0) {
-                      <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
-                                z-index:1000; max-height:200px; overflow-y:auto;">
-                        @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
-                        <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
-                          (mousedown)="selectTransportVehicleRow(row, vt)">
-                          {{ vt.VehicleTypeName }}
-                        </div>
-                        }
-                      </div>
-                      }
-                    </div>
-                    @if (!row.IteneraryServiceId) {
-                    <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                      Select service first
-                    </div>
-                    }
-                    <div>
-                      <label class="form-label small text-muted mb-1">Qty</label>
-                      <input type="number" class="form-control form-control-sm" style="width:70px;"
-                        [(ngModel)]="row.Qty"
-                        (ngModelChange)="markDirty(); recalculateTransportPrice(row); transportRows.update(r=>[...r])"
-                        min="1">
-                    </div>
-                  </div>
+    @if(row.VehicleSearch.length > 0) {
+    <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
+                 transform:translateY(-50%); font-size:14px;
+                 z-index:10; color:#999;" (mousedown)="clearTransportVehicleRow(row)">
+      ×
+    </button>
+    }
+
+    @if (row.ShowVehicleDropdown && row.FilteredVehicles.length > 0) {
+    <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
+              z-index:1000; max-height:200px; overflow-y:auto;">
+      @for (vt of row.FilteredVehicles; track vt.VehicleTypeId) {
+      <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
+        (mousedown)="selectTransportVehicleRow(row, vt)">
+        {{ vt.VehicleTypeName }}
+      </div>
+      }
+    </div>
+    }
+  </div>
+  @if (!row.IteneraryServiceId) {
+  <div class="text-muted" style="font-size:10px; margin-top:2px;">
+    Select service first
+  </div>
+  }
+  }
+@if (!sameCabForAll) {
+<div class="d-flex justify-content-end align-items-center gap-2 mt-2">
+  <label class="form-label small text-muted mb-0">Qty</label>
+  <input
+    type="number"
+    class="form-control form-control-sm text-end"
+    style="width:70px;"
+    [(ngModel)]="row.Qty"
+    (ngModelChange)="markDirty(); recalculateTransportPrice(row); transportRows.update(r => [...r])"
+    min="1">
+</div>
+}
+</div>
 
 
                   <!-- Remove -->
