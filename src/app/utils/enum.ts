@@ -98,3 +98,9 @@ export enum DocType {
     Excel = 3,
     Print = 4,
 }
+// Add this new enum
+export enum PassengerType {
+    Adult = 1,
+    Child = 2,
+    Infant = 3
+}
