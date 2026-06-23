@@ -65,6 +65,15 @@ export interface TripInfo {
   NoOfAdults: number;
   ChildrenAges: string;
 }
+export interface DayGroup {
+  GroupId: number;
+  QuotePackageTypeId: number;
+  DayNumbers: number[];
+  ShowDayDropdown: boolean;
+  SelectedDaysDisplay: string;
+  TransportRows: QuoteTransportRow[];
+  ActivityRows: ActivityTicketRow[];
+}
 
 export interface PackageTypeRow {
   QuotePackageTypeId: number;
@@ -296,6 +305,9 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   loading = signal(false);
   tripInfo = signal<TripInfo | null>(null);
   packageTypes = signal<PackageTypeRow[]>([]);
+
+  dayGroups = signal<DayGroup[]>([]);
+private dayGroupCounter = 0;
 
   specialInclusionRows = signal<QuoteSpecialInclusionRow[]>([]);
   specialInclusionMasterList = signal<any[]>([]);
@@ -2016,13 +2028,7 @@ activityTotal = computed(() =>
   selectedDayForForm = 0;
   currentTransportRow: QuoteServiceRow = {} as QuoteServiceRow;
   // Transport form state — separate from hotel modal
-  transportLocationSearchText = '';
-  transportFilteredLocations: any[] = [];
-  transportShowLocationDropdown = false;
 
-  transportServiceSearchText = '';
-  transportFilteredServices: any[] = [];
-  transportShowServiceDropdown = false;
 
 onSameCabChange(): void {
   if (!this.sameCabForAll) {
@@ -2085,51 +2091,66 @@ onSameCabChange(): void {
     this.cabTypesList.splice(i, 1);
   }
 
-  saveCabTypes(): void {
-    const invalid = this.cabTypesList.find(c => !c.VehicleTypeId || c.Quantity < 1);
-    if (invalid) {
-      this.toastr.error('Select vehicle type and quantity for all');
-      return;
-    }
-    this.selectedCabTypes = this.cabTypesList.map(c => ({ ...c }));
+saveCabTypes(): void {
+  const invalid = this.cabTypesList.find(c => !c.VehicleTypeId || c.Quantity < 1);
+  if (invalid) {
+    this.toastr.error('Select vehicle type and quantity for all');
+    return;
+  }
+  this.selectedCabTypes = this.cabTypesList.map(c => ({ ...c }));
 
-    // ✅ UPDATE ALL EXISTING TRANSPORT ROWS WITH THE FIRST CAB TYPE
-    if (this.selectedCabTypes.length > 0) {
-      const firstCab = this.selectedCabTypes[0];
+  // ✅ UPDATE ALL EXISTING TRANSPORT ROWS WITH THE FIRST CAB TYPE
+  if (this.selectedCabTypes.length > 0) {
+    const firstCab = this.selectedCabTypes[0];
 
-      // Update the global transport state
-      this.transportVehicleSearch = firstCab.VehicleTypeName;
-      this.currentTransportVehicle = firstCab;
-      this.transportQty = firstCab.Quantity;
+    // Update the global transport state
+    this.transportVehicleSearch = firstCab.VehicleTypeName;
+    this.currentTransportVehicle = firstCab;
+    this.transportQty = firstCab.Quantity;
 
-      // ✅ UPDATE ALL EXISTING TRANSPORT ROWS
-      const activeRows = this.getActiveTransportRows();
-      activeRows.forEach(row => {
-        // Update vehicle in the row
+    // ✅ UPDATE ALL EXISTING TRANSPORT ROWS (including day groups)
+    const activeRows = this.getActiveTransportRows();
+    activeRows.forEach(row => {
+      // Update vehicle in the row
+      row.VehicleTypeId = firstCab.VehicleTypeId;
+      row.VehicleTypeName = firstCab.VehicleTypeName;
+      row.VehicleSearch = firstCab.VehicleTypeName;
+      row.Qty = firstCab.Quantity;
+
+      // Lookup rate if service is selected
+      if (row.IteneraryServiceId > 0) {
+        this.lookupTransportRate(row);
+      }
+    });
+
+    // ✅ Also update rows inside day groups
+    const dayGroups = this.getActiveDayGroups();
+    dayGroups.forEach(group => {
+      group.TransportRows.forEach(row => {
         row.VehicleTypeId = firstCab.VehicleTypeId;
         row.VehicleTypeName = firstCab.VehicleTypeName;
         row.VehicleSearch = firstCab.VehicleTypeName;
         row.Qty = firstCab.Quantity;
-
-        // Lookup rate if service is selected
         if (row.IteneraryServiceId > 0) {
           this.lookupTransportRate(row);
         }
       });
+    });
 
-      // Force UI refresh
-      this.transportRows.update(rows => [...rows]);
+    // Force UI refresh for both
+    this.transportRows.update(rows => [...rows]);
+    this.dayGroups.update(groups => [...groups]);
 
-      // ✅ Create rows for all selected days if service is selected
-      if (this.selectedDays().length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
-        this.selectTransportVehicleGlobal(firstCab);
-      }
+    // ✅ Create rows for all selected days if service is selected
+    if (this.selectedDays().length > 0 && this.currentTransportRow.IteneraryServiceId > 0) {
+      this.selectTransportVehicleGlobal(firstCab);
     }
-
-    this.closeCabTypesModal();
-    this.markDirty();
-    this.toastr.success('Cab types updated for all transport rows');
   }
+
+  this.closeCabTypesModal();
+  this.markDirty();
+  this.toastr.success('Cab types updated for all transport rows');
+}
 
 
 
@@ -3935,23 +3956,24 @@ onActivityTypeSearch(row: ActivityTicketRow): void {
   row.ShowTicketTypeDropdown = true;
 }
 
-selectActivityType(row: ActivityTicketRow, svc: any): void {
+selectActivityType(row: ActivityTicketRow, svc: any, group?: DayGroup): void {
   row.ActivityServiceId = svc.ActivityServiceId;
   row.ActivityServiceName = svc.ActivityServiceName;
   row.TicketTypeSearch = svc.ActivityServiceName;
   row.ShowTicketTypeDropdown = false;
   row.FilteredActivityServices = [];
-  
-  // Clear existing data
+
   row.DateRates = [];
   row.TypeGroups = [];
   row.Entries = [];
-  
-  this.activityTicketRows.update(rows => [...rows]);
+
   this.markDirty();
-  
-  // Load rates for this activity (this will also create default groups)
-  this.loadDateRates(row);
+
+  if (group) {
+    this.loadDateRatesForGroupDays(row, group.DayNumbers);
+  } else {
+    this.loadDateRates(row); // fallback, unused once template is updated
+  }
 }
 
 onActivityTypeBlur(row: ActivityTicketRow): void {
@@ -4213,6 +4235,10 @@ onTypeBlur(group: ActivityTypeGroup): void {
 }
 
 onGroupQtyChange(row: ActivityTicketRow, group: ActivityTypeGroup): void {
+  // Sync Qty to all entries in this group
+  group.Entries.forEach(entry => {
+    entry.Qty = group.Qty;
+  });
   this.markDirty();
   this.activityTicketRows.update(rows => [...rows]);
 }
@@ -4329,4 +4355,233 @@ addDefaultTypeGroups(row: ActivityTicketRow): void {
   
   console.log('Default groups created successfully');
 }
+
+
+// ── Day Groups (parent entity) ─────────────────────────────
+getActiveDayGroups(): DayGroup[] {
+  return this.dayGroups().filter(g => g.QuotePackageTypeId === this.activePackageTypeId());
+}
+
+getNextUnusedDay(): number | null {
+  const allDays = this.daySlots().map(d => d.DayNumber);
+  const usedDays = new Set(this.getActiveDayGroups().flatMap(g => g.DayNumbers));
+  return allDays.find(d => !usedDays.has(d)) ?? null;
+}
+
+updateDayGroupDisplay(group: DayGroup): void {
+  group.SelectedDaysDisplay = group.DayNumbers.length === 0 ? ''
+    : group.DayNumbers.length === 1 ? `Day ${group.DayNumbers[0]}`
+    : `${group.DayNumbers.length} days selected`;
+}
+
+// Creates a brand-new, fully independent group. Used both for "Add Day" (empty trip)
+// and "Next Day" (finalizes current group, starts a new one with the next free day).
+addDayGroup(): void {
+  const nextDay = this.getNextUnusedDay();
+  const group: DayGroup = {
+    GroupId: ++this.dayGroupCounter,
+    QuotePackageTypeId: this.activePackageTypeId(),
+    DayNumbers: nextDay !== null ? [nextDay] : [],
+    ShowDayDropdown: false,
+    SelectedDaysDisplay: '',
+    TransportRows: [],
+    ActivityRows: [],
+  };
+  this.updateDayGroupDisplay(group);
+  this.dayGroups.update(groups => [...groups, group]);
+
+  // Seed with one Transport row and one Activity row, like your previous default UX
+  this.addTransportRowToGroup(group);
+  this.addActivityRowToGroup(group);
+
+  this.markDirty();
+}
+
+removeDayGroup(group: DayGroup): void {
+  this.markDirty();
+  group.TransportRows.forEach(row => this.removeTransportRowFromGroup(group, row, false));
+  group.ActivityRows.forEach(row => this.removeActivityRowFromGroup(group, row, false));
+  this.dayGroups.update(groups => groups.filter(g => g !== group));
+}
+
+toggleDayGroupDayDropdown(group: DayGroup): void {
+  group.ShowDayDropdown = !group.ShowDayDropdown;
+  this.dayGroups.update(groups => [...groups]);
+}
+
+closeDayGroupDayDropdown(group: DayGroup): void {
+  group.ShowDayDropdown = false;
+  this.dayGroups.update(groups => [...groups]);
+}
+
+// Toggling a day here propagates to EVERY Transport/Activity row already inside this group
+onDayGroupDayToggle(group: DayGroup, dayNumber: number): void {
+  const idx = group.DayNumbers.indexOf(dayNumber);
+  if (idx > -1) {
+    group.DayNumbers.splice(idx, 1);
+  } else {
+    group.DayNumbers.push(dayNumber);
+    group.DayNumbers.sort((a, b) => a - b);
+  }
+  this.updateDayGroupDisplay(group);
+  this.syncGroupDaysToRows(group);
+  this.dayGroups.update(groups => [...groups]);
+  this.markDirty();
+}
+
+// Push the group's current DayNumbers onto every row it owns
+syncGroupDaysToRows(group: DayGroup): void {
+  group.TransportRows.forEach(row => {
+    row.DayNumbers = [...group.DayNumbers];
+    row.DayNumber = group.DayNumbers[0] ?? row.DayNumber;
+    const slot = this.daySlots().find(d => d.DayNumber === row.DayNumber);
+    if (slot) row.ServiceDate = slot.ServiceDate;
+    this.updateTransportDaysDisplay(row);
+    if (row.LocationId > 0 && row.IteneraryServiceId > 0 && row.VehicleTypeId > 0) {
+      this.lookupTransportRate(row);
+    }
+  });
+
+  group.ActivityRows.forEach(row => {
+    if (row.ActivityServiceId) {
+      this.loadDateRatesForGroupDays(row, group.DayNumbers);
+    }
+  });
+
+  this.dayGroups.update(groups => [...groups]);
+}
+
+// ── Transport rows scoped to ONE group ─────────────────────
+addTransportRowToGroup(group: DayGroup): void {
+  this.markDirty();
+  const firstDay = group.DayNumbers[0] ?? this.daySlots()[0]?.DayNumber ?? 1;
+  const slot = this.daySlots().find(d => d.DayNumber === firstDay) ?? this.daySlots()[0];
+  const prefillVehicle = this.sameCabForAll && this.selectedCabTypes.length > 0 ? this.selectedCabTypes[0] : null;
+
+  const newRow: QuoteTransportRow = {
+    QuoteServiceId: 0,
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: group.QuotePackageTypeId,
+    DayNumbers: [...group.DayNumbers],
+    DayNumber: firstDay,
+    ServiceDate: slot?.ServiceDate ?? new Date(),
+    LocationId: 0, LocationName: '',
+    IteneraryServiceId: 0, IteneraryServiceName: '',
+    VehicleTypeId: prefillVehicle?.VehicleTypeId ?? 0,
+    VehicleTypeName: prefillVehicle?.VehicleTypeName ?? '',
+    SameCabForAll: this.sameCabForAll,
+    Qty: prefillVehicle?.Quantity ?? 1,
+    CostPrice: 0, SellingPrice: 0, TotalPrice: 0, Notes: '', IsSaving: false,
+    LocationSearch: '', FilteredLocations: [], ShowLocationDropdown: false,
+    ServiceSearch: '', FilteredServices: [], ShowServiceDropdown: false,
+    VehicleSearch: prefillVehicle?.VehicleTypeName ?? '', FilteredVehicles: [], ShowVehicleDropdown: false,
+    ShowDayDropdown: false, SelectedDaysDisplay: group.SelectedDaysDisplay,
+  };
+
+  group.TransportRows = [...group.TransportRows, newRow];
+  this.dayGroups.update(groups => [...groups]);
+}
+
+removeTransportRowFromGroup(group: DayGroup, row: QuoteTransportRow, refresh: boolean = true): void {
+  this.markDirty();
+  if (row.QuoteServiceId > 0) {
+    const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+    this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId })).subscribe({ next: () => {} });
+  }
+  group.TransportRows = group.TransportRows.filter(r => r !== row);
+  if (refresh) this.dayGroups.update(groups => [...groups]);
+}
+
+// ── Activity rows scoped to ONE group ──────────────────────
+addActivityRowToGroup(group: DayGroup): void {
+  this.markDirty();
+  const newRow: ActivityTicketRow = {
+    RowId: ++this.activityRowCounter,
+    QuotePackageTypeId: group.QuotePackageTypeId,
+    LocationId: 0, LocationName: '', LocationSearch: '',
+    FilteredLocations: [], ShowLocationDropdown: false,
+    ActivityServiceId: 0, ActivityServiceName: '', TicketTypeSearch: '',
+    FilteredActivityServices: [], ShowTicketTypeDropdown: false,
+    DateRates: [], TypeGroups: [], Entries: [],
+  };
+  group.ActivityRows = [...group.ActivityRows, newRow];
+  this.dayGroups.update(groups => [...groups]);
+}
+
+removeActivityRowFromGroup(group: DayGroup, row: ActivityTicketRow, refresh: boolean = true): void {
+  this.markDirty();
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  row.Entries.forEach(e => {
+    if (e.QuoteServiceId > 0) {
+      this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => {} });
+    }
+  });
+  group.ActivityRows = group.ActivityRows.filter(r => r !== row);
+  if (refresh) this.dayGroups.update(groups => [...groups]);
+}
+
+// Variant of loadDateRates restricted to a group's current days
+loadDateRatesForGroupDays(row: ActivityTicketRow, dayNumbers: number[]): void {
+  if (!row.ActivityServiceId) return;
+  const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+  const slots = this.daySlots().filter(s => dayNumbers.includes(s.DayNumber));
+
+  row.DateRates = slots.map(s => ({
+    DayNumber: s.DayNumber, ServiceDate: s.ServiceDate,
+    AdultRate: 0, ChildAboveTwoYear: 0, ChildBelowTwoYear: 0,
+  }));
+
+  if (slots.length === 0) {
+    row.TypeGroups = [];
+    this.dayGroups.update(groups => [...groups]);
+    return;
+  }
+
+  let completed = 0;
+  const total = slots.length;
+
+  slots.forEach((s, idx) => {
+    this.service.getActivityRateByDate(enc({
+      ActivityServiceId: row.ActivityServiceId,
+      ServiceDate: this.formatDate(s.ServiceDate),
+    })).subscribe({
+      next: (r: any) => {
+        const dr = row.DateRates[idx];
+        if (r.Message === ConstantData.SuccessMessage && r.Rate) {
+          dr.AdultRate = r.Rate.AdultRate ?? 0;
+          dr.ChildAboveTwoYear = r.Rate.ChildAboveTwoYear ?? 0;
+          dr.ChildBelowTwoYear = r.Rate.ChildBelowTwoYear ?? 0;
+        }
+        completed++;
+        if (completed === total) {
+          row.TypeGroups.forEach(tg => {
+            tg.Entries = row.DateRates.map(d => {
+              const existing = tg.Entries.find(e => e.DayNumber === d.DayNumber);
+              return existing ?? {
+                QuoteServiceId: 0, DayNumber: d.DayNumber, ServiceDate: d.ServiceDate,
+                Qty: 0, Rate: 0, GivenPrice: 0, IsSaving: false,
+              };
+            });
+            tg.Entries.forEach(e => {
+              const dr2 = row.DateRates.find(d => d.DayNumber === e.DayNumber);
+              if (dr2 && tg.PaxType) {
+                e.Rate = this.resolveRateForType(dr2, tg.PaxType);
+                if (!e.GivenPrice) e.GivenPrice = e.Rate;
+              }
+            });
+          });
+          if (row.TypeGroups.length === 0) this.addDefaultTypeGroups(row);
+          this.dayGroups.update(groups => [...groups]);
+          this.markDirty();
+        }
+      },
+      error: () => {
+        completed++;
+        if (completed === total) this.dayGroups.update(groups => [...groups]);
+      }
+    });
+  });
+}
+
+
 }
