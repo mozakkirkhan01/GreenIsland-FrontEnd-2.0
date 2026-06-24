@@ -25,6 +25,8 @@ import { LocalService } from '../../utils/local.service';
 import { ConstantData } from '../../utils/constant-data';
 import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
+import { QuillModule } from 'ngx-quill';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 // ── Interfaces ────────────────────────────────────────────────
 export interface QuoteSpecialInclusionRow {
@@ -261,7 +263,7 @@ export interface ActivityTicketEntry {
     MatFormFieldModule, MatInputModule,
     MatTooltipModule, MatDividerModule,
     Progress,
-    UnsavedChangesDialogComponent,
+    UnsavedChangesDialogComponent,QuillModule,
   ],
   templateUrl: './query-stepthree.html',
   styleUrl: './query-stepthree.css',
@@ -273,6 +275,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   private service = inject(AppService);
   private toastr = inject(ToastrService);
   private local = inject(LocalService);
+  private sanitizer = inject(DomSanitizer);
   private dialogService = inject(UnsavedChangesDialogService); // ← ADD
 
   // ── IDs ───────────────────────────────────────────────────
@@ -397,16 +400,34 @@ private dayGroupCounter = 0;
 
 
   transportTotal = computed(() => {
-    return this.transportRows()
+    let total = 0;
+    const dayGroups = this.getActiveDayGroups();
+    dayGroups.forEach(group => {
+      group.TransportRows.forEach(row => {
+        total += (row.SellingPrice || row.TotalPrice || 0);
+      });
+    });
+    // Also include main transportRows signal
+    total += this.transportRows()
       .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
       .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
+    return total;
   });
 
-activityTotal = computed(() =>
-  this.activityTicketRows()
-    .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
-    .reduce((s, r) => s + this.getActivityRowTotal(r), 0)
-);
+  activityTotal = computed(() => {
+    let total = 0;
+    const dayGroups = this.getActiveDayGroups();
+    dayGroups.forEach(group => {
+      group.ActivityRows.forEach(row => {
+        total += this.getActivityRowTotal(row);
+      });
+    });
+    // Also include main activityTicketRows signal
+    total += this.activityTicketRows()
+      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
+      .reduce((s, r) => s + this.getActivityRowTotal(r), 0);
+    return total;
+  });
 
   totalCost = computed(() =>
     this.hotelTotal() + this.transportTotal() + this.activityTotal()
@@ -4686,6 +4707,24 @@ taxAppliedOn = 'gst';
 roundingValue = 0;
 remarksTab: 'write' | 'preview' = 'write';
 customerRemarks = '';
+
+  // ── Quill editor config ───────────────────────────────────────────────
+  quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ color: [] }, { background: [] }],
+      [{ align: [] }],
+      ['clean'],
+    ],
+  };
+  getSanitizedRemarks(): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(this.customerRemarks || '');
+  }
+
+
 
 // Add these methods
 getPaxCount(): number {

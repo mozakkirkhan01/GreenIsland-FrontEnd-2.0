@@ -1474,10 +1474,16 @@
           }
 
 
-          <!-- Transport total -->
-          <div class="d-flex justify-content-end mt-2">
-            <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px;">
-              Transport Total: INR {{ formatCurrency(transportTotal()) }}
+          <!-- Transport and Activities total -->
+          <div class="d-flex justify-content-end gap-2 mt-2 flex-wrap">
+            <div class="badge bg-info text-white px-3 py-2" style="font-size:13px;">
+              Transport: INR {{ formatCurrency(transportTotal()) }}
+            </div>
+            <div class="badge bg-success text-white px-3 py-2" style="font-size:13px;">
+              Activities: INR {{ formatCurrency(activityTotal()) }}
+            </div>
+            <div class="badge bg-warning text-dark px-3 py-2" style="font-size:13px; font-weight:bold;">
+              Total: INR {{ formatCurrency(transportTotal() + activityTotal()) }}
             </div>
           </div>
 
@@ -2033,27 +2039,37 @@
                       [(ngModel)]="internalNotes" placeholder="Internal notes..."></textarea>
           </div>
 
-          <!-- Remarks for Customer -->
-          <div class="mt-2">
-            <div class="d-flex align-items-center gap-3">
-              <label class="form-label small fw-semibold mb-0">Remarks for Agent/Customer (optional)</label>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'write'" 
-                        (click)="remarksTab = 'write'">Write</button>
-                <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'preview'" 
-                        (click)="remarksTab = 'preview'">Preview</button>
-              </div>
-            </div>
-            @if (remarksTab === 'write') {
-              <textarea class="form-control form-control-sm mt-1" rows="2" 
-                        [(ngModel)]="customerRemarks" placeholder="Any special remarks for the customer..."></textarea>
-            } @else {
-              <div class="border rounded p-2 mt-1" style="min-height:60px; background:#fff; font-size:13px;">
-                {{ customerRemarks || 'No remarks added yet.' }}
-              </div>
-            }
-            <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
-          </div>
+<!-- Remarks for Customer with Quill Editor -->
+<div class="mt-2">
+  <div class="d-flex align-items-center gap-3 mb-2">
+    <label class="form-label small fw-semibold mb-0">Remarks for Agent/Customer (optional)</label>
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'write'" 
+              (click)="remarksTab = 'write'">Write</button>
+      <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'preview'" 
+              (click)="remarksTab = 'preview'">Preview</button>
+    </div>
+  </div>
+  
+  @if (remarksTab === 'write') {
+    <div class="border rounded" style="background:#fff;">
+      <quill-editor
+        name="customerRemarks"
+        [(ngModel)]="customerRemarks"
+        [modules]="quillModules"
+        placeholder="Any special remarks for the customer..."
+        style="min-height:50px; display: block; border: none;">
+      </quill-editor>
+    </div>
+    <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
+  } @else {
+    <!-- Option 1: Using a getter -->
+<div class="border rounded p-3 mt-1" style="min-height:80px; background:#fff; font-size:13px;">
+  <div [innerHTML]="getSanitizedRemarks() || 'No remarks added yet.'"></div>
+</div>
+    <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
+  }
+</div>
         </div>
       </div>
     </div>
