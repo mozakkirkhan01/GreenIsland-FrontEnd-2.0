@@ -473,8 +473,12 @@ private dayGroupCounter = 0;
         console.log('Direct package types response:', r);
         if (r.Message === ConstantData.SuccessMessage && r.PackageTypes && r.PackageTypes.length > 0) {
           // Found package types - use them
-          this.packageTypes.set(r.PackageTypes);
-          this.activePackageTypeId.set(r.PackageTypes[0].QuotePackageTypeId);
+          const packageTypes = r.PackageTypes.map((p: any) => ({
+            ...p,
+            QuotePackageTypeId: this.toNumberId(p.QuotePackageTypeId),
+          }));
+          this.packageTypes.set(packageTypes);
+          this.activePackageTypeId.set(packageTypes[0].QuotePackageTypeId);
           this.packageTypesLoaded = true;
           console.log('Package types loaded successfully:', this.packageTypes());
         } else {
@@ -649,7 +653,7 @@ private dayGroupCounter = 0;
         console.log('Save package types response:', r);
         if (r.Message === ConstantData.SuccessMessage) {
           const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
-            QuotePackageTypeId: p.QuotePackageTypeId,
+            QuotePackageTypeId: this.toNumberId(p.QuotePackageTypeId),
             PackageTypeName: p.PackageTypeName,
           }));
           this.packageTypes.set(saved);
@@ -672,7 +676,7 @@ private dayGroupCounter = 0;
   private mapHotelRow(h: any): QuoteHotelRow {
     return {
       QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
-      QuotePackageTypeId: h.QuotePackageTypeId,
+      QuotePackageTypeId: this.toNumberId(h.QuotePackageTypeId),
       NightNumber: h.NightNumber, StayDate: new Date(h.StayDate),
       NightNumbers: [h.NightNumber],
       HotelId: h.HotelId, HotelName: h.HotelName ?? '',
@@ -697,7 +701,7 @@ private dayGroupCounter = 0;
     return {
       QuoteServiceId: s.QuoteServiceId,
       QuoteId: s.QuoteId,
-      QuotePackageTypeId: s.QuotePackageTypeId,
+      QuotePackageTypeId: this.toNumberId(s.QuotePackageTypeId),
       DayNumber: s.DayNumber,
       ServiceDate: new Date(s.ServiceDate),
       ServiceType: s.ServiceType,
@@ -793,7 +797,7 @@ private dayGroupCounter = 0;
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           const savedPkgTypes: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
-            QuotePackageTypeId: p.QuotePackageTypeId,
+            QuotePackageTypeId: this.toNumberId(p.QuotePackageTypeId),
             PackageTypeName: p.PackageTypeName,
           }));
 
@@ -1544,37 +1548,33 @@ private dayGroupCounter = 0;
 
 
 
-  addSpecialInclusionRow(): void {
-    const firstHotel = this.getDestinationHotels()[0];
-    this.markDirty();
-    this.specialInclusionRows.update(rows => [...rows, {
-      QuoteSpecialInclusionId: 0,
-      QuoteId: this.QuoteId,
-      QuoteHotelId: 0,
-      HotelId: firstHotel?.HotelId ?? 0,
-      NightNumbers: [],
-      SpecialInclusionId: 0,
-      SpecialInclusionName: '',
-      HotelName: firstHotel?.HotelName ?? '',
-      TotalPrice: 0,
-      Comments: '',
-      AvailableServices: this.specialInclusionMasterList(),
-      IsSaving: false,
-      ServiceSearch: '',
-      FilteredServices: [],
-      ShowServiceDropdown: false,
-      HotelSearch: firstHotel?.HotelName ?? '',
-      FilteredHotels: [],
-      ShowHotelDropdown: false,
-      ManualLocationName: '',
-      UseManualLocation: false,
-      ShowNightDropdown: false,
-      SelectedNightsDisplay: '',
-    }]);
-    if (firstHotel?.HotelId) {
-      this.loadSpecialInclusionsForHotel(firstHotel.HotelId);
-    }
-  }
+addSpecialInclusionRow(): void {
+  this.markDirty();
+  this.specialInclusionRows.update(rows => [...rows, {
+    QuoteSpecialInclusionId: 0,
+    QuoteId: this.QuoteId,
+    QuoteHotelId: 0,
+    HotelId: 0,
+    NightNumbers: [],
+    SpecialInclusionId: 0,
+    SpecialInclusionName: '',
+    HotelName: '',
+    TotalPrice: 0,
+    Comments: '',
+    AvailableServices: this.specialInclusionMasterList(),
+    IsSaving: false,
+    ServiceSearch: '',
+    FilteredServices: [],
+    ShowServiceDropdown: false,
+    HotelSearch: '',  // Empty so user sees placeholder
+    FilteredHotels: this.getDestinationHotels().slice(0, 6), // Show some hotels in dropdown
+    ShowHotelDropdown: false,  // Keep dropdown closed initially
+    ManualLocationName: '',
+    UseManualLocation: false,
+    ShowNightDropdown: false,
+    SelectedNightsDisplay: '',
+  }]);
+}
 
   saveSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
     // Validate required fields
@@ -3122,8 +3122,12 @@ getSummaryServicesByDay(dayNumber: number): QuoteServiceRow[] {
     this.router.navigate(['/agent/query-steptwo', this.QueryStepOneId]);
   }
 
-  setActivePackage(id: number): void {
-    this.activePackageTypeId.set(id);
+  private toNumberId(id: unknown): number {
+    return Number(id) || 0;
+  }
+
+  setActivePackage(id: number | string): void {
+    this.activePackageTypeId.set(this.toNumberId(id));
   }
 
   editBasicDetail(obj: any): void {

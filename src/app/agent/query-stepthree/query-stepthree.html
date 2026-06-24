@@ -109,10 +109,10 @@
           <!-- Package Type Dropdown Selector -->
           <div class="d-flex align-items-center gap-2 mb-3">
             <label class="text-muted small fw-semibold mb-0">Option:</label>
-            <select class="form-select form-select-sm" style="width: 220px;" [(ngModel)]="activePackageTypeId"
+            <select class="form-select form-select-sm" style="width: 220px;" [ngModel]="activePackageTypeId()"
               (ngModelChange)="setActivePackage($event)">
               @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
-              <option [value]="pkg.QuotePackageTypeId">
+              <option [ngValue]="pkg.QuotePackageTypeId">
                 {{ $index + 1 }}: {{ pkg.PackageTypeName }}
               </option>
               }
