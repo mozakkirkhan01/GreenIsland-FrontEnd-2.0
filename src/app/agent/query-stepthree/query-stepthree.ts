@@ -3037,9 +3037,9 @@ addTransportRow(slot?: DaySlot): void {
     );
   }
 
-  getSummaryServicesByDay(dayNumber: number): QuoteServiceRow[] {
-    return this.summaryServices.filter(r => r.DayNumber === dayNumber);
-  }
+getSummaryServicesByDay(dayNumber: number): QuoteServiceRow[] {
+  return this.summaryServices.filter(r => r.DayNumber === dayNumber);
+}
 
   getDayLabel(dayNumber: number): string {
     const slot = this.daySlots().find(d => d.DayNumber === dayNumber);
@@ -4582,6 +4582,221 @@ loadDateRatesForGroupDays(row: ActivityTicketRow, dayNumbers: number[]): void {
     });
   });
 }
+// Add this method to get active activity rows (you already have this)
 
 
+// Add this method to check if an activity row has entries for a specific day
+hasActivityForDay(row: ActivityTicketRow, dayNumber: number): boolean {
+  return row.TypeGroups.some(g => 
+    g.Entries.some(e => e.DayNumber === dayNumber && e.GivenPrice > 0)
+  );
+}
+
+// Add this method to get activity entries for a specific day
+getActivityEntriesForDay(row: ActivityTicketRow, dayNumber: number): { group: ActivityTypeGroup, entry: ActivityTicketEntry }[] {
+  const result: { group: ActivityTypeGroup, entry: ActivityTicketEntry }[] = [];
+  row.TypeGroups.forEach(group => {
+    group.Entries.forEach(entry => {
+      if (entry.DayNumber === dayNumber && entry.GivenPrice > 0) {
+        result.push({ group, entry });
+      }
+    });
+  });
+  return result;
+}
+
+// Add this method to get transport rows for a specific day
+getTransportRowsForDayGroup(dayNumber: number): QuoteTransportRow[] {
+  return this.getActiveTransportRows().filter(r => 
+    r.DayNumbers.includes(dayNumber) && 
+    (r.LocationId > 0 || r.IteneraryServiceId > 0)
+  );
+}
+
+// Enhanced method to get all services for a day (including day groups)
+getAllServicesForDay(dayNumber: number): (QuoteServiceRow | QuoteTransportRow | { type: 'activity', row: ActivityTicketRow, group: ActivityTypeGroup, entry: ActivityTicketEntry })[] {
+  const result: any[] = [];
+
+  // Get transport rows from day groups
+  const transportRows = this.getTransportRowsForDayGroup(dayNumber);
+  transportRows.forEach(row => {
+    result.push({ type: 'transport', data: row });
+  });
+
+  // Get activity rows from day groups
+  const activityRows = this.getActiveActivityRows();
+  activityRows.forEach(row => {
+    const entries = this.getActivityEntriesForDay(row, dayNumber);
+    entries.forEach(({ group, entry }) => {
+      result.push({ type: 'activity', row, group, entry });
+    });
+  });
+
+  // Get legacy service rows
+  const services = this.getSummaryServicesByDay(dayNumber);
+  services.forEach(svc => {
+    result.push({ type: 'service', data: svc });
+  });
+
+  return result;
+}
+
+// Get the day label for display (e.g., "1st Day")
+getDayOrdinalLabel(dayNumber: number): string {
+  const suffix = dayNumber === 1 ? 'st' : dayNumber === 2 ? 'nd' : dayNumber === 3 ? 'rd' : 'th';
+  return `${dayNumber}${suffix} Day`;
+}
+getDayActivityTotal(dayNumber: number): number {
+  let total = 0;
+  const activityRows = this.getActiveActivityRows();
+  activityRows.forEach(row => {
+    row.TypeGroups.forEach(group => {
+      group.Entries.forEach(entry => {
+        if (entry.DayNumber === dayNumber && entry.GivenPrice > 0) {
+          total += entry.GivenPrice * group.Qty;
+        }
+      });
+    });
+  });
+  return total;
+}
+
+getDayTransportTotal(dayNumber: number): number {
+  let total = 0;
+  const transportRows = this.getTransportRowsForDayGroup(dayNumber);
+  transportRows.forEach(row => {
+    total += row.SellingPrice || row.TotalPrice || 0;
+  });
+  // Also include legacy services
+  const services = this.getSummaryServicesByDay(dayNumber);
+  services.forEach(svc => {
+    if (svc.ServiceType === 1) {
+      total += svc.SellingPrice || 0;
+    }
+  });
+  return total;
+}
+// Add these properties
+pricingStrategy = 'per-person';
+sellingCurrency = 'INR';
+excludeTransportCharges = false;
+excludeTransportCount = 1;
+markupAmount = 0;
+taxAppliedOn = 'gst';
+roundingValue = 0;
+remarksTab: 'write' | 'preview' = 'write';
+customerRemarks = '';
+
+// Add these methods
+getPaxCount(): number {
+  const trip = this.tripInfo();
+  if (!trip) return 2; // Default
+  return trip.NoOfAdults || 2;
+}
+
+totalAdults(): number {
+  const trip = this.tripInfo();
+  return trip?.NoOfAdults || 2;
+}
+
+getPackageName(): string {
+  const pkg = this.packageTypes().find(p => p.QuotePackageTypeId === this.activePackageTypeId());
+  return pkg?.PackageTypeName || 'Standard Package';
+}
+
+hasAnyTransportOrActivity(): boolean {
+  return this.getActiveTransportRows().length > 0 || 
+         this.getActiveActivityRows().length > 0 || 
+         this.summaryServices.length > 0;
+}
+
+getDayItems(dayNumber: number): any[] {
+  const items: any[] = [];
+  
+  // Get transport rows from day groups
+  const transportRows = this.getTransportRowsForDayGroup(dayNumber);
+  transportRows.forEach(row => {
+    items.push({
+      id: `t-${row.QuoteServiceId}`,
+      location: row.LocationName || 'Port Blair',
+      serviceName: row.IteneraryServiceName || 'Transport Service',
+      detail: row.VehicleTypeName || 'Vehicle',
+      quantity: row.Qty || 1,
+      price: row.SellingPrice || row.TotalPrice || 0,
+      breakdown: row.CostPrice > 0 ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}` : undefined
+    });
+  });
+
+  // Get services from serviceRows
+  const services = this.getSummaryServicesByDay(dayNumber);
+  services.forEach(svc => {
+    if (svc.ServiceType === 1) {
+      items.push({
+        id: `s-${svc.QuoteServiceId}`,
+        location: svc.LocationName || 'Port Blair',
+        serviceName: svc.IteneraryServiceName || 'Transport Service',
+        detail: svc.VehicleTypeName || 'Vehicle',
+        quantity: svc.Qty || 1,
+        price: svc.SellingPrice || 0,
+        breakdown: svc.CostPrice > 0 ? `${this.formatCurrency(svc.CostPrice / svc.Qty)} × ${svc.Qty}` : undefined
+      });
+    } else if (svc.ServiceType === 2) {
+      items.push({
+        id: `a-${svc.QuoteServiceId}`,
+        location: svc.LocationName || 'Port Blair',
+        serviceName: svc.ActivityServiceName || 'Activity',
+        detail: `${svc.Qty} Adult${svc.Qty > 1 ? 's' : ''}`,
+        quantity: svc.Qty || 1,
+        price: svc.SellingPrice || 0,
+        breakdown: svc.CostPrice > 0 ? `${this.formatCurrency(svc.CostPrice / svc.Qty)} × ${svc.Qty}` : undefined
+      });
+    }
+  });
+
+  // Get activity ticket rows
+  const activityRows = this.getActiveActivityRows();
+  activityRows.forEach(row => {
+    row.TypeGroups.forEach(group => {
+      group.Entries.forEach(entry => {
+        if (entry.DayNumber === dayNumber && entry.GivenPrice > 0) {
+          items.push({
+            id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
+            location: row.LocationName || 'Port Blair',
+            serviceName: row.ActivityServiceName || 'Activity Ticket',
+            detail: group.PaxTypeLabel || 'Adult',
+            quantity: group.Qty || 1,
+            price: entry.GivenPrice * group.Qty,
+            breakdown: entry.Rate > 0 ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}` : undefined
+          });
+        }
+      });
+    });
+  });
+
+  // Sort items by price or by type (transport first, then activities)
+  return items.sort((a, b) => {
+    // Sort by type: transport first, then activities
+    const typeOrder: any = { transport: 0, activity: 1 };
+    const aType = a.id.startsWith('t') || a.id.startsWith('s') ? 'transport' : 'activity';
+    const bType = b.id.startsWith('t') || b.id.startsWith('s') ? 'transport' : 'activity';
+    if (typeOrder[aType] !== typeOrder[bType]) {
+      return typeOrder[aType] - typeOrder[bType];
+    }
+    return a.serviceName.localeCompare(b.serviceName);
+  });
+}
+
+getDayTotal(dayNumber: number): number {
+  const items = this.getDayItems(dayNumber);
+  return items.reduce((sum, item) => sum + (item.price || 0), 0);
+}
+
+
+
+applyRounding(amount: number): number {
+  if (this.roundingValue > 0) {
+    return Math.round(amount / this.roundingValue) * this.roundingValue;
+  }
+  return amount;
+}
 }
