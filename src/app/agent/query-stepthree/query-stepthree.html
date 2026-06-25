@@ -1756,101 +1756,141 @@
     <!-- ════════════════════════════════════════════════════════ -->
     <!-- TRANSPORTATION & ACTIVITIES SECTION                    -->
     <!-- ════════════════════════════════════════════════════════ -->
-    @if (hasAnyTransportOrActivity()) {
-      <div class="mb-4">
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-               style="width:32px; height:32px; font-size:14px;">
-            <i class="bx bx-car"></i>
+@if (hasAnyTransportOrActivity()) {
+  <div class="mb-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+           style="width:32px; height:32px; font-size:14px;">
+        <i class="bx bx-car"></i>
+      </div>
+      <span class="fw-bold fs-6">Transportation and Activities</span>
+    </div>
+
+    @for (slot of daySlots(); track slot.DayNumber) {
+      @let dayItems = getDayItems(slot.DayNumber);
+      @if (dayItems.length > 0) {
+
+        <div class="d-flex mb-3" style="gap:0;">
+
+          <!-- LEFT: Day label box -->
+          <div class="flex-shrink-0 d-flex flex-column align-items-start justify-content-start px-3 py-3"
+               style="width:100px; background:#f0f4ff; border:0.5px solid #dee2e6;
+                      border-right:none; border-radius:8px 0 0 8px;">
+            <div class="fw-bold" style="font-size:13px;">
+              {{ getDayOrdinalLabel(slot.DayNumber) }}
+            </div>
+            <div class="text-muted" style="font-size:11px; margin-top:2px;">
+              {{ slot.DateLabel.slice(0,2) }}, {{ slot.DateLabel.slice(3) }}
+            </div>
           </div>
-          <span class="fw-bold fs-6">Transportation and Activities</span>
-        </div>
 
-        <!-- Day-wise grouping -->
-        @for (slot of daySlots(); track slot.DayNumber) {
-          @let dayItems = getDayItems(slot.DayNumber);
-          @if (dayItems.length > 0) {
-            <div class="border rounded mb-3 overflow-hidden shadow-sm">
-              <!-- Day Header -->
-              <div class="bg-light px-3 py-2 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                  <span class="badge bg-primary text-white px-3 py-2" style="font-size:13px;">
-                    {{ getDayOrdinalLabel(slot.DayNumber) }}
-                  </span>
-                  <span class="text-muted small">{{ slot.DateLabel }} ({{ slot.DayLabel }})</span>
-                </div>
-                @let dayTotal = getDayTotal(slot.DayNumber);
-                @if (dayTotal > 0) {
-                  <span class="fw-semibold text-primary small">
-                    Total: INR {{ formatCurrency(dayTotal) }}
-                  </span>
-                }
-              </div>
+          <!-- RIGHT: Service rows container -->
+          <div class="flex-grow-1 border bg-white"
+               style="border-radius:0 8px 8px 0; overflow:hidden;">
 
-              <!-- Service Rows -->
-              @for (item of dayItems; track item.id) {
-                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" 
-                     style="font-size:13px; background: #fff;">
-                  <div class="d-flex align-items-start gap-3" style="flex:1;">
-                    <!-- Location badge -->
-                    <span class="badge bg-light text-dark border px-2 py-1" style="font-size:11px; min-width:70px; text-align:left;">
-                      {{ item.location || 'Port Blair' }}
-                    </span>
-                    
-                    <!-- Service details -->
-                    <div>
-                      <div class="fw-medium">{{ item.serviceName }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ item.detail }}
-                        @if (item.quantity && item.quantity > 1) {
-                          <span class="ms-1">× {{ item.quantity }}</span>
-                        }
-                      </div>
-                    </div>
+            @for (item of dayItems; track item.id; let last = $last) {
+              <div class="d-flex align-items-center px-3 py-2"
+                   [style.border-bottom]="last ? 'none' : '0.5px solid #f0f0f0'">
+
+                <!-- Col 1: Location + Service name (40%) -->
+                <div style="flex:0 0 40%; min-width:0;">
+                  <div class="fw-semibold text-truncate" style="font-size:13px;">
+                    {{ item.location }}
                   </div>
-                  
-                  <!-- Price -->
-                  <div class="text-end" style="min-width:120px;">
-                    <div class="fw-semibold text-success">
-                      INR {{ formatCurrency(item.price) }}
+                  <div class="text-muted d-flex align-items-center gap-1"
+                       style="font-size:11px; margin-top:2px;">
+                    <span>{{ item.serviceName }}</span>
+                    @if (item.detail && (item.id.startsWith('t') || item.id.startsWith('s'))) {
+                      <span>· {{ item.detail }}</span>
+                    }
+                    <i class="bx bx-transfer-alt" style="font-size:12px; color:#aaa;"></i>
+                  </div>
+                </div>
+
+                <!-- Col 2: Vehicle / Pax type + breakdown (30%) -->
+                <div style="flex:0 0 30%; min-width:0; padding-left:12px;">
+                  @if (item.id.startsWith('t') || item.id.startsWith('s')) {
+                    <!-- Transport: vehicle name in blue, breakdown below -->
+                    <div class="fw-medium" style="font-size:13px;">
+                      {{ item.detail }}
+                      @if (item.quantity && item.quantity > 1) {
+                        <span class="text-muted" style="font-size:11px;"> × {{ item.quantity }}</span>
+                      }
                     </div>
                     @if (item.breakdown) {
-                      <div class="text-muted" style="font-size:10px;">
+                      <div style="font-size:11px; color:#0d6efd;">
+                        {{ item.breakdown }}
+                      </div>
+                    } @else if (item.price > 0) {
+                      <div style="font-size:11px; color:#0d6efd;">
+                        {{ formatCurrency(item.price) }}
+                      </div>
+                    }
+                  } @else {
+                    <!-- Activity: pax type label + breakdown -->
+                    <div class="fw-medium" style="font-size:13px;">
+                      {{ item.quantity }} {{ item.detail }}
+                    </div>
+                    @if (item.breakdown) {
+                      <div style="font-size:11px; color:#0d6efd;">
                         {{ item.breakdown }}
                       </div>
                     }
-                  </div>
+                  }
                 </div>
-              }
-            </div>
-          }
-        }
 
-        <!-- Transportation & Activities Totals -->
-        <div class="border rounded p-3 bg-light">
-          <div class="row g-2">
-            <div class="col-md-4">
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted">Transports</span>
-                <span class="fw-semibold">INR {{ formatCurrency(transportTotal()) }}</span>
+                <!-- Col 3: Spacer -->
+                <div style="flex:1;"></div>
+
+                <!-- Col 4: Price (right aligned) -->
+                <div class="text-end" style="flex:0 0 auto; min-width:100px;">
+                  @if (item.price > 0) {
+                    <div class="d-flex align-items-center justify-content-end gap-1">
+                      <i class="bx bx-check" style="font-size:14px; color:#198754;"></i>
+                      <span class="text-muted" style="font-size:10px;">INR</span>
+                      <span class="fw-bold" style="font-size:13px;">
+                        {{ formatCurrency(item.price) }}
+                      </span>
+                    </div>
+                  } @else {
+                    <span class="text-muted" style="font-size:12px;">—</span>
+                  }
+                </div>
+
               </div>
-            </div>
-            <div class="col-md-4">
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted">Activity/Tickets</span>
-                <span class="fw-semibold">INR {{ formatCurrency(activityTotal()) }}</span>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted fw-bold">Grand Total</span>
-                <span class="fw-bold text-primary">INR {{ formatCurrency(transportTotal() + activityTotal()) }}</span>
-              </div>
-            </div>
+            }
+
           </div>
         </div>
-      </div>
+
+      }
     }
+
+    <!-- Totals: right-aligned summary -->
+    <div class="d-flex justify-content-end mt-3">
+      <div class="border rounded px-4 py-3 text-end bg-white" style="min-width:280px;">
+        <div class="fw-bold" style="font-size:14px;">
+          Total:
+          <span class="text-primary ms-1">
+            INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+          </span>
+        </div>
+        <div class="text-muted mt-1" style="font-size:12px;">
+          Transports:
+          <span class="fw-semibold text-dark ms-1">
+            INR {{ formatCurrency(transportTotal()) }}
+          </span>
+          <span class="mx-2">•</span>
+          Activity/Tickets:
+          <span class="fw-semibold text-dark ms-1">
+            INR {{ formatCurrency(activityTotal()) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+}
 
     <!-- ════════════════════════════════════════════════════════ -->
     <!-- COST SUMMARY CARDS                                      -->
@@ -1909,14 +1949,21 @@
         <div class="col-md-6">
           <!-- Pricing Strategy & Currency -->
           <div class="row g-2 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">Pricing Strategy</label>
-              <select class="form-select form-select-sm" [(ngModel)]="pricingStrategy">
-                <option value="per-person">Per-Person</option>
-                <option value="per-pax">Per-Pax</option>
-                <option value="fixed">Fixed</option>
-              </select>
-            </div>
+<div class="col-md-6">
+  <label class="form-label small fw-semibold">Pricing Strategy</label>
+
+  <select
+    class="form-select form-select-sm"
+    [(ngModel)]="pricingStrategy">
+
+    @for (item of pricingstrategylist; track item.Key) {
+      <option [ngValue]="item.Key">
+        {{ item.Value }}
+      </option>
+    }
+
+  </select>
+</div>
             <div class="col-md-6">
               <label class="form-label small fw-semibold">Selling Currency</label>
               <select class="form-select form-select-sm" [(ngModel)]="sellingCurrency">

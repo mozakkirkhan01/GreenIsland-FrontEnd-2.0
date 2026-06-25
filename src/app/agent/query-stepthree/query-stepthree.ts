@@ -27,6 +27,7 @@ import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
 import { QuillModule } from 'ngx-quill';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { PricingStrategy } from '../../utils/enum';
 
 // ── Interfaces ────────────────────────────────────────────────
 export interface QuoteSpecialInclusionRow {
@@ -340,6 +341,8 @@ private dayGroupCounter = 0;
   // Master lists for modal dropdowns
   locationList = signal<any[]>([]);
   hotelCategoryList = signal<any[]>([]);
+
+  pricingstrategylist = this.loadData.GetEnumList(PricingStrategy);
 
   // UI state
   showPkgModal = false;
@@ -4618,8 +4621,11 @@ hasActivityForDay(row: ActivityTicketRow, dayNumber: number): boolean {
 }
 
 // Add this method to get activity entries for a specific day
-getActivityEntriesForDay(row: ActivityTicketRow, dayNumber: number): { group: ActivityTypeGroup, entry: ActivityTicketEntry }[] {
-  const result: { group: ActivityTypeGroup, entry: ActivityTicketEntry }[] = [];
+getActivityEntriesForDay(
+  row: ActivityTicketRow,
+  dayNumber: number
+): { group: ActivityTypeGroup; entry: ActivityTicketEntry }[] {
+  const result: { group: ActivityTypeGroup; entry: ActivityTicketEntry }[] = [];
   row.TypeGroups.forEach(group => {
     group.Entries.forEach(entry => {
       if (entry.DayNumber === dayNumber && entry.GivenPrice > 0) {
@@ -4632,10 +4638,27 @@ getActivityEntriesForDay(row: ActivityTicketRow, dayNumber: number): { group: Ac
 
 // Add this method to get transport rows for a specific day
 getTransportRowsForDayGroup(dayNumber: number): QuoteTransportRow[] {
-  return this.getActiveTransportRows().filter(r => 
-    r.DayNumbers.includes(dayNumber) && 
-    (r.LocationId > 0 || r.IteneraryServiceId > 0)
-  );
+  const rows: QuoteTransportRow[] = [];
+
+  // Check standalone transportRows signal
+  this.transportRows()
+    .filter(r =>
+      r.QuotePackageTypeId === this.activePackageTypeId() &&
+      r.DayNumbers.includes(dayNumber) &&
+      (r.LocationId > 0 || r.IteneraryServiceId > 0)
+    )
+    .forEach(r => rows.push(r));
+
+  // Also check inside dayGroups
+  this.getActiveDayGroups().forEach(group => {
+    if (group.DayNumbers.includes(dayNumber)) {
+      group.TransportRows
+        .filter(r => r.LocationId > 0 || r.IteneraryServiceId > 0)
+        .forEach(r => rows.push(r));
+    }
+  });
+
+  return rows;
 }
 
 // Enhanced method to get all services for a day (including day groups)
@@ -4748,85 +4771,99 @@ getPackageName(): string {
 }
 
 hasAnyTransportOrActivity(): boolean {
-  return this.getActiveTransportRows().length > 0 || 
-         this.getActiveActivityRows().length > 0 || 
-         this.summaryServices.length > 0;
+  return this.getActiveTransportRows().length > 0 ||
+         this.getActiveActivityRows().length > 0 ||
+         this.summaryServices.length > 0 ||
+         this.getActiveDayGroups().some(group => group.TransportRows.length > 0 || group.ActivityRows.length > 0);
 }
 
 getDayItems(dayNumber: number): any[] {
   const items: any[] = [];
-  
-  // Get transport rows from day groups
+
+  // Transport from standalone rows + dayGroups
   const transportRows = this.getTransportRowsForDayGroup(dayNumber);
   transportRows.forEach(row => {
     items.push({
-      id: `t-${row.QuoteServiceId}`,
-      location: row.LocationName || 'Port Blair',
+      id: `t-${row.QuoteServiceId}-${row.DayNumber}`,
+      location: row.LocationName || '—',
       serviceName: row.IteneraryServiceName || 'Transport Service',
       detail: row.VehicleTypeName || 'Vehicle',
       quantity: row.Qty || 1,
       price: row.SellingPrice || row.TotalPrice || 0,
-      breakdown: row.CostPrice > 0 ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}` : undefined
+      breakdown: row.CostPrice > 0
+        ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}`
+        : undefined,
     });
   });
 
-  // Get services from serviceRows
-  const services = this.getSummaryServicesByDay(dayNumber);
-  services.forEach(svc => {
+  // Activities from standalone activityTicketRows
+  this.getActiveActivityRows().forEach(row => {
+    this.getActivityEntriesForDay(row, dayNumber).forEach(({ group, entry }) => {
+      items.push({
+        id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
+        location: row.LocationName || '—',
+        serviceName: row.ActivityServiceName || 'Activity Ticket',
+        detail: group.PaxTypeLabel || 'Adult',
+        quantity: group.Qty || 1,
+        price: entry.GivenPrice * (group.Qty || 1),
+        breakdown: entry.Rate > 0
+          ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}`
+          : undefined,
+      });
+    });
+  });
+
+  // Activities from dayGroups
+  this.getActiveDayGroups().forEach(group => {
+    if (group.DayNumbers.includes(dayNumber)) {
+      group.ActivityRows.forEach(row => {
+        this.getActivityEntriesForDay(row, dayNumber).forEach(({ group: tg, entry }) => {
+          items.push({
+            id: `dag-${row.RowId}-${tg.GroupId}-${entry.DayNumber}`,
+            location: row.LocationName || '—',
+            serviceName: row.ActivityServiceName || 'Activity Ticket',
+            detail: tg.PaxTypeLabel || 'Adult',
+            quantity: tg.Qty || 1,
+            price: entry.GivenPrice * (tg.Qty || 1),
+            breakdown: entry.Rate > 0
+              ? `${this.formatCurrency(entry.Rate)} × ${tg.Qty}`
+              : undefined,
+          });
+        });
+      });
+    }
+  });
+
+  // Legacy serviceRows
+  this.getSummaryServicesByDay(dayNumber).forEach(svc => {
     if (svc.ServiceType === 1) {
       items.push({
         id: `s-${svc.QuoteServiceId}`,
-        location: svc.LocationName || 'Port Blair',
-        serviceName: svc.IteneraryServiceName || 'Transport Service',
-        detail: svc.VehicleTypeName || 'Vehicle',
+        location: svc.LocationName || '—',
+        serviceName: svc.IteneraryServiceName || 'Transport',
+        detail: svc.VehicleTypeName || '',
         quantity: svc.Qty || 1,
         price: svc.SellingPrice || 0,
-        breakdown: svc.CostPrice > 0 ? `${this.formatCurrency(svc.CostPrice / svc.Qty)} × ${svc.Qty}` : undefined
+        breakdown: svc.CostPrice > 0
+          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+          : undefined,
       });
     } else if (svc.ServiceType === 2) {
       items.push({
         id: `a-${svc.QuoteServiceId}`,
-        location: svc.LocationName || 'Port Blair',
+        location: svc.LocationName || '—',
         serviceName: svc.ActivityServiceName || 'Activity',
-        detail: `${svc.Qty} Adult${svc.Qty > 1 ? 's' : ''}`,
+        detail: `Adult`,
         quantity: svc.Qty || 1,
         price: svc.SellingPrice || 0,
-        breakdown: svc.CostPrice > 0 ? `${this.formatCurrency(svc.CostPrice / svc.Qty)} × ${svc.Qty}` : undefined
+        breakdown: svc.CostPrice > 0
+          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+          : undefined,
       });
     }
   });
 
-  // Get activity ticket rows
-  const activityRows = this.getActiveActivityRows();
-  activityRows.forEach(row => {
-    row.TypeGroups.forEach(group => {
-      group.Entries.forEach(entry => {
-        if (entry.DayNumber === dayNumber && entry.GivenPrice > 0) {
-          items.push({
-            id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
-            location: row.LocationName || 'Port Blair',
-            serviceName: row.ActivityServiceName || 'Activity Ticket',
-            detail: group.PaxTypeLabel || 'Adult',
-            quantity: group.Qty || 1,
-            price: entry.GivenPrice * group.Qty,
-            breakdown: entry.Rate > 0 ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}` : undefined
-          });
-        }
-      });
-    });
-  });
-
-  // Sort items by price or by type (transport first, then activities)
-  return items.sort((a, b) => {
-    // Sort by type: transport first, then activities
-    const typeOrder: any = { transport: 0, activity: 1 };
-    const aType = a.id.startsWith('t') || a.id.startsWith('s') ? 'transport' : 'activity';
-    const bType = b.id.startsWith('t') || b.id.startsWith('s') ? 'transport' : 'activity';
-    if (typeOrder[aType] !== typeOrder[bType]) {
-      return typeOrder[aType] - typeOrder[bType];
-    }
-    return a.serviceName.localeCompare(b.serviceName);
-  });
+  return items;
 }
 
 getDayTotal(dayNumber: number): number {
