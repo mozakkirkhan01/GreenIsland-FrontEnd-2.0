@@ -4724,16 +4724,6 @@ getDayTransportTotal(dayNumber: number): number {
   });
   return total;
 }
-// Add these properties
-pricingStrategy = 'per-person';
-sellingCurrency = 'INR';
-excludeTransportCharges = false;
-excludeTransportCount = 1;
-markupAmount = 0;
-taxAppliedOn = 'gst';
-roundingValue = 0;
-remarksTab: 'write' | 'preview' = 'write';
-customerRemarks = '';
 
   // ── Quill editor config ───────────────────────────────────────────────
   quillModules = {
@@ -4751,6 +4741,103 @@ customerRemarks = '';
     return this.sanitizer.bypassSecurityTrustHtml(this.customerRemarks || '');
   }
 
+// Add these properties
+excludeTransportCharges = false;
+excludeTransportCount = 1;
+taxAppliedOn = 'gst';
+roundingValue = 0;
+// ── Pricing Strategy ──────────────────────────────────────
+// Replace existing loose properties with these:
+pricingStrategy: 'per-person' | 'overall' = 'per-person';
+sellingCurrency = 'INR';
+markupType: 'percentage' | 'fixed' = 'fixed';
+markupAmount = 0;
+gstEnabled = true;
+roundingMode: 'none' | '1' | '10' | '100' = 'none';
+remarksTab: 'write' | 'preview' = 'write';
+customerRemarks = '';
+totalFOC = 0;
+
+// ── Guest counts ──────────────────────────────────────────
+totalGuestCount(): number {
+  return (this.tripInfo()?.NoOfAdults || 0) + this.childrenCount;
+}
+
+payingGuestCount(): number {
+  return Math.max(0, this.totalGuestCount() - (this.totalFOC || 0));
+}
+
+// ── Pricing calculations ──────────────────────────────────
+markupValue(): number {
+  const cost = this.totalCost();
+  if (this.markupType === 'percentage') {
+    return Math.round(cost * (this.markupAmount || 0) / 100);
+  }
+  return this.markupAmount || 0;
+}
+
+taxableAmount(): number {
+  return this.totalCost() + this.markupValue();
+}
+
+computedGstAmount(): number {
+  if (!this.gstEnabled) return 0;
+  return Math.round(this.taxableAmount() * (this.gstPercent || 0) / 100);
+}
+
+rawFinalPrice(): number {
+  return this.taxableAmount() + this.computedGstAmount();
+}
+
+finalSellingPrice(): number {
+  const raw = this.rawFinalPrice();
+  switch (this.roundingMode) {
+    case '1':   return Math.round(raw);
+    case '10':  return Math.round(raw / 10) * 10;
+    case '100': return Math.round(raw / 100) * 100;
+    default:    return raw;
+  }
+}
+
+perPayingGuestPrice(): number {
+  const paying = this.payingGuestCount();
+  if (paying <= 0) return 0;
+  return Math.round(this.finalSellingPrice() / paying);
+}
+
+onFOCChange(): void {
+  const maxFOC = this.totalGuestCount();
+  if ((this.totalFOC || 0) > maxFOC) {
+    this.totalFOC = maxFOC;
+    this.toastr.error(`FOC cannot exceed total guests (${maxFOC})`);
+    return;
+  }
+  if (this.payingGuestCount() <= 0) {
+    this.totalFOC = maxFOC - 1;
+    this.toastr.error('At least one paying guest is required.');
+  }
+  this.markDirty();
+}
+
+perPersonHotel(): number {
+  const p = this.payingGuestCount();
+  return p > 0 ? Math.round(this.hotelTotal() / p) : 0;
+}
+
+perPersonTransport(): number {
+  const p = this.payingGuestCount();
+  return p > 0 ? Math.round(this.transportTotal() / p) : 0;
+}
+
+perPersonActivity(): number {
+  const p = this.payingGuestCount();
+  return p > 0 ? Math.round(this.activityTotal() / p) : 0;
+}
+
+perPersonTotal(): number {
+  const p = this.payingGuestCount();
+  return p > 0 ? Math.round(this.totalCost() / p) : 0;
+}
 
 
 // Add these methods

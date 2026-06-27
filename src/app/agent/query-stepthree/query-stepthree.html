@@ -1636,215 +1636,213 @@
       </div>
       }
 
-<!-- ════════════════════════════════════════════════════════════ -->
-<!-- SUMMARY SECTION - Redesigned                               -->
-<!-- ════════════════════════════════════════════════════════════ -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body p-4">
-    
-    <!-- Header -->
-    <div class="fw-bold fs-5 mb-1">Summary</div>
-    <div class="text-muted small mb-4">
-      Please review the quote's data before creating.
-    </div>
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <!-- SUMMARY SECTION - Redesigned                               -->
+      <!-- ════════════════════════════════════════════════════════════ -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
 
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- BASIC INFO ROW                                          -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="row g-3 mb-4 pb-3 border-bottom">
-      <div class="col-md-3">
-        <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
-          Start Date
-        </div>
-        <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
-      </div>
-      <div class="col-md-3">
-        <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
-          Duration
-        </div>
-        <div class="fw-bold">
-          {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
-          {{ trip.NoOfNights + 1 }} Days
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
-          PAX
-        </div>
-        <div class="fw-bold">{{ paxLabel }}</div>
-      </div>
-      <div class="col-md-3 text-md-end">
-        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-          <i class="bx bx-calendar me-1"></i> Quote #{{ formatQuotationNo(trip.QuotationNo) }}
-        </span>
-      </div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- ACCOMMODATION SECTION                                   -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    @if (summaryHotels.length > 0) {
-      <div class="mb-4">
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-               style="width:32px; height:32px; font-size:14px;">
-            <i class="bx bx-hotel"></i>
+          <!-- Header -->
+          <div class="fw-bold fs-5 mb-1">Summary</div>
+          <div class="text-muted small mb-4">
+            Please review the quote's data before creating.
           </div>
-          <span class="fw-bold fs-6">Accommodation</span>
-        </div>
-        
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
-            <thead class="table-light">
-              <tr>
-                <th style="width:12%;">Night</th>
-                <th style="width:35%;">Hotel</th>
-                <th style="width:12%;">Meal</th>
-                <th style="width:20%;">Rooms</th>
-                <th style="width:21%;" class="text-end">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (h of summaryHotels; track h.QuoteHotelId) {
-                <tr>
-                  <td>
-                    <div class="fw-semibold">
-                      {{ h.NightNumber }}<sup>{{ h.NightNumber === 1 ? 'st' : h.NightNumber === 2 ? 'nd' : h.NightNumber === 3 ? 'rd' : 'th' }}</sup>
-                    </div>
-                    <div class="text-muted" style="font-size:10px;">
-                      {{ h.StayDate | date:'d MMM' }}
-                    </div>
-                  </td>
-                  <td>
-                    <div class="fw-medium">{{ h.HotelName }}</div>
-                    <div class="text-muted" style="font-size:11px;">
-                      {{ h.LocationName }}, {{ h.HotelCategoryName || '3 Star' }}
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge bg-light text-dark border">{{ h.MealPlan }}</span>
-                  </td>
-                  <td>
-                    <div>{{ h.NoOfRooms }} {{ h.RoomTypeName || 'Deluxe Room' }}</div>
-                    <div class="text-muted" style="font-size:10px;">
-                      {{ h.PaxPerRoom }} Pax
-                      @if (h.AWEB > 0 || h.CWEB > 0 || h.CNB > 0) {
+
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- BASIC INFO ROW                                          -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          <div class="row g-3 mb-4 pb-3 border-bottom">
+            <div class="col-md-3">
+              <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+                Start Date
+              </div>
+              <div class="fw-bold">{{ trip.StartDate | date:'dd MMM, yyyy' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+                Duration
+              </div>
+              <div class="fw-bold">
+                {{ trip.NoOfNights }} Night{{ trip.NoOfNights > 1 ? 's' : '' }},
+                {{ trip.NoOfNights + 1 }} Days
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
+                PAX
+              </div>
+              <div class="fw-bold">{{ paxLabel }}</div>
+            </div>
+            <div class="col-md-3 text-md-end">
+              <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                <i class="bx bx-calendar me-1"></i> Quote #{{ formatQuotationNo(trip.QuotationNo) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- ACCOMMODATION SECTION                                   -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          @if (summaryHotels.length > 0) {
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+                style="width:32px; height:32px; font-size:14px;">
+                <i class="bx bx-hotel"></i>
+              </div>
+              <span class="fw-bold fs-6">Accommodation</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:12%;">Night</th>
+                    <th style="width:35%;">Hotel</th>
+                    <th style="width:12%;">Meal</th>
+                    <th style="width:20%;">Rooms</th>
+                    <th style="width:21%;" class="text-end">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (h of summaryHotels; track h.QuoteHotelId) {
+                  <tr>
+                    <td>
+                      <div class="fw-semibold">
+                        {{ h.NightNumber }}<sup>{{ h.NightNumber === 1 ? 'st' : h.NightNumber === 2 ? 'nd' :
+                          h.NightNumber === 3 ? 'rd' : 'th' }}</sup>
+                      </div>
+                      <div class="text-muted" style="font-size:10px;">
+                        {{ h.StayDate | date:'d MMM' }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="fw-medium">{{ h.HotelName }}</div>
+                      <div class="text-muted" style="font-size:11px;">
+                        {{ h.LocationName }}, {{ h.HotelCategoryName || '3 Star' }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border">{{ h.MealPlan }}</span>
+                    </td>
+                    <td>
+                      <div>{{ h.NoOfRooms }} {{ h.RoomTypeName || 'Deluxe Room' }}</div>
+                      <div class="text-muted" style="font-size:10px;">
+                        {{ h.PaxPerRoom }} Pax
+                        @if (h.AWEB > 0 || h.CWEB > 0 || h.CNB > 0) {
                         <span class="ms-1">
                           @if (h.AWEB > 0) { +{{ h.AWEB }} AWEB }
                           @if (h.CWEB > 0) { +{{ h.CWEB }} CWEB }
                           @if (h.CNB > 0) { +{{ h.CNB }} CNB }
                         </span>
-                      }
-                    </div>
-                  </td>
-                  <td class="text-end fw-semibold">
-                    INR {{ formatCurrency(h.SellingPrice || h.TotalPrice) }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        
-        <div class="text-end">
-          <span class="fw-semibold">Total:</span>
-          <span class="fw-bold text-primary">INR {{ formatCurrency(hotelTotal()) }}</span>
-        </div>
-      </div>
-    }
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- TRANSPORTATION & ACTIVITIES SECTION                    -->
-    <!-- ════════════════════════════════════════════════════════ -->
-@if (hasAnyTransportOrActivity()) {
-  <div class="mb-4">
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-           style="width:32px; height:32px; font-size:14px;">
-        <i class="bx bx-car"></i>
-      </div>
-      <span class="fw-bold fs-6">Transportation and Activities</span>
-    </div>
-
-    @for (slot of daySlots(); track slot.DayNumber) {
-      @let dayItems = getDayItems(slot.DayNumber);
-      @if (dayItems.length > 0) {
-
-        <div class="d-flex mb-3" style="gap:0;">
-
-          <!-- LEFT: Day label box -->
-          <div class="flex-shrink-0 d-flex flex-column align-items-start justify-content-start px-3 py-3"
-               style="width:100px; background:#f0f4ff; border:0.5px solid #dee2e6;
-                      border-right:none; border-radius:8px 0 0 8px;">
-            <div class="fw-bold" style="font-size:13px;">
-              {{ getDayOrdinalLabel(slot.DayNumber) }}
+                        }
+                      </div>
+                    </td>
+                    <td class="text-end fw-semibold">
+                      INR {{ formatCurrency(h.SellingPrice || h.TotalPrice) }}
+                    </td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
             </div>
-            <div class="text-muted" style="font-size:11px; margin-top:2px;">
-              {{ slot.DateLabel.slice(0,2) }}, {{ slot.DateLabel.slice(3) }}
+
+            <div class="text-end">
+              <span class="fw-semibold">Total:</span>
+              <span class="fw-bold text-primary">INR {{ formatCurrency(hotelTotal()) }}</span>
             </div>
           </div>
+          }
 
-          <!-- RIGHT: Service rows container -->
-          <div class="flex-grow-1 border bg-white"
-               style="border-radius:0 8px 8px 0; overflow:hidden;">
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- TRANSPORTATION & ACTIVITIES SECTION                    -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          @if (hasAnyTransportOrActivity()) {
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+                style="width:32px; height:32px; font-size:14px;">
+                <i class="bx bx-car"></i>
+              </div>
+              <span class="fw-bold fs-6">Transportation and Activities</span>
+            </div>
 
-            @for (item of dayItems; track item.id; let last = $last) {
-              <div class="d-flex align-items-center px-3 py-2"
-                   [style.border-bottom]="last ? 'none' : '0.5px solid #f0f0f0'">
+            @for (slot of daySlots(); track slot.DayNumber) {
+            @let dayItems = getDayItems(slot.DayNumber);
+            @if (dayItems.length > 0) {
 
-                <!-- Col 1: Location + Service name (40%) -->
-                <div style="flex:0 0 40%; min-width:0;">
-                  <div class="fw-semibold text-truncate" style="font-size:13px;">
-                    {{ item.location }}
-                  </div>
-                  <div class="text-muted d-flex align-items-center gap-1"
-                       style="font-size:11px; margin-top:2px;">
-                    <span>{{ item.serviceName }}</span>
-                    @if (item.detail && (item.id.startsWith('t') || item.id.startsWith('s'))) {
-                      <span>· {{ item.detail }}</span>
-                    }
-                    <i class="bx bx-transfer-alt" style="font-size:12px; color:#aaa;"></i>
-                  </div>
+            <div class="d-flex mb-3" style="gap:0;">
+
+              <!-- LEFT: Day label box -->
+              <div class="flex-shrink-0 d-flex flex-column align-items-start justify-content-start px-3 py-3" style="width:100px; background:#f0f4ff; border:0.5px solid #dee2e6;
+                      border-right:none; border-radius:8px 0 0 8px;">
+                <div class="fw-bold" style="font-size:13px;">
+                  {{ getDayOrdinalLabel(slot.DayNumber) }}
                 </div>
+                <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                  {{ slot.DateLabel.slice(0,2) }}, {{ slot.DateLabel.slice(3) }}
+                </div>
+              </div>
 
-                <!-- Col 2: Vehicle / Pax type + breakdown (30%) -->
-                <div style="flex:0 0 30%; min-width:0; padding-left:12px;">
-                  @if (item.id.startsWith('t') || item.id.startsWith('s')) {
+              <!-- RIGHT: Service rows container -->
+              <div class="flex-grow-1 border bg-white" style="border-radius:0 8px 8px 0; overflow:hidden;">
+
+                @for (item of dayItems; track item.id; let last = $last) {
+                <div class="d-flex align-items-center px-3 py-2"
+                  [style.border-bottom]="last ? 'none' : '0.5px solid #f0f0f0'">
+
+                  <!-- Col 1: Location + Service name (40%) -->
+                  <div style="flex:0 0 40%; min-width:0;">
+                    <div class="fw-semibold text-truncate" style="font-size:13px;">
+                      {{ item.location }}
+                    </div>
+                    <div class="text-muted d-flex align-items-center gap-1" style="font-size:11px; margin-top:2px;">
+                      <span>{{ item.serviceName }}</span>
+                      @if (item.detail && (item.id.startsWith('t') || item.id.startsWith('s'))) {
+                      <span>· {{ item.detail }}</span>
+                      }
+                      <i class="bx bx-transfer-alt" style="font-size:12px; color:#aaa;"></i>
+                    </div>
+                  </div>
+
+                  <!-- Col 2: Vehicle / Pax type + breakdown (30%) -->
+                  <div style="flex:0 0 30%; min-width:0; padding-left:12px;">
+                    @if (item.id.startsWith('t') || item.id.startsWith('s')) {
                     <!-- Transport: vehicle name in blue, breakdown below -->
                     <div class="fw-medium" style="font-size:13px;">
                       {{ item.detail }}
                       @if (item.quantity && item.quantity > 1) {
-                        <span class="text-muted" style="font-size:11px;"> × {{ item.quantity }}</span>
+                      <span class="text-muted" style="font-size:11px;"> × {{ item.quantity }}</span>
                       }
                     </div>
                     @if (item.breakdown) {
-                      <div style="font-size:11px; color:#0d6efd;">
-                        {{ item.breakdown }}
-                      </div>
+                    <div style="font-size:11px; color:#0d6efd;">
+                      {{ item.breakdown }}
+                    </div>
                     } @else if (item.price > 0) {
-                      <div style="font-size:11px; color:#0d6efd;">
-                        {{ formatCurrency(item.price) }}
-                      </div>
+                    <div style="font-size:11px; color:#0d6efd;">
+                      {{ formatCurrency(item.price) }}
+                    </div>
                     }
-                  } @else {
+                    } @else {
                     <!-- Activity: pax type label + breakdown -->
                     <div class="fw-medium" style="font-size:13px;">
                       {{ item.quantity }} {{ item.detail }}
                     </div>
                     @if (item.breakdown) {
-                      <div style="font-size:11px; color:#0d6efd;">
-                        {{ item.breakdown }}
-                      </div>
+                    <div style="font-size:11px; color:#0d6efd;">
+                      {{ item.breakdown }}
+                    </div>
                     }
-                  }
-                </div>
+                    }
+                  </div>
 
-                <!-- Col 3: Spacer -->
-                <div style="flex:1;"></div>
+                  <!-- Col 3: Spacer -->
+                  <div style="flex:1;"></div>
 
-                <!-- Col 4: Price (right aligned) -->
-                <div class="text-end" style="flex:0 0 auto; min-width:100px;">
-                  @if (item.price > 0) {
+                  <!-- Col 4: Price (right aligned) -->
+                  <div class="text-end" style="flex:0 0 auto; min-width:100px;">
+                    @if (item.price > 0) {
                     <div class="d-flex align-items-center justify-content-end gap-1">
                       <i class="bx bx-check" style="font-size:14px; color:#198754;"></i>
                       <span class="text-muted" style="font-size:10px;">INR</span>
@@ -1852,350 +1850,474 @@
                         {{ formatCurrency(item.price) }}
                       </span>
                     </div>
-                  } @else {
+                    } @else {
                     <span class="text-muted" style="font-size:12px;">—</span>
-                  }
+                    }
+                  </div>
+
                 </div>
+                }
 
               </div>
+            </div>
+
+            }
             }
 
+            <!-- Totals: right-aligned summary -->
+            <div class="d-flex justify-content-end mt-3">
+              <div class="border rounded px-4 py-3 text-end bg-white" style="min-width:280px;">
+                <div class="fw-bold" style="font-size:14px;">
+                  Total:
+                  <span class="text-primary ms-1">
+                    INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+                  </span>
+                </div>
+                <div class="text-muted mt-1" style="font-size:12px;">
+                  Transports:
+                  <span class="fw-semibold text-dark ms-1">
+                    INR {{ formatCurrency(transportTotal()) }}
+                  </span>
+                  <span class="mx-2">•</span>
+                  Activity/Tickets:
+                  <span class="fw-semibold text-dark ms-1">
+                    INR {{ formatCurrency(activityTotal()) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
-        </div>
+          }
 
-      }
-    }
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- COST SUMMARY CARDS                                      -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white"
+                style="width:32px; height:32px; font-size:14px;">
+                <i class="bx bx-calculator"></i>
+              </div>
+              <span class="fw-bold fs-6">Cost Summary</span>
+            </div>
 
-    <!-- Totals: right-aligned summary -->
-    <div class="d-flex justify-content-end mt-3">
-      <div class="border rounded px-4 py-3 text-end bg-white" style="min-width:280px;">
-        <div class="fw-bold" style="font-size:14px;">
-          Total:
-          <span class="text-primary ms-1">
-            INR {{ formatCurrency(transportTotal() + activityTotal()) }}
-          </span>
-        </div>
-        <div class="text-muted mt-1" style="font-size:12px;">
-          Transports:
-          <span class="fw-semibold text-dark ms-1">
-            INR {{ formatCurrency(transportTotal()) }}
-          </span>
-          <span class="mx-2">•</span>
-          Activity/Tickets:
-          <span class="fw-semibold text-dark ms-1">
-            INR {{ formatCurrency(activityTotal()) }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-}
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- COST SUMMARY CARDS                                      -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="mb-4">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white"
-             style="width:32px; height:32px; font-size:14px;">
-          <i class="bx bx-calculator"></i>
-        </div>
-        <span class="fw-bold fs-6">Cost Summary</span>
-      </div>
-      
-      <div class="row g-3">
-        <div class="col-md-3">
-          <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
-            <div class="text-muted small">Hotels</div>
-            <div class="fw-bold fs-5">INR {{ formatCurrency(hotelTotal()) }}</div>
+            <div class="row g-3">
+              <div class="col-md-3">
+                <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
+                  <div class="text-muted small">Hotels</div>
+                  <div class="fw-bold fs-5">INR {{ formatCurrency(hotelTotal()) }}</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
+                  <div class="text-muted small">Transportation</div>
+                  <div class="fw-bold fs-5">INR {{ formatCurrency(transportTotal()) }}</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
+                  <div class="text-muted small">Activities</div>
+                  <div class="fw-bold fs-5">INR {{ formatCurrency(activityTotal()) }}</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="border rounded p-3 text-center h-100" style="background:#e8f4ff; border-color:#6ea8fe;">
+                  <div class="text-muted small">Total Cost</div>
+                  <div class="fw-bold fs-5 text-primary">INR {{ formatCurrency(totalCost()) }}</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
-            <div class="text-muted small">Transportation</div>
-            <div class="fw-bold fs-5">INR {{ formatCurrency(transportTotal()) }}</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded p-3 text-center h-100" style="background:#f8f9fa;">
-            <div class="text-muted small">Activities</div>
-            <div class="fw-bold fs-5">INR {{ formatCurrency(activityTotal()) }}</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded p-3 text-center h-100" style="background:#e8f4ff; border-color:#6ea8fe;">
-            <div class="text-muted small">Total Cost</div>
-            <div class="fw-bold fs-5 text-primary">INR {{ formatCurrency(totalCost()) }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- PRICING STRATEGY                                        -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="border rounded p-4 mb-4" style="background:#f8f9fa;">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <div class="bg-info rounded-circle d-flex align-items-center justify-content-center text-white"
-             style="width:32px; height:32px; font-size:14px;">
-          <i class="bx bx-tag"></i>
-        </div>
-        <span class="fw-bold fs-6">Pricing Strategy</span>
-      </div>
+          <!-- ════════════════════════════════════════════════════════ -->
+          <!-- PRICING STRATEGY                                        -->
+          <!-- ════════════════════════════════════════════════════════ -->
+          <div class="border rounded p-4 mb-4" style="background:#f8f9fa;">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="bg-info rounded-circle d-flex align-items-center justify-content-center text-white"
+                style="width:32px; height:32px; font-size:14px;">
+                <i class="bx bx-tag"></i>
+              </div>
+              <span class="fw-bold fs-6">Pricing Strategy</span>
+            </div>
 
-      <div class="row g-3">
-        <!-- Left Column -->
-        <div class="col-md-6">
-          <!-- Pricing Strategy & Currency -->
-          <div class="row g-2 mb-3">
-<div class="col-md-6">
-  <label class="form-label small fw-semibold">Pricing Strategy</label>
+            <div class="row g-3">
 
-  <select
-    class="form-select form-select-sm"
-    [(ngModel)]="pricingStrategy">
+              <!-- ── Left Column ── -->
+              <div class="col-md-6">
 
-    @for (item of pricingstrategylist; track item.Key) {
-      <option [ngValue]="item.Key">
-        {{ item.Value }}
-      </option>
-    }
+                <!-- Strategy + Currency -->
+                <div class="row g-2 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Pricing Strategy</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="pricingStrategy">
+                      <option value="per-person">Per-Person</option>
+                      <option value="overall">Overall</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Selling Currency</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="sellingCurrency">
+                      <option value="INR">INR</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                </div>
 
-  </select>
-</div>
+                <!-- PER-PERSON mode only -->
+                @if (pricingStrategy === 'per-person') {
+
+                <!-- Guest summary -->
+                <div class="border rounded p-3 mb-3" style="background:#fff;">
+                  <div class="fw-semibold small mb-2">Guest Breakdown</div>
+                  <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:13px;">
+                    <span class="badge bg-primary text-white">{{ totalAdults() }} Adults</span>
+                    @if (childrenCount > 0) {
+                    <span class="badge bg-secondary text-white">{{ childrenCount }} Children</span>
+                    }
+                    <span class="text-muted small">Total: {{ totalGuestCount() }} guests</span>
+                  </div>
+                </div>
+
+                <!-- Segregation per paying guest -->
+                <div class="border rounded p-3" style="background:#fff;">
+                  <div class="fw-semibold small mb-2">Per Paying Guest Breakdown</div>
+                  <div class="row g-1 small">
+                    <div class="col-6 d-flex justify-content-between">
+                      <span class="text-muted">Hotels:</span>
+                      <span class="fw-semibold">INR {{ formatCurrency(perPersonHotel()) }}</span>
+                    </div>
+                    <div class="col-6 d-flex justify-content-between">
+                      <span class="text-muted">Transports:</span>
+                      <span class="fw-semibold">INR {{ formatCurrency(perPersonTransport()) }}</span>
+                    </div>
+                    <div class="col-6 d-flex justify-content-between">
+                      <span class="text-muted">Activities:</span>
+                      <span class="fw-semibold">INR {{ formatCurrency(perPersonActivity()) }}</span>
+                    </div>
+                    <div class="col-6 d-flex justify-content-between border-top pt-1 mt-1">
+                      <span class="fw-bold">Per Person:</span>
+                      <span class="fw-bold text-primary">INR {{ formatCurrency(perPersonTotal()) }}</span>
+                    </div>
+                  </div>
+                </div>
+                }
+
+                <!-- OVERALL mode only -->
+                @if (pricingStrategy === 'overall') {
+                <div class="border rounded p-3 mb-3" style="background:#fff;">
+                  <div class="fw-semibold small mb-2">Free of Charge (FOC)</div>
+                  <div class="row g-2 align-items-center">
+                    <div class="col-sm-6">
+                      <label class="form-label small text-muted mb-1">Total FOC Guests</label>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="totalFOC"
+                        (ngModelChange)="onFOCChange()" min="0" [max]="totalGuestCount() - 1" step="1">
+                      <div class="text-muted mt-1" style="font-size:11px;">
+                        Max: {{ totalGuestCount() - 1 }} (at least 1 paying guest required)
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="border rounded p-2 bg-light" style="font-size:12px;">
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">Total Guests:</span>
+                          <span class="fw-semibold">{{ totalGuestCount() }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">FOC:</span>
+                          <span class="fw-semibold text-warning">{{ totalFOC }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-1 mt-1">
+                          <span class="fw-bold">Paying:</span>
+                          <span class="fw-bold text-success">{{ payingGuestCount() }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  @if (payingGuestCount() <= 0) { <div class="alert alert-danger py-1 px-2 mt-2 mb-0"
+                    style="font-size:12px;">
+                    At least one paying guest is required.
+                </div>
+                }
+              </div>
+              }
+
+            </div>
+
+            <!-- ── Right Column ── -->
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Selling Currency</label>
-              <select class="form-select form-select-sm" [(ngModel)]="sellingCurrency">
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-          </div>
+              <div class="fw-semibold small mb-2">Set Markup, Tax and Rounding</div>
 
-          <!-- Per-Person Settings -->
-          <div class="border rounded p-3 mb-3" style="background:#fff;">
-            <div class="fw-semibold small mb-2">Per-Person Settings</div>
-            <div class="d-flex align-items-center gap-3 mb-2">
-              <span class="badge bg-primary text-white">{{ totalAdults() }} Adults</span>
-              <span class="text-muted small">•</span>
-              <div class="d-flex align-items-center gap-2">
-                <input class="form-check-input" type="checkbox" id="excludeTransport" 
-                       [(ngModel)]="excludeTransportCharges">
-                <label class="form-check-label small" for="excludeTransport">
-                  Ex. Transport charges for: <strong>{{ excludeTransportCount || 1 }}</strong>
+              <!-- Markup type toggle -->
+              <div class="d-flex align-items-center gap-3 mb-2">
+                <label class="form-label small fw-semibold mb-0">Markup Type</label>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-sm" [class.btn-primary]="markupType === 'fixed'"
+                    [class.btn-outline-secondary]="markupType !== 'fixed'" (click)="markupType = 'fixed'">Fixed</button>
+                  <button class="btn btn-sm" [class.btn-primary]="markupType === 'percentage'"
+                    [class.btn-outline-secondary]="markupType !== 'percentage'"
+                    (click)="markupType = 'percentage'">%</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered" style="font-size:13px;">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Type</th>
+                      <th class="text-end">Cost (INR)</th>
+                      <th class="text-end">
+                        Markup
+                        @if (markupType === 'percentage') { <span class="text-muted">(%) </span> }
+                        @else { <span class="text-muted">(₹)</span> }
+                      </th>
+                      <th class="text-end">
+                        <div class="d-flex align-items-center gap-1 justify-content-end">
+                          <input type="checkbox" id="gstToggle" [(ngModel)]="gstEnabled" style="cursor:pointer;">
+                          <label for="gstToggle" style="cursor:pointer; margin:0;">
+                            GST
+                          </label>
+                          @if (gstEnabled) {
+                          <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="gstPercent"
+                            style="width:50px;" min="0" max="28">
+                          <span style="font-size:11px;">%</span>
+                          }
+                        </div>
+                      </th>
+                      <th class="text-end">Total (INR)</th>
+                      <th class="text-center">Round</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+
+                    @if (pricingStrategy === 'per-person') {
+                    <!-- Per-person row -->
+                    <tr>
+                      <td>
+                        <div class="fw-semibold">/Person</div>
+                        <div class="text-muted" style="font-size:11px;">
+                          × {{ payingGuestCount() }} paying guests
+                        </div>
+                      </td>
+                      <td class="text-end">
+                        <div class="fw-semibold">{{ formatCurrency(perPersonTotal()) }}</div>
+                        <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
+                      </td>
+                      <td class="text-end">
+                        <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="markupAmount"
+                          style="width:80px;" min="0">
+                      </td>
+                      <td class="text-end">
+                        @if (gstEnabled) {
+                        <div>{{ formatCurrency(computedGstAmount()) }}</div>
+                        <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
+                        } @else {
+                        <span class="text-muted">—</span>
+                        }
+                      </td>
+                      <td class="text-end fw-bold text-primary">
+                        INR {{ formatCurrency(finalSellingPrice()) }}
+                      </td>
+                      <td class="text-center">
+                        <select class="form-select form-select-sm" [(ngModel)]="roundingMode"
+                          style="width:70px; font-size:11px;">
+                          <option value="none">None</option>
+                          <option value="1">×1</option>
+                          <option value="10">×10</option>
+                          <option value="100">×100</option>
+                        </select>
+                      </td>
+                    </tr>
+                    }
+
+                    @if (pricingStrategy === 'overall') {
+                    <!-- Overall row -->
+                    <tr>
+                      <td>
+                        <div class="fw-semibold">Total Package</div>
+                        <div class="text-muted" style="font-size:11px;">
+                          {{ payingGuestCount() }} paying guests
+                        </div>
+                      </td>
+                      <td class="text-end">
+                        <div class="fw-semibold">{{ formatCurrency(totalCost()) }}</div>
+                      </td>
+                      <td class="text-end">
+                        <input type="number" class="form-control form-control-sm text-end" [(ngModel)]="markupAmount"
+                          style="width:80px;" min="0">
+                      </td>
+                      <td class="text-end">
+                        @if (gstEnabled) {
+                        <div>{{ formatCurrency(computedGstAmount()) }}</div>
+                        <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
+                        } @else {
+                        <span class="text-muted">—</span>
+                        }
+                      </td>
+                      <td class="text-end fw-bold text-primary">
+                        INR {{ formatCurrency(finalSellingPrice()) }}
+                      </td>
+                      <td class="text-center">
+                        <select class="form-select form-select-sm" [(ngModel)]="roundingMode"
+                          style="width:70px; font-size:11px;">
+                          <option value="none">None</option>
+                          <option value="1">×1</option>
+                          <option value="10">×10</option>
+                          <option value="100">×100</option>
+                        </select>
+                      </td>
+                    </tr>
+                    }
+
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-light fw-bold">
+                      <td>Total</td>
+                      <td class="text-end">INR {{ formatCurrency(totalCost()) }}</td>
+                      <td class="text-end">INR {{ formatCurrency(markupValue()) }}</td>
+                      <td class="text-end">INR {{ formatCurrency(computedGstAmount()) }}</td>
+                      <td class="text-end text-primary">INR {{ formatCurrency(finalSellingPrice()) }}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <!-- Per-paying-guest summary (both modes) -->
+              @if (payingGuestCount() > 0) {
+              <div class="border rounded p-2 mb-3 bg-white" style="font-size:12px;">
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">Final price per paying guest:</span>
+                  <span class="fw-bold text-primary">
+                    INR {{ formatCurrency(perPayingGuestPrice()) }}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-muted">× {{ payingGuestCount() }} paying guests =</span>
+                  <span class="fw-semibold">INR {{ formatCurrency(finalSellingPrice()) }}</span>
+                </div>
+              </div>
+              }
+
+              <!-- Internal Comments -->
+              <div class="mt-2">
+                <label class="form-label small fw-semibold">
+                  Internal comments regarding selling price (optional)
                 </label>
+                <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="internalNotes"
+                  placeholder="Internal notes..."></textarea>
               </div>
-            </div>
-            <div class="text-muted small">Transport cost for {{ totalAdults() }} Adults</div>
-          </div>
 
-          <!-- Segregation -->
-          <div class="border rounded p-3" style="background:#fff;">
-            <div class="fw-semibold small mb-2">Segregation</div>
-            <div class="row g-1 small">
-              <div class="col-6 d-flex justify-content-between">
-                <span class="text-muted">Hotels:</span>
-                <span class="fw-semibold">INR {{ formatCurrency(hotelTotal() / getPaxCount()) }}</span>
+              <!-- Remarks for Customer -->
+              <div class="mt-2">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                  <label class="form-label small fw-semibold mb-0">
+                    Remarks for Agent/Customer (optional)
+                  </label>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'write'"
+                      (click)="remarksTab = 'write'">Write</button>
+                    <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'preview'"
+                      (click)="remarksTab = 'preview'">Preview</button>
+                  </div>
+                </div>
+
+                @if (remarksTab === 'write') {
+                <div class="border rounded" style="background:#fff;">
+                  <quill-editor name="customerRemarks" [(ngModel)]="customerRemarks" [modules]="quillModules"
+                    placeholder="Any special remarks for the customer..."
+                    style="min-height:50px; display:block; border:none;">
+                  </quill-editor>
+                </div>
+                <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
+                } @else {
+                <div class="border rounded p-3 mt-1" style="min-height:80px; background:#fff; font-size:13px;">
+                  <div [innerHTML]="getSanitizedRemarks() || 'No remarks added yet.'"></div>
+                </div>
+                <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
+                }
               </div>
-              <div class="col-6 d-flex justify-content-between">
-                <span class="text-muted">Transports:</span>
-                <span class="fw-semibold">INR {{ formatCurrency(transportTotal() / getPaxCount()) }}</span>
-              </div>
-              <div class="col-6 d-flex justify-content-between">
-                <span class="text-muted">Activities:</span>
-                <span class="fw-semibold">INR {{ formatCurrency(activityTotal() / getPaxCount()) }}</span>
-              </div>
-              <div class="col-6 d-flex justify-content-between border-top pt-1 mt-1">
-                <span class="fw-bold">Per Person:</span>
-                <span class="fw-bold text-primary">INR {{ formatCurrency(totalCost() / getPaxCount()) }}</span>
-              </div>
+
             </div>
           </div>
         </div>
 
-        <!-- Right Column - Markup Table -->
-        <div class="col-md-6">
-          <div class="fw-semibold small mb-2">Set Markup, Tax and Rounding</div>
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- FINAL PACKAGE PREVIEW                                   -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="border rounded p-4" style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+              style="width:32px; height:32px; font-size:14px;">
+              <i class="bx bx-receipt"></i>
+            </div>
+            <span class="fw-bold fs-6">Preview Final Package Price</span>
+            <span class="text-muted small ms-2">Here are the final prices for this quote.</span>
+          </div>
+
           <div class="table-responsive">
-            <table class="table table-sm table-bordered" style="font-size:13px;">
+            <table class="table table-sm table-bordered" style="font-size:14px;">
               <thead class="table-light">
                 <tr>
-                  <th></th>
-                  <th class="text-end">Cost Price (INR)</th>
-                  <th class="text-end">Markup</th>
-                  <th class="text-end">Tax Applied On</th>
-                  <th class="text-end">GST (exc)</th>
-                  <th class="text-end">Total (INR)</th>
-                  <th class="text-center">Round</th>
+                  <th style="width:35%;">Package Name</th>
+                  <th style="width:20%;" class="text-end">Per Pax Price</th>
+                  <th style="width:15%;" class="text-center">Qnty.</th>
+                  <th style="width:15%;" class="text-end">Sub Total</th>
+                  <th style="width:15%;" class="text-end">Total</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>
-                    <div class="fw-semibold">/Person (Double Sharing)</div>
-                    <div class="text-muted" style="font-size:11px;">x {{ getPaxCount() }} Pax</div>
+                    <div class="fw-medium">{{ getPackageName() }}</div>
+                    <div class="text-muted" style="font-size:11px;">Double Sharing × {{ getPaxCount() }} Pax</div>
                   </td>
+                  <td class="text-end fw-semibold">
+                    INR {{ formatCurrency(finalPrice() / getPaxCount()) }}
+                  </td>
+                  <td class="text-center">{{ getPaxCount() }}</td>
                   <td class="text-end">
-                    <div class="fw-semibold">{{ formatCurrency(totalCost() / getPaxCount()) }}</div>
-                    <div class="text-muted" style="font-size:10px;">× {{ getPaxCount() }}</div>
-                  </td>
-                  <td class="text-end">
-                    <input type="number" class="form-control form-control-sm text-end" 
-                           [(ngModel)]="markupAmount" style="width:80px;" min="0">
-                  </td>
-                  <td class="text-end">
-                    <select class="form-select form-select-sm" [(ngModel)]="taxAppliedOn" style="width:100px;">
-                      <option value="none">None</option>
-                      <option value="gst">GST</option>
-                      <option value="service">Service Tax</option>
-                    </select>
-                  </td>
-                  <td class="text-end">
-                    <div>{{ formatCurrency(gstAmount()) }}</div>
-                    <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
-                  </td>
-                  <td class="text-end fw-bold text-primary">
                     INR {{ formatCurrency(finalPrice()) }}
                   </td>
-                  <td class="text-center">
-                    <input type="number" class="form-control form-control-sm text-center" 
-                           [(ngModel)]="roundingValue" style="width:50px;" min="0">
+                  <td class="text-end fw-bold text-primary">
+                    INR {{ formatCurrency(applyRounding(finalPrice())) }}
                   </td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr class="table-light fw-bold">
-                  <td>Total</td>
-                  <td class="text-end">INR {{ formatCurrency(totalCost()) }}</td>
-                  <td class="text-end">INR {{ formatCurrency(markupAmount || 0) }}</td>
-                  <td class="text-end">-</td>
-                  <td class="text-end">INR {{ formatCurrency(gstAmount()) }}</td>
-                  <td class="text-end text-primary">INR {{ formatCurrency(finalPrice()) }}</td>
-                  <td class="text-center">INR</td>
+                  <td colspan="4" class="text-end">Total</td>
+                  <td class="text-end text-primary fs-6">
+                    INR {{ formatCurrency(applyRounding(finalPrice())) }}
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="5" class="text-muted small">
+                    <i class="bx bx-info-circle me-1"></i>
+                    Tax: GST ({{ gstPercent }}%)
+                    @if (roundingValue) {
+                    <span class="ms-2">• Rounded: INR {{ formatCurrency(roundingValue) }}</span>
+                    }
+                  </td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <!-- Internal Comments -->
-          <div class="mt-2">
-            <label class="form-label small fw-semibold">Any internal comments regarding selling price (optional)</label>
-            <textarea class="form-control form-control-sm" rows="2" 
-                      [(ngModel)]="internalNotes" placeholder="Internal notes..."></textarea>
+          <!-- Save / Cancel Buttons -->
+          <div class="d-flex gap-3 mt-3 pt-3 border-top">
+            <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()"
+              [disabled]="loading()">
+              <i class="bx bx-save me-1"></i>
+              {{ loading() ? 'Saving…' : 'Save Quote' }}
+            </button>
+            <button mat-stroked-button (click)="cancel()">Cancel</button>
           </div>
-
-<!-- Remarks for Customer with Quill Editor -->
-<div class="mt-2">
-  <div class="d-flex align-items-center gap-3 mb-2">
-    <label class="form-label small fw-semibold mb-0">Remarks for Agent/Customer (optional)</label>
-    <div class="btn-group btn-group-sm">
-      <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'write'" 
-              (click)="remarksTab = 'write'">Write</button>
-      <button class="btn btn-outline-primary btn-sm" [class.active]="remarksTab === 'preview'" 
-              (click)="remarksTab = 'preview'">Preview</button>
-    </div>
-  </div>
-  
-  @if (remarksTab === 'write') {
-    <div class="border rounded" style="background:#fff;">
-      <quill-editor
-        name="customerRemarks"
-        [(ngModel)]="customerRemarks"
-        [modules]="quillModules"
-        placeholder="Any special remarks for the customer..."
-        style="min-height:50px; display: block; border: none;">
-      </quill-editor>
-    </div>
-    <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
-  } @else {
-    <!-- Option 1: Using a getter -->
-<div class="border rounded p-3 mt-1" style="min-height:80px; background:#fff; font-size:13px;">
-  <div [innerHTML]="getSanitizedRemarks() || 'No remarks added yet.'"></div>
-</div>
-    <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
-  }
-</div>
         </div>
+
       </div>
     </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- FINAL PACKAGE PREVIEW                                   -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="border rounded p-4" style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-             style="width:32px; height:32px; font-size:14px;">
-          <i class="bx bx-receipt"></i>
-        </div>
-        <span class="fw-bold fs-6">Preview Final Package Price</span>
-        <span class="text-muted small ms-2">Here are the final prices for this quote.</span>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered" style="font-size:14px;">
-          <thead class="table-light">
-            <tr>
-              <th style="width:35%;">Package Name</th>
-              <th style="width:20%;" class="text-end">Per Pax Price</th>
-              <th style="width:15%;" class="text-center">Qnty.</th>
-              <th style="width:15%;" class="text-end">Sub Total</th>
-              <th style="width:15%;" class="text-end">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <div class="fw-medium">{{ getPackageName() }}</div>
-                <div class="text-muted" style="font-size:11px;">Double Sharing × {{ getPaxCount() }} Pax</div>
-              </td>
-              <td class="text-end fw-semibold">
-                INR {{ formatCurrency(finalPrice() / getPaxCount()) }}
-              </td>
-              <td class="text-center">{{ getPaxCount() }}</td>
-              <td class="text-end">
-                INR {{ formatCurrency(finalPrice()) }}
-              </td>
-              <td class="text-end fw-bold text-primary">
-                INR {{ formatCurrency(applyRounding(finalPrice())) }}
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="table-light fw-bold">
-              <td colspan="4" class="text-end">Total</td>
-              <td class="text-end text-primary fs-6">
-                INR {{ formatCurrency(applyRounding(finalPrice())) }}
-              </td>
-            </tr>
-            <tr>
-              <td colspan="5" class="text-muted small">
-                <i class="bx bx-info-circle me-1"></i> 
-                Tax: GST ({{ gstPercent }}%) 
-                @if (roundingValue) {
-                  <span class="ms-2">• Rounded: INR {{ formatCurrency(roundingValue) }}</span>
-                }
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <!-- Save / Cancel Buttons -->
-      <div class="d-flex gap-3 mt-3 pt-3 border-top">
-        <button mat-raised-button color="primary" style="min-width:130px;" 
-                (click)="saveQuote()" [disabled]="loading()">
-          <i class="bx bx-save me-1"></i>
-          {{ loading() ? 'Saving…' : 'Save Quote' }}
-        </button>
-        <button mat-stroked-button (click)="cancel()">Cancel</button>
-      </div>
-    </div>
-
-  </div>
-</div>
 
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- INTERNAL NOTES                                       -->
@@ -2204,9 +2326,8 @@
       <div class="card-body">
         <label class="form-label fw-semibold mb-2">Internal Notes</label>
         <textarea class="form-control" rows="3"
-                  placeholder="Any internal comments regarding customer request or anything special about this quote…"
-                  [(ngModel)]="internalNotes"
-                  style="font-size:13px; resize:none;">
+          placeholder="Any internal comments regarding customer request or anything special about this quote…"
+          [(ngModel)]="internalNotes" style="font-size:13px; resize:none;">
         </textarea>
       </div>
     </div>
@@ -2214,13 +2335,11 @@
     <!-- ═══════════════════════════════════════════════════ -->
     <!-- FINAL PRICE PREVIEW                                  -->
     <!-- ═══════════════════════════════════════════════════ -->
-    <div class="card border-0 shadow-sm mb-4"
-         style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
+    <div class="card border-0 shadow-sm mb-4" style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
       <div class="card-body">
         <div class="d-flex align-items-start gap-3 mb-3">
           <div class="bg-primary rounded-circle d-flex align-items-center
-                      justify-content-center text-white flex-shrink-0"
-               style="width:40px; height:40px;">
+                      justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
             <i class="bx bx-receipt fs-5"></i>
           </div>
           <div>
@@ -2238,9 +2357,8 @@
           </div>
           <div>
             <label class="form-label small text-muted mb-1">GST %</label>
-            <input type="number" class="form-control form-control-sm"
-                   style="width:80px;"
-                   [(ngModel)]="gstPercent" min="0" max="28">
+            <input type="number" class="form-control form-control-sm" style="width:80px;" [(ngModel)]="gstPercent"
+              min="0" max="28">
           </div>
         </div>
       </div>
@@ -2248,10 +2366,7 @@
 
     <!-- Save / Cancel -->
     <div class="d-flex gap-3 pb-4">
-      <button mat-raised-button color="primary"
-              style="min-width:130px;"
-              (click)="saveQuote()"
-              [disabled]="loading()">
+      <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()" [disabled]="loading()">
         <i class="bx bx-save me-1"></i>
         {{ loading() ? 'Saving…' : 'Save Quote' }}
       </button>
@@ -2261,22 +2376,22 @@
   </div>
 
   } @else if (!loading()) {
-    <div class="text-center text-muted py-5">
-      <i class="bx bx-error-circle fs-1 d-block mb-2 opacity-25"></i>
-      <p>Trip details not found.</p>
-    </div>
+  <div class="text-center text-muted py-5">
+    <i class="bx bx-error-circle fs-1 d-block mb-2 opacity-25"></i>
+    <p>Trip details not found.</p>
+  </div>
   }
 
 </div>
 </div>
 
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- FINAL PRICE PREVIEW                                  -->
-      <!-- ═══════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- FINAL PRICE PREVIEW                                  -->
+<!-- ═══════════════════════════════════════════════════ -->
 
 
-      <!-- Save / Cancel -->
-      <!-- <div class="d-flex gap-3 pb-4">
+<!-- Save / Cancel -->
+<!-- <div class="d-flex gap-3 pb-4">
       <button mat-raised-button color="primary"
               style="min-width:130px;"
               (click)="saveQuote()"
