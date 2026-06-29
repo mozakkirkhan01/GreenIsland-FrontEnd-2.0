@@ -926,9 +926,9 @@
                 }
               </div>
 
-              <!-- Nights (Multi-select) -->
+              <!-- Night (single select) -->
               <div class="col-sm-2">
-                <label class="form-label small text-muted mb-1">Nights</label>
+                <label class="form-label small text-muted mb-1">Night</label>
                 <div style="position:relative;">
                   <button type="button"
                     class="form-control form-control-sm text-start d-flex align-items-center justify-content-between"
@@ -938,7 +938,7 @@
                       @if (row.SelectedNightsDisplay) {
                       {{ row.SelectedNightsDisplay }}
                       } @else {
-                      <span class="text-muted">Select nights…</span>
+                      <span class="text-muted">Select night…</span>
                       }
                     </span>
                     <i class="bx bx-chevron-down" style="font-size:16px;"></i>
@@ -950,7 +950,8 @@
                     @for (slot of nightSlots(); track slot.NightNumber) {
                     <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
                       style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
-                      <input type="checkbox" [checked]="row.NightNumbers.includes(slot.NightNumber)"
+                      <input type="radio" name="specialInclusionNight_{{ idx }}"
+                        [checked]="row.NightNumbers.includes(slot.NightNumber)"
                         (change)="onNightToggle(row, slot.NightNumber)" style="cursor:pointer;">
                       <span>Night {{ slot.NightNumber }} — {{ slot.DateLabel }}</span>
                     </label>
@@ -960,7 +961,7 @@
                 </div>
                 @if (row.NightNumbers.length > 0) {
                 <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                  {{ row.NightNumbers.length }} night(s)
+                  {{ row.NightNumbers.length }} night
                 </div>
                 }
               </div>
@@ -1989,18 +1990,18 @@
             <div class="row g-3">
 
               <!-- ── Left Column ── -->
-              <div class="col-md-6">
+              <div class="col-md-12">
 
                 <!-- Strategy + Currency -->
                 <div class="row g-2 mb-3">
-                  <div class="col-md-6">
+                  <div class="col-md-3">
                     <label class="form-label small fw-semibold">Pricing Strategy</label>
                     <select class="form-select form-select-sm" [(ngModel)]="pricingStrategy">
                       <option value="per-person">Per-Person</option>
                       <option value="overall">Overall</option>
                     </select>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-2">
                     <label class="form-label small fw-semibold">Selling Currency</label>
                     <select class="form-select form-select-sm" [(ngModel)]="sellingCurrency">
                       <option value="INR">INR</option>
@@ -2008,89 +2009,136 @@
                       <option value="EUR">EUR</option>
                     </select>
                   </div>
+                    <!-- FOC -->
+  @if (pricingStrategy === 'overall') {
+    <div class="col-md-7">
+      <div class="border rounded p-3 bg-white h-100">
+        <div class="fw-semibold small mb-2">Free of Charge (FOC)</div>
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-5">
+            <label class="form-label small text-muted mb-1">Total FOC Guests</label>
+            <input
+              type="number"
+              class="form-control form-control-sm"
+              [(ngModel)]="totalFOC"
+              (ngModelChange)="onFOCChange()"
+              min="0"
+              [max]="totalGuestCount() - 1">
+
+            <div class="text-muted mt-1" style="font-size:11px;">
+              Max: {{ totalGuestCount() - 1 }}
+            </div>
+          </div>
+
+          <div class="col-md-7">
+            <div class="border rounded p-2 bg-light small">
+              <div class="d-flex justify-content-between">
+                <span>Total Guests</span>
+                <strong>{{ totalGuestCount() }}</strong>
+              </div>
+
+              <div class="d-flex justify-content-between">
+                <span>FOC</span>
+                <strong class="text-warning">{{ totalFOC }}</strong>
+              </div>
+
+              <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                <span>Paying</span>
+                <strong class="text-success">{{ payingGuestCount() }}</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        @if (payingGuestCount() <= 0) {
+          <div class="alert alert-danger py-2 mt-3 mb-0">
+            At least one paying guest is required.
+          </div>
+        }
+
+      </div>
+    </div>
+  }
                 </div>
 
                 <!-- PER-PERSON mode only -->
                 @if (pricingStrategy === 'per-person') {
 
-                <!-- Guest summary -->
-                <div class="border rounded p-3 mb-3" style="background:#fff;">
-                  <div class="fw-semibold small mb-2">Guest Breakdown</div>
-                  <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:13px;">
-                    <span class="badge bg-primary text-white">{{ totalAdults() }} Adults</span>
-                    @if (childrenCount > 0) {
-                    <span class="badge bg-secondary text-white">{{ childrenCount }} Children</span>
-                    }
-                    <span class="text-muted small">Total: {{ totalGuestCount() }} guests</span>
-                  </div>
-                </div>
+<div class="row g-3 mb-3">
 
-                <!-- Segregation per paying guest -->
-                <div class="border rounded p-3" style="background:#fff;">
-                  <div class="fw-semibold small mb-2">Per Paying Guest Breakdown</div>
-                  <div class="row g-1 small">
-                    <div class="col-6 d-flex justify-content-between">
-                      <span class="text-muted">Hotels:</span>
-                      <span class="fw-semibold">INR {{ formatCurrency(perPersonHotel()) }}</span>
-                    </div>
-                    <div class="col-6 d-flex justify-content-between">
-                      <span class="text-muted">Transports:</span>
-                      <span class="fw-semibold">INR {{ formatCurrency(perPersonTransport()) }}</span>
-                    </div>
-                    <div class="col-6 d-flex justify-content-between">
-                      <span class="text-muted">Activities:</span>
-                      <span class="fw-semibold">INR {{ formatCurrency(perPersonActivity()) }}</span>
-                    </div>
-                    <div class="col-6 d-flex justify-content-between border-top pt-1 mt-1">
-                      <span class="fw-bold">Per Person:</span>
-                      <span class="fw-bold text-primary">INR {{ formatCurrency(perPersonTotal()) }}</span>
-                    </div>
-                  </div>
-                </div>
+  <!-- Left -->
+  <div class="col-md-6">
+    <div class="border rounded p-3 h-100" style="background:#fff;">
+      <div class="fw-semibold small mb-2">Guest Breakdown</div>
+
+      <div class="d-flex align-items-center gap-3 flex-wrap" style="font-size:13px;">
+        <span class="badge bg-primary text-white">
+          {{ totalAdults() }} Adults
+        </span>
+
+        @if (childrenCount > 0) {
+          <span class="badge bg-secondary text-white">
+            {{ childrenCount }} Children
+          </span>
+        }
+
+        <span class="text-muted small">
+          Total: {{ totalGuestCount() }} guests
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right -->
+  <div class="col-md-6">
+    <div class="border rounded p-3 h-100" style="background:#fff;">
+      <div class="fw-semibold small mb-2">
+        Per Paying Guest Breakdown
+      </div>
+
+      <div class="row g-1 small">
+        <div class="col-6 d-flex justify-content-between">
+          <span class="text-muted">Hotels:</span>
+          <span class="fw-semibold">
+            INR {{ formatCurrency(perPersonHotel()) }}
+          </span>
+        </div>
+
+        <div class="col-6 d-flex justify-content-between">
+          <span class="text-muted">Transports:</span>
+          <span class="fw-semibold">
+            INR {{ formatCurrency(perPersonTransport()) }}
+          </span>
+        </div>
+
+        <div class="col-6 d-flex justify-content-between">
+          <span class="text-muted">Activities:</span>
+          <span class="fw-semibold">
+            INR {{ formatCurrency(perPersonActivity()) }}
+          </span>
+        </div>
+
+        <div class="col-6 d-flex justify-content-between border-top pt-1 mt-1">
+          <span class="fw-bold">Per Person:</span>
+          <span class="fw-bold text-primary">
+            INR {{ formatCurrency(perPersonTotal()) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
                 }
 
-                <!-- OVERALL mode only -->
-                @if (pricingStrategy === 'overall') {
-                <div class="border rounded p-3 mb-3" style="background:#fff;">
-                  <div class="fw-semibold small mb-2">Free of Charge (FOC)</div>
-                  <div class="row g-2 align-items-center">
-                    <div class="col-sm-6">
-                      <label class="form-label small text-muted mb-1">Total FOC Guests</label>
-                      <input type="number" class="form-control form-control-sm" [(ngModel)]="totalFOC"
-                        (ngModelChange)="onFOCChange()" min="0" [max]="totalGuestCount() - 1" step="1">
-                      <div class="text-muted mt-1" style="font-size:11px;">
-                        Max: {{ totalGuestCount() - 1 }} (at least 1 paying guest required)
-                      </div>
-                    </div>
-                    <div class="col-sm-6">
-                      <div class="border rounded p-2 bg-light" style="font-size:12px;">
-                        <div class="d-flex justify-content-between">
-                          <span class="text-muted">Total Guests:</span>
-                          <span class="fw-semibold">{{ totalGuestCount() }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                          <span class="text-muted">FOC:</span>
-                          <span class="fw-semibold text-warning">{{ totalFOC }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-top pt-1 mt-1">
-                          <span class="fw-bold">Paying:</span>
-                          <span class="fw-bold text-success">{{ payingGuestCount() }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  @if (payingGuestCount() <= 0) { <div class="alert alert-danger py-1 px-2 mt-2 mb-0"
-                    style="font-size:12px;">
-                    At least one paying guest is required.
-                </div>
-                }
-              </div>
-              }
+               
 
             </div>
 
-            <!-- ── Right Column ── -->
-            <div class="col-md-6">
+            <div class="col-12">
               <div class="fw-semibold small mb-2">Set Markup, Tax and Rounding</div>
 
               <!-- Markup type toggle -->
@@ -2243,7 +2291,11 @@
                 </div>
               </div>
               }
+        </div>
 
+        <div class="col-md-6 mt-4">
+
+        
               <!-- Internal Comments -->
               <div class="mt-2">
                 <label class="form-label small fw-semibold">
@@ -2252,6 +2304,8 @@
                 <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="internalNotes"
                   placeholder="Internal notes..."></textarea>
               </div>
+</div>
+        <div class="col-md-6 mt-4">
 
               <!-- Remarks for Customer -->
               <div class="mt-2">
@@ -2282,9 +2336,9 @@
                 <div class="text-muted small mt-1">These remarks will be shared with the customer.</div>
                 }
               </div>
-
+</div>
             </div>
-          </div>
+  
         </div>
 
         <!-- ════════════════════════════════════════════════════════ -->

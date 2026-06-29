@@ -1778,10 +1778,9 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   onNightToggle(row: QuoteSpecialInclusionRow, nightNumber: number): void {
     const index = row.NightNumbers.indexOf(nightNumber);
     if (index > -1) {
-      row.NightNumbers.splice(index, 1);
+      row.NightNumbers = [];
     } else {
-      row.NightNumbers.push(nightNumber);
-      row.NightNumbers.sort((a, b) => a - b);
+      row.NightNumbers = [nightNumber];
     }
     this.updateNightsDisplay(row);
     this.specialInclusionRows.update(rows => [...rows]);
