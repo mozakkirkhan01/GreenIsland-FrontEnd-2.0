@@ -2305,15 +2305,14 @@
             </table>
           </div>
 
-          <!-- Save / Cancel Buttons -->
-          <div class="d-flex gap-3 mt-3 pt-3 border-top">
-            <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()"
-              [disabled]="loading()">
-              <i class="bx bx-save me-1"></i>
-              {{ loading() ? 'Saving…' : 'Save Quote' }}
-            </button>
-            <button mat-stroked-button (click)="cancel()">Cancel</button>
-          </div>
+ <!-- Save / Cancel -->
+<div class="d-flex gap-3 pb-4">
+  <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()" [disabled]="loading()">
+    <i class="bx bx-save me-1"></i>
+    {{ loading() ? 'Saving…' : (QuoteId > 0 ? 'Update Quote' : 'Save Quote') }}
+  </button>
+  <button mat-stroked-button (click)="cancel()">Cancel</button>
+</div>
         </div>
 
       </div>
