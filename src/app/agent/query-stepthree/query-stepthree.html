@@ -813,7 +813,7 @@
         <div class="card-body">
           <div class="d-flex align-items-start gap-3 mb-3">
             <div class="bg-warning rounded-circle d-flex align-items-center
-                  justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
+            justify-content-center text-white flex-shrink-0" style="width:40px; height:40px;">
               <i class="bx bx-star fs-5"></i>
             </div>
             <div>
@@ -847,15 +847,15 @@
 
                   @if (row.ServiceSearch.length > 0) {
                   <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
-                               transform:translateY(-50%); font-size:14px;
-                               line-height:1; z-index:10; color:#999;" (mousedown)="clearService(row)">
+                         transform:translateY(-50%); font-size:14px;
+                         line-height:1; z-index:10; color:#999;" (mousedown)="clearService(row)">
                     ×
                   </button>
                   }
 
                   @if (row.ShowServiceDropdown && row.FilteredServices.length > 0) {
                   <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; max-height:180px; overflow-y:auto;">
+                      z-index:1000; max-height:180px; overflow-y:auto;">
                     @for (svc of row.FilteredServices; track svc.SpecialInclusionTypeId) {
                     <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
                       (mousedown)="selectService(row, svc)">
@@ -871,14 +871,6 @@
                       }
                     </div>
                     }
-                  </div>
-                  }
-
-                  @if (row.ShowServiceDropdown && row.ServiceSearch.length > 0
-                  && row.FilteredServices.length === 0) {
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; font-size:13px;">
-                    No services found
                   </div>
                   }
                 </div>
@@ -904,15 +896,15 @@
 
                   @if (row.HotelSearch.length > 0) {
                   <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" style="position:absolute; top:50%; right:8px;
-                                 transform:translateY(-50%); font-size:14px;
-                                 line-height:1; z-index:10; color:#999;" (mousedown)="clearSpecialInclusionHotel(row)">
+                           transform:translateY(-50%); font-size:14px;
+                           line-height:1; z-index:10; color:#999;" (mousedown)="clearSpecialInclusionHotel(row)">
                     ×
                   </button>
                   }
 
                   @if (row.ShowHotelDropdown && row.FilteredHotels.length > 0) {
                   <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
-                              z-index:1000; max-height:180px; overflow-y:auto;">
+                        z-index:1000; max-height:180px; overflow-y:auto;">
                     @for (h of row.FilteredHotels; track h.HotelId) {
                     <div class="px-3 py-2" style="font-size:13px; cursor:pointer;"
                       (mousedown)="selectSpecialInclusionHotel(row, h)">
@@ -922,14 +914,6 @@
                       </div>
                     </div>
                     }
-                  </div>
-                  }
-
-                  @if (row.ShowHotelDropdown && row.HotelSearch.length > 0
-                  && row.FilteredHotels.length === 0) {
-                  <div class="border rounded bg-white shadow-sm px-3 py-2 text-muted" style="position:absolute; top:100%; left:0; right:0;
-                              z-index:1000; font-size:13px;">
-                    No hotels found
                   </div>
                   }
                 </div>
@@ -962,7 +946,7 @@
 
                   @if (row.ShowNightDropdown) {
                   <div class="border rounded bg-white shadow-sm" style="position:absolute; top:100%; left:0; right:0;
-                            z-index:1000; max-height:200px; overflow-y:auto;">
+                      z-index:1000; max-height:200px; overflow-y:auto;">
                     @for (slot of nightSlots(); track slot.NightNumber) {
                     <label class="px-3 py-2 mb-0 d-flex align-items-center gap-2"
                       style="font-size:13px; cursor:pointer; border-bottom:1px solid #f0f0f0;">
@@ -985,7 +969,8 @@
               <div class="col-sm-2">
                 <label class="form-label small text-muted mb-1">Price (INR)</label>
                 <input type="number" class="form-control form-control-sm" [(ngModel)]="row.TotalPrice"
-                  (ngModelChange)="markDirty()" placeholder="e.g. 3000">
+                  (ngModelChange)="markDirty()" (ngModelChange)="onSpecialInclusionPriceChange(row)"
+                  placeholder="e.g. 3000">
               </div>
 
               <!-- Comments -->
@@ -995,20 +980,7 @@
                   (ngModelChange)="markDirty()" placeholder="Any comments…">
               </div>
 
-              <!-- Save button -->
-              <!-- <div class="col-12 d-flex justify-content-end">
-            <button class="btn btn-outline-primary btn-sm"
-                    style="font-size:12px;"
-                    [disabled]="row.IsSaving || row.NightNumbers.length === 0"
-                    (click)="saveSpecialInclusionRow(row)">
-              @if (row.IsSaving) {
-                <i class="bx bx-loader-alt bx-spin me-1"></i> Saving…
-              } @else {
-                <i class="bx bx-save me-1"></i>
-                {{ row.QuoteSpecialInclusionId > 0 ? 'Update' : 'Save' }}
-              }
-            </button>
-          </div> -->
+              <!-- REMOVED SAVE BUTTON - WILL BE SAVED WITH MAIN QUOTE -->
 
             </div>
           </div>
@@ -1029,9 +1001,7 @@
 
         </div>
       </div>
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
-      <!-- ═══════════════════════════════════════════════════ -->
+
 
       <!-- ═══════════════════════════════════════════════════ -->
       <!-- TRANSPORTS & ACTIVITIES SECTION                      -->
@@ -1683,7 +1653,7 @@
           <!-- ════════════════════════════════════════════════════════ -->
           <!-- ACCOMMODATION SECTION                                   -->
           <!-- ════════════════════════════════════════════════════════ -->
-          @if (summaryHotels.length > 0) {
+          @if (summaryHotels.length > 0 || specialInclusionRows().length > 0) {
           <div class="mb-4">
             <div class="d-flex align-items-center gap-2 mb-3">
               <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
@@ -1693,6 +1663,8 @@
               <span class="fw-bold fs-6">Accommodation</span>
             </div>
 
+            <!-- Hotels Table -->
+            @if (summaryHotels.length > 0) {
             <div class="table-responsive">
               <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
                 <thead class="table-light">
@@ -1746,14 +1718,86 @@
                 </tbody>
               </table>
             </div>
+            }
 
-            <div class="text-end">
+            <!-- Hotel Special Inclusions Table -->
+            @if (getSummarySpecialInclusions().length > 0) {
+            <div class="mt-3">
+              <div class="fw-semibold small mb-2" style="color:#444;">Hotel Special Inclusions</div>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:12%;">Night</th>
+                      <th style="width:35%;">Hotel</th>
+                      <th style="width:32%;">Service</th>
+                      <th style="width:21%;" class="text-end">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (si of getSummarySpecialInclusions(); track si.QuoteSpecialInclusionId) {
+                    <tr>
+                      <td>
+                        @if (si.NightNumbers.length > 0) {
+                        <div class="fw-semibold">
+                          {{ si.NightNumbers[0] }}<sup>{{ si.NightNumbers[0] === 1 ? 'st' :
+                            si.NightNumbers[0] === 2 ? 'nd' :
+                            si.NightNumbers[0] === 3 ? 'rd' : 'th' }}</sup>
+                        </div>
+                        @if (nightSlots()[si.NightNumbers[0] - 1]; as slot) {
+                        <div class="text-muted" style="font-size:10px;">{{ slot.DateLabel }}</div>
+                        }
+                        @if (si.NightNumbers.length > 1) {
+                        <div class="text-muted" style="font-size:10px;">
+                          +{{ si.NightNumbers.length - 1 }} more
+                        </div>
+                        }
+                        } @else {
+                        <span class="text-muted">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (si.UseManualLocation) {
+                        <div class="fw-medium">{{ si.ManualLocationName || '—' }}</div>
+                        <div class="text-muted" style="font-size:11px; font-style:italic;">Manual entry</div>
+                        } @else {
+                        <div class="fw-medium">{{ si.HotelName || '—' }}</div>
+                        @if (si.HotelName) {
+                        @let hotel = getHotelInfoForInclusion(si);
+                        @if (hotel) {
+                        <div class="text-muted" style="font-size:11px;">
+                          {{ hotel.LocationName }}
+                          @if (hotel.HotelCategoryName) { , {{ hotel.HotelCategoryName }} }
+                        </div>
+                        }
+                        }
+                        }
+                      </td>
+                      <td>
+                        <div class="fw-medium">{{ si.SpecialInclusionName || '—' }}</div>
+                        @if (si.Comments) {
+                        <div class="text-muted" style="font-size:11px;">{{ si.Comments }}</div>
+                        }
+                      </td>
+                      <td class="text-end fw-semibold">
+                        INR {{ formatCurrency(si.TotalPrice) }}
+                      </td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            }
+
+            <!-- Total -->
+            <div class="text-end mt-2">
               <span class="fw-semibold">Total:</span>
               <span class="fw-bold text-primary">INR {{ formatCurrency(hotelTotal()) }}</span>
             </div>
+
           </div>
           }
-
           <!-- ════════════════════════════════════════════════════════ -->
           <!-- TRANSPORTATION & ACTIVITIES SECTION                    -->
           <!-- ════════════════════════════════════════════════════════ -->
@@ -2305,14 +2349,15 @@
             </table>
           </div>
 
- <!-- Save / Cancel -->
-<div class="d-flex gap-3 pb-4">
-  <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()" [disabled]="loading()">
-    <i class="bx bx-save me-1"></i>
-    {{ loading() ? 'Saving…' : (QuoteId > 0 ? 'Update Quote' : 'Save Quote') }}
-  </button>
-  <button mat-stroked-button (click)="cancel()">Cancel</button>
-</div>
+          <!-- Save / Cancel -->
+          <div class="d-flex gap-3 pb-4">
+            <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()"
+              [disabled]="loading()">
+              <i class="bx bx-save me-1"></i>
+              {{ loading() ? 'Saving…' : (QuoteId > 0 ? 'Update Quote' : 'Save Quote') }}
+            </button>
+            <button mat-stroked-button (click)="cancel()">Cancel</button>
+          </div>
         </div>
 
       </div>
