@@ -104,3 +104,8 @@ export enum PassengerType {
     Child = 2,
     Infant = 3
 }
+
+export enum PricingStrategy {
+    Overall = 1,
+    "Per-Person" = 2
+}
