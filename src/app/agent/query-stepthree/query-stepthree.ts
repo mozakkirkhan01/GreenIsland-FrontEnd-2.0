@@ -4821,100 +4821,172 @@ getActiveDayGroups(): DayGroup[] {
     return pkg?.PackageTypeName || 'Standard Package';
   }
 
- hasAnyTransportOrActivity(): boolean {
-  return this.getActiveTransportRows().length > 0 ||
-    this.getActiveActivityRows().length > 0 ||
+  getPackageHotelTotal(packageTypeId: number): number {
+    const hotelTotal = this.hotelRows()
+      .filter(r => r.QuotePackageTypeId === packageTypeId)
+      .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
+    const specialInclusionTotal = this.specialInclusionRows()
+      .filter(r => r.QuotePackageTypeId === packageTypeId)
+      .reduce((sum, r) => sum + (r.TotalPrice || 0), 0);
+    return hotelTotal + specialInclusionTotal;
+  }
+
+getPackageTransportTotal(packageTypeId: number): number {
+  let total = 0;
+  
+  // Include ALL dayGroups (since transport is not linked to package type)
+  this.dayGroups().forEach(group => {
+    group.TransportRows.forEach(row => {
+      total += (row.SellingPrice || row.TotalPrice || 0);
+    });
+  });
+  
+  // Check transportRows with matching package type
+  total += this.transportRows()
+    .filter(r => r.QuotePackageTypeId === packageTypeId)
+    .reduce((sum, r) => sum + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
+  
+  // Check serviceRows for transports
+  total += this.serviceRows()
+    .filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === packageTypeId)
+    .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
+  
+  return total;
+}
+
+getPackageActivityTotal(packageTypeId: number): number {
+  let total = 0;
+  
+  // Check dayGroups - but they have QuotePackageTypeId: 0
+  // We need to check if the dayGroup is associated with this package type
+  // Since dayGroups have QuotePackageTypeId: 0, we should check if the activity rows 
+  // inside the group have the correct package type or use a different approach
+  
+  // Instead of filtering by dayGroup.QuotePackageTypeId, we need to check 
+  // if this package type is the active one for the group's activities
+  
+  // For now, let's include ALL dayGroups regardless of package type
+  // since transport and activities are NOT linked to package types
+  this.dayGroups().forEach(group => {
+    group.ActivityRows.forEach(row => {
+      total += this.getActivityRowTotal(row);
+    });
+  });
+  
+  // Check activityTicketRows - these have QuotePackageTypeId set
+  total += this.activityTicketRows()
+    .filter(r => r.QuotePackageTypeId === packageTypeId)
+    .reduce((sum, r) => sum + this.getActivityRowTotal(r), 0);
+  
+  // Check serviceRows for activities
+  total += this.serviceRows()
+    .filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === packageTypeId)
+    .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
+  
+  return total;
+}
+
+  getPackageTotalCost(packageTypeId: number): number {
+  return this.getPackageHotelTotal(packageTypeId)
+    + this.getPackageTransportTotal(packageTypeId)
+    + this.getPackageActivityTotal(packageTypeId);
+}
+
+hasAnyTransportOrActivity(): boolean {
+  return this.transportRows().length > 0 ||
+    this.activityTicketRows().length > 0 ||
+    this.serviceRows().some(r => r.ServiceType === 1 || r.ServiceType === 2) ||
     this.getActiveDayGroups().some(group => group.TransportRows.length > 0 || group.ActivityRows.length > 0);
 }
 
   getDayItems(dayNumber: number): any[] {
-  const items: any[] = [];
+    const items: any[] = [];
 
-  // Transport from standalone rows - REMOVE package type filter
-  const transportRows = this.getTransportRowsForDayGroup(dayNumber);
-  transportRows.forEach(row => {
-    items.push({
-      id: `t-${row.QuoteServiceId}-${row.DayNumber}`,
-      location: row.LocationName || '—',
-      serviceName: row.IteneraryServiceName || 'Transport Service',
-      detail: row.VehicleTypeName || 'Vehicle',
-      quantity: row.Qty || 1,
-      price: row.SellingPrice || row.TotalPrice || 0,
-      breakdown: row.CostPrice > 0
-        ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}`
-        : undefined,
-    });
-  });
-
-  // Activities from standalone activityTicketRows - REMOVE package type filter
-  this.getActiveActivityRows().forEach(row => {
-    this.getActivityEntriesForDay(row, dayNumber).forEach(({ group, entry }) => {
+    // Transport from standalone rows
+    const transportRows = this.getTransportRowsForDayGroup(dayNumber);
+    transportRows.forEach(row => {
       items.push({
-        id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
+        id: `t-${row.QuoteServiceId}-${row.DayNumber}`,
         location: row.LocationName || '—',
-        serviceName: row.ActivityServiceName || 'Activity Ticket',
-        detail: group.PaxTypeLabel || 'Adult',
-        quantity: group.Qty || 1,
-        price: entry.GivenPrice * (group.Qty || 1),
-        breakdown: entry.Rate > 0
-          ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}`
+        serviceName: row.IteneraryServiceName || 'Transport Service',
+        detail: row.VehicleTypeName || 'Vehicle',
+        quantity: row.Qty || 1,
+        price: row.SellingPrice || row.TotalPrice || 0,
+        breakdown: row.CostPrice > 0
+          ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}`
           : undefined,
       });
     });
-  });
 
-  // Activities from dayGroups - REMOVE package type filter
-  this.getActiveDayGroups().forEach(group => {
-    if (group.DayNumbers.includes(dayNumber)) {
-      group.ActivityRows.forEach(row => {
-        this.getActivityEntriesForDay(row, dayNumber).forEach(({ group: tg, entry }) => {
-          items.push({
-            id: `dag-${row.RowId}-${tg.GroupId}-${entry.DayNumber}`,
-            location: row.LocationName || '—',
-            serviceName: row.ActivityServiceName || 'Activity Ticket',
-            detail: tg.PaxTypeLabel || 'Adult',
-            quantity: tg.Qty || 1,
-            price: entry.GivenPrice * (tg.Qty || 1),
-            breakdown: entry.Rate > 0
-              ? `${this.formatCurrency(entry.Rate)} × ${tg.Qty}`
-              : undefined,
-          });
+    // Activities from standalone activityTicketRows
+    this.getActiveActivityRows().forEach(row => {
+      this.getActivityEntriesForDay(row, dayNumber).forEach(({ group, entry }) => {
+        items.push({
+          id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
+          location: row.LocationName || '—',
+          serviceName: row.ActivityServiceName || 'Activity Ticket',
+          detail: group.PaxTypeLabel || 'Adult',
+          quantity: group.Qty || 1,
+          price: entry.GivenPrice * (group.Qty || 1),
+          breakdown: entry.Rate > 0
+            ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}`
+            : undefined,
         });
       });
-    }
-  });
+    });
 
-  // Legacy serviceRows - KEEP package type filter (these are hotel-related)
-  this.getSummaryServicesByDay(dayNumber).forEach(svc => {
-    if (svc.ServiceType === 1) {
-      items.push({
-        id: `s-${svc.QuoteServiceId}`,
-        location: svc.LocationName || '—',
-        serviceName: svc.IteneraryServiceName || 'Transport',
-        detail: svc.VehicleTypeName || '',
-        quantity: svc.Qty || 1,
-        price: svc.SellingPrice || 0,
-        breakdown: svc.CostPrice > 0
-          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
-          : undefined,
-      });
-    } else if (svc.ServiceType === 2) {
-      items.push({
-        id: `a-${svc.QuoteServiceId}`,
-        location: svc.LocationName || '—',
-        serviceName: svc.ActivityServiceName || 'Activity',
-        detail: `Adult`,
-        quantity: svc.Qty || 1,
-        price: svc.SellingPrice || 0,
-        breakdown: svc.CostPrice > 0
-          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
-          : undefined,
-      });
-    }
-  });
+    // Activities from dayGroups
+    this.getActiveDayGroups().forEach(group => {
+      if (group.DayNumbers.includes(dayNumber)) {
+        group.ActivityRows.forEach(row => {
+          this.getActivityEntriesForDay(row, dayNumber).forEach(({ group: tg, entry }) => {
+            items.push({
+              id: `dag-${row.RowId}-${tg.GroupId}-${entry.DayNumber}`,
+              location: row.LocationName || '—',
+              serviceName: row.ActivityServiceName || 'Activity Ticket',
+              detail: tg.PaxTypeLabel || 'Adult',
+              quantity: tg.Qty || 1,
+              price: entry.GivenPrice * (tg.Qty || 1),
+              breakdown: entry.Rate > 0
+                ? `${this.formatCurrency(entry.Rate)} × ${tg.Qty}`
+                : undefined,
+            });
+          });
+        });
+      }
+    });
 
-  return items;
-}
+    // Legacy serviceRows
+    this.getSummaryServicesByDay(dayNumber).forEach(svc => {
+      if (svc.ServiceType === 1) {
+        items.push({
+          id: `s-${svc.QuoteServiceId}`,
+          location: svc.LocationName || '—',
+          serviceName: svc.IteneraryServiceName || 'Transport',
+          detail: svc.VehicleTypeName || '',
+          quantity: svc.Qty || 1,
+          price: svc.SellingPrice || 0,
+          breakdown: svc.CostPrice > 0
+            ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+            : undefined,
+        });
+      } else if (svc.ServiceType === 2) {
+        items.push({
+          id: `a-${svc.QuoteServiceId}`,
+          location: svc.LocationName || '—',
+          serviceName: svc.ActivityServiceName || 'Activity',
+          detail: `Adult`,
+          quantity: svc.Qty || 1,
+          price: svc.SellingPrice || 0,
+          breakdown: svc.CostPrice > 0
+            ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+            : undefined,
+        });
+      }
+    });
+
+    return items;
+  }
 
 
   getDayTotal(dayNumber: number): number {

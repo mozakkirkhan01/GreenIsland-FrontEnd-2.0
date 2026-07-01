@@ -1909,28 +1909,79 @@
             }
             }
 
-            <!-- Totals: right-aligned summary -->
-            <div class="d-flex justify-content-end mt-3">
-              <div class="border rounded px-4 py-3 text-end bg-white" style="min-width:280px;">
-                <div class="fw-bold" style="font-size:14px;">
-                  Total:
-                  <span class="text-primary ms-1">
-                    INR {{ formatCurrency(transportTotal() + activityTotal()) }}
-                  </span>
-                </div>
-                <div class="text-muted mt-1" style="font-size:12px;">
-                  Transports:
-                  <span class="fw-semibold text-dark ms-1">
-                    INR {{ formatCurrency(transportTotal()) }}
-                  </span>
-                  <span class="mx-2">•</span>
-                  Activity/Tickets:
-                  <span class="fw-semibold text-dark ms-1">
-                    INR {{ formatCurrency(activityTotal()) }}
-                  </span>
-                </div>
+@if (packageTypes().length > 0) {
+  <div class="row g-4 mt-3">
+    @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let index = $index) {
+      <div class="col-12 col-xl-6">
+        
+        <div class="mb-3">
+          <span class="fw-semibold text-dark pb-2" style="font-size: 16px; border-bottom: 2px solid #dee2e6;">
+            Option {{ index + 1 }}: {{ pkg.PackageTypeName }}
+          </span>
+        </div>
+
+        <div class="d-flex flex-wrap flex-md-nowrap gap-3">
+          
+          <div class="rounded px-4 py-3 d-flex flex-column justify-content-center" 
+               style="background-color: #f4f6fc; border: 1px solid #d2d8f7; min-width: 150px;">
+            <div class="fw-semibold mb-2" style="color: #3b50c1; font-size: 15px;">Total Cost</div>
+            <div class="text-dark fs-5">
+              <span class="text-secondary small fw-normal" style="font-size: 11px; margin-right: 3px;">INR</span>{{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
+            </div>
+          </div>
+
+          <div class="border rounded px-4 py-3 d-flex align-items-center bg-white flex-grow-1 gap-4">
+            
+            <div>
+              <div class="fw-semibold text-dark mb-2" style="font-size: 15px;">Hotels</div>
+              <div class="text-dark fs-5">
+                <span class="text-secondary small fw-normal" style="font-size: 11px; margin-right: 3px;">INR</span>{{ formatCurrency(getPackageHotelTotal(pkg.QuotePackageTypeId)) }}
               </div>
             </div>
+
+            <div class="fw-semibold text-dark fs-5">+</div>
+
+            <div>
+              <div class="fw-semibold text-dark mb-2" style="font-size: 15px;">Activities/Tickets</div>
+              <div class="text-dark fs-5">
+                <span class="text-secondary small fw-normal" style="font-size: 11px; margin-right: 3px;">INR</span>{{ formatCurrency(getPackageTransportTotal(pkg.QuotePackageTypeId) + getPackageActivityTotal(pkg.QuotePackageTypeId)) }}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    }
+  </div>
+
+  <div class="text-end text-dark mt-3" style="font-size: 14px;">
+    It is the total cost price for all the provided services. This is NOT the selling price.
+  </div>
+
+} @else {
+  <div class="d-flex justify-content-end mt-3">
+    <div class="border rounded px-4 py-3 text-end bg-white" style="min-width:280px;">
+      <div class="fw-bold" style="font-size:14px;">
+        Total:
+        <span class="text-primary ms-1">
+          INR {{ formatCurrency(transportTotal() + activityTotal()) }}
+        </span>
+      </div>
+      <div class="text-muted mt-1" style="font-size:12px;">
+        Transports:
+        <span class="fw-semibold text-dark ms-1">
+          INR {{ formatCurrency(transportTotal()) }}
+        </span>
+        <span class="mx-2">•</span>
+        Activity/Tickets:
+        <span class="fw-semibold text-dark ms-1">
+          INR {{ formatCurrency(activityTotal()) }}
+        </span>
+      </div>
+    </div>
+  </div>
+}
 
           </div>
           }
