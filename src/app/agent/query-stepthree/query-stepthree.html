@@ -825,7 +825,7 @@
           </div>
 
           <!-- All inclusion rows (no grouping by night) -->
-          @for (row of specialInclusionRows(); track row.QuoteSpecialInclusionId; let idx = $index) {
+          @for (row of getActiveSpecialInclusionRows(); track row.QuoteSpecialInclusionId; let idx = $index) {
           <div class="border rounded p-3 mb-3 bg-white position-relative">
 
             <!-- Remove button — top right -->
@@ -988,13 +988,13 @@
           }
 
           <!-- ── Add Service button ── -->
-          @if (specialInclusionRows().length === 0 || hotelRows().length > 0) {
+          @if (getActiveSpecialInclusionRows().length === 0 || getActiveHotelRows().length > 0) {
           <button class="btn btn-outline-secondary btn-sm" style="font-size:12px;" (click)="addSpecialInclusionRow()">
             <i class="bx bx-plus me-1"></i> Add Service
           </button>
           }
 
-          @if (specialInclusionRows().length === 0) {
+          @if (getActiveSpecialInclusionRows().length === 0) {
           <div class="text-muted small fst-italic">
             No special inclusions added. Add hotels first, then add services here.
           </div>
@@ -2141,7 +2141,7 @@
             <div class="col-12">
               <div class="fw-semibold small mb-2">Set Markup, Tax and Rounding</div>
 
-              <!-- Markup type toggle -->
+              <!-- Markup type toggle-->
               <div class="d-flex align-items-center gap-3 mb-2">
                 <label class="form-label small fw-semibold mb-0">Markup Type</label>
                 <div class="btn-group btn-group-sm">

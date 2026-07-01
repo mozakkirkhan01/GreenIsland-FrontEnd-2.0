@@ -867,6 +867,12 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     );
   }
 
+  getActiveSpecialInclusionRows(): QuoteSpecialInclusionRow[] {
+    return this.specialInclusionRows().filter(
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
+    );
+  }
+
   addHotelRow(slot?: NightSlot): void {
     const selectedSlot = slot ?? this.nightSlots()[0];
     if (!selectedSlot) {
@@ -1043,7 +1049,10 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     }
   }
   getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
-    return this.specialInclusionRows().filter(r => r.NightNumbers.includes(nightNumber));
+    return this.specialInclusionRows().filter(
+      r => r.QuotePackageTypeId === this.activePackageTypeId()
+        && r.NightNumbers.includes(nightNumber)
+    );
   }
 
   // Get all hotels for a night to populate hotel dropdown in special inclusions
