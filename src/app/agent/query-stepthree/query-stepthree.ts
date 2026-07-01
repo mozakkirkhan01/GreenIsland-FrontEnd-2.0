@@ -422,35 +422,34 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   }
 
 
-  transportTotal = computed(() => {
-    let total = 0;
-    const dayGroups = this.getActiveDayGroups();
-    dayGroups.forEach(group => {
-      group.TransportRows.forEach(row => {
-        total += (row.SellingPrice || row.TotalPrice || 0);
-      });
+transportTotal = computed(() => {
+  let total = 0;
+  const dayGroups = this.getActiveDayGroups();
+  dayGroups.forEach(group => {
+    group.TransportRows.forEach(row => {
+      total += (row.SellingPrice || row.TotalPrice || 0);
     });
-    // Also include main transportRows signal
-    total += this.transportRows()
-      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
-      .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
-    return total;
   });
+  // Also include main transportRows signal - REMOVE package type filter
+  total += this.transportRows()
+    .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
+  return total;
+});
 
-  activityTotal = computed(() => {
-    let total = 0;
-    const dayGroups = this.getActiveDayGroups();
-    dayGroups.forEach(group => {
-      group.ActivityRows.forEach(row => {
-        total += this.getActivityRowTotal(row);
-      });
+activityTotal = computed(() => {
+  let total = 0;
+  const dayGroups = this.getActiveDayGroups();
+  dayGroups.forEach(group => {
+    group.ActivityRows.forEach(row => {
+      total += this.getActivityRowTotal(row);
     });
-    // Also include main activityTicketRows signal
-    total += this.activityTicketRows()
-      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
-      .reduce((s, r) => s + this.getActivityRowTotal(r), 0);
-    return total;
   });
+  // Also include main activityTicketRows signal - REMOVE package type filter
+  total += this.activityTicketRows()
+    .reduce((s, r) => s + this.getActivityRowTotal(r), 0);
+  return total;
+});
+
 
   totalCost = computed(() =>
     this.hotelTotal() + this.transportTotal() + this.activityTotal()
@@ -2276,11 +2275,9 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   // For the col-sm-7 day summary (keeps day filter)
 
 
-  getActiveTransportRows(): QuoteTransportRow[] {
-    return this.transportRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId()
-    );
-  }
+getActiveTransportRows(): QuoteTransportRow[] {
+  return this.transportRows();
+}
 
   // For the col-sm-7 day summary table only
   getTransportRowsForDay(dayNumber: number): QuoteServiceRow[] {
@@ -2632,7 +2629,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     const newRow: QuoteServiceRow = {
       QuoteServiceId: 0,
       QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId(),
+      QuotePackageTypeId: 0,
       DayNumber: slot.DayNumber,
       ServiceDate: slot.ServiceDate,
       ServiceType: 1,
@@ -2816,7 +2813,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0,
       QuoteId: this.QuoteId,
-      QuotePackageTypeId: this.activePackageTypeId(),
+      QuotePackageTypeId: 0,
       DayNumber: slot.DayNumber,
       ServiceDate: slot.ServiceDate,
       ServiceType: 2,
@@ -3856,8 +3853,8 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   activityTicketRows = signal<ActivityTicketRow[]>([]);
   private activityRowCounter = 0;
   getActiveActivityRows(): ActivityTicketRow[] {
-    return this.activityTicketRows().filter(r => r.QuotePackageTypeId === this.activePackageTypeId());
-  }
+  return this.activityTicketRows();
+}
 
   addActivityTicketRow(): void {
     this.markDirty();
@@ -4358,9 +4355,9 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
 
   // ── Day Groups (parent entity) ─────────────────────────────
-  getActiveDayGroups(): DayGroup[] {
-    return this.dayGroups().filter(g => g.QuotePackageTypeId === this.activePackageTypeId());
-  }
+getActiveDayGroups(): DayGroup[] {
+  return this.dayGroups();
+}
 
   getNextUnusedDay(): number | null {
     const allDays = this.daySlots().map(d => d.DayNumber);
@@ -4377,25 +4374,24 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   // Creates a brand-new, fully independent group. Used both for "Add Day" (empty trip)
   // and "Next Day" (finalizes current group, starts a new one with the next free day).
   addDayGroup(): void {
-    const nextDay = this.getNextUnusedDay();
-    const group: DayGroup = {
-      GroupId: ++this.dayGroupCounter,
-      QuotePackageTypeId: this.activePackageTypeId(),
-      DayNumbers: nextDay !== null ? [nextDay] : [],
-      ShowDayDropdown: false,
-      SelectedDaysDisplay: '',
-      TransportRows: [],
-      ActivityRows: [],
-    };
-    this.updateDayGroupDisplay(group);
-    this.dayGroups.update(groups => [...groups, group]);
+  const nextDay = this.getNextUnusedDay();
+  const group: DayGroup = {
+    GroupId: ++this.dayGroupCounter,
+    QuotePackageTypeId: 0, // Set to 0 or remove this field
+    DayNumbers: nextDay !== null ? [nextDay] : [],
+    ShowDayDropdown: false,
+    SelectedDaysDisplay: '',
+    TransportRows: [],
+    ActivityRows: [],
+  };
+  this.updateDayGroupDisplay(group);
+  this.dayGroups.update(groups => [...groups, group]);
 
-    // Seed with one Transport row and one Activity row, like your previous default UX
-    this.addTransportRowToGroup(group);
-    this.addActivityRowToGroup(group);
+  this.addTransportRowToGroup(group);
+  this.addActivityRowToGroup(group);
 
-    this.markDirty();
-  }
+  this.markDirty();
+}
 
   removeDayGroup(group: DayGroup): void {
     this.markDirty();
@@ -4453,34 +4449,34 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
   // ── Transport rows scoped to ONE group ─────────────────────
   addTransportRowToGroup(group: DayGroup): void {
-    this.markDirty();
-    const firstDay = group.DayNumbers[0] ?? this.daySlots()[0]?.DayNumber ?? 1;
-    const slot = this.daySlots().find(d => d.DayNumber === firstDay) ?? this.daySlots()[0];
-    const prefillVehicle = this.sameCabForAll && this.selectedCabTypes.length > 0 ? this.selectedCabTypes[0] : null;
+  this.markDirty();
+  const firstDay = group.DayNumbers[0] ?? this.daySlots()[0]?.DayNumber ?? 1;
+  const slot = this.daySlots().find(d => d.DayNumber === firstDay) ?? this.daySlots()[0];
+  const prefillVehicle = this.sameCabForAll && this.selectedCabTypes.length > 0 ? this.selectedCabTypes[0] : null;
 
-    const newRow: QuoteTransportRow = {
-      QuoteServiceId: 0,
-      QuoteId: this.QuoteId,
-      QuotePackageTypeId: group.QuotePackageTypeId,
-      DayNumbers: [...group.DayNumbers],
-      DayNumber: firstDay,
-      ServiceDate: slot?.ServiceDate ?? new Date(),
-      LocationId: 0, LocationName: '',
-      IteneraryServiceId: 0, IteneraryServiceName: '',
-      VehicleTypeId: prefillVehicle?.VehicleTypeId ?? 0,
-      VehicleTypeName: prefillVehicle?.VehicleTypeName ?? '',
-      SameCabForAll: this.sameCabForAll,
-      Qty: prefillVehicle?.Quantity ?? 1,
-      CostPrice: 0, SellingPrice: 0, TotalPrice: 0, Notes: '', IsSaving: false,
-      LocationSearch: '', FilteredLocations: [], ShowLocationDropdown: false,
-      ServiceSearch: '', FilteredServices: [], ShowServiceDropdown: false,
-      VehicleSearch: prefillVehicle?.VehicleTypeName ?? '', FilteredVehicles: [], ShowVehicleDropdown: false,
-      ShowDayDropdown: false, SelectedDaysDisplay: group.SelectedDaysDisplay,
-    };
+  const newRow: QuoteTransportRow = {
+    QuoteServiceId: 0,
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: 0, // Set to 0
+    DayNumbers: [...group.DayNumbers],
+    DayNumber: firstDay,
+    ServiceDate: slot?.ServiceDate ?? new Date(),
+    LocationId: 0, LocationName: '',
+    IteneraryServiceId: 0, IteneraryServiceName: '',
+    VehicleTypeId: prefillVehicle?.VehicleTypeId ?? 0,
+    VehicleTypeName: prefillVehicle?.VehicleTypeName ?? '',
+    SameCabForAll: this.sameCabForAll,
+    Qty: prefillVehicle?.Quantity ?? 1,
+    CostPrice: 0, SellingPrice: 0, TotalPrice: 0, Notes: '', IsSaving: false,
+    LocationSearch: '', FilteredLocations: [], ShowLocationDropdown: false,
+    ServiceSearch: '', FilteredServices: [], ShowServiceDropdown: false,
+    VehicleSearch: prefillVehicle?.VehicleTypeName ?? '', FilteredVehicles: [], ShowVehicleDropdown: false,
+    ShowDayDropdown: false, SelectedDaysDisplay: group.SelectedDaysDisplay,
+  };
 
-    group.TransportRows = [...group.TransportRows, newRow];
-    this.dayGroups.update(groups => [...groups]);
-  }
+  group.TransportRows = [...group.TransportRows, newRow];
+  this.dayGroups.update(groups => [...groups]);
+}
 
   removeTransportRowFromGroup(group: DayGroup, row: QuoteTransportRow, refresh: boolean = true): void {
     this.markDirty();
@@ -4610,28 +4606,24 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
   // Add this method to get transport rows for a specific day
   getTransportRowsForDayGroup(dayNumber: number): QuoteTransportRow[] {
-    const rows: QuoteTransportRow[] = [];
+  const rows: QuoteTransportRow[] = [];
 
-    // Check standalone transportRows signal
-    this.transportRows()
-      .filter(r =>
-        r.QuotePackageTypeId === this.activePackageTypeId() &&
-        r.DayNumbers.includes(dayNumber) &&
-        (r.LocationId > 0 || r.IteneraryServiceId > 0)
-      )
-      .forEach(r => rows.push(r));
+  // Check standalone transportRows signal - REMOVE package type filter
+  this.transportRows()
+    .filter(r => r.DayNumbers.includes(dayNumber) && (r.LocationId > 0 || r.IteneraryServiceId > 0))
+    .forEach(r => rows.push(r));
 
-    // Also check inside dayGroups
-    this.getActiveDayGroups().forEach(group => {
-      if (group.DayNumbers.includes(dayNumber)) {
-        group.TransportRows
-          .filter(r => r.LocationId > 0 || r.IteneraryServiceId > 0)
-          .forEach(r => rows.push(r));
-      }
-    });
+  // Also check inside dayGroups - REMOVE package type filter
+  this.getActiveDayGroups().forEach(group => {
+    if (group.DayNumbers.includes(dayNumber)) {
+      group.TransportRows
+        .filter(r => r.LocationId > 0 || r.IteneraryServiceId > 0)
+        .forEach(r => rows.push(r));
+    }
+  });
 
-    return rows;
-  }
+  return rows;
+}
 
   // Enhanced method to get all services for a day (including day groups)
   getAllServicesForDay(dayNumber: number): (QuoteServiceRow | QuoteTransportRow | { type: 'activity', row: ActivityTicketRow, group: ActivityTypeGroup, entry: ActivityTicketEntry })[] {
@@ -4829,101 +4821,101 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
     return pkg?.PackageTypeName || 'Standard Package';
   }
 
-  hasAnyTransportOrActivity(): boolean {
-    return this.getActiveTransportRows().length > 0 ||
-      this.getActiveActivityRows().length > 0 ||
-      this.summaryServices.length > 0 ||
-      this.getActiveDayGroups().some(group => group.TransportRows.length > 0 || group.ActivityRows.length > 0);
-  }
+ hasAnyTransportOrActivity(): boolean {
+  return this.getActiveTransportRows().length > 0 ||
+    this.getActiveActivityRows().length > 0 ||
+    this.getActiveDayGroups().some(group => group.TransportRows.length > 0 || group.ActivityRows.length > 0);
+}
 
   getDayItems(dayNumber: number): any[] {
-    const items: any[] = [];
+  const items: any[] = [];
 
-    // Transport from standalone rows + dayGroups
-    const transportRows = this.getTransportRowsForDayGroup(dayNumber);
-    transportRows.forEach(row => {
+  // Transport from standalone rows - REMOVE package type filter
+  const transportRows = this.getTransportRowsForDayGroup(dayNumber);
+  transportRows.forEach(row => {
+    items.push({
+      id: `t-${row.QuoteServiceId}-${row.DayNumber}`,
+      location: row.LocationName || '—',
+      serviceName: row.IteneraryServiceName || 'Transport Service',
+      detail: row.VehicleTypeName || 'Vehicle',
+      quantity: row.Qty || 1,
+      price: row.SellingPrice || row.TotalPrice || 0,
+      breakdown: row.CostPrice > 0
+        ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}`
+        : undefined,
+    });
+  });
+
+  // Activities from standalone activityTicketRows - REMOVE package type filter
+  this.getActiveActivityRows().forEach(row => {
+    this.getActivityEntriesForDay(row, dayNumber).forEach(({ group, entry }) => {
       items.push({
-        id: `t-${row.QuoteServiceId}-${row.DayNumber}`,
+        id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
         location: row.LocationName || '—',
-        serviceName: row.IteneraryServiceName || 'Transport Service',
-        detail: row.VehicleTypeName || 'Vehicle',
-        quantity: row.Qty || 1,
-        price: row.SellingPrice || row.TotalPrice || 0,
-        breakdown: row.CostPrice > 0
-          ? `${this.formatCurrency(row.CostPrice)} × ${row.Qty}`
+        serviceName: row.ActivityServiceName || 'Activity Ticket',
+        detail: group.PaxTypeLabel || 'Adult',
+        quantity: group.Qty || 1,
+        price: entry.GivenPrice * (group.Qty || 1),
+        breakdown: entry.Rate > 0
+          ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}`
           : undefined,
       });
     });
+  });
 
-    // Activities from standalone activityTicketRows
-    this.getActiveActivityRows().forEach(row => {
-      this.getActivityEntriesForDay(row, dayNumber).forEach(({ group, entry }) => {
-        items.push({
-          id: `at-${row.RowId}-${group.GroupId}-${entry.DayNumber}`,
-          location: row.LocationName || '—',
-          serviceName: row.ActivityServiceName || 'Activity Ticket',
-          detail: group.PaxTypeLabel || 'Adult',
-          quantity: group.Qty || 1,
-          price: entry.GivenPrice * (group.Qty || 1),
-          breakdown: entry.Rate > 0
-            ? `${this.formatCurrency(entry.Rate)} × ${group.Qty}`
-            : undefined,
-        });
-      });
-    });
-
-    // Activities from dayGroups
-    this.getActiveDayGroups().forEach(group => {
-      if (group.DayNumbers.includes(dayNumber)) {
-        group.ActivityRows.forEach(row => {
-          this.getActivityEntriesForDay(row, dayNumber).forEach(({ group: tg, entry }) => {
-            items.push({
-              id: `dag-${row.RowId}-${tg.GroupId}-${entry.DayNumber}`,
-              location: row.LocationName || '—',
-              serviceName: row.ActivityServiceName || 'Activity Ticket',
-              detail: tg.PaxTypeLabel || 'Adult',
-              quantity: tg.Qty || 1,
-              price: entry.GivenPrice * (tg.Qty || 1),
-              breakdown: entry.Rate > 0
-                ? `${this.formatCurrency(entry.Rate)} × ${tg.Qty}`
-                : undefined,
-            });
+  // Activities from dayGroups - REMOVE package type filter
+  this.getActiveDayGroups().forEach(group => {
+    if (group.DayNumbers.includes(dayNumber)) {
+      group.ActivityRows.forEach(row => {
+        this.getActivityEntriesForDay(row, dayNumber).forEach(({ group: tg, entry }) => {
+          items.push({
+            id: `dag-${row.RowId}-${tg.GroupId}-${entry.DayNumber}`,
+            location: row.LocationName || '—',
+            serviceName: row.ActivityServiceName || 'Activity Ticket',
+            detail: tg.PaxTypeLabel || 'Adult',
+            quantity: tg.Qty || 1,
+            price: entry.GivenPrice * (tg.Qty || 1),
+            breakdown: entry.Rate > 0
+              ? `${this.formatCurrency(entry.Rate)} × ${tg.Qty}`
+              : undefined,
           });
         });
-      }
-    });
+      });
+    }
+  });
 
-    // Legacy serviceRows
-    this.getSummaryServicesByDay(dayNumber).forEach(svc => {
-      if (svc.ServiceType === 1) {
-        items.push({
-          id: `s-${svc.QuoteServiceId}`,
-          location: svc.LocationName || '—',
-          serviceName: svc.IteneraryServiceName || 'Transport',
-          detail: svc.VehicleTypeName || '',
-          quantity: svc.Qty || 1,
-          price: svc.SellingPrice || 0,
-          breakdown: svc.CostPrice > 0
-            ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
-            : undefined,
-        });
-      } else if (svc.ServiceType === 2) {
-        items.push({
-          id: `a-${svc.QuoteServiceId}`,
-          location: svc.LocationName || '—',
-          serviceName: svc.ActivityServiceName || 'Activity',
-          detail: `Adult`,
-          quantity: svc.Qty || 1,
-          price: svc.SellingPrice || 0,
-          breakdown: svc.CostPrice > 0
-            ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
-            : undefined,
-        });
-      }
-    });
+  // Legacy serviceRows - KEEP package type filter (these are hotel-related)
+  this.getSummaryServicesByDay(dayNumber).forEach(svc => {
+    if (svc.ServiceType === 1) {
+      items.push({
+        id: `s-${svc.QuoteServiceId}`,
+        location: svc.LocationName || '—',
+        serviceName: svc.IteneraryServiceName || 'Transport',
+        detail: svc.VehicleTypeName || '',
+        quantity: svc.Qty || 1,
+        price: svc.SellingPrice || 0,
+        breakdown: svc.CostPrice > 0
+          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+          : undefined,
+      });
+    } else if (svc.ServiceType === 2) {
+      items.push({
+        id: `a-${svc.QuoteServiceId}`,
+        location: svc.LocationName || '—',
+        serviceName: svc.ActivityServiceName || 'Activity',
+        detail: `Adult`,
+        quantity: svc.Qty || 1,
+        price: svc.SellingPrice || 0,
+        breakdown: svc.CostPrice > 0
+          ? `${this.formatCurrency(svc.CostPrice / (svc.Qty || 1))} × ${svc.Qty}`
+          : undefined,
+      });
+    }
+  });
 
-    return items;
-  }
+  return items;
+}
+
 
   getDayTotal(dayNumber: number): number {
     const items = this.getDayItems(dayNumber);
@@ -4940,12 +4932,11 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   }
   // Returns special inclusions for the active package type
   getSummarySpecialInclusions(): QuoteSpecialInclusionRow[] {
-    return this.specialInclusionRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId()
-        && (r.SpecialInclusionId > 0 || r.SpecialInclusionName)
-        && r.TotalPrice > 0
-    );
-  }
+  return this.specialInclusionRows().filter(
+    r => (r.SpecialInclusionId > 0 || r.SpecialInclusionName)
+      && r.TotalPrice > 0
+  );
+}
 
   // Looks up hotel info (location, category) for a special inclusion row
   getHotelInfoForInclusion(row: QuoteSpecialInclusionRow): any {
