@@ -3018,6 +3018,93 @@ getActiveTransportRows(): QuoteTransportRow[] {
   }
 
   // ── Summary helpers ───────────────────────────────────────
+  // ── Get hotels for a specific package ────────────────────
+
+
+// ── Get special inclusions for a specific package ─────────
+getSpecialInclusionsByPackage(pkgId: number): any[] {
+  return this.specialInclusionRows().filter(r => {
+    const matchesPackage = r.QuotePackageTypeId === pkgId;
+    const hasSelection = Boolean(
+      r.QuoteSpecialInclusionId > 0 ||
+      r.SpecialInclusionId ||
+      r.SpecialInclusionName ||
+      r.HotelName ||
+      r.ManualLocationName ||
+      (r.TotalPrice ?? 0) > 0 ||
+      (r.NightNumbers?.length ?? 0) > 0
+    );
+
+    return matchesPackage && hasSelection;
+  });
+}
+
+
+
+// ── Night ordinal suffix ──────────────────────────────────
+getNightOrdinal(n: number): string {
+  if (n === 1) return 'st';
+  if (n === 2) return 'nd';
+  if (n === 3) return 'rd';
+  return 'th';
+}
+
+// ── Get date label for a night number ────────────────────
+getNightDate(nightNumber: number): string {
+  const slot = this.nightSlots().find(s => s.NightNumber === nightNumber);
+  return slot ? slot.DateLabel : '';
+}
+// ── everywhere allHotelRows appears, replace with hotelRows ──
+
+// In getHotelsByPackage:
+getHotelsByPackage(pkgId: number): QuoteHotelRow[] {
+  return this.hotelRows().filter(
+    r => r.QuotePackageTypeId === pkgId && r.HotelId > 0
+  );
+}
+
+// In getPackageAccommodationTotal:
+getPackageAccommodationTotal(pkgId: number): number {
+  const hotelTotal = this.hotelRows()
+    .filter(r => r.QuotePackageTypeId === pkgId)
+    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+
+  const inclusionTotal = this.specialInclusionRows()
+    .filter(r => r.QuotePackageTypeId === pkgId)
+    .reduce((s, r) => s + (r.TotalPrice || 0), 0);
+
+  return hotelTotal + inclusionTotal;
+}
+
+// In getPackageHotelTotal:
+getPackageHotelTotal(pkgId: number): number {
+  return this.hotelRows()
+    .filter(r => r.QuotePackageTypeId === pkgId)
+    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+}
+
+// In getPackageGrandTotal:
+getPackageGrandTotal(pkgId: number): number {
+  const total = this.getPackageHotelTotal(pkgId)
+              + this.getPackageTransportTotal(pkgId)
+              + this.getPackageActivityTotal(pkgId);
+  return total + Math.round(total * this.gstPercent / 100);
+}
+
+// In getPackageTransportTotal:
+getPackageTransportTotal(pkgId: number): number {
+  return this.serviceRows()
+    .filter(r => r.QuotePackageTypeId === pkgId && r.ServiceType === 1)
+    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+}
+
+// In getPackageActivityTotal:
+getPackageActivityTotal(pkgId: number): number {
+  return this.serviceRows()
+    .filter(r => r.QuotePackageTypeId === pkgId && r.ServiceType === 2)
+    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+}
+  
   get summaryHotels(): QuoteHotelRow[] {
     return this.hotelRows().filter(
       r => r.QuotePackageTypeId === this.activePackageTypeId() && r.HotelId > 0
@@ -4821,70 +4908,9 @@ getActiveDayGroups(): DayGroup[] {
     return pkg?.PackageTypeName || 'Standard Package';
   }
 
-  getPackageHotelTotal(packageTypeId: number): number {
-    const hotelTotal = this.hotelRows()
-      .filter(r => r.QuotePackageTypeId === packageTypeId)
-      .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
-    const specialInclusionTotal = this.specialInclusionRows()
-      .filter(r => r.QuotePackageTypeId === packageTypeId)
-      .reduce((sum, r) => sum + (r.TotalPrice || 0), 0);
-    return hotelTotal + specialInclusionTotal;
-  }
 
-getPackageTransportTotal(packageTypeId: number): number {
-  let total = 0;
-  
-  // Include ALL dayGroups (since transport is not linked to package type)
-  this.dayGroups().forEach(group => {
-    group.TransportRows.forEach(row => {
-      total += (row.SellingPrice || row.TotalPrice || 0);
-    });
-  });
-  
-  // Check transportRows with matching package type
-  total += this.transportRows()
-    .filter(r => r.QuotePackageTypeId === packageTypeId)
-    .reduce((sum, r) => sum + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
-  
-  // Check serviceRows for transports
-  total += this.serviceRows()
-    .filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === packageTypeId)
-    .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
-  
-  return total;
-}
 
-getPackageActivityTotal(packageTypeId: number): number {
-  let total = 0;
-  
-  // Check dayGroups - but they have QuotePackageTypeId: 0
-  // We need to check if the dayGroup is associated with this package type
-  // Since dayGroups have QuotePackageTypeId: 0, we should check if the activity rows 
-  // inside the group have the correct package type or use a different approach
-  
-  // Instead of filtering by dayGroup.QuotePackageTypeId, we need to check 
-  // if this package type is the active one for the group's activities
-  
-  // For now, let's include ALL dayGroups regardless of package type
-  // since transport and activities are NOT linked to package types
-  this.dayGroups().forEach(group => {
-    group.ActivityRows.forEach(row => {
-      total += this.getActivityRowTotal(row);
-    });
-  });
-  
-  // Check activityTicketRows - these have QuotePackageTypeId set
-  total += this.activityTicketRows()
-    .filter(r => r.QuotePackageTypeId === packageTypeId)
-    .reduce((sum, r) => sum + this.getActivityRowTotal(r), 0);
-  
-  // Check serviceRows for activities
-  total += this.serviceRows()
-    .filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === packageTypeId)
-    .reduce((sum, r) => sum + (r.SellingPrice || 0), 0);
-  
-  return total;
-}
+
 
   getPackageTotalCost(packageTypeId: number): number {
   return this.getPackageHotelTotal(packageTypeId)

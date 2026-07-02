@@ -1651,154 +1651,172 @@
             </div>
           </div>
 
-          <!-- ════════════════════════════════════════════════════════ -->
-          <!-- ACCOMMODATION SECTION                                   -->
-          <!-- ════════════════════════════════════════════════════════ -->
-          @if (summaryHotels.length > 0 || specialInclusionRows().length > 0) {
-          <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-                style="width:32px; height:32px; font-size:14px;">
-                <i class="bx bx-hotel"></i>
-              </div>
-              <span class="fw-bold fs-6">Accommodation</span>
-            </div>
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SUMMARY — ACCOMMODATION PER PACKAGE                  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
 
-            <!-- Hotels Table -->
-            @if (summaryHotels.length > 0) {
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
-                <thead class="table-light">
-                  <tr>
-                    <th style="width:12%;">Night</th>
-                    <th style="width:35%;">Hotel</th>
-                    <th style="width:12%;">Meal</th>
-                    <th style="width:20%;">Rooms</th>
-                    <th style="width:21%;" class="text-end">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (h of summaryHotels; track h.QuoteHotelId) {
-                  <tr>
-                    <td>
-                      <div class="fw-semibold">
-                        {{ h.NightNumber }}<sup>{{ h.NightNumber === 1 ? 'st' : h.NightNumber === 2 ? 'nd' :
-                          h.NightNumber === 3 ? 'rd' : 'th' }}</sup>
-                      </div>
-                      <div class="text-muted" style="font-size:10px;">
-                        {{ h.StayDate | date:'d MMM' }}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="fw-medium">{{ h.HotelName }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ h.LocationName }}, {{ h.HotelCategoryName || '3 Star' }}
-                      </div>
-                    </td>
-                    <td>
-                      <span class="badge bg-light text-dark border">{{ h.MealPlan }}</span>
-                    </td>
-                    <td>
-                      <div>{{ h.NoOfRooms }} {{ h.RoomTypeName || 'Deluxe Room' }}</div>
-                      <div class="text-muted" style="font-size:10px;">
-                        {{ h.PaxPerRoom }} Pax
-                        @if (h.AWEB > 0 || h.CWEB > 0 || h.CNB > 0) {
-                        <span class="ms-1">
-                          @if (h.AWEB > 0) { +{{ h.AWEB }} AWEB }
-                          @if (h.CWEB > 0) { +{{ h.CWEB }} CWEB }
-                          @if (h.CNB > 0) { +{{ h.CNB }} CNB }
-                        </span>
-                        }
-                      </div>
-                    </td>
-                    <td class="text-end fw-semibold">
-                      INR {{ formatCurrency(h.SellingPrice || h.TotalPrice) }}
-                    </td>
-                  </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-            }
+    @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pi = $index) {
+      @if (getHotelsByPackage(pkg.QuotePackageTypeId).length > 0) {
 
-            <!-- Hotel Special Inclusions Table -->
-            @if (getSummarySpecialInclusions().length > 0) {
-            <div class="mt-3">
-              <div class="fw-semibold small mb-2" style="color:#444;">Hotel Special Inclusions</div>
-              <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-2" style="font-size:13px;">
-                  <thead class="table-light">
-                    <tr>
-                      <th style="width:12%;">Night</th>
-                      <th style="width:35%;">Hotel</th>
-                      <th style="width:32%;">Service</th>
-                      <th style="width:21%;" class="text-end">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (si of getSummarySpecialInclusions(); track si.QuoteSpecialInclusionId) {
-                    <tr>
-                      <td>
-                        @if (si.NightNumbers.length > 0) {
-                        <div class="fw-semibold">
-                          {{ si.NightNumbers[0] }}<sup>{{ si.NightNumbers[0] === 1 ? 'st' :
-                            si.NightNumbers[0] === 2 ? 'nd' :
-                            si.NightNumbers[0] === 3 ? 'rd' : 'th' }}</sup>
-                        </div>
-                        @if (nightSlots()[si.NightNumbers[0] - 1]; as slot) {
-                        <div class="text-muted" style="font-size:10px;">{{ slot.DateLabel }}</div>
-                        }
-                        @if (si.NightNumbers.length > 1) {
-                        <div class="text-muted" style="font-size:10px;">
-                          +{{ si.NightNumbers.length - 1 }} more
-                        </div>
-                        }
-                        } @else {
-                        <span class="text-muted">—</span>
-                        }
-                      </td>
-                      <td>
-                        @if (si.UseManualLocation) {
-                        <div class="fw-medium">{{ si.ManualLocationName || '—' }}</div>
-                        <div class="text-muted" style="font-size:11px; font-style:italic;">Manual entry</div>
-                        } @else {
-                        <div class="fw-medium">{{ si.HotelName || '—' }}</div>
-                        @if (si.HotelName) {
-                        @let hotel = getHotelInfoForInclusion(si);
-                        @if (hotel) {
-                        <div class="text-muted" style="font-size:11px;">
-                          {{ hotel.LocationName }}
-                          @if (hotel.HotelCategoryName) { , {{ hotel.HotelCategoryName }} }
-                        </div>
-                        }
-                        }
-                        }
-                      </td>
-                      <td>
-                        <div class="fw-medium">{{ si.SpecialInclusionName || '—' }}</div>
-                        @if (si.Comments) {
-                        <div class="text-muted" style="font-size:11px;">{{ si.Comments }}</div>
-                        }
-                      </td>
-                      <td class="text-end fw-semibold">
-                        INR {{ formatCurrency(si.TotalPrice) }}
-                      </td>
-                    </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            }
+      <!-- ── Package Option Header ── -->
+      <div class="px-4 pt-4 pb-2">
+        <h6 class="fw-bold mb-0" style="color:#1a73e8; font-size:14px;">
+          Option {{ pi + 1 }}: {{ pkg.PackageTypeName }}
+        </h6>
+      </div>
 
-            <!-- Total -->
-            <div class="text-end mt-2">
-              <span class="fw-semibold">Total:</span>
-              <span class="fw-bold text-primary">INR {{ formatCurrency(hotelTotal()) }}</span>
-            </div>
+      <!-- ── Accommodation ── -->
+      @if (getHotelsByPackage(pkg.QuotePackageTypeId).length > 0) {
+        <div class="px-4 pb-2">
 
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="bg-primary rounded-circle d-flex align-items-center
+                        justify-content-center text-white flex-shrink-0"
+                 style="width:28px; height:28px; font-size:12px;">
+              <i class="bx bx-hotel"></i>
+            </div>
+            <span class="fw-semibold" style="font-size:13.5px;">Accommodation</span>
           </div>
-          }
+
+          <table class="table table-sm mb-0" style="font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid #e0e0e0;">
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px; width:120px;">Night</th>
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px;">Hotel</th>
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px; width:100px;">Meal</th>
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px; width:200px;">Rooms</th>
+                <th class="text-muted fw-normal py-2 text-end"
+                    style="font-size:12px; width:120px;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (h of getHotelsByPackage(pkg.QuotePackageTypeId);
+                    track h.QuoteHotelId) {
+                <tr style="border-bottom:1px solid #f5f5f5;">
+                  <td class="py-2">
+                    <div class="fw-medium">
+                      {{ h.NightNumber }}{{ getNightOrdinal(h.NightNumber) }}
+                    </div>
+                    <div class="text-muted" style="font-size:11px;">
+                      {{ h.StayDate | date:'d MMM' }}
+                    </div>
+                  </td>
+                  <td class="py-2">
+                    <div class="fw-medium">{{ h.HotelName }}</div>
+                    <div class="text-muted d-flex align-items-center gap-1"
+                         style="font-size:11px;">
+                      {{ h.LocationName }},
+                      {{ h.HotelCategoryName }}
+                    </div>
+                  </td>
+                  <td class="py-2">{{ h.MealPlan }}</td>
+                  <td class="py-2">
+                    <div>{{ h.NoOfRooms }} {{ h.RoomTypeName }}</div>
+                    <div class="text-muted" style="font-size:11px;">
+                      {{ h.PaxPerRoom }} Pax
+                    </div>
+                  </td>
+                  <td class="py-2 text-end">
+                    @if (h.SellingPrice > 0) {
+                      <span class="text-success me-1">✓</span>
+                    }
+                    <span class="text-muted" style="font-size:10px;">INR</span>
+                    <span class="fw-medium">
+                      {{ formatCurrency(h.SellingPrice) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ── Hotel Special Inclusions ── -->
+      @if (getSpecialInclusionsByPackage(pkg.QuotePackageTypeId).length > 0) {
+        <div class="px-4 pb-2 mt-2">
+
+          <div class="fw-semibold mb-2" style="font-size:13px;">
+            Hotel Special Inclusions
+          </div>
+
+          <table class="table table-sm mb-0" style="font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid #e0e0e0;">
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px; width:120px;">Night</th>
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px;">Hotel</th>
+                <th class="text-muted fw-normal py-2"
+                    style="font-size:12px; width:200px;">Service</th>
+                <th class="text-muted fw-normal py-2 text-end"
+                    style="font-size:12px; width:120px;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (si of getSpecialInclusionsByPackage(pkg.QuotePackageTypeId);
+                    track si.QuoteSpecialInclusionId) {
+                <tr style="border-bottom:1px solid #f5f5f5;">
+                  <td class="py-2">
+                    <div class="fw-medium">
+                      {{ si.NightNumber }}{{ getNightOrdinal(si.NightNumber) }}
+                    </div>
+                    <div class="text-muted" style="font-size:11px;">
+                      {{ getNightDate(si.NightNumber) }}
+                    </div>
+                  </td>
+                  <td class="py-2">
+                    <div class="fw-medium">
+                      {{ si.HotelName || si.ManualLocationName }}
+                    </div>
+                    <div class="text-muted" style="font-size:11px;">
+                      {{ si.LocationName }}
+                      @if (si.HotelCategoryName) {
+                        , {{ si.HotelCategoryName }}
+                      }
+                    </div>
+                  </td>
+                  <td class="py-2">{{ si.SpecialInclusionName }}</td>
+                  <td class="py-2 text-end">
+                    <span class="text-muted" style="font-size:10px;">INR</span>
+                    <span class="fw-medium">
+                      {{ formatCurrency(si.TotalPrice) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ── Per-package total ── -->
+      <div class="px-4 py-3 d-flex justify-content-end"
+           style="border-top:1px solid #f0f0f0; margin-top:8px;">
+        <span class="text-muted small me-3">Total:</span>
+        <span class="text-muted" style="font-size:10px; margin-top:2px;">INR</span>
+        <span class="fw-bold ms-1" style="font-size:15px;">
+          {{ formatCurrency(getPackageAccommodationTotal(pkg.QuotePackageTypeId)) }}
+        </span>
+      </div>
+
+      <!-- Divider between packages -->
+      @if (pi < packageTypes().length - 1) {
+        <hr class="mx-4 my-0">
+      }
+
+      }
+    }
+
+  </div>
+</div>
+
           <!-- ════════════════════════════════════════════════════════ -->
           <!-- TRANSPORTATION & ACTIVITIES SECTION                    -->
           <!-- ════════════════════════════════════════════════════════ -->
