@@ -2088,8 +2088,8 @@
     <div>
       <label class="form-label small fw-semibold mb-1">
         Total FOC
-        <span class="badge bg-warning text-dark ms-1" style="font-size:10px;">NEW</span>
-        <i class="bx bx-info-circle ms-1 text-muted" style="font-size:13px;"></i>
+        <!-- <span class="badge bg-warning text-dark ms-1" style="font-size:10px;">NEW</span> -->
+        <!-- <i class="bx bx-info-circle ms-1 text-muted" style="font-size:13px;"></i> -->
       </label>
       <input type="number" class="form-control form-control-sm" style="width:90px;"
         [(ngModel)]="totalFOC" (ngModelChange)="onFOCChange()" min="0"
@@ -2182,13 +2182,13 @@
                 </select>
               </div>
             </th>
-            <th class="text-end" style="width:15%; border:1px solid #dee2e6;">
+            <th class="text-end" style="width:18%; border:1px solid #dee2e6;">
               <div class="d-flex align-items-center justify-content-end gap-1">
                 Tax Applied On
                 <select class="form-select form-select-sm d-inline-block"
                   style="width:100px; font-size:11px; padding:1px 4px;">
                   <option value="cost_markup">Cost + Markup</option>
-                  <option value="cost">Cost</option>
+                  <option value="cost">Only Markup</option>
                 </select>
               </div>
             </th>
@@ -2405,78 +2405,143 @@
   <!-- END package loop -->
 
 </div>
-        <!-- ════════════════════════════════════════════════════════ -->
-        <!-- FINAL PACKAGE PREVIEW                                   -->
-        <!-- ════════════════════════════════════════════════════════ -->
-        <div class="border rounded p-4" style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
-              style="width:32px; height:32px; font-size:14px;">
-              <i class="bx bx-receipt"></i>
-            </div>
-            <span class="fw-bold fs-6">Preview Final Package Price</span>
-            <span class="text-muted small ms-2">Here are the final prices for this quote.</span>
-          </div>
+       <!-- ════════════════════════════════════════════════════════ -->
+<!-- FINAL PACKAGE PREVIEW                                   -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="border rounded p-4" style="background:linear-gradient(135deg,#e8f4ff,#f0f8ff);">
 
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered" style="font-size:14px;">
-              <thead class="table-light">
-                <tr>
-                  <th style="width:35%;">Package Name</th>
-                  <th style="width:20%;" class="text-end">Per Pax Price</th>
-                  <th style="width:15%;" class="text-center">Qnty.</th>
-                  <th style="width:15%;" class="text-end">Sub Total</th>
-                  <th style="width:15%;" class="text-end">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <div class="fw-medium">{{ getPackageName() }}</div>
-                    <div class="text-muted" style="font-size:11px;">Double Sharing × {{ getPaxCount() }} Pax</div>
-                  </td>
-                  <td class="text-end fw-semibold">
-                    INR {{ formatCurrency(finalPrice() / getPaxCount()) }}
-                  </td>
-                  <td class="text-center">{{ getPaxCount() }}</td>
-                  <td class="text-end">
-                    INR {{ formatCurrency(finalPrice()) }}
-                  </td>
-                  <td class="text-end fw-bold text-primary">
-                    INR {{ formatCurrency(applyRounding(finalPrice())) }}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr class="table-light fw-bold">
-                  <td colspan="4" class="text-end">Total</td>
-                  <td class="text-end text-primary fs-6">
-                    INR {{ formatCurrency(applyRounding(finalPrice())) }}
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="5" class="text-muted small">
-                    <i class="bx bx-info-circle me-1"></i>
-                    Tax: GST ({{ gstPercent }}%)
-                    @if (roundingValue) {
-                    <span class="ms-2">• Rounded: INR {{ formatCurrency(roundingValue) }}</span>
-                    }
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0"
+      style="width:42px; height:42px; font-size:18px;">
+      <i class="bx bx-receipt"></i>
+    </div>
+    <div>
+      <div class="fw-bold fs-5 mb-0">Preview Final Package Price</div>
+      <div class="text-muted small">Here are the final prices for this quote.</div>
+    </div>
+  </div>
 
-          <!-- Save / Cancel -->
-          <div class="d-flex gap-3 pb-4">
-            <button mat-raised-button color="primary" style="min-width:130px;" (click)="saveQuote()"
-              [disabled]="loading()">
-              <i class="bx bx-save me-1"></i>
-              {{ loading() ? 'Saving…' : (QuoteId > 0 ? 'Update Quote' : 'Save Quote') }}
-            </button>
-            <button mat-stroked-button (click)="cancel()">Cancel</button>
-          </div>
+  <!-- One row per package -->
+  @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pi = $index) {
+
+  @let finalPrice   = getPackageFinalPrice(pkg.QuotePackageTypeId);
+  @let roundedPrice = getPackageRoundedPrice(pkg.QuotePackageTypeId);
+  @let displayPrice = roundedPrice > 0 ? roundedPrice : finalPrice;
+  @let perPaxPrice  = getPerPaxPrice(displayPrice);
+
+  <div class="d-flex align-items-stretch gap-0 mb-3"
+    style="border:1px solid #dee2e6; border-radius:6px; overflow:hidden;">
+
+    <!-- ── Dark label box (left) ── -->
+    <div class="flex-shrink-0 px-3 py-3 d-flex flex-column justify-content-center"
+      style="background:#1a1a2e; color:#fff; min-width:260px; max-width:280px;">
+      <div style="font-size:11px; color:#aaa; letter-spacing:0.4px;">
+        Option {{ pi + 1 }}
+      </div>
+      <div class="fw-bold mt-1" style="font-size:15px;">
+        {{ pkg.PackageTypeName }}
+      </div>
+    </div>
+
+    <!-- ── Right side ── -->
+    <div class="flex-grow-1 bg-white">
+
+      <!-- ═══ PER-PERSON MODE: mini table ═══ -->
+      @if (pricingStrategy === 'per-person') {
+      <table class="table table-sm mb-0 h-100" style="font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid #dee2e6;">
+            <!-- empty left column aligns with label below -->
+            <th class="fw-normal text-muted" style="width:40%; border:none; padding:10px 16px;"></th>
+            <th class="fw-semibold text-end" style="width:20%; border:none; padding:10px 12px;">Per Pax</th>
+            <th class="fw-semibold text-end" style="width:15%; border:none; padding:10px 12px; color:#1a73e8;">Qnty.</th>
+            <th class="fw-semibold text-end" style="width:25%; border:none; padding:10px 16px;">Sub Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Data row -->
+          <tr style="border-bottom:1px solid #dee2e6;">
+            <td class="text-muted" style="padding:10px 16px; border:none;">
+              Person (Double Sharing) × {{ payingGuestCount() }} Pax
+            </td>
+            <td class="text-end" style="padding:10px 12px; border:none;">
+              {{ formatCurrency(perPaxPrice) }}
+            </td>
+            <td class="text-end fw-semibold" style="padding:10px 12px; border:none; color:#1a73e8;">
+              {{ payingGuestCount() }}
+            </td>
+            <td class="text-end" style="padding:10px 16px; border:none;">
+              {{ formatCurrency(displayPrice) }}
+            </td>
+          </tr>
+          <!-- Total row -->
+          <tr>
+            <td style="padding:10px 16px; border:none;"></td>
+            <td colspan="2" class="text-end" style="padding:10px 12px; border:none;">
+              <div class="fw-bold" style="font-size:14px;">Total</div>
+              <div class="text-muted" style="font-size:11px;">
+                Tax: GST
+                @if (gstEnabled) { (Included {{ gstPercent }}%) }
+                @else { (Not Applied) }
+              </div>
+            </td>
+            <td class="text-end" style="padding:10px 16px; border:none; vertical-align:middle;">
+              <div class="d-flex align-items-baseline justify-content-end gap-1">
+                <span class="text-muted" style="font-size:12px;">INR</span>
+                <span class="fw-bold" style="font-size:20px;">
+                  {{ formatCurrency(displayPrice) }}
+                </span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      }
+
+      <!-- ═══ OVERALL MODE: detailed breakdown with FOC ═══ -->
+      @if (pricingStrategy === 'overall') {
+      <div class="d-flex flex-column justify-content-center h-100 px-4 py-3">
+        <div class="d-flex align-items-baseline gap-1 mb-2">
+          <span class="text-muted" style="font-size:14px;">INR</span>
+          <span style="font-size:36px; font-weight:700; letter-spacing:-1px;">
+            {{ formatCurrency(displayPrice) }}
+          </span>
         </div>
+        <div style="font-size:13px; color:#666; margin-bottom:8px;">
+          {{ formatCurrency(getPerPaxPrice(displayPrice)) }} /- Per Person X {{ payingGuestCount() }} Pax
+          @if (totalFOC && totalFOC > 0) {
+          + {{ totalFOC }} FOC
+          }
+        </div>
+        <div class="text-muted" style="font-size:13px;">
+          @if (gstEnabled) {
+          GST: Included ({{ gstPercent }}%)
+          } @else {
+          GST: Not Applied
+          }
+        </div>
+      </div>
+      }
+
+    </div>
+    <!-- end right side -->
+
+  </div>
+  <!-- end package row -->
+  }
+
+  <!-- Save / Cancel -->
+  <div class="d-flex gap-3 pt-3 mt-2">
+    <button mat-raised-button color="primary" style="min-width:130px;"
+      (click)="saveQuote()" [disabled]="loading()">
+      <i class="bx bx-save me-1"></i>
+      {{ loading() ? 'Saving…' : (QuoteId > 0 ? 'Update Quote' : 'Save Quote') }}
+    </button>
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+  </div>
+
+</div>
 
       </div>
     </div>
@@ -2587,7 +2652,7 @@
                             line-height:1;
                             z-index:10;
                             color:#999;
-                          " (mousedown)="clearLocation()">
+                          "(mousedown)="clearLocation()">
                 ×
               </button>
               }

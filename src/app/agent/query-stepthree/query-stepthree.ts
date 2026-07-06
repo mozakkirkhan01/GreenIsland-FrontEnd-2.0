@@ -3145,6 +3145,11 @@ getPackageActivityTotal(pkgId: number): number {
     return new Intl.NumberFormat('en-IN').format(amount);
   }
 
+  getPerPaxPrice(displayPrice: number): number {
+    const paxCount = this.payingGuestCount();
+    return paxCount > 0 ? Math.round(displayPrice / paxCount) : displayPrice;
+  }
+
   // ── Save Quote ────────────────────────────────────────────
   saveQuote(): void {
     if (!this.QuoteId) { this.toastr.error('Please set package types first'); return; }
