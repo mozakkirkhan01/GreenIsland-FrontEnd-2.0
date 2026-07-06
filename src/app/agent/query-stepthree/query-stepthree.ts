@@ -5041,4 +5041,73 @@ hasAnyTransportOrActivity(): boolean {
     if (!row.HotelName) return null;
     return this.hotelList().find(h => h.HotelName === row.HotelName) ?? null;
   }
+  // ── Active package tab for pricing ──────────────────────────
+activePackageTab = 0;
+
+// ── Package-specific pricing methods ──────────────────────
+// ── Package-specific internal notes ────────────────────────
+packageInternalNotes: { [key: number]: string } = {};
+
+// ── Package rounded price ─────────────────────────────────
+getPackageRoundedPrice(packageTypeId: number): number {
+  const raw = this.getPackageFinalPrice(packageTypeId);
+  switch (this.roundingMode) {
+    case '1': return Math.round(raw);
+    case '10': return Math.round(raw / 10) * 10;
+    case '100': return Math.round(raw / 100) * 100;
+    default: return raw;
+  }
+}
+
+// getPackageTotalCost(packageTypeId: number): number {
+//   return this.getPackageHotelTotal(packageTypeId)
+//     + this.getPackageTransportTotal(packageTypeId)
+//     + this.getPackageActivityTotal(packageTypeId);
+// }
+
+getPackagePerPersonTotal(packageTypeId: number): number {
+  const paying = this.payingGuestCount();
+  const total = this.getPackageTotalCost(packageTypeId);
+  return paying > 0 ? Math.round(total / paying) : 0;
+}
+
+getPackageGstAmount(packageTypeId: number): number {
+  if (!this.gstEnabled) return 0;
+  const cost = this.getPackageTotalCost(packageTypeId);
+  const markup = this.markupValue();
+  return Math.round((cost + markup) * (this.gstPercent || 0) / 100);
+}
+
+getPackageFinalPrice(packageTypeId: number): number {
+  const cost = this.getPackageTotalCost(packageTypeId);
+  const markup = this.markupValue();
+  const gst = this.getPackageGstAmount(packageTypeId);
+  const raw = cost + markup + gst;
+  switch (this.roundingMode) {
+    case '1': return Math.round(raw);
+    case '10': return Math.round(raw / 10) * 10;
+    case '100': return Math.round(raw / 100) * 100;
+    default: return raw;
+  }
+}
+
+getPackagePerPayingGuestPrice(packageTypeId: number): number {
+  const paying = this.payingGuestCount();
+  if (paying <= 0) return 0;
+  return Math.round(this.getPackageFinalPrice(packageTypeId) / paying);
+}
+
+markupValueForPackage(packageTypeId: number): number {
+  // Same markup applies to all packages
+  return this.markupValue();
+}
+
+// ── Handle pricing strategy change ──────────────────────────
+onPricingStrategyChange(): void {
+  this.markDirty();
+  // You can add any additional logic here
+}
+
+// ── Get package totals for the summary table ───────────────
+
 }
