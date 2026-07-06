@@ -90,22 +90,6 @@
               </div>
             </div>
           </div>
-          <!-- Package Type Selector -->
-          <!-- @if (packageTypes().length > 1) {
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <span class="text-muted small fw-semibold">Viewing:</span>
-  @for (pkg of packageTypes(); track pkg.QuotePackageTypeId) {
-  <button
-    class="btn btn-sm"
-    [class.btn-primary]="activePackageTypeId === pkg.QuotePackageTypeId"
-    [class.btn-outline-secondary]="activePackageTypeId !== pkg.QuotePackageTypeId"
-    style="font-size:12px;"
-    (click)="setActivePackage(pkg.QuotePackageTypeId)">
-    {{ pkg.PackageTypeName }}
-  </button>
-  }
-</div>
-} -->
           <!-- Package Type Dropdown Selector -->
           <div class="d-flex align-items-center gap-2 mb-3">
             <label class="text-muted small fw-semibold mb-0">Option:</label>
@@ -164,10 +148,7 @@
                         </label>
                         }
                         <div class="px-3 py-2 border-top text-end">
-                          <!-- <button class="btn btn-primary btn-sm px-3"
-              (click)="closeHotelNightDropdown(row)">
-        Done
-      </button> -->
+
                         </div>
                       </div>
                       }

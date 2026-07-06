@@ -1046,21 +1046,21 @@ activityTotal = computed(() => {
         });
     }
   }
-  getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
-    return this.specialInclusionRows().filter(
-      r => r.QuotePackageTypeId === this.activePackageTypeId()
-        && r.NightNumbers.includes(nightNumber)
-    );
-  }
+  // getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
+  //   return this.specialInclusionRows().filter(
+  //     r => r.QuotePackageTypeId === this.activePackageTypeId()
+  //       && r.NightNumbers.includes(nightNumber)
+  //   );
+  // }
 
   // Get all hotels for a night to populate hotel dropdown in special inclusions
-  getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
-    return this.hotelRows().filter(
-      r => r.NightNumber === nightNumber
-        && r.QuotePackageTypeId === this.activePackageTypeId()
-        && r.HotelId > 0
-    );
-  }
+  // getHotelsForNight(nightNumber: number): QuoteHotelRow[] {
+  //   return this.hotelRows().filter(
+  //     r => r.NightNumber === nightNumber
+  //       && r.QuotePackageTypeId === this.activePackageTypeId()
+  //       && r.HotelId > 0
+  //   );
+  // }
 
   clearHotel(row: QuoteHotelRow): void {
     row.HotelSearch = '';
