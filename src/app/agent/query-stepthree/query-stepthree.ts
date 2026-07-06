@@ -402,11 +402,10 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
       .reduce((sum, row) => sum + (row.TotalPrice || 0), 0)
   );
 
-  // Update hotelTotal to include special inclusions
+  // Update hotelTotal to include special inclusions and use effective hotel prices
   hotelTotal = computed(() => {
-    const hotelTotal = this.hotelRows()
-      .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
-      .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+    // Use effective hotel total (comparing main vs similar hotels)
+    const hotelTotal = this.getEffectiveHotelTotal(this.activePackageTypeId());
 
     const specialTotal = this.specialInclusionRows()
       .filter(r => r.QuotePackageTypeId === this.activePackageTypeId())
@@ -3065,9 +3064,8 @@ getHotelsByPackage(pkgId: number): QuoteHotelRow[] {
 
 // In getPackageAccommodationTotal:
 getPackageAccommodationTotal(pkgId: number): number {
-  const hotelTotal = this.hotelRows()
-    .filter(r => r.QuotePackageTypeId === pkgId)
-    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+  // Use effective hotel total (comparing main vs similar hotels)
+  const hotelTotal = this.getEffectiveHotelTotal(pkgId);
 
   const inclusionTotal = this.specialInclusionRows()
     .filter(r => r.QuotePackageTypeId === pkgId)
@@ -3078,9 +3076,55 @@ getPackageAccommodationTotal(pkgId: number): number {
 
 // In getPackageHotelTotal:
 getPackageHotelTotal(pkgId: number): number {
-  return this.hotelRows()
-    .filter(r => r.QuotePackageTypeId === pkgId)
-    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+  return this.getEffectiveHotelTotal(pkgId);
+}
+
+// ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
+getEffectiveHotelTotal(pkgId: number): number {
+  const mainHotels = this.hotelRows()
+    .filter(r => r.QuotePackageTypeId === pkgId && r.HotelId > 0);
+
+  const similarHotels = this.similarHotels()
+    .filter(r => r.QuotePackageTypeId === pkgId && r.HotelId > 0);
+
+  if (mainHotels.length === 0) {
+    return 0;
+  }
+
+  // Group main hotels by night to get one per night
+  const nightToMainHotel = new Map<number, QuoteHotelRow>();
+  mainHotels.forEach(hotel => {
+    if (hotel.NightNumbers && hotel.NightNumbers.length > 0) {
+      hotel.NightNumbers.forEach(night => {
+        if (!nightToMainHotel.has(night) || 
+            (nightToMainHotel.get(night)!.SellingPrice || 0) < (hotel.SellingPrice || 0)) {
+          nightToMainHotel.set(night, hotel);
+        }
+      });
+    }
+  });
+
+  // Calculate total using the maximum price between main and similar hotels per night
+  let totalPrice = 0;
+  nightToMainHotel.forEach((mainHotel, nightNumber) => {
+    const mainPrice = mainHotel.SellingPrice || 0;
+
+    // Find similar hotels for this night
+    const similarForThisNight = similarHotels.filter(h => 
+      h.NightNumbers && h.NightNumbers.includes(nightNumber)
+    );
+
+    // Get maximum price among similar hotels for this night
+    const maxSimilarPrice = similarForThisNight.length > 0
+      ? Math.max(...similarForThisNight.map(h => h.SellingPrice || 0))
+      : 0;
+
+    // Use the higher price between main and similar
+    const effectivePrice = Math.max(mainPrice, maxSimilarPrice);
+    totalPrice += effectivePrice;
+  });
+
+  return totalPrice;
 }
 
 // In getPackageGrandTotal:
