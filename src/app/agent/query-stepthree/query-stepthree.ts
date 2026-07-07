@@ -502,6 +502,8 @@ activityTotal = computed(() => {
           }));
           this.packageTypes.set(packageTypes);
           this.activePackageTypeId.set(packageTypes[0].QuotePackageTypeId);
+          // Initialize per-package pricing entries
+          this.initPackagePricingForAll();
           this.packageTypesLoaded = true;
           console.log('Package types loaded successfully:', this.packageTypes());
         } else {
@@ -683,6 +685,7 @@ activityTotal = computed(() => {
           this.packageTypes.set(saved);
           if (saved.length > 0) {
             this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
+            this.initPackagePricingForAll();
           }
           this.packageTypesLoaded = true;
           this.toastr.success('Default package type created');
@@ -5054,6 +5057,20 @@ activePackageTab = 0;
 // ── Package-specific internal notes ────────────────────────
 packageInternalNotes: { [key: number]: string } = {};
 
+  // Per-package pricing overrides and settings
+  packagePricing: { [key: number]: { markupAmount: number; markupType: 'percentage' | 'fixed'; totalOverride: number | null } } = {};
+
+  ensurePackagePricing(packageTypeId: number): void {
+    if (!this.packagePricing[packageTypeId]) {
+      this.packagePricing[packageTypeId] = { markupAmount: 0, markupType: 'fixed', totalOverride: null };
+    }
+  }
+
+  initPackagePricingForAll(): void {
+    const pkgs = this.packageTypes() || [];
+    pkgs.forEach(p => this.ensurePackagePricing(p.QuotePackageTypeId));
+  }
+
 // ── Package rounded price ─────────────────────────────────
 getPackageRoundedPrice(packageTypeId: number): number {
   const raw = this.getPackageFinalPrice(packageTypeId);
@@ -5079,14 +5096,22 @@ getPackagePerPersonTotal(packageTypeId: number): number {
 
 getPackageGstAmount(packageTypeId: number): number {
   if (!this.gstEnabled) return 0;
+  this.ensurePackagePricing(packageTypeId);
   const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValue();
+  const markup = this.markupValueForPackage(packageTypeId);
   return Math.round((cost + markup) * (this.gstPercent || 0) / 100);
 }
 
 getPackageFinalPrice(packageTypeId: number): number {
+  this.ensurePackagePricing(packageTypeId);
+  // If user provided an explicit total override, honor it as the final package price
+  const override = this.packagePricing[packageTypeId].totalOverride;
+  if (override && override > 0) {
+    return Math.round(override);
+  }
+
   const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValue();
+  const markup = this.markupValueForPackage(packageTypeId);
   const gst = this.getPackageGstAmount(packageTypeId);
   const raw = cost + markup + gst;
   switch (this.roundingMode) {
@@ -5103,9 +5128,36 @@ getPackagePerPayingGuestPrice(packageTypeId: number): number {
   return Math.round(this.getPackageFinalPrice(packageTypeId) / paying);
 }
 
+  onPackageTotalOverrideChange(packageTypeId: number): void {
+    this.ensurePackagePricing(packageTypeId);
+    // If override provided and positive, accept it. Mark dirty so UI knows.
+    this.markDirty();
+  }
+
 markupValueForPackage(packageTypeId: number): number {
-  // Same markup applies to all packages
-  return this.markupValue();
+  // Compute markup per-package. Support per-person mode where markupAmount can be
+  // treated as per-pax addition when markupType is 'fixed', or percentage of per-pax when 'percentage'.
+  this.ensurePackagePricing(packageTypeId);
+  const settings = this.packagePricing[packageTypeId];
+  const cost = this.getPackageTotalCost(packageTypeId);
+  const paying = this.payingGuestCount() || 1;
+
+  if (this.pricingStrategy === 'per-person') {
+    const perPaxBase = Math.round(cost / paying);
+    let perPaxMarkup = 0;
+    if (settings.markupType === 'percentage') {
+      perPaxMarkup = Math.round(perPaxBase * (settings.markupAmount || 0) / 100);
+    } else {
+      perPaxMarkup = settings.markupAmount || 0;
+    }
+    return perPaxMarkup * paying;
+  }
+
+  // overall
+  if (settings.markupType === 'percentage') {
+    return Math.round(cost * (settings.markupAmount || 0) / 100);
+  }
+  return settings.markupAmount || 0;
 }
 
 // ── Handle pricing strategy change ──────────────────────────
