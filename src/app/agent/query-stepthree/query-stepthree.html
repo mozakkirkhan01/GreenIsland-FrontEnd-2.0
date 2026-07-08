@@ -2148,40 +2148,19 @@
     }
 
     <!-- ── SET MARKUP, TAX AND ROUNDING ── -->
-    <div class="text-primary fw-semibold mb-3" style="font-size:13px;">
-      Set Markup, Tax and Rounding
-    </div>
-
-    <div class="table-responsive">
-      <table class="table table-sm table-bordered mb-0" style="font-size:13px;">
-        <thead>
-          <tr style="background:#f8f9fa;">
-            <th style="width:22%; border:1px solid #dee2e6;"></th>
-            <th class="text-end" style="width:15%; border:1px solid #dee2e6;">
-              Cost Price (INR)
-            </th>
-            <th class="text-end" style="width:14%; border:1px solid #dee2e6;">
-              <div class="d-flex align-items-center justify-content-end gap-1">
-                <span>Markup</span>
-                <select class="form-select form-select-sm d-inline-block"
-                  [(ngModel)]="packagePricing[pkg.QuotePackageTypeId].markupType" (ngModelChange)="markDirty()"
-                  style="width:55px; font-size:11px; padding:1px 4px;">
-                  <option value="percentage">%</option>
-                  <option value="fixed">₹</option>
-                </select>
-              </div>
-            </th>
-            <th class="text-end" style="width:18%; border:1px solid #dee2e6;">
-              <div class="d-flex align-items-center justify-content-end gap-1">
-                Tax Applied On
-                <select class="form-select form-select-sm d-inline-block"
-                  style="width:100px; font-size:11px; padding:1px 4px;">
-                  <option value="cost_markup">Cost + Markup</option>
-                  <option value="cost">Only Markup</option>
-                </select>
-              </div>
-            </th>
-            <th class="text-end" style="width:16%; border:1px solid #dee2e6;">
+<!-- Set Markup, Tax and Rounding Section -->
+<div class="mb-4">
+  <h6 class="mb-3 text-primary">Set Markup, Tax and Rounding</h6>
+  
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered" style="font-size:11px;">
+      <thead class="table-light">
+        <tr>
+          <th style="width:250px;">For</th>
+          <th style="width:120px;">Cost Price (INR)</th>
+          <th style="width:120px;">Markup</th>
+          <th style="width:150px;">Tax Applied On</th>
+          <th class="text-end" style="width:16%; border:1px solid #dee2e6;">
               <div class="d-flex align-items-center justify-content-end gap-1 flex-wrap">
                 <input type="checkbox" [(ngModel)]="gstEnabled"
                   (ngModelChange)="markDirty()" style="cursor:pointer;"
@@ -2196,8 +2175,9 @@
                 }
               </div>
             </th>
-            <th class="text-end" style="width:12%; border:1px solid #dee2e6;">Total (INR)</th>
-            <th class="text-center" style="width:6%; border:1px solid #dee2e6;">
+
+          <th style="width:100px;">Total (INR)</th>
+           <th class="text-center" style="width:6%; border:1px solid #dee2e6;">
               <div class="d-flex align-items-center justify-content-center gap-1">
                 <span style="font-size:11px;">Round</span>
                 <select class="form-select form-select-sm d-inline-block"
@@ -2210,67 +2190,106 @@
                 </select>
               </div>
             </th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (pricingStrategy === 'per-person') {
-          <!-- Per-person data row -->
+
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Per-Person Strategy -->
+        @if (pricingStrategy === 'per-person') {
+          <!-- Per-Person row -->
           <tr>
-            <td>
-              <div class="fw-semibold">/Person (Double Sharing)</div>
-              <div class="text-muted" style="font-size:11px;">{{ payingGuestCount() }} Pax</div>
-            </td>
-            <td class="text-end">
-              <div class="fw-semibold">
-                {{ formatCurrency(getPackagePerPersonTotal(pkg.QuotePackageTypeId)) }}
-              </div>
+            <td class="fw-semibold">/Person (Double Sharing)<br><span class="text-muted small">{{ payingGuestCount() }} Pax</span></td>
+            <td class="text-end fw-bold">
+              {{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
             </td>
+
+            <!-- MARKUP COLUMN - Per-Person EDIT MODE -->
             <td class="text-end">
-              <input type="number" class="form-control form-control-sm text-end"
-                [(ngModel)]="packagePricing[pkg.QuotePackageTypeId].markupAmount" (ngModelChange)="markDirty()"
-                style="width:70px; padding:2px 4px; display:inline-block;" min="0">
-              @if (packagePricing[pkg.QuotePackageTypeId].markupType === 'percentage') {
-              <div class="text-muted" style="font-size:10px;">
-                = {{ formatCurrency(markupValueForPackage(pkg.QuotePackageTypeId)) }}
+              <div class="d-flex align-items-center justify-content-end gap-2">
+                @if (markupEditMode[pkg.QuotePackageTypeId] === 'person') {
+                  <!-- Edit Mode -->
+                  <input type="number" 
+                    class="form-control form-control-sm text-end"
+                    [value]="getPerPersonMarkup(pkg.QuotePackageTypeId)"
+                    (change)="onPerPersonMarkupChange(pkg.QuotePackageTypeId, +$event.target.value)"
+                    style="width:70px; padding:2px 4px;"
+                    min="0"
+                    autofocus>
+                  <button class="btn btn-sm btn-link p-0 text-success" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'person')">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">check_circle</mat-icon>
+                  </button>
+                } @else {
+                  <!-- View Mode -->
+                  <span class="fw-semibold">{{ getPerPersonMarkup(pkg.QuotePackageTypeId) }}</span>
+                  <button class="btn btn-sm btn-link p-0 text-muted" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'person')"
+                    matTooltip="Edit per-person markup">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">edit</mat-icon>
+                  </button>
+                }
               </div>
-              }
+              <div class="text-muted" style="font-size:10px;">
+                = {{ formatCurrency(getTotalMarkup(pkg.QuotePackageTypeId)) }}
+              </div>
             </td>
-            <td class="text-end text-muted" style="font-size:12px;">Cost + Markup</td>
-            <td class="text-end">
-              @if (gstEnabled) {
-              <div>{{ formatCurrency(getPackageGstAmount(pkg.QuotePackageTypeId)) }}</div>
+
+            <td class="text-end fw-semibold text-muted" style="font-size:12px;">Cost + Markup</td>
+            <td class="text-end fw-bold">
+              {{ formatCurrency(getPackagePerPersonGstAmount(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
-              } @else {
-              <span class="text-muted">—</span>
-              }
             </td>
             <td class="text-end fw-bold" style="color:#1a73e8;">
-              {{ formatCurrency(getPackageFinalPrice(pkg.QuotePackageTypeId) / (payingGuestCount() || 1)) }}
+              {{ formatCurrency(getPackagePerPayingGuestPrice(pkg.QuotePackageTypeId)) }}
+              <div class="text-muted" style="font-size:10px;">INR</div>
             </td>
-            <td class="text-end fw-bold" style="font-size:12px;">
+            <td class="text-end fw-bold">
               @if (roundingMode !== 'none') {
-              {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId) / (payingGuestCount() || 1)) }}
-              <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
-              } @else {
-              <span class="text-muted">—</span>
+                {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
+                <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
               }
             </td>
           </tr>
-          <!-- Total row (highlighted) -->
+
+          <!-- Total row (Per-Person) -->
           <tr style="background:#fffbec;">
             <td class="fw-bold">Total</td>
             <td class="text-end fw-bold">
-              {{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
+              {{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId) * payingGuestCount()) }}
             </td>
+
+            <!-- MARKUP COLUMN - Total EDIT MODE -->
             <td class="text-end">
-              <div class="fw-bold">
-                {{ formatCurrency(markupValueForPackage(pkg.QuotePackageTypeId)) }}
+              <div class="d-flex align-items-center justify-content-end gap-2">
+                @if (markupEditMode[pkg.QuotePackageTypeId] === 'total') {
+                  <!-- Edit Mode -->
+                  <input type="number" 
+                    class="form-control form-control-sm text-end"
+                    [value]="getTotalMarkup(pkg.QuotePackageTypeId)"
+                    (change)="onTotalMarkupChange(pkg.QuotePackageTypeId, +$event.target.value)"
+                    style="width:70px; padding:2px 4px;"
+                    min="0"
+                    autofocus>
+                  <button class="btn btn-sm btn-link p-0 text-success" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'total')">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">check_circle</mat-icon>
+                  </button>
+                } @else {
+                  <!-- View Mode -->
+                  <span class="fw-semibold">{{ getTotalMarkup(pkg.QuotePackageTypeId) }}</span>
+                  <button class="btn btn-sm btn-link p-0 text-muted" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'total')"
+                    matTooltip="Edit total markup">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">edit</mat-icon>
+                  </button>
+                }
               </div>
-              @if (packagePricing[pkg.QuotePackageTypeId].markupType === 'percentage') {
-              <div class="text-muted" style="font-size:10px;">= {{ packagePricing[pkg.QuotePackageTypeId].markupAmount }}%</div>
-              }
+              <div class="text-muted" style="font-size:10px;">
+                = {{ formatCurrency(getTotalMarkup(pkg.QuotePackageTypeId)) }}
+              </div>
             </td>
+
             <td class="text-end fw-semibold text-muted" style="font-size:12px;">Cost + Markup</td>
             <td class="text-end fw-bold">
               {{ formatCurrency(getPackageGstAmount(pkg.QuotePackageTypeId)) }}
@@ -2282,56 +2301,78 @@
             </td>
             <td class="text-end fw-bold">
               @if (roundingMode !== 'none') {
-              {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
-              <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
+                {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
+                <div class="text-muted" style="font-size:10px;">INR</div>
+              } @else {
+                <span class="text-muted">—</span>
               }
             </td>
           </tr>
-          }
+        }
 
-          @if (pricingStrategy === 'overall') {
-          <!-- Overall total row (highlighted) -->
+        <!-- Overall Strategy -->
+        @if (pricingStrategy === 'overall') {
+          <!-- Total row (Overall) -->
           <tr style="background:#fffbec;">
             <td class="fw-bold">Total</td>
             <td class="text-end fw-bold">
               {{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
             </td>
+
+            <!-- MARKUP COLUMN - Total EDIT MODE (Overall) -->
             <td class="text-end">
-              <div class="d-flex align-items-center gap-1 justify-content-end">
-                <input type="number" class="form-control form-control-sm text-end"
-                  [(ngModel)]="packagePricing[pkg.QuotePackageTypeId].markupAmount" (ngModelChange)="markDirty()"
-                  style="width:70px; padding:2px 4px;" min="0">
-                <span class="text-muted">%</span>
+              <div class="d-flex align-items-center justify-content-end gap-2">
+                @if (markupEditMode[pkg.QuotePackageTypeId] === 'total') {
+                  <!-- Edit Mode -->
+                  <input type="number" 
+                    class="form-control form-control-sm text-end"
+                    [value]="getTotalMarkup(pkg.QuotePackageTypeId)"
+                    (change)="onTotalMarkupChange(pkg.QuotePackageTypeId, +$event.target.value)"
+                    style="width:70px; padding:2px 4px;"
+                    min="0"
+                    autofocus>
+                  <button class="btn btn-sm btn-link p-0 text-success" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'total')">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">check_circle</mat-icon>
+                  </button>
+                } @else {
+                  <!-- View Mode -->
+                  <span class="fw-semibold">{{ getTotalMarkup(pkg.QuotePackageTypeId) }}</span>
+                  <button class="btn btn-sm btn-link p-0 text-muted" 
+                    (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'total')"
+                    matTooltip="Edit total markup">
+                    <mat-icon style="font-size:14px; width:14px; height:14px;">edit</mat-icon>
+                  </button>
+                }
               </div>
-              <div class="text-muted" style="font-size:10px; margin-top:2px;">
-                = {{ formatCurrency(markupValueForPackage(pkg.QuotePackageTypeId)) }}
+              <div class="text-muted" style="font-size:10px;">
+                = {{ formatCurrency(getTotalMarkup(pkg.QuotePackageTypeId)) }}
               </div>
             </td>
+
             <td class="text-end fw-semibold text-muted" style="font-size:12px;">Cost + Markup</td>
             <td class="text-end fw-bold">
               {{ formatCurrency(getPackageGstAmount(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
             </td>
             <td class="text-end fw-bold" style="color:#1a73e8;">
-              <input type="number" class="form-control form-control-sm text-end fw-bold"
-                [(ngModel)]="packagePricing[pkg.QuotePackageTypeId].totalOverride"
-                (ngModelChange)="onPackageTotalOverrideChange(pkg.QuotePackageTypeId)"
-                style="width:120px; padding:2px 6px; display:inline-block;" min="0">
+              {{ formatCurrency(getPackageFinalPrice(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">INR</div>
             </td>
             <td class="text-end fw-bold">
               @if (roundingMode !== 'none') {
-              {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
-              <div class="text-muted" style="font-size:10px;">INR</div>
+                {{ formatCurrency(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
+                <div class="text-muted" style="font-size:10px;">INR</div>
               } @else {
-              <span class="text-muted">—</span>
+                <span class="text-muted">—</span>
               }
             </td>
           </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
 
     <!-- Per-guest summary line (both modes) -->
     @if (payingGuestCount() > 0 && pricingStrategy === 'per-person') {

@@ -502,8 +502,6 @@ activityTotal = computed(() => {
           }));
           this.packageTypes.set(packageTypes);
           this.activePackageTypeId.set(packageTypes[0].QuotePackageTypeId);
-          // Initialize per-package pricing entries
-          this.initPackagePricingForAll();
           this.packageTypesLoaded = true;
           console.log('Package types loaded successfully:', this.packageTypes());
         } else {
@@ -685,7 +683,6 @@ activityTotal = computed(() => {
           this.packageTypes.set(saved);
           if (saved.length > 0) {
             this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
-            this.initPackagePricingForAll();
           }
           this.packageTypesLoaded = true;
           this.toastr.success('Default package type created');
@@ -4828,13 +4825,16 @@ getActiveDayGroups(): DayGroup[] {
   }
 
   // ── Pricing calculations ──────────────────────────────────
-  markupValue(): number {
-    const cost = this.totalCost();
-    if (this.markupType === 'percentage') {
-      return Math.round(cost * (this.markupAmount || 0) / 100);
-    }
-    return this.markupAmount || 0;
+markupValue(): number {
+  const cost = this.totalCost();
+  // Use the effective markup from active package
+  const markup = this.getEffectiveMarkup(this.activePackageTypeId());
+  
+  if (this.markupType === 'percentage') {
+    return Math.round(cost * (markup || 0) / 100);
   }
+  return markup || 0;
+}
 
   taxableAmount(): number {
     return this.totalCost() + this.markupValue();
@@ -5057,20 +5057,6 @@ activePackageTab = 0;
 // ── Package-specific internal notes ────────────────────────
 packageInternalNotes: { [key: number]: string } = {};
 
-  // Per-package pricing overrides and settings
-  packagePricing: { [key: number]: { markupAmount: number; markupType: 'percentage' | 'fixed'; totalOverride: number | null } } = {};
-
-  ensurePackagePricing(packageTypeId: number): void {
-    if (!this.packagePricing[packageTypeId]) {
-      this.packagePricing[packageTypeId] = { markupAmount: 0, markupType: 'fixed', totalOverride: null };
-    }
-  }
-
-  initPackagePricingForAll(): void {
-    const pkgs = this.packageTypes() || [];
-    pkgs.forEach(p => this.ensurePackagePricing(p.QuotePackageTypeId));
-  }
-
 // ── Package rounded price ─────────────────────────────────
 getPackageRoundedPrice(packageTypeId: number): number {
   const raw = this.getPackageFinalPrice(packageTypeId);
@@ -5096,22 +5082,20 @@ getPackagePerPersonTotal(packageTypeId: number): number {
 
 getPackageGstAmount(packageTypeId: number): number {
   if (!this.gstEnabled) return 0;
-  this.ensurePackagePricing(packageTypeId);
   const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValueForPackage(packageTypeId);
+  const markup = this.markupValue();
   return Math.round((cost + markup) * (this.gstPercent || 0) / 100);
 }
 
-getPackageFinalPrice(packageTypeId: number): number {
-  this.ensurePackagePricing(packageTypeId);
-  // If user provided an explicit total override, honor it as the final package price
-  const override = this.packagePricing[packageTypeId].totalOverride;
-  if (override && override > 0) {
-    return Math.round(override);
-  }
+public getPackagePerPersonGstAmount(packageTypeId: number): number {
+  if (!this.gstEnabled) return 0;
+  const perPaxFinal = this.getPackagePerPayingGuestPrice(packageTypeId);
+  return perPaxFinal * (this.gstPercent || 0) / 100;
+}
 
+getPackageFinalPrice(packageTypeId: number): number {
   const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValueForPackage(packageTypeId);
+  const markup = this.markupValue();
   const gst = this.getPackageGstAmount(packageTypeId);
   const raw = cost + markup + gst;
   switch (this.roundingMode) {
@@ -5127,37 +5111,21 @@ getPackagePerPayingGuestPrice(packageTypeId: number): number {
   if (paying <= 0) return 0;
   return Math.round(this.getPackageFinalPrice(packageTypeId) / paying);
 }
+isPerPersonRow(rowLabel: string): boolean {
+  return rowLabel.toLowerCase().includes('person');
+}
 
-  onPackageTotalOverrideChange(packageTypeId: number): void {
-    this.ensurePackagePricing(packageTypeId);
-    // If override provided and positive, accept it. Mark dirty so UI knows.
-    this.markDirty();
-  }
-
+isTotalRow(rowLabel: string): boolean {
+  return rowLabel.toLowerCase().includes('total');
+} 
 markupValueForPackage(packageTypeId: number): number {
-  // Compute markup per-package. Support per-person mode where markupAmount can be
-  // treated as per-pax addition when markupType is 'fixed', or percentage of per-pax when 'percentage'.
-  this.ensurePackagePricing(packageTypeId);
-  const settings = this.packagePricing[packageTypeId];
   const cost = this.getPackageTotalCost(packageTypeId);
-  const paying = this.payingGuestCount() || 1;
-
-  if (this.pricingStrategy === 'per-person') {
-    const perPaxBase = Math.round(cost / paying);
-    let perPaxMarkup = 0;
-    if (settings.markupType === 'percentage') {
-      perPaxMarkup = Math.round(perPaxBase * (settings.markupAmount || 0) / 100);
-    } else {
-      perPaxMarkup = settings.markupAmount || 0;
-    }
-    return perPaxMarkup * paying;
+  const markup = this.getTotalMarkup(packageTypeId);
+  
+  if (this.markupType === 'percentage') {
+    return Math.round(cost * (markup || 0) / 100);
   }
-
-  // overall
-  if (settings.markupType === 'percentage') {
-    return Math.round(cost * (settings.markupAmount || 0) / 100);
-  }
-  return settings.markupAmount || 0;
+  return markup || 0;
 }
 
 // ── Handle pricing strategy change ──────────────────────────
@@ -5165,7 +5133,67 @@ onPricingStrategyChange(): void {
   this.markDirty();
   // You can add any additional logic here
 }
+// Markup edit mode tracking (per package)
+markupEditMode: { [key: number]: 'person' | 'total' | 'none' } = {};
 
-// ── Get package totals for the summary table ───────────────
+// Separate tracking for per-person and total markups (per package)
+packageMarkups: { [key: number]: { perPerson: number; total: number } } = {};
+
+// Initialize markups for a package
+initializePackageMarkup(packageTypeId: number): void {
+  if (!this.packageMarkups[packageTypeId]) {
+    this.packageMarkups[packageTypeId] = {
+      perPerson: this.markupAmount,
+      total: this.markupAmount * this.payingGuestCount(),
+    };
+  }
+  if (!this.markupEditMode[packageTypeId]) {
+    this.markupEditMode[packageTypeId] = 'none';
+  }
+}
+
+// Get per-person markup for a package
+getPerPersonMarkup(packageTypeId: number): number {
+  this.initializePackageMarkup(packageTypeId);
+  return this.packageMarkups[packageTypeId].perPerson;
+}
+
+// Get total markup for a package
+getTotalMarkup(packageTypeId: number): number {
+  this.initializePackageMarkup(packageTypeId);
+  return this.packageMarkups[packageTypeId].total;
+}
+
+// Update per-person markup and sync to total
+onPerPersonMarkupChange(packageTypeId: number, newValue: number): void {
+  this.initializePackageMarkup(packageTypeId);
+  this.packageMarkups[packageTypeId].perPerson = newValue;
+  this.packageMarkups[packageTypeId].total = newValue * this.payingGuestCount();
+  this.markDirty();
+}
+
+// Update total markup and sync to per-person
+onTotalMarkupChange(packageTypeId: number, newValue: number): void {
+  this.initializePackageMarkup(packageTypeId);
+  this.packageMarkups[packageTypeId].total = newValue;
+  const paying = this.payingGuestCount();
+  this.packageMarkups[packageTypeId].perPerson = paying > 0 ? Math.round(newValue / paying) : 0;
+  this.markDirty();
+}
+
+// Toggle edit mode
+toggleMarkupEdit(packageTypeId: number, mode: 'person' | 'total'): void {
+  if (this.markupEditMode[packageTypeId] === mode) {
+    this.markupEditMode[packageTypeId] = 'none';
+  } else {
+    this.markupEditMode[packageTypeId] = mode;
+  }
+}
+
+// Get effective markup for calculations
+getEffectiveMarkup(packageTypeId: number): number {
+  this.initializePackageMarkup(packageTypeId);
+  return this.packageMarkups[packageTypeId].total;
+}
 
 }
