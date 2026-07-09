@@ -13,7 +13,7 @@
         to provide a quote with different configuration, without changing the trip details.
       </div>
 
-      <div class="d-flex align-items-center gap-5 flex-wrap mb-3">
+      <div class="d-flex align-items-center gap-5 flex-wrap mb-3">  
         <div>
           <div class="text-muted small text-uppercase fw-semibold" style="font-size:10px; letter-spacing:0.5px;">
             Quotation No</div>
@@ -361,15 +361,17 @@
                   </table>
 
                   <!-- Selling price override -->
-                  @if (row.BaseRate > 0) {
-                  <div class="mt-2">
-                    <label class="form-label small text-muted mb-1">Final Price (INR) <span
-                        class="text-danger">*</span></label>
-                    <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
-                      (ngModelChange)="markDirty()" (blur)="saveHotelRow(row)">
-                    <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
-                  </div>
-                  }
+                 <!-- Selling price override -->
+@if (row.BaseRate > 0) {
+<div class="mt-2">
+  <label class="form-label small text-muted mb-1">Final Price (INR) <span class="text-danger">*</span></label>
+  <input type="number" class="form-control form-control-sm" 
+    [(ngModel)]="row.FinalPrice"
+    (ngModelChange)="onFinalPriceChange(row)" 
+    (blur)="saveHotelRow(row)">
+  <div class="text-muted" style="font-size:10px;">Cost: INR {{ formatCurrency(row.TotalPrice) }}</div>
+</div>
+}
                 </div>
               </div>
 

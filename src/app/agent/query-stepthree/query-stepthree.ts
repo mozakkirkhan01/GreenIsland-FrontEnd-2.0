@@ -134,6 +134,8 @@ export interface QuoteHotelRow {
   SelectedNightsDisplay: string;
   SimilarHotels: QuoteHotelRow[];
   IsMainHotel: boolean;
+  IsManualPrice: boolean;
+  FinalPrice: number;  
 }
 export type ActivityPaxType = 'Adult' | 'Child' | 'ChildBelowTwoYear';
 
@@ -698,6 +700,9 @@ activityTotal = computed(() => {
   }
   // ── Map rows ──────────────────────────────────────────────
   private mapHotelRow(h: any): QuoteHotelRow {
+    const sellingPrice = h.SellingPrice ?? 0;
+  const nights = 1; // Default for single night
+  const rooms = h.NoOfRooms ?? 1;
     return {
       QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
       QuotePackageTypeId: this.toNumberId(h.QuotePackageTypeId),
@@ -720,6 +725,8 @@ activityTotal = computed(() => {
       SelectedNightsDisplay: `Night ${h.NightNumber}`,
       SimilarHotels: [],       // ADD
       IsMainHotel: true,       // ADD
+      IsManualPrice: false,
+      FinalPrice: sellingPrice * nights * rooms, // ← ADD THIS
     };
   }
 
@@ -900,32 +907,40 @@ activityTotal = computed(() => {
       SelectedNightsDisplay: `Night ${selectedSlot.NightNumber}`,
       SimilarHotels: [],       // ADD
       IsMainHotel: true,       // ADD
+      IsManualPrice: false,
+      FinalPrice: 0,
     }]);
   }
 
-  onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
-    const index = row.NightNumbers.indexOf(nightNumber);
-    if (index > -1) {
-      row.NightNumbers.splice(index, 1);
-    } else {
-      row.NightNumbers.push(nightNumber);
-      row.NightNumbers.sort((a, b) => a - b);
-    }
-
-    if (row.NightNumbers.length > 0) {
-      const firstNight = row.NightNumbers[0];
-      const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
-      row.NightNumber = firstNight;
-      if (slot) row.StayDate = slot.StayDate;
-    }
-
-    this.updateHotelNightsDisplay(row);
-    this.hotelRows.update(rows => [...rows]);
-    if (row.HotelId > 0 && row.RoomTypeId > 0) {
-      this.lookupHotelRate(row);
-    }
-    this.markDirty();
+onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
+  const index = row.NightNumbers.indexOf(nightNumber);
+  if (index > -1) {
+    row.NightNumbers.splice(index, 1);
+  } else {
+    row.NightNumbers.push(nightNumber);
+    row.NightNumbers.sort((a, b) => a - b);
   }
+
+  if (row.NightNumbers.length > 0) {
+    const firstNight = row.NightNumbers[0];
+    const slot = this.nightSlots().find(n => n.NightNumber === firstNight);
+    row.NightNumber = firstNight;
+    if (slot) row.StayDate = slot.StayDate;
+  }
+
+  this.updateHotelNightsDisplay(row);
+  
+  // ✅ FIX: Only lookup rate if price is NOT manually entered
+  if (row.HotelId > 0 && row.RoomTypeId > 0 && !row.IsManualPrice) {
+    this.lookupHotelRate(row);
+  } else if (row.HotelId > 0 && row.RoomTypeId > 0 && row.IsManualPrice) {
+    // ✅ Recalculate with existing manual price
+    this.recalculatePrice(row);
+  }
+  
+  this.hotelRows.update(rows => [...rows]);
+  this.markDirty();
+}
 
   updateHotelNightsDisplay(row: QuoteHotelRow): void {
     if (row.NightNumbers.length === 0) {
@@ -1275,6 +1290,7 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       FilteredHotels: [], ShowDropdown: false, ShowNightDropdown: false,
       SimilarHotels: [],
       IsMainHotel: false,
+      IsManualPrice: row.IsManualPrice || false,
     }));
   }
 
@@ -1302,7 +1318,8 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       TotalPrice: 0, RoomTypes: [], IsSaving: false, SpecialInclusions: [],
       HotelSearch: '', FilteredHotels: [], ShowDropdown: false,
       ShowNightDropdown: false, SelectedNightsDisplay: '',
-      SimilarHotels: [], IsMainHotel: false
+      SimilarHotels: [], IsMainHotel: false, IsManualPrice: false,
+      FinalPrice: 0,
     };
   }
 
@@ -1318,6 +1335,7 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       NoOfRooms: src.NoOfRooms,
       PaxPerRoom: src.PaxPerRoom,
       AWEB: src.AWEB, CWEB: src.CWEB, CNB: src.CNB,
+      IsManualPrice: false,
     });
   }
 
@@ -1813,6 +1831,13 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
   }
   lookupHotelRate(row: QuoteHotelRow): void {
+
+  if (row.IsManualPrice) {
+    this.recalculatePrice(row);
+    this.hotelRows.update(rows => [...rows]);
+    return;
+  }
+
     if (!row.HotelId || !row.RoomTypeId) return;
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
@@ -1870,16 +1895,26 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     });
   }
 
-  recalculatePrice(row: QuoteHotelRow): void {
-    const nights = row.NightNumbers.length || 1;
-    const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1) * nights;
-    const awebCost = (row.AwebRate || 0) * (row.AWEB || 0) * nights;
-    const cwebCost = (row.CwebRate || 0) * (row.CWEB || 0) * nights;
-    const cnbCost = (row.CnbRate || 0) * (row.CNB || 0) * nights;
-    row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
+recalculatePrice(row: QuoteHotelRow): void {
+  const nights = row.NightNumbers.length || 1;
+  const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1) * nights;
+  const awebCost = (row.AwebRate || 0) * (row.AWEB || 0) * nights;
+  const cwebCost = (row.CwebRate || 0) * (row.CWEB || 0) * nights;
+  const cnbCost = (row.CnbRate || 0) * (row.CNB || 0) * nights;
+  row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
+  
+  if (!row.IsManualPrice || row.SellingPrice === 0) {
     row.SellingPrice = row.CostPrice;
-    row.TotalPrice = row.CostPrice;
   }
+  
+  row.TotalPrice = row.CostPrice;
+  // ✅ Calculate FinalPrice from SellingPrice
+  const nights2 = row.NightNumbers.length || 1;
+  const rooms = row.NoOfRooms || 1;
+  row.FinalPrice = (row.SellingPrice || 0) * nights2 * rooms;
+  
+  this.hotelRows.update(rows => [...rows]);
+}
 
   saveHotelRow(row: QuoteHotelRow): void {
     if (!row.HotelId || !row.RoomTypeId) return;
@@ -1894,32 +1929,41 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     if (slot) row.StayDate = slot.StayDate;
 
     row.IsSaving = true;
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
 
-    const stayDate = this.formatDate(row.StayDate);
-    this.service.saveQuoteHotel(enc({
-      QuoteHotelId: row.QuoteHotelId, QuoteId: this.QuoteId,
-      QuotePackageTypeId: row.QuotePackageTypeId,
-      NightNumber: row.NightNumber, StayDate: stayDate,
-      HotelId: row.HotelId, RoomTypeId: row.RoomTypeId,
-      MealPlan: row.MealPlan, NoOfRooms: row.NoOfRooms,
-      PaxPerRoom: row.PaxPerRoom, AWEB: row.AWEB, CWEB: row.CWEB, CNB: row.CNB,
-      CostPrice: row.CostPrice, SellingPrice: row.SellingPrice,
-    })).subscribe({
-      next: (r: any) => {
-        if (r.Message === ConstantData.SuccessMessage) {
-          row.QuoteHotelId = r.QuoteHotelId;
-          this.markClean(); // ← mark clean after successful save
-        } else {
-          this.toastr.error(r.Message);
-        }
-        row.IsSaving = false;
-      },
-      error: () => { row.IsSaving = false; }
-    });
-  }
+  const stayDate = this.formatDate(row.StayDate);
+  this.service.saveQuoteHotel(enc({
+    QuoteHotelId: row.QuoteHotelId, 
+    QuoteId: this.QuoteId,
+    QuotePackageTypeId: row.QuotePackageTypeId,
+    NightNumber: row.NightNumber, 
+    StayDate: stayDate,
+    HotelId: row.HotelId, 
+    RoomTypeId: row.RoomTypeId,
+    MealPlan: row.MealPlan, 
+    NoOfRooms: row.NoOfRooms,
+    PaxPerRoom: row.PaxPerRoom, 
+    AWEB: row.AWEB, 
+    CWEB: row.CWEB, 
+    CNB: row.CNB,
+    CostPrice: row.CostPrice, 
+    SellingPrice: row.SellingPrice,
+    // ✅ We don't save IsManualPrice to DB - it's UI state only
+  })).subscribe({
+    next: (r: any) => {
+      if (r.Message === ConstantData.SuccessMessage) {
+        row.QuoteHotelId = r.QuoteHotelId;
+        this.markClean();
+      } else {
+        this.toastr.error(r.Message);
+      }
+      row.IsSaving = false;
+    },
+    error: () => { row.IsSaving = false; }
+  });
+}
 
   removeHotelRow(row: QuoteHotelRow): void {
     this.markDirty();
@@ -1947,18 +1991,18 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
   };
 
   // Open modal
-  EditPrices(row: QuoteHotelRow): void {
-    this.editingHotelRow = row;
-    this.editPrices = {
-      RoomRate: row.BaseRate,
-      AwebRate: row.AwebRate,
-      CwebRate: row.CwebRate,
-      CnbRate: row.CnbRate,
-      SellingPrice: row.SellingPrice,
-      ComputedTotal: row.CostPrice,
-    };
-    this.showEditPricesModal = true;
-  }
+EditPrices(row: QuoteHotelRow): void {
+  this.editingHotelRow = row;
+  this.editPrices = {
+    RoomRate: row.BaseRate,
+    AwebRate: row.AwebRate,
+    CwebRate: row.CwebRate,
+    CnbRate: row.CnbRate,
+    SellingPrice: row.SellingPrice,
+    ComputedTotal: row.CostPrice,
+  };
+  this.showEditPricesModal = true;
+}
 
   closeEditPricesModal(): void {
     this.showEditPricesModal = false;
@@ -1975,27 +2019,50 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
       (this.editPrices.CnbRate * (row.CNB || 0));
   }
 
-  applyEditPrices(): void {
-    if (!this.editingHotelRow) return;
-    const row = this.editingHotelRow;
+applyEditPrices(): void {
+  if (!this.editingHotelRow) return;
+  const row = this.editingHotelRow;
 
-    // Apply back to row
-    row.BaseRate = this.editPrices.RoomRate;
-    row.AwebRate = this.editPrices.AwebRate;
-    row.CwebRate = this.editPrices.CwebRate;
-    row.CnbRate = this.editPrices.CnbRate;
-    row.CostPrice = this.editPrices.ComputedTotal;
-    row.TotalPrice = this.editPrices.ComputedTotal;
-    row.SellingPrice = this.editPrices.SellingPrice;
+  row.BaseRate = this.editPrices.RoomRate;
+  row.AwebRate = this.editPrices.AwebRate;
+  row.CwebRate = this.editPrices.CwebRate;
+  row.CnbRate = this.editPrices.CnbRate;
+  row.CostPrice = this.editPrices.ComputedTotal;
+  row.TotalPrice = this.editPrices.ComputedTotal;
+  row.SellingPrice = this.editPrices.SellingPrice;
+  row.IsManualPrice = true;
+  
+  // ✅ Update FinalPrice
+  const nights = row.NightNumbers?.length || 1;
+  const rooms = row.NoOfRooms || 1;
+  row.FinalPrice = (row.SellingPrice || 0) * nights * rooms;
 
-    this.hotelRows.update(rows => [...rows]);
-    this.markDirty();
-    this.saveHotelRow(row);
-    this.recalculatePrice(row);
-    this.closeEditPricesModal();
-  }
-
-
+  this.hotelRows.update(rows => [...rows]);
+  this.markDirty();
+  this.saveHotelRow(row);
+  this.recalculatePrice(row);
+  this.closeEditPricesModal();
+}
+onManualPriceChange(row: QuoteHotelRow): void {
+  row.IsManualPrice = true;
+  const nights = row.NightNumbers?.length || 1;
+  const rooms = row.NoOfRooms || 1;
+  // Calculate FinalPrice from SellingPrice (per-night)
+  row.FinalPrice = (row.SellingPrice || 0) * nights * rooms;
+  row.TotalPrice = row.FinalPrice;
+  this.markDirty();
+  this.hotelRows.update(rows => [...rows]);
+}
+onFinalPriceChange(row: QuoteHotelRow): void {
+  row.IsManualPrice = true;
+  const nights = row.NightNumbers?.length || 1;
+  const rooms = row.NoOfRooms || 1;
+  // Calculate SellingPrice (per-night) from FinalPrice
+  row.SellingPrice = Math.round(row.FinalPrice / (nights * rooms));
+  row.TotalPrice = row.FinalPrice;
+  this.markDirty();
+  this.hotelRows.update(rows => [...rows]);
+}
 
   // Cab types & days
   showCabTypesModal = false;
@@ -3063,25 +3130,35 @@ getPackageHotelTotal(pkgId: number): number {
 }
 
 // ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
+// ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
 getEffectiveHotelTotal(pkgId: number): number {
   const mainHotels = this.hotelRows().filter(
     r => r.QuotePackageTypeId === pkgId && r.HotelId > 0 && r.IsMainHotel
   );
 
   return mainHotels.reduce((total, main) => {
-    const mainPrice = main.SellingPrice || 0;
-    const maxSimilar = main.SimilarHotels.length > 0
-      ? Math.max(...main.SimilarHotels.map(s => s.SellingPrice || 0))
-      : 0;
+    // Use FinalPrice (total) instead of calculating
+    const mainPrice = main.FinalPrice || main.TotalPrice || 0;
+    
+    let maxSimilar = 0;
+    if (main.SimilarHotels && main.SimilarHotels.length > 0) {
+      maxSimilar = Math.max(...main.SimilarHotels.map(s => s.FinalPrice || s.TotalPrice || 0));
+    }
+    
     return total + Math.max(mainPrice, maxSimilar);
   }, 0);
 }
+
+// Also update effectivePriceForGroup for consistency
 effectivePriceForGroup(mainHotel: QuoteHotelRow): number {
+  const mainPrice = mainHotel.FinalPrice || mainHotel.TotalPrice || 0;
+  
   if (!mainHotel.SimilarHotels || mainHotel.SimilarHotels.length === 0) {
-    return mainHotel.SellingPrice || 0;
+    return mainPrice;
   }
-  const maxSimilar = Math.max(...mainHotel.SimilarHotels.map(s => s.SellingPrice || 0));
-  return Math.max(mainHotel.SellingPrice || 0, maxSimilar);
+  
+  const maxSimilar = Math.max(...mainHotel.SimilarHotels.map(s => s.FinalPrice || s.TotalPrice || 0));
+  return Math.max(mainPrice, maxSimilar);
 }
 
 // In getPackageGrandTotal:
