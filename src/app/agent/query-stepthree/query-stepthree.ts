@@ -135,6 +135,7 @@ export interface QuoteHotelRow {
   SimilarHotels: QuoteHotelRow[];
   IsMainHotel: boolean;
   IsManualPrice: boolean;
+  IsDatabasePrice: boolean;
   FinalPrice: number;  
 }
 export type ActivityPaxType = 'Adult' | 'Child' | 'ChildBelowTwoYear';
@@ -726,6 +727,7 @@ activityTotal = computed(() => {
       SimilarHotels: [],       // ADD
       IsMainHotel: true,       // ADD
       IsManualPrice: false,
+      IsDatabasePrice: true,
       FinalPrice: sellingPrice * nights * rooms, // ← ADD THIS
     };
   }
@@ -908,7 +910,7 @@ activityTotal = computed(() => {
       SimilarHotels: [],       // ADD
       IsMainHotel: true,       // ADD
       IsManualPrice: false,
-      FinalPrice: 0,
+      FinalPrice: 0, IsDatabasePrice: false,
     }]);
   }
 
@@ -1248,6 +1250,9 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
   this.similarHotelSourceRow = mainHotel;
 
   if (mainHotel.SimilarHotels.length === 0) {
+    const nights = mainHotel.NightNumbers?.length || 1;
+    const rooms = mainHotel.NoOfRooms || 1;
+    
     this.similarHotelRows = [{
       ...this.createEmptyHotelRow(),
       MealPlan: mainHotel.MealPlan,
@@ -1258,6 +1263,11 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       AWEB: mainHotel.AWEB,
       CWEB: mainHotel.CWEB,
       CNB: mainHotel.CNB,
+      SellingPrice: mainHotel.SellingPrice,
+      FinalPrice: mainHotel.FinalPrice || mainHotel.TotalPrice,
+      TotalPrice: mainHotel.TotalPrice,
+      IsDatabasePrice: mainHotel.IsDatabasePrice || false,
+      IsManualPrice: mainHotel.IsManualPrice || false,
     }];
   } else {
     this.similarHotelRows = mainHotel.SimilarHotels.map(row => ({
@@ -1277,20 +1287,27 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       SelectedNightsDisplay: row.SelectedNightsDisplay,
       NoOfRooms: row.NoOfRooms,
       PaxPerRoom: row.PaxPerRoom,
-      AWEB: row.AWEB, CWEB: row.CWEB, CNB: row.CNB,
+      AWEB: row.AWEB, 
+      CWEB: row.CWEB, 
+      CNB: row.CNB,
       BaseRate: row.BaseRate,
       AwebRate: row.AwebRate,
       CwebRate: row.CwebRate,
       CnbRate: row.CnbRate,
       CostPrice: row.CostPrice,
       SellingPrice: row.SellingPrice,
-      TotalPrice: row.TotalPrice,
+      TotalPrice: row.FinalPrice || row.TotalPrice,
+      FinalPrice: row.FinalPrice || row.TotalPrice,
       RoomTypes: [...row.RoomTypes],
-      IsSaving: false, SpecialInclusions: [],
-      FilteredHotels: [], ShowDropdown: false, ShowNightDropdown: false,
+      IsSaving: false, 
+      SpecialInclusions: [],
+      FilteredHotels: [], 
+      ShowDropdown: false, 
+      ShowNightDropdown: false,
       SimilarHotels: [],
       IsMainHotel: false,
       IsManualPrice: row.IsManualPrice || false,
+      IsDatabasePrice: row.IsDatabasePrice || false,  // ← ADD THIS
     }));
   }
 
@@ -1319,7 +1336,7 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
       HotelSearch: '', FilteredHotels: [], ShowDropdown: false,
       ShowNightDropdown: false, SelectedNightsDisplay: '',
       SimilarHotels: [], IsMainHotel: false, IsManualPrice: false,
-      FinalPrice: 0,
+      FinalPrice: 0, IsDatabasePrice: false,
     };
   }
 
@@ -1830,70 +1847,66 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     // Find and remove the row by comparing the object reference
     this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
   }
-  lookupHotelRate(row: QuoteHotelRow): void {
-
+lookupHotelRate(row: QuoteHotelRow): void {
+  // ✅ If manual price, just recalculate
   if (row.IsManualPrice) {
     this.recalculatePrice(row);
     this.hotelRows.update(rows => [...rows]);
     return;
   }
 
-    if (!row.HotelId || !row.RoomTypeId) return;
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
-    // Fetch base rate and extra charges in parallel
-    forkJoin({
-      rate: this.service.getHotelRateByDate(enc({
-        HotelId: row.HotelId,
-        RoomTypeId: row.RoomTypeId,
-        StayDate: this.loadData.loadDateTime(row.StayDate),
-      })),
-      charges: this.service.getHotelExtraCharges(enc({
-        HotelId: row.HotelId,
-        StayDate: row.StayDate,
-      }))
-    }).subscribe({
-      next: ({ rate, charges }: any) => {
-        if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
-
-          const r = rate.Rate;
-
-          row.BaseRate = row.MealPlan === 'CP'
-            ? (r.CpRate ?? 0)
-            : row.MealPlan === 'MAP'
-              ? (r.MapRate ?? 0)
-              : (r.ApRate ?? 0);
-
-        } else {
-
-          this.toastr.warning(
-            `No price configured for ${row.HotelName}`
-          );
-
-          row.BaseRate = 0;
-        }
-
-        if (charges.Message === ConstantData.SuccessMessage) {
-          const ch = charges.Charges ?? [];
-          // ChargeType 1=AWEB, 2=CWEB, 3=CNB
-          const aweb = ch.find((c: any) => c.ChargeType === 1);
-          const cweb = ch.find((c: any) => c.ChargeType === 2);
-          const cnb = ch.find((c: any) => c.ChargeType === 3);
-
-          row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate
-            : row.MealPlan === 'MAP' ? aweb.MapRate : aweb.ApRate) ?? 0 : 0;
-          row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate
-            : row.MealPlan === 'MAP' ? cweb.MapRate : cweb.ApRate) ?? 0 : 0;
-          row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate
-            : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
-        }
-
-        this.recalculatePrice(row);
-        this.hotelRows.update(rows => [...rows]);
+  if (!row.HotelId || !row.RoomTypeId) return;
+  
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+  
+  // Fetch base rate and extra charges in parallel
+  forkJoin({
+    rate: this.service.getHotelRateByDate(enc({
+      HotelId: row.HotelId,
+      RoomTypeId: row.RoomTypeId,
+      StayDate: this.loadData.loadDateTime(row.StayDate),
+    })),
+    charges: this.service.getHotelExtraCharges(enc({
+      HotelId: row.HotelId,
+      StayDate: row.StayDate,
+    }))
+  }).subscribe({
+    next: ({ rate, charges }: any) => {
+      if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+        const r = rate.Rate;
+        row.BaseRate = row.MealPlan === 'CP'
+          ? (r.CpRate ?? 0)
+          : row.MealPlan === 'MAP'
+            ? (r.MapRate ?? 0)
+            : (r.ApRate ?? 0);
+      } else {
+        this.toastr.warning(`No price configured for ${row.HotelName}`);
+        row.BaseRate = 0;
       }
-    });
-  }
+
+      if (charges.Message === ConstantData.SuccessMessage) {
+        const ch = charges.Charges ?? [];
+        const aweb = ch.find((c: any) => c.ChargeType === 1);
+        const cweb = ch.find((c: any) => c.ChargeType === 2);
+        const cnb = ch.find((c: any) => c.ChargeType === 3);
+
+        row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate
+          : row.MealPlan === 'MAP' ? aweb.MapRate : aweb.ApRate) ?? 0 : 0;
+        row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate
+          : row.MealPlan === 'MAP' ? cweb.MapRate : cweb.ApRate) ?? 0 : 0;
+        row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate
+          : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
+      }
+
+      // ✅ Mark as database price before recalculating
+      row.IsDatabasePrice = true;
+      this.recalculatePrice(row);
+      this.hotelRows.update(rows => [...rows]);
+    }
+  });
+}
 
 recalculatePrice(row: QuoteHotelRow): void {
   const nights = row.NightNumbers.length || 1;
@@ -1903,15 +1916,25 @@ recalculatePrice(row: QuoteHotelRow): void {
   const cnbCost = (row.CnbRate || 0) * (row.CNB || 0) * nights;
   row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
   
-  if (!row.IsManualPrice || row.SellingPrice === 0) {
+  // ✅ Handle database-loaded prices differently
+  if (row.IsDatabasePrice && !row.IsManualPrice) {
+    // For database-loaded prices: TotalPrice and FinalPrice are already the total
+    // Don't recalculate them from SellingPrice
+    row.TotalPrice = row.CostPrice;
+    row.FinalPrice = row.CostPrice;
+    row.SellingPrice = row.CostPrice; // Update SellingPrice to match CostPrice
+  } else if (!row.IsManualPrice || row.SellingPrice === 0) {
+    // For new hotels or when SellingPrice is zero
     row.SellingPrice = row.CostPrice;
+    row.TotalPrice = row.CostPrice;
+    row.FinalPrice = row.CostPrice;
+  } else {
+    // For manual prices: Calculate FinalPrice from SellingPrice (per-night)
+    const nights2 = row.NightNumbers.length || 1;
+    const rooms = row.NoOfRooms || 1;
+    row.FinalPrice = (row.SellingPrice || 0) * nights2 * rooms;
+    row.TotalPrice = row.FinalPrice;
   }
-  
-  row.TotalPrice = row.CostPrice;
-  // ✅ Calculate FinalPrice from SellingPrice
-  const nights2 = row.NightNumbers.length || 1;
-  const rooms = row.NoOfRooms || 1;
-  row.FinalPrice = (row.SellingPrice || 0) * nights2 * rooms;
   
   this.hotelRows.update(rows => [...rows]);
 }
@@ -2031,6 +2054,7 @@ applyEditPrices(): void {
   row.TotalPrice = this.editPrices.ComputedTotal;
   row.SellingPrice = this.editPrices.SellingPrice;
   row.IsManualPrice = true;
+  row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
   
   // ✅ Update FinalPrice
   const nights = row.NightNumbers?.length || 1;
@@ -2045,21 +2069,29 @@ applyEditPrices(): void {
 }
 onManualPriceChange(row: QuoteHotelRow): void {
   row.IsManualPrice = true;
+  row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
+  
   const nights = row.NightNumbers?.length || 1;
   const rooms = row.NoOfRooms || 1;
   // Calculate FinalPrice from SellingPrice (per-night)
   row.FinalPrice = (row.SellingPrice || 0) * nights * rooms;
   row.TotalPrice = row.FinalPrice;
+  
+  this.recalculatePrice(row);
   this.markDirty();
   this.hotelRows.update(rows => [...rows]);
 }
 onFinalPriceChange(row: QuoteHotelRow): void {
   row.IsManualPrice = true;
+  row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
+  
   const nights = row.NightNumbers?.length || 1;
   const rooms = row.NoOfRooms || 1;
   // Calculate SellingPrice (per-night) from FinalPrice
   row.SellingPrice = Math.round(row.FinalPrice / (nights * rooms));
   row.TotalPrice = row.FinalPrice;
+  
+  this.recalculatePrice(row);
   this.markDirty();
   this.hotelRows.update(rows => [...rows]);
 }
