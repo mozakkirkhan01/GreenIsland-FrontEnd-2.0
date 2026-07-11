@@ -91,6 +91,38 @@ export interface NightSlot {
   DayLabel: string;
 }
 
+export interface HotelNightPriceBreakdown {
+  NightNumber: number;
+  StayDate: Date | string;
+  DateLabel: string;
+  BaseRate: number;
+  Rooms: number;
+  RoomTotal: number;
+  AWEB: number;
+  AwebRate: number;
+  AwebTotal: number;
+  CWEB: number;
+  CwebRate: number;
+  CwebTotal: number;
+  CNB: number;
+  CnbRate: number;
+  CnbTotal: number;
+  Total: number;
+}
+
+export interface HotelPriceBreakdown {
+  BaseRate: number;
+  AwebRate: number;
+  CwebRate: number;
+  CnbRate: number;
+  RoomTotal: number;
+  ExtraBedTotal: number;
+  TotalPrice: number;
+  CostPrice: number;
+  SellingPrice: number;
+  NightPrices: HotelNightPriceBreakdown[];
+}
+
 export interface DaySlot {
   DayNumber: number;
   ServiceDate: Date;
@@ -137,6 +169,8 @@ export interface QuoteHotelRow {
   IsManualPrice: boolean;
   IsDatabasePrice: boolean;
   FinalPrice: number;  
+  NightPrices?: HotelNightPriceBreakdown[];
+  PriceBreakdown?: HotelPriceBreakdown;
 }
 export type ActivityPaxType = 'Adult' | 'Child' | 'ChildBelowTwoYear';
 
@@ -1227,6 +1261,7 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
   similarHotelRows: QuoteHotelRow[] = [];
   // Add this with your other signals
   similarHotels = signal<QuoteHotelRow[]>([]);
+  private deferSectionPersistenceUntilSaveQuote = true;
 
 
   getNextUnselectedNight(): number | null {
@@ -1249,70 +1284,16 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
 openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
   this.similarHotelSourceRow = mainHotel;
 
-  if (mainHotel.SimilarHotels.length === 0) {
-    const nights = mainHotel.NightNumbers?.length || 1;
-    const rooms = mainHotel.NoOfRooms || 1;
-    
-    this.similarHotelRows = [{
-      ...this.createEmptyHotelRow(),
-      MealPlan: mainHotel.MealPlan,
-      NightNumbers: [...mainHotel.NightNumbers],
-      SelectedNightsDisplay: mainHotel.SelectedNightsDisplay,
-      NoOfRooms: mainHotel.NoOfRooms,
-      PaxPerRoom: mainHotel.PaxPerRoom,
-      AWEB: mainHotel.AWEB,
-      CWEB: mainHotel.CWEB,
-      CNB: mainHotel.CNB,
-      SellingPrice: mainHotel.SellingPrice,
-      FinalPrice: mainHotel.FinalPrice || mainHotel.TotalPrice,
-      TotalPrice: mainHotel.TotalPrice,
-      IsDatabasePrice: mainHotel.IsDatabasePrice || false,
-      IsManualPrice: mainHotel.IsManualPrice || false,
-    }];
+  if (!mainHotel.SimilarHotels || mainHotel.SimilarHotels.length === 0) {
+    this.similarHotelRows = [this.createSimilarHotelFromMain(mainHotel)];
   } else {
-    this.similarHotelRows = mainHotel.SimilarHotels.map(row => ({
-      ...this.createEmptyHotelRow(),
-      QuoteHotelId: row.QuoteHotelId,
-      HotelId: row.HotelId,
-      HotelName: row.HotelName,
-      HotelSearch: row.HotelName,
-      LocationName: row.LocationName,
-      HotelCategoryName: row.HotelCategoryName,
-      RoomTypeId: row.RoomTypeId,
-      RoomTypeName: row.RoomTypeName,
-      MealPlan: row.MealPlan,
-      NightNumbers: [...row.NightNumbers],
-      NightNumber: row.NightNumber,
-      StayDate: row.StayDate,
-      SelectedNightsDisplay: row.SelectedNightsDisplay,
-      NoOfRooms: row.NoOfRooms,
-      PaxPerRoom: row.PaxPerRoom,
-      AWEB: row.AWEB, 
-      CWEB: row.CWEB, 
-      CNB: row.CNB,
-      BaseRate: row.BaseRate,
-      AwebRate: row.AwebRate,
-      CwebRate: row.CwebRate,
-      CnbRate: row.CnbRate,
-      CostPrice: row.CostPrice,
-      SellingPrice: row.SellingPrice,
-      TotalPrice: row.FinalPrice || row.TotalPrice,
-      FinalPrice: row.FinalPrice || row.TotalPrice,
-      RoomTypes: [...row.RoomTypes],
-      IsSaving: false, 
-      SpecialInclusions: [],
-      FilteredHotels: [], 
-      ShowDropdown: false, 
-      ShowNightDropdown: false,
-      SimilarHotels: [],
-      IsMainHotel: false,
-      IsManualPrice: row.IsManualPrice || false,
-      IsDatabasePrice: row.IsDatabasePrice || false,  // ← ADD THIS
-    }));
+    this.similarHotelRows = mainHotel.SimilarHotels.map(row => this.cloneSimilarHotelForModal(row));
   }
 
+  this.similarHotelRows.forEach(row => this.calculateSimilarHotelPrice(row));
   this.showSimilarHotelsModal = true;
 }
+
 
   closeSimilarHotelsModal(): void {
     this.showSimilarHotelsModal = false;
@@ -1340,20 +1321,169 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
     };
   }
 
+  private deepCopy<T>(value: T): T {
+    if (value === null || value === undefined) return value;
+    if (typeof structuredClone === 'function') return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  private getNightSlot(nightNumber: number): NightSlot | undefined {
+    return this.nightSlots().find(n => n.NightNumber === nightNumber);
+  }
+
+  private setSimilarHotelPrimaryNight(row: QuoteHotelRow): void {
+    const firstNight = row.NightNumbers?.[0] || this.similarHotelSourceRow?.NightNumbers?.[0] || 1;
+    const slot = this.getNightSlot(firstNight);
+    row.NightNumber = firstNight;
+    row.StayDate = slot?.StayDate ?? row.StayDate ?? new Date();
+  }
+
+  private createSimilarHotelFromMain(mainHotel: QuoteHotelRow): QuoteHotelRow {
+    const row: QuoteHotelRow = {
+      ...this.createEmptyHotelRow(),
+      QuoteHotelId: 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: mainHotel.QuotePackageTypeId || this.activePackageTypeId(),
+      MealPlan: mainHotel.MealPlan || 'MAP',
+      NightNumbers: this.deepCopy(mainHotel.NightNumbers ?? []),
+      SelectedNightsDisplay: mainHotel.SelectedNightsDisplay,
+      NoOfRooms: mainHotel.NoOfRooms || 1,
+      PaxPerRoom: mainHotel.PaxPerRoom || 1,
+      SimilarHotels: [],
+      IsMainHotel: false,
+      IsManualPrice: false,
+      IsDatabasePrice: false,
+    };
+    this.setSimilarHotelPrimaryNight(row);
+    this.calculateSimilarHotelPrice(row);
+    return row;
+  }
+
+  private cloneSimilarHotelForModal(source: QuoteHotelRow): QuoteHotelRow {
+    const row: QuoteHotelRow = {
+      ...this.createEmptyHotelRow(),
+      ...this.deepCopy(source),
+      HotelSearch: source.HotelName,
+      NightNumbers: this.deepCopy(source.NightNumbers ?? []),
+      RoomTypes: this.deepCopy(source.RoomTypes ?? []),
+      SpecialInclusions: this.deepCopy(source.SpecialInclusions ?? []),
+      FilteredHotels: [],
+      ShowDropdown: false,
+      ShowNightDropdown: false,
+      SimilarHotels: [],
+      IsMainHotel: false,
+      SellingPrice: source.SellingPrice || source.TotalPrice || 0,
+      FinalPrice: source.SellingPrice || source.TotalPrice || 0,
+    };
+    this.setSimilarHotelPrimaryNight(row);
+    this.calculateSimilarHotelPrice(row);
+    return row;
+  }
+
+  private buildSimilarHotelRecord(row: QuoteHotelRow): QuoteHotelRow {
+    this.calculateSimilarHotelPrice(row);
+    const record: QuoteHotelRow = {
+      ...this.createEmptyHotelRow(),
+      ...this.deepCopy(row),
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      NightNumbers: this.deepCopy(row.NightNumbers ?? []),
+      RoomTypes: this.deepCopy(row.RoomTypes ?? []),
+      SpecialInclusions: this.deepCopy(row.SpecialInclusions ?? []),
+      SimilarHotels: [],
+      FilteredHotels: [],
+      ShowDropdown: false,
+      ShowNightDropdown: false,
+      HotelSearch: row.HotelName,
+      IsSaving: false,
+      IsMainHotel: false,
+      NightPrices: this.deepCopy(row.NightPrices ?? []),
+      PriceBreakdown: this.deepCopy(row.PriceBreakdown),
+    };
+    this.setSimilarHotelPrimaryNight(record);
+    return record;
+  }
+
+  calculateSimilarHotelPrice(row: QuoteHotelRow): void {
+    const nightNumbers = row.NightNumbers?.length ? row.NightNumbers : [row.NightNumber || 1];
+    const rooms = Number(row.NoOfRooms) || 0;
+    const aweb = Number(row.AWEB) || 0;
+    const cweb = Number(row.CWEB) || 0;
+    const cnb = Number(row.CNB) || 0;
+    const baseRate = Number(row.BaseRate) || 0;
+    const awebRate = Number(row.AwebRate) || 0;
+    const cwebRate = Number(row.CwebRate) || 0;
+    const cnbRate = Number(row.CnbRate) || 0;
+
+    const nightPrices: HotelNightPriceBreakdown[] = nightNumbers.map(nightNumber => {
+      const slot = this.getNightSlot(nightNumber);
+      const roomTotal = baseRate * rooms;
+      const awebTotal = awebRate * aweb;
+      const cwebTotal = cwebRate * cweb;
+      const cnbTotal = cnbRate * cnb;
+      return {
+        NightNumber: nightNumber,
+        StayDate: slot?.StayDate ?? row.StayDate,
+        DateLabel: slot?.DateLabel ?? '',
+        BaseRate: baseRate,
+        Rooms: rooms,
+        RoomTotal: roomTotal,
+        AWEB: aweb,
+        AwebRate: awebRate,
+        AwebTotal: awebTotal,
+        CWEB: cweb,
+        CwebRate: cwebRate,
+        CwebTotal: cwebTotal,
+        CNB: cnb,
+        CnbRate: cnbRate,
+        CnbTotal: cnbTotal,
+        Total: roomTotal + awebTotal + cwebTotal + cnbTotal,
+      };
+    });
+
+    const roomTotal = nightPrices.reduce((sum, night) => sum + night.RoomTotal, 0);
+    const extraBedTotal = nightPrices.reduce(
+      (sum, night) => sum + night.AwebTotal + night.CwebTotal + night.CnbTotal,
+      0
+    );
+    const total = roomTotal + extraBedTotal;
+
+    row.CostPrice = total;
+    row.TotalPrice = total;
+    row.NightPrices = nightPrices;
+
+    if (!row.IsManualPrice || !row.SellingPrice) {
+      row.SellingPrice = total;
+    }
+    row.FinalPrice = row.SellingPrice || total;
+    row.PriceBreakdown = {
+      BaseRate: baseRate,
+      AwebRate: awebRate,
+      CwebRate: cwebRate,
+      CnbRate: cnbRate,
+      RoomTotal: roomTotal,
+      ExtraBedTotal: extraBedTotal,
+      TotalPrice: total,
+      CostPrice: total,
+      SellingPrice: row.SellingPrice || total,
+      NightPrices: this.deepCopy(nightPrices),
+    };
+  }
+
+  onSimilarHotelSellingPriceChange(row: QuoteHotelRow): void {
+    row.IsManualPrice = true;
+    row.IsDatabasePrice = false;
+    row.SellingPrice = Number(row.SellingPrice) || 0;
+    row.FinalPrice = row.SellingPrice;
+    if (row.PriceBreakdown) row.PriceBreakdown.SellingPrice = row.SellingPrice;
+    this.similarHotelRows = [...this.similarHotelRows];
+    this.markDirty();
+  }
+
   addSimilarHotelRow(): void {
     const src = this.similarHotelSourceRow!;
-    this.similarHotelRows.push({
-      ...this.createEmptyHotelRow(),
-      MealPlan: src.MealPlan,
-      NightNumbers: [...src.NightNumbers],
-      NightNumber: src.NightNumber,
-      StayDate: src.StayDate,
-      SelectedNightsDisplay: src.SelectedNightsDisplay,
-      NoOfRooms: src.NoOfRooms,
-      PaxPerRoom: src.PaxPerRoom,
-      AWEB: src.AWEB, CWEB: src.CWEB, CNB: src.CNB,
-      IsManualPrice: false,
-    });
+    this.similarHotelRows.push(this.createSimilarHotelFromMain(src));
+    this.similarHotelRows = [...this.similarHotelRows];
   }
 
   // Remove from modal by index
@@ -1413,7 +1543,7 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
             this.similarHotelRows = [...this.similarHotelRows];
 
             if (row.RoomTypeId > 0) {
-              this.lookupHotelRate(row);
+              this.lookupSimilarHotelRate(row);
             }
           }
         }
@@ -1430,12 +1560,14 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
   clearSimilarHotel(row: QuoteHotelRow): void {
     row.HotelSearch = ''; row.HotelId = 0; row.HotelName = '';
     row.RoomTypes = []; row.RoomTypeId = 0;
-    row.BaseRate = 0; row.FilteredHotels = []; row.ShowDropdown = false;
+    row.BaseRate = 0; row.AwebRate = 0; row.CwebRate = 0; row.CnbRate = 0;
+    row.CostPrice = 0; row.TotalPrice = 0; row.SellingPrice = 0; row.FinalPrice = 0;
+    row.NightPrices = []; row.PriceBreakdown = undefined;
+    row.FilteredHotels = []; row.ShowDropdown = false;
     this.similarHotelRows = [...this.similarHotelRows];
   }
 
   saveSimilarHotels(): void {
-    // Filter out rows that have valid hotel and room type selected
     const valid = this.similarHotelRows.filter(r => r.HotelId > 0 && r.RoomTypeId > 0);
 
     if (valid.length === 0) {
@@ -1443,66 +1575,14 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
       return;
     }
 
-    // Save each similar hotel to database and collect them
-    const savedSimilarHotels: QuoteHotelRow[] = [];
-
-    valid.forEach((modalRow) => {
-      if (modalRow.QuoteHotelId > 0) {
-        // Update existing similar hotel
-        this.saveHotelRow(modalRow);
-        savedSimilarHotels.push(modalRow);
-      } else {
-        // Create new similar hotel
-        const newRow: QuoteHotelRow = {
-          ...this.createEmptyHotelRow(),
-          QuoteHotelId: 0,
-          QuoteId: this.QuoteId,
-          QuotePackageTypeId: this.activePackageTypeId(),
-          HotelId: modalRow.HotelId,
-          HotelName: modalRow.HotelName,
-          LocationName: modalRow.LocationName,
-          HotelCategoryName: modalRow.HotelCategoryName,
-          RoomTypeId: modalRow.RoomTypeId,
-          RoomTypeName: modalRow.RoomTypeName,
-          MealPlan: modalRow.MealPlan,
-          NightNumbers: [...modalRow.NightNumbers],
-          NightNumber: modalRow.NightNumbers[0],
-          StayDate: this.nightSlots()[modalRow.NightNumbers[0] - 1]?.StayDate || new Date(),
-          SelectedNightsDisplay: modalRow.SelectedNightsDisplay,
-          NoOfRooms: modalRow.NoOfRooms,
-          PaxPerRoom: modalRow.PaxPerRoom,
-          AWEB: modalRow.AWEB,
-          CWEB: modalRow.CWEB,
-          CNB: modalRow.CNB,
-          BaseRate: modalRow.BaseRate,
-          AwebRate: modalRow.AwebRate,
-          CwebRate: modalRow.CwebRate,
-          CnbRate: modalRow.CnbRate,
-          CostPrice: modalRow.CostPrice,
-          SellingPrice: modalRow.SellingPrice,
-          TotalPrice: modalRow.TotalPrice,
-          RoomTypes: [...modalRow.RoomTypes],
-          IsSaving: false,
-          SpecialInclusions: [],
-          FilteredHotels: [],
-          ShowDropdown: false,
-          ShowNightDropdown: false,
-          HotelSearch: modalRow.HotelName,
-        };
-        this.saveHotelRow(newRow);
-        savedSimilarHotels.push(newRow);
-      }
-    });
-
-    // Update the similar hotels signal
     if (this.similarHotelSourceRow) {
-  this.similarHotelSourceRow.SimilarHotels = savedSimilarHotels;
-  this.hotelRows.update(rows => [...rows]); // trigger reactivity
-}
+      this.similarHotelSourceRow.SimilarHotels = valid.map(row => this.buildSimilarHotelRecord(row));
+      this.hotelRows.update(rows => [...rows]);
+    }
 
     this.markDirty();
     this.closeSimilarHotelsModal();
-    this.toastr.success(`${savedSimilarHotels.length} similar hotel(s) saved successfully`);
+    this.toastr.success(`${valid.length} similar hotel(s) saved locally`);
   }
 
   hasSelectedNight(): boolean {
@@ -1836,7 +1916,7 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
 
   removeSpecialInclusionRow(row: QuoteSpecialInclusionRow): void {
     this.markDirty();
-    if (row.QuoteSpecialInclusionId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteSpecialInclusionId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
@@ -1908,6 +1988,60 @@ lookupHotelRate(row: QuoteHotelRow): void {
   });
 }
 
+lookupSimilarHotelRate(row: QuoteHotelRow): void {
+  if (!row.HotelId || !row.RoomTypeId) return;
+  this.setSimilarHotelPrimaryNight(row);
+
+  const enc = (d: object): RequestModel => ({
+    request: this.local.encrypt(JSON.stringify(d)).toString()
+  });
+
+  forkJoin({
+    rate: this.service.getHotelRateByDate(enc({
+      HotelId: row.HotelId,
+      RoomTypeId: row.RoomTypeId,
+      StayDate: this.loadData.loadDateTime(row.StayDate),
+    })),
+    charges: this.service.getHotelExtraCharges(enc({
+      HotelId: row.HotelId,
+      StayDate: row.StayDate,
+    }))
+  }).subscribe({
+    next: ({ rate, charges }: any) => {
+      if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+        const r = rate.Rate;
+        row.BaseRate = row.MealPlan === 'CP'
+          ? (r.CpRate ?? 0)
+          : row.MealPlan === 'MAP'
+            ? (r.MapRate ?? 0)
+            : (r.ApRate ?? 0);
+      } else {
+        this.toastr.warning(`No price configured for ${row.HotelName}`);
+        row.BaseRate = 0;
+      }
+
+      if (charges.Message === ConstantData.SuccessMessage) {
+        const ch = charges.Charges ?? [];
+        const aweb = ch.find((c: any) => c.ChargeType === 1);
+        const cweb = ch.find((c: any) => c.ChargeType === 2);
+        const cnb = ch.find((c: any) => c.ChargeType === 3);
+
+        row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate
+          : row.MealPlan === 'MAP' ? aweb.MapRate : aweb.ApRate) ?? 0 : 0;
+        row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate
+          : row.MealPlan === 'MAP' ? cweb.MapRate : cweb.ApRate) ?? 0 : 0;
+        row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate
+          : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
+      }
+
+      row.IsDatabasePrice = true;
+      this.calculateSimilarHotelPrice(row);
+      this.similarHotelRows = [...this.similarHotelRows];
+      this.markDirty();
+    }
+  });
+}
+
 recalculatePrice(row: QuoteHotelRow): void {
   const nights = row.NightNumbers.length || 1;
   const roomCost = (row.BaseRate || 0) * (row.NoOfRooms || 1) * nights;
@@ -1952,6 +2086,12 @@ recalculatePrice(row: QuoteHotelRow): void {
     if (slot) row.StayDate = slot.StayDate;
 
     row.IsSaving = true;
+    if (this.deferSectionPersistenceUntilSaveQuote) {
+      row.IsSaving = false;
+      this.hotelRows.update(rows => [...rows]);
+      this.markDirty();
+      return;
+    }
   const enc = (d: object): RequestModel => ({
     request: this.local.encrypt(JSON.stringify(d)).toString()
   });
@@ -1990,7 +2130,7 @@ recalculatePrice(row: QuoteHotelRow): void {
 
   removeHotelRow(row: QuoteHotelRow): void {
     this.markDirty();
-    if (row.QuoteHotelId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteHotelId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
@@ -3007,6 +3147,12 @@ getActiveTransportRows(): QuoteTransportRow[] {
 
   saveServiceRow(row: QuoteServiceRow): void {
     row.IsSaving = true;
+    if (this.deferSectionPersistenceUntilSaveQuote) {
+      row.IsSaving = false;
+      this.serviceRows.update(rows => [...rows]);
+      this.markDirty();
+      return;
+    }
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
@@ -3037,7 +3183,7 @@ getActiveTransportRows(): QuoteTransportRow[] {
 
   removeServiceRow(row: QuoteServiceRow): void {
     this.markDirty();
-    if (row.QuoteServiceId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
@@ -3261,16 +3407,18 @@ getPackageActivityTotal(pkgId: number): number {
   }
 
   // ── Save Quote ────────────────────────────────────────────
-  saveQuote(): void {
-    if (!this.QuoteId) { this.toastr.error('Please set package types first'); return; }
-
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
+  private buildCompleteQuotePayload(): any {
+    const hotels = this.hotelRows().map(row => {
+      const hotel = this.deepCopy(row);
+      hotel.SimilarHotels = (row.SimilarHotels ?? []).map(similar =>
+        this.buildSimilarHotelRecord(this.deepCopy(similar))
+      );
+      return hotel;
     });
 
-    this.loading.set(true);
-    this.service.saveQuote(enc({
+    return {
       QuoteId: this.QuoteId,
+      QueryStepOneId: this.QueryStepOneId,
       TotalCostPrice: this.totalCost(),
       TotalSellingPrice: this.finalPrice(),
       HotelTotal: this.hotelTotal(),
@@ -3279,7 +3427,37 @@ getPackageActivityTotal(pkgId: number): number {
       GstPercent: this.gstPercent,
       InternalNotes: this.internalNotes,
       UpdatedBy: this.staffLogin.StaffLoginId,
-    })).subscribe({
+      PackageTypes: this.deepCopy(this.packageTypes()),
+      Hotels: hotels,
+      SpecialInclusions: this.deepCopy(this.specialInclusionRows()),
+      Services: this.deepCopy(this.serviceRows()),
+      Transports: this.deepCopy(this.transportRows()),
+      Activities: this.deepCopy(this.activityTicketRows()),
+      DayGroups: this.deepCopy(this.dayGroups()),
+      Pricing: {
+        PricingStrategy: this.pricingStrategy,
+        SellingCurrency: this.sellingCurrency,
+        MarkupType: this.markupType,
+        MarkupAmount: this.markupAmount,
+        GstEnabled: this.gstEnabled,
+        RoundingMode: this.roundingMode,
+        TotalFOC: this.totalFOC,
+        PackageMarkups: this.deepCopy(this.packageMarkups),
+        PackageInternalNotes: this.deepCopy(this.packageInternalNotes),
+      },
+      CustomerRemarks: this.customerRemarks,
+    };
+  }
+
+  saveQuote(): void {
+    if (!this.QuoteId) { this.toastr.error('Please set package types first'); return; }
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.loading.set(true);
+    this.service.saveQuote(enc(this.buildCompleteQuotePayload())).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
           this.markClean();
@@ -3761,6 +3939,12 @@ getPackageActivityTotal(pkgId: number): number {
     }
 
     row.IsSaving = true;
+    if (this.deferSectionPersistenceUntilSaveQuote) {
+      row.IsSaving = false;
+      this.transportRows.update(rows => [...rows]);
+      this.markDirty();
+      return;
+    }
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
     });
@@ -3799,7 +3983,7 @@ getPackageActivityTotal(pkgId: number): number {
   removeTransportRow(row: QuoteTransportRow): void {
     this.markDirty();
 
-    if (row.QuoteServiceId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
@@ -4078,7 +4262,7 @@ getPackageActivityTotal(pkgId: number): number {
     this.markDirty();
     const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
     row.Entries.forEach(e => {
-      if (e.QuoteServiceId > 0) {
+      if (!this.deferSectionPersistenceUntilSaveQuote && e.QuoteServiceId > 0) {
         this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => { } });
       }
     });
@@ -4246,7 +4430,7 @@ getPackageActivityTotal(pkgId: number): number {
 
   removeActivityEntryRow(row: ActivityTicketRow, entry: ActivityTicketEntry): void {
     this.markDirty();
-    if (entry.QuoteServiceId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && entry.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
       this.service.deleteQuoteService(enc({ QuoteServiceId: entry.QuoteServiceId })).subscribe({ next: () => { } });
     }
@@ -4389,7 +4573,7 @@ getPackageActivityTotal(pkgId: number): number {
     this.markDirty();
     const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
     group.Entries.forEach(e => {
-      if (e.QuoteServiceId > 0) {
+      if (!this.deferSectionPersistenceUntilSaveQuote && e.QuoteServiceId > 0) {
         this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => { } });
       }
     });
@@ -4450,6 +4634,12 @@ getPackageActivityTotal(pkgId: number): number {
   saveActivityEntry(row: ActivityTicketRow, group: ActivityTypeGroup, entry: ActivityTicketEntry): void {
     if (!row.ActivityServiceId || !group.PaxType) return;
     entry.IsSaving = true;
+    if (this.deferSectionPersistenceUntilSaveQuote) {
+      entry.IsSaving = false;
+      this.activityTicketRows.update(rows => [...rows]);
+      this.markDirty();
+      return;
+    }
     const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
     this.service.saveQuoteService(enc({
       QuoteServiceId: entry.QuoteServiceId,
@@ -4682,7 +4872,7 @@ getActiveDayGroups(): DayGroup[] {
 
   removeTransportRowFromGroup(group: DayGroup, row: QuoteTransportRow, refresh: boolean = true): void {
     this.markDirty();
-    if (row.QuoteServiceId > 0) {
+    if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
       this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId })).subscribe({ next: () => { } });
     }
@@ -4710,7 +4900,7 @@ getActiveDayGroups(): DayGroup[] {
     this.markDirty();
     const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
     row.Entries.forEach(e => {
-      if (e.QuoteServiceId > 0) {
+      if (!this.deferSectionPersistenceUntilSaveQuote && e.QuoteServiceId > 0) {
         this.service.deleteQuoteService(enc({ QuoteServiceId: e.QuoteServiceId })).subscribe({ next: () => { } });
       }
     });

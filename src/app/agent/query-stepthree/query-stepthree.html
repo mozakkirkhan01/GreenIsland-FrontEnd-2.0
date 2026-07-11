@@ -584,7 +584,7 @@
                       <div class="col-sm-2">
                         <label class="form-label small text-muted mb-1">Meal Plan</label>
                         <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
-                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                          (ngModelChange)="lookupSimilarHotelRate(row); similarHotelRows = [...similarHotelRows]">
                           <option value="CP">CP</option>
                           <option value="MAP">MAP</option>
                           <option value="AP">AP</option>
@@ -595,7 +595,7 @@
                       <div class="col-sm-2">
                         <label class="form-label small text-muted mb-1">Room Type</label>
                         <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
-                          (ngModelChange)="lookupHotelRate(row); similarHotelRows = [...similarHotelRows]">
+                          (ngModelChange)="lookupSimilarHotelRate(row); similarHotelRows = [...similarHotelRows]">
                           <option [value]="0">Select room…</option>
                           @for (rt of row.RoomTypes; track rt.RoomTypeId) {
                           <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>
@@ -623,31 +623,31 @@
                             <label class="form-label small text-muted mb-1">Pax/room</label>
                             <input type="number" class="form-control form-control-sm" style="width:70px;"
                               [(ngModel)]="row.PaxPerRoom"
-                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="1">
+                              (ngModelChange)="calculateSimilarHotelPrice(row); similarHotelRows = [...similarHotelRows]" min="1">
                           </div>
                           <div>
                             <label class="form-label small text-muted mb-1">No. of rooms</label>
                             <input type="number" class="form-control form-control-sm" style="width:70px;"
                               [(ngModel)]="row.NoOfRooms"
-                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="1">
+                              (ngModelChange)="calculateSimilarHotelPrice(row); similarHotelRows = [...similarHotelRows]" min="1">
                           </div>
                           <div>
                             <label class="form-label small text-muted mb-1">AWEB</label>
                             <input type="number" class="form-control form-control-sm" style="width:60px;"
                               [(ngModel)]="row.AWEB"
-                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                              (ngModelChange)="calculateSimilarHotelPrice(row); similarHotelRows = [...similarHotelRows]" min="0">
                           </div>
                           <div>
                             <label class="form-label small text-muted mb-1">CWEB</label>
                             <input type="number" class="form-control form-control-sm" style="width:60px;"
                               [(ngModel)]="row.CWEB"
-                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                              (ngModelChange)="calculateSimilarHotelPrice(row); similarHotelRows = [...similarHotelRows]" min="0">
                           </div>
                           <div>
                             <label class="form-label small text-muted mb-1">CNB</label>
                             <input type="number" class="form-control form-control-sm" style="width:60px;"
                               [(ngModel)]="row.CNB"
-                              (ngModelChange)="recalculatePrice(row); similarHotelRows = [...similarHotelRows]" min="0">
+                              (ngModelChange)="calculateSimilarHotelPrice(row); similarHotelRows = [...similarHotelRows]" min="0">
                           </div>
                         </div>
                       </div>
@@ -664,9 +664,6 @@
                               </span>
                               }
                             </div>
-                            <button mat-icon-button (click)="EditPrices(row)" matTooltip="Edit prices">
-                              <mat-icon style="font-size:14px;">edit</mat-icon>
-                            </button>
                           </div>
 
                           <table class="table table-sm mb-2" style="font-size:12px;">
@@ -739,7 +736,7 @@
                               Final Price (INR) <span class="text-danger">*</span>
                             </label>
                             <input type="number" class="form-control form-control-sm" [(ngModel)]="row.SellingPrice"
-                              (ngModelChange)="similarHotelRows = [...similarHotelRows]">
+                              (ngModelChange)="onSimilarHotelSellingPriceChange(row)">
                             <div class="text-muted" style="font-size:10px; margin-top:2px;">
                               Cost: INR {{ formatCurrency(row.TotalPrice) }}
                             </div>
