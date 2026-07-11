@@ -3373,6 +3373,62 @@ getNightDate(nightNumber: number): string {
   const slot = this.nightSlots().find(s => s.NightNumber === nightNumber);
   return slot ? slot.DateLabel : '';
 }
+
+// ── Group consecutive nights for the same hotel ──────────
+getGroupedHotelsByPackage(pkgId: number): Array<{ hotel: QuoteHotelRow; nightNumbers: number[] }> {
+  const hotels = this.getHotelsByPackage(pkgId);
+  if (hotels.length === 0) return [];
+
+  // Expand hotels with multiple NightNumbers into individual entries
+  const expandedHotels: Array<{ hotel: QuoteHotelRow; nightNumber: number }> = [];
+  
+  for (const hotel of hotels) {
+    // If NightNumbers array exists and has values, use those; otherwise use NightNumber
+    const nightNumbers = (hotel.NightNumbers && hotel.NightNumbers.length > 0) 
+      ? hotel.NightNumbers 
+      : [hotel.NightNumber];
+    
+    for (const nightNum of nightNumbers) {
+      expandedHotels.push({ hotel, nightNumber: nightNum });
+    }
+  }
+
+  // Sort by night number
+  expandedHotels.sort((a, b) => a.nightNumber - b.nightNumber);
+
+  // Group consecutive nights for the same hotel
+  const groups: Array<{ hotel: QuoteHotelRow; nightNumbers: number[] }> = [];
+  let currentGroup: QuoteHotelRow | null = null;
+  let currentNights: number[] = [];
+
+  for (const entry of expandedHotels) {
+    if (
+      currentGroup &&
+      currentGroup.HotelId === entry.hotel.HotelId &&
+      currentGroup.HotelName === entry.hotel.HotelName &&
+      currentNights.length > 0 &&
+      (currentNights[currentNights.length - 1] + 1 === entry.nightNumber)
+    ) {
+      // Same hotel on consecutive night
+      currentNights.push(entry.nightNumber);
+    } else {
+      // Different hotel or not consecutive
+      if (currentGroup) {
+        groups.push({ hotel: currentGroup, nightNumbers: currentNights });
+      }
+      currentGroup = entry.hotel;
+      currentNights = [entry.nightNumber];
+    }
+  }
+
+  // Add last group
+  if (currentGroup) {
+    groups.push({ hotel: currentGroup, nightNumbers: currentNights });
+  }
+
+  return groups;
+}
+
 // ── everywhere allHotelRows appears, replace with hotelRows ──
 
 // In getHotelsByPackage:

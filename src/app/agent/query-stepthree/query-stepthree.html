@@ -1835,42 +1835,46 @@
               </tr>
             </thead>
             <tbody>
-              @for (h of getHotelsByPackage(pkg.QuotePackageTypeId);
-                    track h.QuoteHotelId) {
-                <tr style="border-bottom:1px solid #f5f5f5;">
-                  <td class="py-2">
-                    <div class="fw-medium">
-                      {{ h.NightNumber }}{{ getNightOrdinal(h.NightNumber) }}
-                    </div>
-                    <div class="text-muted" style="font-size:11px;">
-                      {{ h.StayDate | date:'d MMM' }}
-                    </div>
-                  </td>
-                  <td class="py-2">
-                    <div class="fw-medium">{{ h.HotelName }}</div>
-                    <div class="text-muted d-flex align-items-center gap-1"
-                         style="font-size:11px;">
-                      {{ h.LocationName }},
-                      {{ h.HotelCategoryName }}
-                    </div>
-                  </td>
-                  <td class="py-2">{{ h.MealPlan }}</td>
-                  <td class="py-2">
-                    <div>{{ h.NoOfRooms }} {{ h.RoomTypeName }}</div>
-                    <div class="text-muted" style="font-size:11px;">
-                      {{ h.PaxPerRoom }} Pax
-                    </div>
-                  </td>
-                  <td class="py-2 text-end">
-                    @if (h.SellingPrice > 0) {
-                      <span class="text-success me-1">✓</span>
-                    }
-                    <span class="text-muted" style="font-size:10px;">INR</span>
-                    <span class="fw-medium">
-                      {{ formatCurrency(h.SellingPrice) }}
-                    </span>
-                  </td>
-                </tr>
+              @for (group of getGroupedHotelsByPackage(pkg.QuotePackageTypeId);
+                    track group.hotel.QuoteHotelId) {
+                @let h = group.hotel;
+                @for (nightNum of group.nightNumbers; track nightNum) {
+                  @let nightSlot = nightSlots().find(s => s.NightNumber === nightNum);
+                  <tr style="border-bottom:1px solid #f5f5f5;">
+                    <td class="py-2">
+                      <div class="fw-medium">
+                        {{ nightNum }}{{ getNightOrdinal(nightNum) }}
+                      </div>
+                      <div class="text-muted" style="font-size:11px;">
+                        {{ nightSlot?.StayDate | date:'d MMM' }}
+                      </div>
+                    </td>
+                    <td class="py-2">
+                      <div class="fw-medium">{{ h.HotelName }}</div>
+                      <div class="text-muted d-flex align-items-center gap-1"
+                           style="font-size:11px;">
+                        {{ h.LocationName }},
+                        {{ h.HotelCategoryName }}
+                      </div>
+                    </td>
+                    <td class="py-2">{{ h.MealPlan }}</td>
+                    <td class="py-2">
+                      <div>{{ h.NoOfRooms }} {{ h.RoomTypeName }}</div>
+                      <div class="text-muted" style="font-size:11px;">
+                        {{ h.PaxPerRoom }} Pax
+                      </div>
+                    </td>
+                    <td class="py-2 text-end">
+                      @if (h.SellingPrice > 0) {
+                        <span class="text-success me-1">✓</span>
+                      }
+                      <span class="text-muted" style="font-size:10px;">INR</span>
+                      <span class="fw-medium">
+                        {{ formatCurrency(h.SellingPrice) }}
+                      </span>
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
