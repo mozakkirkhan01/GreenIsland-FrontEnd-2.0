@@ -1301,6 +1301,85 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
     this.similarHotelRows = [];
   }
 
+  // Similar Hotel Edit Price Modal
+showSimilarHotelEditPriceModal = false;
+editingSimilarHotelRow: QuoteHotelRow | null = null;
+editSimilarHotelPrices = {
+  RoomRate: 0,
+  AwebRate: 0,
+  CwebRate: 0,
+  CnbRate: 0,
+  ComputedTotal: 0
+};
+
+// Open Edit Price Modal for Similar Hotel
+openSimilarHotelEditPriceModal(row: QuoteHotelRow): void {
+  this.editingSimilarHotelRow = this.deepCopy(row);
+  
+  this.editSimilarHotelPrices = {
+    RoomRate: row.BaseRate,
+    AwebRate: row.AwebRate || 0,
+    CwebRate: row.CwebRate || 0,
+    CnbRate: row.CnbRate || 0,
+    ComputedTotal: 0
+  };
+  
+  this.recalculateEditSimilarHotelPrice();
+  this.showSimilarHotelEditPriceModal = true;
+}
+
+// Recalculate Similar Hotel Edit Price
+recalculateEditSimilarHotelPrice(): void {
+  const row = this.editingSimilarHotelRow;
+  if (!row) return;
+  
+  const nights = row.NightNumbers?.length || 1;
+  const rooms = row.NoOfRooms || 1;
+  const aweb = row.AWEB || 0;
+  const cweb = row.CWEB || 0;
+  const cnb = row.CNB || 0;
+  
+  const roomTotal = this.editSimilarHotelPrices.RoomRate * rooms * nights;
+  const awebTotal = this.editSimilarHotelPrices.AwebRate * aweb;
+  const cwebTotal = this.editSimilarHotelPrices.CwebRate * cweb;
+  const cnbTotal = this.editSimilarHotelPrices.CnbRate * cnb;
+  
+  this.editSimilarHotelPrices.ComputedTotal = roomTotal + awebTotal + cwebTotal + cnbTotal;
+}
+
+// Apply Similar Hotel Edit Prices
+applySimilarHotelEditPrices(): void {
+  const editingRow = this.editingSimilarHotelRow;
+  if (!editingRow) return;
+  
+  editingRow.BaseRate = this.editSimilarHotelPrices.RoomRate;
+  editingRow.AwebRate = this.editSimilarHotelPrices.AwebRate;
+  editingRow.CwebRate = this.editSimilarHotelPrices.CwebRate;
+  editingRow.CnbRate = this.editSimilarHotelPrices.CnbRate;
+  
+  // Find and update in similarHotelRows
+  const hotelId = editingRow.HotelId;
+  const roomTypeId = editingRow.RoomTypeId;
+  const index = this.similarHotelRows.findIndex(r => r.HotelId === hotelId && r.RoomTypeId === roomTypeId);
+  
+  if (index >= 0) {
+    this.similarHotelRows[index] = editingRow;
+    this.calculateSimilarHotelPrice(this.similarHotelRows[index]);
+    this.similarHotelRows = [...this.similarHotelRows];
+  }
+  
+  this.showSimilarHotelEditPriceModal = false;
+  this.editingSimilarHotelRow = null;
+  this.toastr.success('Similar hotel prices updated');
+  this.markDirty();
+}
+
+// Close Similar Hotel Edit Price Modal
+closeSimilarHotelEditPriceModal(): void {
+  this.showSimilarHotelEditPriceModal = false;
+  this.editingSimilarHotelRow = null;
+}
+
   private createEmptyHotelRow(): QuoteHotelRow {
     const slot = this.nightSlots()[0];
     return {
@@ -1418,9 +1497,9 @@ openSimilarHotelsModal(mainHotel: QuoteHotelRow): void {
     const nightPrices: HotelNightPriceBreakdown[] = nightNumbers.map(nightNumber => {
       const slot = this.getNightSlot(nightNumber);
       const roomTotal = baseRate * rooms;
-      const awebTotal = awebRate * aweb;
-      const cwebTotal = cwebRate * cweb;
-      const cnbTotal = cnbRate * cnb;
+      const awebTotal = awebRate * aweb;  // Keep as is (qty based, not night based)
+      const cwebTotal = cwebRate * cweb;  // Keep as is (qty based, not night based)
+      const cnbTotal = cnbRate * cnb;     // Keep as is (qty based, not night based)
       return {
         NightNumber: nightNumber,
         StayDate: slot?.StayDate ?? row.StayDate,
@@ -1990,6 +2069,13 @@ lookupHotelRate(row: QuoteHotelRow): void {
 
 lookupSimilarHotelRate(row: QuoteHotelRow): void {
   if (!row.HotelId || !row.RoomTypeId) return;
+  
+  // Reset rates before fetching
+  row.BaseRate = 0;
+  row.AwebRate = 0;
+  row.CwebRate = 0;
+  row.CnbRate = 0;
+  
   this.setSimilarHotelPrimaryNight(row);
 
   const enc = (d: object): RequestModel => ({
@@ -2008,7 +2094,8 @@ lookupSimilarHotelRate(row: QuoteHotelRow): void {
     }))
   }).subscribe({
     next: ({ rate, charges }: any) => {
-      if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+      // Get Base Rate
+      if (rate?.Message === ConstantData.SuccessMessage && rate?.Rate) {
         const r = rate.Rate;
         row.BaseRate = row.MealPlan === 'CP'
           ? (r.CpRate ?? 0)
@@ -2020,24 +2107,29 @@ lookupSimilarHotelRate(row: QuoteHotelRow): void {
         row.BaseRate = 0;
       }
 
-      if (charges.Message === ConstantData.SuccessMessage) {
+      // Get Extra Charges (AWEB, CWEB, CNB) ✅
+      if (charges?.Message === ConstantData.SuccessMessage && charges?.Charges) {
         const ch = charges.Charges ?? [];
         const aweb = ch.find((c: any) => c.ChargeType === 1);
         const cweb = ch.find((c: any) => c.ChargeType === 2);
         const cnb = ch.find((c: any) => c.ChargeType === 3);
 
-        row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate
-          : row.MealPlan === 'MAP' ? aweb.MapRate : aweb.ApRate) ?? 0 : 0;
-        row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate
-          : row.MealPlan === 'MAP' ? cweb.MapRate : cweb.ApRate) ?? 0 : 0;
-        row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate
-          : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
+        row.AwebRate = aweb ? (row.MealPlan === 'CP' ? aweb.CpRate ?? 0
+          : row.MealPlan === 'MAP' ? aweb.MapRate ?? 0 : aweb.ApRate ?? 0) : 0;
+        row.CwebRate = cweb ? (row.MealPlan === 'CP' ? cweb.CpRate ?? 0
+          : row.MealPlan === 'MAP' ? cweb.MapRate ?? 0 : cweb.ApRate ?? 0) : 0;
+        row.CnbRate = cnb ? (row.MealPlan === 'CP' ? cnb.CpRate ?? 0
+          : row.MealPlan === 'MAP' ? cnb.MapRate ?? 0 : cnb.ApRate ?? 0) : 0;
       }
 
       row.IsDatabasePrice = true;
       this.calculateSimilarHotelPrice(row);
       this.similarHotelRows = [...this.similarHotelRows];
       this.markDirty();
+    },
+    error: (err) => {
+      console.error('Error loading similar hotel rates:', err);
+      this.toastr.error('Failed to load hotel rates');
     }
   });
 }
