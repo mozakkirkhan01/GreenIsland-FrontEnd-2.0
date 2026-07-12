@@ -3374,6 +3374,16 @@ getNightDate(nightNumber: number): string {
   return slot ? slot.DateLabel : '';
 }
 
+getAccommodationSummaryPrice(hotel: QuoteHotelRow, nightCount: number): number {
+  if (hotel?.BaseRate > 0) {
+    return hotel.BaseRate;
+  }
+
+  const total = hotel?.SellingPrice || hotel?.FinalPrice || hotel?.TotalPrice || 0;
+  const nights = Math.max(nightCount || hotel?.NightNumbers?.length || 1, 1);
+  return total > 0 ? total / nights : 0;
+}
+
 // ── Group consecutive nights for the same hotel ──────────
 getGroupedHotelsByPackage(pkgId: number): Array<{ hotel: QuoteHotelRow; nightNumbers: number[] }> {
   const hotels = this.getHotelsByPackage(pkgId);
