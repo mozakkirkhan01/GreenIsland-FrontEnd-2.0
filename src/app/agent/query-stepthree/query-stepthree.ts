@@ -463,31 +463,11 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
 
 transportTotal = computed(() => {
-  let total = 0;
-  const dayGroups = this.getActiveDayGroups();
-  dayGroups.forEach(group => {
-    group.TransportRows.forEach(row => {
-      total += (row.SellingPrice || row.TotalPrice || 0);
-    });
-  });
-  // Also include main transportRows signal - REMOVE package type filter
-  total += this.transportRows()
-    .reduce((s, r) => s + (r.SellingPrice || 0) * (r.DayNumbers.length || 1), 0);
-  return total;
+  return this.getPackageTransportTotal(this.activePackageTypeId());
 });
 
 activityTotal = computed(() => {
-  let total = 0;
-  const dayGroups = this.getActiveDayGroups();
-  dayGroups.forEach(group => {
-    group.ActivityRows.forEach(row => {
-      total += this.getActivityRowTotal(row);
-    });
-  });
-  // Also include main activityTicketRows signal - REMOVE package type filter
-  total += this.activityTicketRows()
-    .reduce((s, r) => s + this.getActivityRowTotal(r), 0);
-  return total;
+  return this.getPackageActivityTotal(this.activePackageTypeId());
 });
 
 
@@ -541,6 +521,7 @@ activityTotal = computed(() => {
           }));
           this.packageTypes.set(packageTypes);
           this.activePackageTypeId.set(packageTypes[0].QuotePackageTypeId);
+          this.normalizeTransportActivityPackageIds();
           this.packageTypesLoaded = true;
           console.log('Package types loaded successfully:', this.packageTypes());
         } else {
@@ -626,7 +607,18 @@ activityTotal = computed(() => {
 }
 
         if (r.Services?.length > 0) {
-          this.serviceRows.set(r.Services.map((s: any) => this.mapServiceRow(s)));
+          const mappedServices = r.Services.map((s: any) => this.mapServiceRow(s));
+          console.log('[Quote Summary Debug] API services mapped', mappedServices.map((row: QuoteServiceRow) => ({
+            QuoteServiceId: row.QuoteServiceId,
+            QuotePackageTypeId: row.QuotePackageTypeId,
+            ServiceType: row.ServiceType,
+            SellingPrice: row.SellingPrice,
+            TotalPrice: row.TotalPrice,
+            Qty: row.Qty,
+            DayNumber: row.DayNumber,
+          })));
+          this.serviceRows.set(mappedServices);
+          this.normalizeTransportActivityPackageIds();
           // ✅ Sync selected days from loaded services
           this.syncSelectedDaysFromTransportRows();
         }
@@ -793,7 +785,7 @@ activityTotal = computed(() => {
       VehicleTypeSearch: s.VehicleTypeName ?? '',
       FilteredVehicles: [],
       ShowVehicleDropdown: false,
-      TotalPrice: 0,  // ← ADD THIS
+      TotalPrice: s.TotalPrice ?? s.SellingPrice ?? 0,
     };
   }
 
@@ -2947,7 +2939,7 @@ getActiveTransportRows(): QuoteTransportRow[] {
     const newRow: QuoteServiceRow = {
       QuoteServiceId: 0,
       QuoteId: this.QuoteId,
-      QuotePackageTypeId: 0,
+      QuotePackageTypeId: this.activePackageTypeId(),
       DayNumber: slot.DayNumber,
       ServiceDate: slot.ServiceDate,
       ServiceType: 1,
@@ -3131,7 +3123,7 @@ getActiveTransportRows(): QuoteTransportRow[] {
     this.serviceRows.update(rows => [...rows, {
       QuoteServiceId: 0,
       QuoteId: this.QuoteId,
-      QuotePackageTypeId: 0,
+      QuotePackageTypeId: this.activePackageTypeId(),
       DayNumber: slot.DayNumber,
       ServiceDate: slot.ServiceDate,
       ServiceType: 2,
@@ -3470,6 +3462,16 @@ getPackageHotelTotal(pkgId: number): number {
   return this.getEffectiveHotelTotal(pkgId);
 }
 
+getPackageSpecialInclusionTotal(pkgId: number): number {
+  return this.specialInclusionRows()
+    .filter(r => r.QuotePackageTypeId === pkgId)
+    .reduce((sum, row) => sum + (row.TotalPrice || 0), 0);
+}
+
+getPackageExtrasTotal(_pkgId: number): number {
+  return 0;
+}
+
 // ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
 // ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
 getEffectiveHotelTotal(pkgId: number): number {
@@ -3504,24 +3506,167 @@ effectivePriceForGroup(mainHotel: QuoteHotelRow): number {
 
 // In getPackageGrandTotal:
 getPackageGrandTotal(pkgId: number): number {
-  const total = this.getPackageHotelTotal(pkgId)
-              + this.getPackageTransportTotal(pkgId)
-              + this.getPackageActivityTotal(pkgId);
+  const total = this.getPackageTotalCost(pkgId);
   return total + Math.round(total * this.gstPercent / 100);
+}
+
+private moneyValue(...values: unknown[]): number {
+  for (const value of values) {
+    const amount = Number(value);
+    if (Number.isFinite(amount) && amount > 0) return amount;
+  }
+  return 0;
+}
+
+private rowMatchesPackage(row: { QuotePackageTypeId?: number } | null | undefined, pkgId: number): boolean {
+  const packageTypeId = this.toNumberId(pkgId);
+  const rowPackageTypeId = this.toNumberId(row?.QuotePackageTypeId);
+  if (rowPackageTypeId > 0) return rowPackageTypeId === packageTypeId;
+
+  const fallbackPackageTypeId =
+    this.activePackageTypeId() || this.packageTypes()[0]?.QuotePackageTypeId || packageTypeId;
+
+  return packageTypeId === fallbackPackageTypeId;
+}
+
+private normalizeTransportActivityPackageIds(): void {
+  const fallbackPackageTypeId = this.activePackageTypeId() || this.packageTypes()[0]?.QuotePackageTypeId || 0;
+  if (!fallbackPackageTypeId) return;
+
+  this.serviceRows.update(rows => rows.map(row =>
+    (row.ServiceType === 1 || row.ServiceType === 2) && this.toNumberId(row.QuotePackageTypeId) === 0
+      ? { ...row, QuotePackageTypeId: fallbackPackageTypeId }
+      : row
+  ));
+
+  this.transportRows.update(rows => rows.map(row =>
+    this.toNumberId(row.QuotePackageTypeId) === 0 ? { ...row, QuotePackageTypeId: fallbackPackageTypeId } : row
+  ));
+
+  this.activityTicketRows.update(rows => rows.map(row =>
+    this.toNumberId(row.QuotePackageTypeId) === 0 ? { ...row, QuotePackageTypeId: fallbackPackageTypeId } : row
+  ));
+
+  this.dayGroups.update(groups => groups.map(group => {
+    const groupPackageTypeId = this.toNumberId(group.QuotePackageTypeId) || fallbackPackageTypeId;
+    return {
+      ...group,
+      QuotePackageTypeId: groupPackageTypeId,
+      TransportRows: group.TransportRows.map(row =>
+        this.toNumberId(row.QuotePackageTypeId) === 0 ? { ...row, QuotePackageTypeId: groupPackageTypeId } : row
+      ),
+      ActivityRows: group.ActivityRows.map(row =>
+        this.toNumberId(row.QuotePackageTypeId) === 0 ? { ...row, QuotePackageTypeId: groupPackageTypeId } : row
+      ),
+    };
+  }));
+}
+
+private logPackageSummaryDebug(
+  pkgId: number,
+  transportRows: QuoteTransportRow[],
+  activityRows: ActivityTicketRow[],
+  serviceTransportRows: QuoteServiceRow[],
+  serviceActivityRows: QuoteServiceRow[],
+  transportTotal: number,
+  activityTotal: number
+): void {
+  console.log('[Quote Summary Debug] package totals', {
+    activePackageTypeId: this.activePackageTypeId(),
+    packageTypeId: pkgId,
+    transportRowCount: transportRows.length,
+    activityRowCount: activityRows.length,
+    serviceTransportRowCount: serviceTransportRows.length,
+    serviceActivityRowCount: serviceActivityRows.length,
+    transportRows: transportRows.map(row => ({
+      QuotePackageTypeId: row.QuotePackageTypeId,
+      SellingPrice: row.SellingPrice,
+      TotalPrice: row.TotalPrice,
+      Qty: row.Qty,
+      DayNumbers: row.DayNumbers,
+    })),
+    activityRows: activityRows.map(row => ({
+      QuotePackageTypeId: row.QuotePackageTypeId,
+      TotalPrice: this.getActivityRowTotal(row),
+      TypeGroups: row.TypeGroups.map(group => ({
+        Qty: group.Qty,
+        Entries: group.Entries.map(entry => ({
+          DayNumber: entry.DayNumber,
+          SellingPrice: entry.GivenPrice,
+          TotalPrice: entry.GivenPrice * (group.Qty || 1),
+        })),
+      })),
+    })),
+    serviceRows: [...serviceTransportRows, ...serviceActivityRows].map(row => ({
+      QuotePackageTypeId: row.QuotePackageTypeId,
+      ServiceType: row.ServiceType,
+      SellingPrice: row.SellingPrice,
+      TotalPrice: row.TotalPrice,
+      Qty: row.Qty,
+      DayNumbers: [row.DayNumber],
+    })),
+    transportTotal,
+    activityTotal,
+  });
+}
+
+private getSharedTransportRows(): {
+  serviceTransportRows: QuoteServiceRow[];
+  standaloneTransportRows: QuoteTransportRow[];
+  groupedTransportRows: QuoteTransportRow[];
+} {
+  return {
+    serviceTransportRows: this.serviceRows().filter(r => r.ServiceType === 1),
+    standaloneTransportRows: this.transportRows(),
+    groupedTransportRows: this.dayGroups().flatMap(group => group.TransportRows),
+  };
+}
+
+private getSharedActivityRows(): {
+  serviceActivityRows: QuoteServiceRow[];
+  standaloneActivityRows: ActivityTicketRow[];
+  groupedActivityRows: ActivityTicketRow[];
+} {
+  return {
+    serviceActivityRows: this.serviceRows().filter(r => r.ServiceType === 2),
+    standaloneActivityRows: this.activityTicketRows(),
+    groupedActivityRows: this.dayGroups().flatMap(group => group.ActivityRows),
+  };
 }
 
 // In getPackageTransportTotal:
 getPackageTransportTotal(pkgId: number): number {
-  return this.serviceRows()
-    .filter(r => r.QuotePackageTypeId === pkgId && r.ServiceType === 1)
-    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+  const { serviceTransportRows, standaloneTransportRows, groupedTransportRows } = this.getSharedTransportRows();
+  const { serviceActivityRows, standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows();
+  const total =
+    serviceTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
+    + standaloneTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
+    + groupedTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0);
+
+  this.logPackageSummaryDebug(
+    pkgId,
+    [...standaloneTransportRows, ...groupedTransportRows],
+    [...standaloneActivityRows, ...groupedActivityRows],
+    serviceTransportRows,
+    serviceActivityRows,
+    total,
+    this.getPackageActivityTotalValue(pkgId)
+  );
+
+  return total;
+}
+
+private getPackageActivityTotalValue(_pkgId: number): number {
+  const { serviceActivityRows, standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows();
+
+  return serviceActivityRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
+    + standaloneActivityRows.reduce((s, r) => s + this.getActivityRowTotal(r), 0)
+    + groupedActivityRows.reduce((s, r) => s + this.getActivityRowTotal(r), 0);
 }
 
 // In getPackageActivityTotal:
 getPackageActivityTotal(pkgId: number): number {
-  return this.serviceRows()
-    .filter(r => r.QuotePackageTypeId === pkgId && r.ServiceType === 2)
-    .reduce((s, r) => s + (r.SellingPrice || 0), 0);
+  return this.getPackageActivityTotalValue(pkgId);
 }
   
   get summaryHotels(): QuoteHotelRow[] {
@@ -3822,7 +3967,9 @@ private buildCompleteQuotePayload(): any {
             SortOrder: 1,
         })),
         
-        Hotels: this.hotelRows().map(row => ({
+        Hotels: this.hotelRows()
+          .filter(row => (row.HotelId || 0) > 0 && (row.RoomTypeId || 0) > 0)
+          .map(row => ({
             QuoteHotelId: row.QuoteHotelId || 0,
             QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
             NightNumber: row.NightNumber || 1,
@@ -3850,7 +3997,9 @@ private buildCompleteQuotePayload(): any {
             NightPrices: row.NightPrices || [],
         })),
         
-        SpecialInclusions: this.specialInclusionRows().map(row => ({
+        SpecialInclusions: this.specialInclusionRows()
+          .filter(row => (row.SpecialInclusionId || 0) > 0 && ((row.HotelId || 0) > 0 || row.UseManualLocation))
+          .map(row => ({
             QuoteSpecialInclusionId: row.QuoteSpecialInclusionId || 0,
             QuoteHotelId: row.QuoteHotelId || 0,
             QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
@@ -3864,29 +4013,44 @@ private buildCompleteQuotePayload(): any {
             ManualLocationName: row.ManualLocationName || '',
         })),
         
-        Services: this.serviceRows().map(row => ({
+        Services: this.serviceRows()
+          .filter(row => {
+            const serviceType = Number(row.ServiceType || 1);
+            if (serviceType === 1) {
+              return (row.IteneraryServiceId || 0) > 0 && (row.VehicleTypeId || 0) > 0;
+            }
+            if (serviceType === 2) {
+              return (row.ActivityServiceId || 0) > 0;
+            }
+            return false;
+          })
+          .map(row => ({
             QuoteServiceId: row.QuoteServiceId || 0,
             QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
             DayNumber: row.DayNumber || 1,
             ServiceDate: row.ServiceDate,
             ServiceType: row.ServiceType || 1,
-            IteneraryServiceId: row.IteneraryServiceId || 0,
-            VehicleTypeId: row.VehicleTypeId || 0,
+            IteneraryServiceId: (row.IteneraryServiceId || 0) > 0 ? row.IteneraryServiceId : null,
+            VehicleTypeId: (row.VehicleTypeId || 0) > 0 ? row.VehicleTypeId : null,
             SameCabForAll: row.SameCabForAll || false,
-            ActivityServiceId: row.ActivityServiceId || 0,
+            ActivityServiceId: (row.ActivityServiceId || 0) > 0 ? row.ActivityServiceId : null,
             Qty: row.Qty || 1,
             CostPrice: row.CostPrice || 0,
             SellingPrice: row.SellingPrice || 0,
             TotalPrice: row.TotalPrice || 0,
             Notes: row.Notes || '',
-            LocationId: row.LocationId || 0,
+            LocationId: (row.LocationId || 0) > 0 ? row.LocationId : null,
             DayNumbers: [row.DayNumber || 1],
             SortOrder: 1,
         })),
         
-        Activities: this.activityTicketRows().flatMap(row => 
+        Activities: this.activityTicketRows()
+          .filter(row => (row.LocationId || 0) > 0 && (row.ActivityServiceId || 0) > 0)
+          .flatMap(row => 
             row.TypeGroups.flatMap(group => 
-                group.Entries.map(entry => ({
+                group.Entries
+                  .filter(entry => (entry.GivenPrice || 0) > 0)
+                  .map(entry => ({
                     QuoteActivityEntryId: 0,
                     QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
                     LocationId: row.LocationId || 0,
@@ -3906,7 +4070,9 @@ private buildCompleteQuotePayload(): any {
             )
         ),
         
-        DayGroups: this.dayGroups().map(group => ({
+        DayGroups: this.dayGroups()
+          .filter(group => (group.QuotePackageTypeId || this.activePackageTypeId()) > 0 && (group.DayNumbers || []).length > 0)
+          .map(group => ({
             QuoteDayGroupId: 0,
             QuotePackageTypeId: group.QuotePackageTypeId || this.activePackageTypeId(),
             GroupNumber: group.GroupId || 1,
@@ -3917,7 +4083,9 @@ private buildCompleteQuotePayload(): any {
         SimilarHotels: this.hotelRows()
             .filter(row => row.SimilarHotels && row.SimilarHotels.length > 0)
             .flatMap(row => 
-                row.SimilarHotels.map(sim => ({
+                row.SimilarHotels
+                  .filter(sim => (row.QuoteHotelId || 0) > 0 && (sim.QuoteHotelId || 0) > 0)
+                  .map(sim => ({
                     ParentQuoteHotelId: row.QuoteHotelId || 0,
                     QuoteHotelId: sim.QuoteHotelId || 0,
                     SortOrder: 1,
@@ -3929,6 +4097,7 @@ private buildCompleteQuotePayload(): any {
             SellingCurrency: this.sellingCurrency,
             MarkupType: this.markupType,
             MarkupAmount: this.markupAmount || 0,
+            TaxAppliedOn: this.taxAppliedOn,
             GstEnabled: this.gstEnabled,
             GstPercent: this.gstPercent,
             RoundingMode: this.roundingMode,
@@ -3958,7 +4127,10 @@ private buildCompleteQuotePayload(): any {
         if (r.Message === ConstantData.SuccessMessage) {
           this.markClean();
           this.toastr.success('Quote saved successfully');
-          this.router.navigate(['/agent/query-steptwo', this.QueryStepOneId]);
+          const savedQuoteId = r.QuoteId || this.QuoteId;
+          this.router.navigate(['/agent/query-stepfour', this.QueryStepOneId], {
+            queryParams: savedQuoteId ? { quoteId: savedQuoteId } : {},
+          });
         } else { this.toastr.error(r.Message); }
         this.loading.set(false);
       },
@@ -3967,7 +4139,9 @@ private buildCompleteQuotePayload(): any {
   }
 
   cancel(): void {
-    this.router.navigate(['/agent/query-steptwo', this.QueryStepOneId]);
+    this.router.navigate(['/agent/query-stepfour', this.QueryStepOneId], {
+      queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+    });
   }
 
   private toNumberId(id: unknown): number {
@@ -5263,9 +5437,10 @@ getActiveDayGroups(): DayGroup[] {
   // and "Next Day" (finalizes current group, starts a new one with the next free day).
   addDayGroup(): void {
   const nextDay = this.getNextUnusedDay();
+  const packageTypeId = this.activePackageTypeId();
   const group: DayGroup = {
     GroupId: ++this.dayGroupCounter,
-    QuotePackageTypeId: 0, // Set to 0 or remove this field
+    QuotePackageTypeId: packageTypeId,
     DayNumbers: nextDay !== null ? [nextDay] : [],
     ShowDayDropdown: false,
     SelectedDaysDisplay: '',
@@ -5345,7 +5520,7 @@ getActiveDayGroups(): DayGroup[] {
   const newRow: QuoteTransportRow = {
     QuoteServiceId: 0,
     QuoteId: this.QuoteId,
-    QuotePackageTypeId: 0, // Set to 0
+    QuotePackageTypeId: group.QuotePackageTypeId || this.activePackageTypeId(),
     DayNumbers: [...group.DayNumbers],
     DayNumber: firstDay,
     ServiceDate: slot?.ServiceDate ?? new Date(),
@@ -5596,13 +5771,13 @@ getActiveDayGroups(): DayGroup[] {
   // Add these properties
   excludeTransportCharges = false;
   excludeTransportCount = 1;
-  taxAppliedOn = 'gst';
+  taxAppliedOn: 'cost' | 'markup' | 'cost-markup' = 'cost-markup';
   roundingValue = 0;
   // ── Pricing Strategy ──────────────────────────────────────
   // Replace existing loose properties with these:
   pricingStrategy: 'per-person' | 'overall' = 'per-person';
   sellingCurrency = 'INR';
-  markupType: 'percentage' | 'fixed' = 'fixed';
+  markupType: 'percentage' | 'fixed' = 'percentage';
   markupAmount = 0;
   gstEnabled = true;
   roundingMode: 'none' | '1' | '10' | '100' = 'none';
@@ -5719,7 +5894,9 @@ markupValue(): number {
   getPackageTotalCost(packageTypeId: number): number {
   return this.getPackageHotelTotal(packageTypeId)
     + this.getPackageTransportTotal(packageTypeId)
-    + this.getPackageActivityTotal(packageTypeId);
+    + this.getPackageActivityTotal(packageTypeId)
+    + this.getPackageSpecialInclusionTotal(packageTypeId)
+    + this.getPackageExtrasTotal(packageTypeId);
 }
 
 hasAnyTransportOrActivity(): boolean {
@@ -5852,15 +6029,29 @@ activePackageTab = 0;
 // ── Package-specific internal notes ────────────────────────
 packageInternalNotes: { [key: number]: string } = {};
 
+private roundMoney(value: number): number {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+formatMoney(amount: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+}
+
+private applyPackageRounding(amount: number): number {
+  switch (this.roundingMode) {
+    case '1': return Math.round(amount);
+    case '10': return Math.round(amount / 10) * 10;
+    case '100': return Math.round(amount / 100) * 100;
+    default: return this.roundMoney(amount);
+  }
+}
+
 // ── Package rounded price ─────────────────────────────────
 getPackageRoundedPrice(packageTypeId: number): number {
-  const raw = this.getPackageFinalPrice(packageTypeId);
-  switch (this.roundingMode) {
-    case '1': return Math.round(raw);
-    case '10': return Math.round(raw / 10) * 10;
-    case '100': return Math.round(raw / 100) * 100;
-    default: return raw;
-  }
+  return this.applyPackageRounding(this.getPackageFinalPrice(packageTypeId));
 }
 
 // getPackageTotalCost(packageTypeId: number): number {
@@ -5872,39 +6063,84 @@ getPackageRoundedPrice(packageTypeId: number): number {
 getPackagePerPersonTotal(packageTypeId: number): number {
   const paying = this.payingGuestCount();
   const total = this.getPackageTotalCost(packageTypeId);
-  return paying > 0 ? Math.round(total / paying) : 0;
+  return paying > 0 ? this.roundMoney(total / paying) : 0;
+}
+
+getPackageMarkupAmount(packageTypeId: number): number {
+  const markup = this.getTotalMarkup(packageTypeId);
+  if (this.markupType === 'percentage') {
+    return this.roundMoney(this.getPackageTotalCost(packageTypeId) * (markup || 0) / 100);
+  }
+  return this.roundMoney(markup || 0);
+}
+
+getPackageTaxableAmount(packageTypeId: number): number {
+  const cost = this.getPackageTotalCost(packageTypeId);
+  const markup = this.getPackageMarkupAmount(packageTypeId);
+
+  switch (this.taxAppliedOn) {
+    case 'cost': return cost;
+    case 'markup': return markup;
+    default: return cost + markup;
+  }
+}
+
+getTaxAppliedOnLabel(): string {
+  switch (this.taxAppliedOn) {
+    case 'cost': return 'Cost Only';
+    case 'markup': return 'Markup Only';
+    default: return 'Cost + Markup';
+  }
 }
 
 getPackageGstAmount(packageTypeId: number): number {
   if (!this.gstEnabled) return 0;
-  const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValue();
-  return Math.round((cost + markup) * (this.gstPercent || 0) / 100);
+  return this.roundMoney(this.getPackageTaxableAmount(packageTypeId) * (this.gstPercent || 0) / 100);
 }
 
 public getPackagePerPersonGstAmount(packageTypeId: number): number {
   if (!this.gstEnabled) return 0;
-  const perPaxFinal = this.getPackagePerPayingGuestPrice(packageTypeId);
-  return perPaxFinal * (this.gstPercent || 0) / 100;
+  const paying = this.payingGuestCount();
+  if (paying <= 0) return 0;
+  return this.roundMoney(this.getPackageGstAmount(packageTypeId) / paying);
 }
 
 getPackageFinalPrice(packageTypeId: number): number {
   const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.markupValue();
+  const markup = this.getPackageMarkupAmount(packageTypeId);
   const gst = this.getPackageGstAmount(packageTypeId);
-  const raw = cost + markup + gst;
-  switch (this.roundingMode) {
-    case '1': return Math.round(raw);
-    case '10': return Math.round(raw / 10) * 10;
-    case '100': return Math.round(raw / 100) * 100;
-    default: return raw;
-  }
+  return this.roundMoney(cost + markup + gst);
 }
 
 getPackagePerPayingGuestPrice(packageTypeId: number): number {
   const paying = this.payingGuestCount();
   if (paying <= 0) return 0;
-  return Math.round(this.getPackageFinalPrice(packageTypeId) / paying);
+  return this.roundMoney(this.getPackageRoundedPrice(packageTypeId) / paying);
+}
+
+getPackagePerPersonMarkupAmount(packageTypeId: number): number {
+  const paying = this.payingGuestCount();
+  return paying > 0 ? this.roundMoney(this.getPackageMarkupAmount(packageTypeId) / paying) : 0;
+}
+
+getPackagePerPersonFinalBeforeRounding(packageTypeId: number): number {
+  const paying = this.payingGuestCount();
+  return paying > 0 ? this.roundMoney(this.getPackageFinalPrice(packageTypeId) / paying) : 0;
+}
+
+getPackageCostComponents(packageTypeId: number): { label: string; total: number }[] {
+  return [
+    { label: 'Hotels', total: this.getPackageHotelTotal(packageTypeId) },
+    { label: 'Transportation', total: this.getPackageTransportTotal(packageTypeId) },
+    { label: 'Activities/Tickets', total: this.getPackageActivityTotal(packageTypeId) },
+    { label: 'Special Inclusions', total: this.getPackageSpecialInclusionTotal(packageTypeId) },
+    { label: 'Extras', total: this.getPackageExtrasTotal(packageTypeId) },
+  ].filter(component => component.total > 0);
+}
+
+getPackagePerPersonComponentTotal(_packageTypeId: number, componentTotal: number): number {
+  const paying = this.payingGuestCount();
+  return paying > 0 ? this.roundMoney(componentTotal / paying) : 0;
 }
 isPerPersonRow(rowLabel: string): boolean {
   return rowLabel.toLowerCase().includes('person');
@@ -5914,13 +6150,7 @@ isTotalRow(rowLabel: string): boolean {
   return rowLabel.toLowerCase().includes('total');
 } 
 markupValueForPackage(packageTypeId: number): number {
-  const cost = this.getPackageTotalCost(packageTypeId);
-  const markup = this.getTotalMarkup(packageTypeId);
-  
-  if (this.markupType === 'percentage') {
-    return Math.round(cost * (markup || 0) / 100);
-  }
-  return markup || 0;
+  return this.getPackageMarkupAmount(packageTypeId);
 }
 
 // ── Handle pricing strategy change ──────────────────────────
@@ -5939,7 +6169,7 @@ initializePackageMarkup(packageTypeId: number): void {
   if (!this.packageMarkups[packageTypeId]) {
     this.packageMarkups[packageTypeId] = {
       perPerson: this.markupAmount,
-      total: this.markupAmount * this.payingGuestCount(),
+      total: this.markupType === 'percentage' ? this.markupAmount : this.markupAmount * this.payingGuestCount(),
     };
   }
   if (!this.markupEditMode[packageTypeId]) {
@@ -5963,7 +6193,8 @@ getTotalMarkup(packageTypeId: number): number {
 onPerPersonMarkupChange(packageTypeId: number, newValue: number): void {
   this.initializePackageMarkup(packageTypeId);
   this.packageMarkups[packageTypeId].perPerson = newValue;
-  this.packageMarkups[packageTypeId].total = newValue * this.payingGuestCount();
+  this.packageMarkups[packageTypeId].total =
+    this.markupType === 'percentage' ? newValue : newValue * this.payingGuestCount();
   this.markDirty();
 }
 
@@ -5972,7 +6203,8 @@ onTotalMarkupChange(packageTypeId: number, newValue: number): void {
   this.initializePackageMarkup(packageTypeId);
   this.packageMarkups[packageTypeId].total = newValue;
   const paying = this.payingGuestCount();
-  this.packageMarkups[packageTypeId].perPerson = paying > 0 ? Math.round(newValue / paying) : 0;
+  this.packageMarkups[packageTypeId].perPerson =
+    this.markupType === 'percentage' ? newValue : paying > 0 ? this.roundMoney(newValue / paying) : 0;
   this.markDirty();
 }
 
