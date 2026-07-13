@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, signal, inject, computed, HostListener, SecurityContext
+  Component, OnInit, signal, inject, computed, HostListener, SecurityContext, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -317,6 +317,7 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
   private service = inject(AppService);
   private toastr = inject(ToastrService);
   private local = inject(LocalService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private sanitizer = inject(DomSanitizer);
   private dialogService = inject(UnsavedChangesDialogService); // ← ADD
 
@@ -1557,6 +1558,7 @@ closeSimilarHotelEditPriceModal(): void {
     row.FinalPrice = row.SellingPrice;
     if (row.PriceBreakdown) row.PriceBreakdown.SellingPrice = row.SellingPrice;
     this.similarHotelRows = [...this.similarHotelRows];
+    this.cdr.detectChanges();
     this.markDirty();
   }
 
@@ -1606,6 +1608,7 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
 
     // Force UI refresh
     this.similarHotelRows = [...this.similarHotelRows];
+    this.cdr.detectChanges();
 
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
@@ -2126,6 +2129,7 @@ lookupSimilarHotelRate(row: QuoteHotelRow): void {
       row.IsDatabasePrice = true;
       this.calculateSimilarHotelPrice(row);
       this.similarHotelRows = [...this.similarHotelRows];
+      this.cdr.detectChanges();
       this.markDirty();
     },
     error: (err) => {
