@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, signal, inject, computed, HostListener
+  Component, OnInit, signal, inject, computed, HostListener, SecurityContext
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -169,6 +169,7 @@ export interface QuoteHotelRow {
   IsManualPrice: boolean;
   IsDatabasePrice: boolean;
   FinalPrice: number;  
+  SimilarHotelParentId?: number; // ← ADD THIS
   NightPrices?: HotelNightPriceBreakdown[];
   PriceBreakdown?: HotelPriceBreakdown;
 }
@@ -3565,50 +3566,383 @@ getPackageActivityTotal(pkgId: number): number {
   }
 
   // ── Save Quote ────────────────────────────────────────────
-  private buildCompleteQuotePayload(): any {
-    const hotels = this.hotelRows().map(row => {
-      const hotel = this.deepCopy(row);
-      hotel.SimilarHotels = (row.SimilarHotels ?? []).map(similar =>
-        this.buildSimilarHotelRecord(this.deepCopy(similar))
-      );
-      return hotel;
+  private payloadDate(date: any): string {
+    return date ? this.formatDate(date) : '';
+  }
+
+  private sanitizeHtml(value: string): string {
+    return this.sanitizer.sanitize(SecurityContext.HTML, value || '') || '';
+  }
+
+  private getHotelNightPricePayload(row: QuoteHotelRow): any[] {
+    if (row.NightPrices?.length) {
+      return row.NightPrices.map(night => ({
+        NightNumber: night.NightNumber,
+        StayDate: this.payloadDate(night.StayDate),
+        DateLabel: night.DateLabel,
+        BaseRate: night.BaseRate || 0,
+        Rooms: night.Rooms || 0,
+        RoomTotal: night.RoomTotal || 0,
+        AWEB: night.AWEB || 0,
+        AwebRate: night.AwebRate || 0,
+        AwebTotal: night.AwebTotal || 0,
+        CWEB: night.CWEB || 0,
+        CwebRate: night.CwebRate || 0,
+        CwebTotal: night.CwebTotal || 0,
+        CNB: night.CNB || 0,
+        CnbRate: night.CnbRate || 0,
+        CnbTotal: night.CnbTotal || 0,
+        Total: night.Total || 0,
+      }));
+    }
+
+    const nightNumbers = row.NightNumbers?.length ? row.NightNumbers : [row.NightNumber || 1];
+    return nightNumbers.map(nightNumber => {
+      const slot = this.getNightSlot(nightNumber);
+      const roomTotal = (row.BaseRate || 0) * (row.NoOfRooms || 0);
+      const awebTotal = (row.AwebRate || 0) * (row.AWEB || 0);
+      const cwebTotal = (row.CwebRate || 0) * (row.CWEB || 0);
+      const cnbTotal = (row.CnbRate || 0) * (row.CNB || 0);
+
+      return {
+        NightNumber: nightNumber,
+        StayDate: this.payloadDate(slot?.StayDate ?? row.StayDate),
+        DateLabel: slot?.DateLabel ?? '',
+        BaseRate: row.BaseRate || 0,
+        Rooms: row.NoOfRooms || 0,
+        RoomTotal: roomTotal,
+        AWEB: row.AWEB || 0,
+        AwebRate: row.AwebRate || 0,
+        AwebTotal: awebTotal,
+        CWEB: row.CWEB || 0,
+        CwebRate: row.CwebRate || 0,
+        CwebTotal: cwebTotal,
+        CNB: row.CNB || 0,
+        CnbRate: row.CnbRate || 0,
+        CnbTotal: cnbTotal,
+        Total: roomTotal + awebTotal + cwebTotal + cnbTotal,
+      };
     });
+  }
+
+  private getHotelPriceBreakdownPayload(row: QuoteHotelRow): any {
+    const nightPrices = this.getHotelNightPricePayload(row);
+    const roomTotal = nightPrices.reduce((sum, night) => sum + (night.RoomTotal || 0), 0);
+    const extraBedTotal = nightPrices.reduce(
+      (sum, night) => sum + (night.AwebTotal || 0) + (night.CwebTotal || 0) + (night.CnbTotal || 0),
+      0
+    );
 
     return {
-      QuoteId: this.QuoteId,
-      QueryStepOneId: this.QueryStepOneId,
-      TotalCostPrice: this.totalCost(),
-      TotalSellingPrice: this.finalPrice(),
-      HotelTotal: this.hotelTotal(),
-      TransportTotal: this.transportTotal(),
-      ActivityTotal: this.activityTotal(),
-      GstPercent: this.gstPercent,
-      InternalNotes: this.internalNotes,
-      UpdatedBy: this.staffLogin.StaffLoginId,
-      PackageTypes: this.deepCopy(this.packageTypes()),
-      Hotels: hotels,
-      SpecialInclusions: this.deepCopy(this.specialInclusionRows()),
-      Services: this.deepCopy(this.serviceRows()),
-      Transports: this.deepCopy(this.transportRows()),
-      Activities: this.deepCopy(this.activityTicketRows()),
-      DayGroups: this.deepCopy(this.dayGroups()),
-      Pricing: {
-        PricingStrategy: this.pricingStrategy,
-        SellingCurrency: this.sellingCurrency,
-        MarkupType: this.markupType,
-        MarkupAmount: this.markupAmount,
-        GstEnabled: this.gstEnabled,
-        RoundingMode: this.roundingMode,
-        TotalFOC: this.totalFOC,
-        PackageMarkups: this.deepCopy(this.packageMarkups),
-        PackageInternalNotes: this.deepCopy(this.packageInternalNotes),
-      },
-      CustomerRemarks: this.customerRemarks,
+      BaseRate: row.BaseRate || 0,
+      AwebRate: row.AwebRate || 0,
+      CwebRate: row.CwebRate || 0,
+      CnbRate: row.CnbRate || 0,
+      RoomTotal: roomTotal,
+      ExtraBedTotal: extraBedTotal,
+      CostPrice: row.CostPrice || roomTotal + extraBedTotal,
+      TotalPrice: row.TotalPrice || roomTotal + extraBedTotal,
+      SellingPrice: row.SellingPrice || row.TotalPrice || 0,
+      FinalPrice: row.FinalPrice || row.SellingPrice || row.TotalPrice || 0,
+      NightPrices: nightPrices,
     };
   }
 
+  private serializeHotel(row: QuoteHotelRow, isSimilarHotel = false): any {
+    const nightNumbers = this.deepCopy(row.NightNumbers?.length ? row.NightNumbers : [row.NightNumber || 1]);
+    const payload: any = {
+      QuoteHotelId: row.QuoteHotelId || 0,
+      QuoteId: row.QuoteId || this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      NightNumber: nightNumbers[0] || 1,
+      NightNumbers: nightNumbers,
+      StayDate: this.payloadDate(row.StayDate),
+      HotelId: row.HotelId || 0,
+      RoomTypeId: row.RoomTypeId || 0,
+      MealPlan: row.MealPlan || '',
+      NoOfRooms: row.NoOfRooms || 0,
+      PaxPerRoom: row.PaxPerRoom || 0,
+      AWEB: row.AWEB || 0,
+      CWEB: row.CWEB || 0,
+      CNB: row.CNB || 0,
+      BaseRate: row.BaseRate || 0,
+      AwebRate: row.AwebRate || 0,
+      CwebRate: row.CwebRate || 0,
+      CnbRate: row.CnbRate || 0,
+      CostPrice: row.CostPrice || 0,
+      TotalPrice: row.TotalPrice || 0,
+      SellingPrice: row.SellingPrice || row.TotalPrice || 0,
+      FinalPrice: row.FinalPrice || row.SellingPrice || row.TotalPrice || 0,
+      IsMainHotel: !isSimilarHotel,
+      IsSimilarHotel: isSimilarHotel,
+      NightPrices: this.getHotelNightPricePayload(row),
+      PriceBreakdown: this.getHotelPriceBreakdownPayload(row),
+    };
+
+    if (!isSimilarHotel) {
+      payload.SimilarHotels = (row.SimilarHotels ?? []).map(similar =>
+        this.serializeHotel(similar, true)
+      );
+    }
+
+    return payload;
+  }
+
+  private serializeSpecialInclusion(row: QuoteSpecialInclusionRow): any {
+    return {
+      QuoteSpecialInclusionId: row.QuoteSpecialInclusionId || 0,
+      QuoteId: row.QuoteId || this.QuoteId,
+      QuoteHotelId: row.UseManualLocation ? 0 : (row.QuoteHotelId || 0),
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      HotelId: row.UseManualLocation ? 0 : (row.HotelId || 0),
+      UseManualLocation: !!row.UseManualLocation,
+      ManualLocationName: row.UseManualLocation ? (row.ManualLocationName || '') : '',
+      NightNumbers: this.deepCopy(row.NightNumbers ?? []),
+      SpecialInclusionId: row.SpecialInclusionId || 0,
+      SpecialInclusionName: row.SpecialInclusionName || '',
+      TotalPrice: row.TotalPrice || 0,
+      Comments: row.Comments || '',
+    };
+  }
+
+  private serializeTransport(row: QuoteTransportRow, groupId: number | null = null): any {
+    const dayNumbers = this.deepCopy(row.DayNumbers?.length ? row.DayNumbers : [row.DayNumber || 1]);
+    return {
+      QuoteServiceId: row.QuoteServiceId || 0,
+      QuoteId: row.QuoteId || this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      GroupId: groupId,
+      DayNumber: dayNumbers[0] || 1,
+      DayNumbers: dayNumbers,
+      ServiceDate: this.payloadDate(row.ServiceDate),
+      ServiceType: 1,
+      LocationId: row.LocationId || 0,
+      IteneraryServiceId: row.IteneraryServiceId || 0,
+      VehicleTypeId: row.VehicleTypeId || 0,
+      SameCabForAll: !!row.SameCabForAll,
+      Qty: row.Qty || 0,
+      CostPrice: row.CostPrice || 0,
+      SellingPrice: row.SellingPrice || 0,
+      TotalPrice: row.TotalPrice || 0,
+      Notes: row.Notes || '',
+    };
+  }
+
+  private serializeActivityEntry(row: ActivityTicketRow, group: ActivityTypeGroup, entry: ActivityTicketEntry, dayGroupId: number | null = null): any {
+    const qty = group.Qty || entry.Qty || 1;
+    return {
+      QuoteServiceId: entry.QuoteServiceId || 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      GroupId: dayGroupId,
+      TypeGroupId: group.GroupId || 0,
+      DayNumber: entry.DayNumber || 0,
+      ServiceDate: this.payloadDate(entry.ServiceDate),
+      ServiceType: 2,
+      LocationId: row.LocationId || 0,
+      ActivityServiceId: row.ActivityServiceId || 0,
+      PaxType: group.PaxType || '',
+      PaxTypeLabel: group.PaxTypeLabel || '',
+      Qty: qty,
+      Rate: entry.Rate || 0,
+      GivenPrice: entry.GivenPrice || 0,
+      CostPrice: (entry.Rate || 0) * qty,
+      SellingPrice: (entry.GivenPrice || 0) * qty,
+    };
+  }
+
+  private serializeActivityTypeGroup(row: ActivityTicketRow, group: ActivityTypeGroup, dayGroupId: number | null = null): any {
+    return {
+      GroupId: group.GroupId || 0,
+      PaxType: group.PaxType || '',
+      PaxTypeLabel: group.PaxTypeLabel || '',
+      Qty: group.Qty || 0,
+      Entries: (group.Entries ?? []).map(entry =>
+        this.serializeActivityEntry(row, group, entry, dayGroupId)
+      ),
+    };
+  }
+
+  private serializeActivity(row: ActivityTicketRow, dayGroupId: number | null = null): any {
+    return {
+      RowId: row.RowId || 0,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+      GroupId: dayGroupId,
+      LocationId: row.LocationId || 0,
+      ActivityServiceId: row.ActivityServiceId || 0,
+      TypeGroups: (row.TypeGroups ?? []).map(group =>
+        this.serializeActivityTypeGroup(row, group, dayGroupId)
+      ),
+    };
+  }
+
+  private serializeDayGroup(group: DayGroup): any {
+    return {
+      GroupId: group.GroupId || 0,
+      QuotePackageTypeId: group.QuotePackageTypeId || this.activePackageTypeId(),
+      DayNumbers: this.deepCopy(group.DayNumbers ?? []),
+      TransportRows: (group.TransportRows ?? []).map(row => this.serializeTransport(row, group.GroupId || 0)),
+      ActivityRows: (group.ActivityRows ?? []).map(row => this.serializeActivity(row, group.GroupId || 0)),
+    };
+  }
+
+private buildCompleteQuotePayload(): any {
+    return {
+        QuoteId: this.QuoteId,
+        QueryStepOneId: this.QueryStepOneId,
+        UpdatedBy: this.staffLogin.StaffLoginId,
+        
+        // Totals
+        TotalCostPrice: this.totalCost(),
+        TotalSellingPrice: this.finalPrice(),
+        HotelTotal: this.hotelTotal(),
+        TransportTotal: this.transportTotal(),
+        ActivityTotal: this.activityTotal(),
+        GstPercent: this.gstPercent,
+        
+        // Text fields
+        InternalNotes: this.internalNotes || '',
+        CustomerRemarks: this.sanitizeHtml(this.customerRemarks),
+        
+        // Pricing fields
+        SellingCurrency: this.sellingCurrency,
+        PricingStrategy: this.pricingStrategy,
+        RoundingMode: this.roundingMode,
+        TotalFOC: this.totalFOC || 0,
+        
+        // Collections
+        PackageTypes: this.packageTypes().map(pkg => ({
+            QuotePackageTypeId: pkg.QuotePackageTypeId || 0,
+            PackageTypeName: pkg.PackageTypeName || '',
+            SortOrder: 1,
+        })),
+        
+        Hotels: this.hotelRows().map(row => ({
+            QuoteHotelId: row.QuoteHotelId || 0,
+            QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+            NightNumber: row.NightNumber || 1,
+            StayDate: row.StayDate,
+            HotelId: row.HotelId || 0,
+            RoomTypeId: row.RoomTypeId || 0,
+            MealPlan: row.MealPlan || 'MAP',
+            NoOfRooms: row.NoOfRooms || 1,
+            PaxPerRoom: row.PaxPerRoom || 2,
+            AWEB: row.AWEB || 0,
+            CWEB: row.CWEB || 0,
+            CNB: row.CNB || 0,
+            CostPrice: row.CostPrice || 0,
+            SellingPrice: row.SellingPrice || 0,
+            BaseRate: row.BaseRate || 0,
+            AwebRate: row.AwebRate || 0,
+            CwebRate: row.CwebRate || 0,
+            CnbRate: row.CnbRate || 0,
+            TotalPrice: row.TotalPrice || 0,
+            FinalPrice: row.FinalPrice || 0,
+            NightNumbers: row.NightNumbers || [row.NightNumber || 1],
+            IsMainHotel: row.IsMainHotel !== undefined ? row.IsMainHotel : true,
+            SimilarHotelParentId: row.SimilarHotelParentId || null,
+            SortOrder: 1,
+            NightPrices: row.NightPrices || [],
+        })),
+        
+        SpecialInclusions: this.specialInclusionRows().map(row => ({
+            QuoteSpecialInclusionId: row.QuoteSpecialInclusionId || 0,
+            QuoteHotelId: row.QuoteHotelId || 0,
+            QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+            HotelId: row.HotelId || 0,
+            NightNumbers: row.NightNumbers || [],
+            SpecialInclusionId: row.SpecialInclusionId || 0,
+            SpecialInclusionName: row.SpecialInclusionName || '',
+            TotalPrice: row.TotalPrice || 0,
+            Comments: row.Comments || '',
+            UseManualLocation: row.UseManualLocation || false,
+            ManualLocationName: row.ManualLocationName || '',
+        })),
+        
+        Services: this.serviceRows().map(row => ({
+            QuoteServiceId: row.QuoteServiceId || 0,
+            QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+            DayNumber: row.DayNumber || 1,
+            ServiceDate: row.ServiceDate,
+            ServiceType: row.ServiceType || 1,
+            IteneraryServiceId: row.IteneraryServiceId || 0,
+            VehicleTypeId: row.VehicleTypeId || 0,
+            SameCabForAll: row.SameCabForAll || false,
+            ActivityServiceId: row.ActivityServiceId || 0,
+            Qty: row.Qty || 1,
+            CostPrice: row.CostPrice || 0,
+            SellingPrice: row.SellingPrice || 0,
+            TotalPrice: row.TotalPrice || 0,
+            Notes: row.Notes || '',
+            LocationId: row.LocationId || 0,
+            DayNumbers: [row.DayNumber || 1],
+            SortOrder: 1,
+        })),
+        
+        Activities: this.activityTicketRows().flatMap(row => 
+            row.TypeGroups.flatMap(group => 
+                group.Entries.map(entry => ({
+                    QuoteActivityEntryId: 0,
+                    QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
+                    LocationId: row.LocationId || 0,
+                    ActivityServiceId: row.ActivityServiceId || 0,
+                    DayNumber: entry.DayNumber || 1,
+                    ServiceDate: entry.ServiceDate,
+                    PaxType: group.PaxType || 'Adult',
+                    PaxTypeLabel: group.PaxTypeLabel || 'Adult',
+                    TypeGroupId: group.GroupId || 0,
+                    Qty: group.Qty || 1,
+                    Rate: entry.Rate || 0,
+                    GivenPrice: entry.GivenPrice || 0,
+                    CostPrice: (entry.Rate || 0) * (group.Qty || 1),
+                    SellingPrice: (entry.GivenPrice || 0) * (group.Qty || 1),
+                    SortOrder: 1,
+                }))
+            )
+        ),
+        
+        DayGroups: this.dayGroups().map(group => ({
+            QuoteDayGroupId: 0,
+            QuotePackageTypeId: group.QuotePackageTypeId || this.activePackageTypeId(),
+            GroupNumber: group.GroupId || 1,
+            DayNumbers: group.DayNumbers || [],
+            SortOrder: 1,
+        })),
+        
+        SimilarHotels: this.hotelRows()
+            .filter(row => row.SimilarHotels && row.SimilarHotels.length > 0)
+            .flatMap(row => 
+                row.SimilarHotels.map(sim => ({
+                    ParentQuoteHotelId: row.QuoteHotelId || 0,
+                    QuoteHotelId: sim.QuoteHotelId || 0,
+                    SortOrder: 1,
+                }))
+            ),
+        
+        Pricing: {
+            PricingStrategy: this.pricingStrategy,
+            SellingCurrency: this.sellingCurrency,
+            MarkupType: this.markupType,
+            MarkupAmount: this.markupAmount || 0,
+            GstEnabled: this.gstEnabled,
+            GstPercent: this.gstPercent,
+            RoundingMode: this.roundingMode,
+            TotalFOC: this.totalFOC || 0,
+        },
+        
+        PackageMarkups: this.packageTypes().map(pkg => ({
+            QuotePackageMarkupId: 0,
+            QuotePackageTypeId: pkg.QuotePackageTypeId || 0,
+            PerPersonMarkup: this.getPerPersonMarkup(pkg.QuotePackageTypeId),
+            TotalMarkup: this.getTotalMarkup(pkg.QuotePackageTypeId),
+            InternalNotes: this.packageInternalNotes[pkg.QuotePackageTypeId] || '',
+        })),
+    };
+}
+
   saveQuote(): void {
-    if (!this.QuoteId) { this.toastr.error('Please set package types first'); return; }
+   
 
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
