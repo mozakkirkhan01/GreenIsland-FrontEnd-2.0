@@ -296,6 +296,36 @@ export interface ActivityTicketEntry {
   IsSaving: boolean;
 }
 
+export type PricingRowKind = 'adult-double' | 'adult-single' | 'child-cweb' | 'child-cnb' | 'infant';
+
+export interface PricingComponentBreakdown {
+  label: string;
+  amount: number;
+}
+
+export interface GeneratedPricingRow {
+  key: string;
+  kind: PricingRowKind;
+  label: string;
+  tableLabel: string;
+  qty: number;
+  unitLabel: string;
+  ageLabel: string;
+  hotelCost: number;
+  transportCost: number;
+  activityCost: number;
+  specialInclusionCost: number;
+  extrasCost: number;
+  costPrice: number;
+  markupInput: number;
+  markupAmount: number;
+  taxableAmount: number;
+  gstAmount: number;
+  totalBeforeRounding: number;
+  roundedTotal: number;
+  breakdown: PricingComponentBreakdown[];
+}
+
 @Component({
   selector: 'app-query-stepthree',
   standalone: true,
@@ -6049,8 +6079,273 @@ private applyPackageRounding(amount: number): number {
   }
 }
 
+rowMarkups: { [key: string]: number } = {};
+
+private getChildrenAges(): number[] {
+  const raw = this.tripInfo()?.ChildrenAges;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.map(age => Number(age)).filter(age => Number.isFinite(age) && age >= 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+private getHotelBuckets(packageTypeId: number): {
+  roomTotal: number;
+  awebTotal: number;
+  cwebTotal: number;
+  cnbTotal: number;
+  cwebCount: number;
+  cnbCount: number;
+} {
+  const buckets = this.getHotelsByPackage(packageTypeId)
+    .filter(row => row.IsMainHotel !== false)
+    .reduce((acc, row) => {
+      const nights = row.NightPrices?.length ? row.NightPrices : this.getHotelNightPricePayload(row);
+      acc.roomTotal += nights.reduce((sum, night) => sum + (Number(night.RoomTotal) || 0), 0);
+      acc.awebTotal += nights.reduce((sum, night) => sum + (Number(night.AwebTotal) || 0), 0);
+      acc.cwebTotal += nights.reduce((sum, night) => sum + (Number(night.CwebTotal) || 0), 0);
+      acc.cnbTotal += nights.reduce((sum, night) => sum + (Number(night.CnbTotal) || 0), 0);
+      acc.cwebCount = Math.max(acc.cwebCount, Number(row.CWEB) || 0);
+      acc.cnbCount = Math.max(acc.cnbCount, Number(row.CNB) || 0);
+      return acc;
+    }, { roomTotal: 0, awebTotal: 0, cwebTotal: 0, cnbTotal: 0, cwebCount: 0, cnbCount: 0 });
+
+  const effectiveHotelTotal = this.getPackageHotelTotal(packageTypeId);
+  const bucketTotal = buckets.roomTotal + buckets.awebTotal + buckets.cwebTotal + buckets.cnbTotal;
+  if (effectiveHotelTotal > bucketTotal) buckets.roomTotal += effectiveHotelTotal - bucketTotal;
+  return buckets;
+}
+
+private getActivityTotalsByPax(): { adult: number; child: number; infant: number } {
+  const totals = { adult: 0, child: 0, infant: 0 };
+  const addTicketRow = (row: ActivityTicketRow) => {
+    (row.TypeGroups || []).forEach(group => {
+      const amount = (group.Entries || []).reduce(
+        (sum, entry) => sum + ((Number(entry.GivenPrice) || 0) * (Number(group.Qty) || 1)),
+        0
+      );
+      if (group.PaxType === 'ChildBelowTwoYear') totals.infant += amount;
+      else if (group.PaxType === 'Child') totals.child += amount;
+      else totals.adult += amount;
+    });
+  };
+
+  this.activityTicketRows().forEach(addTicketRow);
+  this.dayGroups().flatMap(group => group.ActivityRows || []).forEach(addTicketRow);
+  this.serviceRows()
+    .filter(row => row.ServiceType === 2)
+    .forEach(row => totals.adult += this.moneyValue(row.TotalPrice, row.SellingPrice));
+
+  return totals;
+}
+
+private getPricingRowMarkupInput(rowKey: string): number {
+  if (this.rowMarkups[rowKey] === undefined) {
+    this.rowMarkups[rowKey] = this.markupType === 'percentage' ? this.markupAmount : 0;
+  }
+  return Number(this.rowMarkups[rowKey]) || 0;
+}
+
+onPricingRowMarkupChange(rowKey: string, value: number): void {
+  this.rowMarkups[rowKey] = Math.max(0, Number(value) || 0);
+  this.markDirty();
+}
+
+private rowMarkupAmount(costPrice: number, markupInput: number): number {
+  if (this.markupType === 'percentage') return this.roundMoney(costPrice * (markupInput || 0) / 100);
+  return this.roundMoney(markupInput || 0);
+}
+
+private rowTaxableAmount(costPrice: number, markupAmount: number): number {
+  switch (this.taxAppliedOn) {
+    case 'cost': return costPrice;
+    case 'markup': return markupAmount;
+    default: return costPrice + markupAmount;
+  }
+}
+
+private makePricingRow(
+  packageTypeId: number,
+  kind: PricingRowKind,
+  label: string,
+  tableLabel: string,
+  qty: number,
+  unitLabel: string,
+  ageLabel: string,
+  costs: Partial<Pick<GeneratedPricingRow, 'hotelCost' | 'transportCost' | 'activityCost' | 'specialInclusionCost' | 'extrasCost'>>
+): GeneratedPricingRow | null {
+  if (qty <= 0) return null;
+  const hotelCost = this.roundMoney(costs.hotelCost || 0);
+  const transportCost = this.roundMoney(costs.transportCost || 0);
+  const activityCost = this.roundMoney(costs.activityCost || 0);
+  const specialInclusionCost = this.roundMoney(costs.specialInclusionCost || 0);
+  const extrasCost = this.roundMoney(costs.extrasCost || 0);
+  const costPrice = this.roundMoney(hotelCost + transportCost + activityCost + specialInclusionCost + extrasCost);
+  const key = `${packageTypeId}-${kind}`;
+  const markupInput = this.getPricingRowMarkupInput(key);
+  const markupAmount = this.rowMarkupAmount(costPrice, markupInput);
+  const taxableAmount = this.rowTaxableAmount(costPrice, markupAmount);
+  const gstAmount = this.gstEnabled ? this.roundMoney(taxableAmount * (this.gstPercent || 0) / 100) : 0;
+  const totalBeforeRounding = this.roundMoney(costPrice + markupAmount + gstAmount);
+  const roundedTotal = this.applyPackageRounding(totalBeforeRounding);
+  const breakdown = [
+    { label: 'Hotels', amount: hotelCost },
+    { label: 'Transports', amount: transportCost },
+    { label: 'Activities', amount: activityCost },
+    { label: 'Special Inclusions', amount: specialInclusionCost },
+    { label: 'Extras', amount: extrasCost },
+  ].filter(component => component.amount > 0);
+
+  return {
+    key, kind, label, tableLabel, qty, unitLabel, ageLabel,
+    hotelCost, transportCost, activityCost, specialInclusionCost, extrasCost,
+    costPrice, markupInput, markupAmount, taxableAmount, gstAmount,
+    totalBeforeRounding, roundedTotal, breakdown,
+  };
+}
+
+getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
+  const adults = Math.max(0, Number(this.tripInfo()?.NoOfAdults) || 0);
+  const childAges = this.getChildrenAges();
+  const infantAges = childAges.filter(age => age <= 2);
+  const childAboveTwoAges = childAges.filter(age => age > 2);
+  const hotelBuckets = this.getHotelBuckets(packageTypeId);
+  const activityTotals = this.getActivityTotalsByPax();
+  const transportTotal = this.getPackageTransportTotal(packageTypeId);
+  const specialTotal = this.getPackageSpecialInclusionTotal(packageTypeId);
+  const extrasTotal = this.getPackageExtrasTotal(packageTypeId);
+  const adultDoubleQty = adults > 1 ? adults - (adults % 2) : 0;
+  const adultSingleQty = adults % 2;
+  const adultHotelPerPax = adults > 0 ? (hotelBuckets.roomTotal + hotelBuckets.awebTotal) / adults : 0;
+  const adultTransportPerPax = adults > 0 ? transportTotal / adults : 0;
+  const adultActivityPerPax = adults > 0 ? activityTotals.adult / adults : 0;
+  const visibleQty = adults + childAboveTwoAges.length + infantAges.length;
+  const specialPerPax = visibleQty > 0 ? specialTotal / visibleQty : 0;
+  const extrasPerPax = visibleQty > 0 ? extrasTotal / visibleQty : 0;
+  const cwebQty = Math.min(hotelBuckets.cwebCount, childAboveTwoAges.length);
+  const cnbQty = Math.min(hotelBuckets.cnbCount, Math.max(0, childAboveTwoAges.length - cwebQty));
+  const fallbackChildQty = Math.max(0, childAboveTwoAges.length - cwebQty - cnbQty);
+  const noBedChildQty = cnbQty + fallbackChildQty;
+  const childActivityPerPax = childAboveTwoAges.length > 0 ? activityTotals.child / childAboveTwoAges.length : 0;
+  const infantActivityPerPax = infantAges.length > 0 ? activityTotals.infant / infantAges.length : 0;
+
+  const rows: Array<GeneratedPricingRow | null> = [
+    this.makePricingRow(packageTypeId, 'adult-double', 'Person (Double Sharing)', '/Person (Double Sharing)', adultDoubleQty, 'Pax', '', {
+      hotelCost: adultHotelPerPax, transportCost: adultTransportPerPax, activityCost: adultActivityPerPax,
+      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+    }),
+    this.makePricingRow(packageTypeId, 'adult-single', 'Adult', '/Adult', adultSingleQty, 'Pax', '', {
+      hotelCost: adultHotelPerPax, transportCost: adultTransportPerPax, activityCost: adultActivityPerPax,
+      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+    }),
+    this.makePricingRow(packageTypeId, 'child-cweb', 'Child with Extra Bed/Mattress', '/Child with Extra Bed/Mattress', cwebQty, 'Child', childAboveTwoAges.slice(0, cwebQty).join(', '), {
+      hotelCost: cwebQty > 0 ? hotelBuckets.cwebTotal / cwebQty : 0, activityCost: childActivityPerPax,
+      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+    }),
+    this.makePricingRow(packageTypeId, 'child-cnb', 'Child Without Bed', '/Child Without Bed', noBedChildQty, 'Child', childAboveTwoAges.slice(cwebQty).join(', '), {
+      hotelCost: noBedChildQty > 0 ? hotelBuckets.cnbTotal / noBedChildQty : 0, activityCost: childActivityPerPax,
+      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+    }),
+    this.makePricingRow(packageTypeId, 'infant', 'Infant', '/Infant', infantAges.length, 'Infant', infantAges.join(', '), {
+      activityCost: infantActivityPerPax, specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+    }),
+  ];
+
+  return rows.filter((row): row is GeneratedPricingRow => !!row);
+}
+
+getPricingRowDisplay(row: GeneratedPricingRow): string {
+  const ageText = row.ageLabel ? ` (${row.ageLabel}${row.ageLabel.includes(',') ? ' yrs' : 'y'})` : '';
+  return `${row.label} x ${row.qty} ${row.unitLabel}${ageText}`;
+}
+
+getPricingRowSubText(row: GeneratedPricingRow): string {
+  const ageText = row.ageLabel ? ` (${row.ageLabel}${row.ageLabel.includes(',') ? ' yrs' : 'y'})` : '';
+  return `${row.qty} ${row.unitLabel}${ageText}`;
+}
+
+getPackagePricingCostTotal(packageTypeId: number): number {
+  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.costPrice * row.qty, 0));
+}
+
+getPackagePricingMarkupTotal(packageTypeId: number): number {
+  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.markupAmount * row.qty, 0));
+}
+
+getPackagePricingGstTotal(packageTypeId: number): number {
+  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.gstAmount * row.qty, 0));
+}
+
+getPackagePricingFinalTotal(packageTypeId: number): number {
+  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.totalBeforeRounding * row.qty, 0));
+}
+
+getPackagePricingRoundedTotal(packageTypeId: number): number {
+  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.roundedTotal * row.qty, 0));
+}
+
+getPricingValidationErrors(packageTypeId?: number): string[] {
+  const errors: string[] = [];
+  const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
+  const childAges = this.getChildrenAges();
+  const packageIds = packageTypeId
+    ? [packageTypeId]
+    : this.packageTypes().map(pkg => pkg.QuotePackageTypeId).filter(id => id > 0);
+
+  if (adults <= 0) errors.push('At least one adult is required before calculating or saving pricing.');
+  if (this.childrenCount > 0 && adults <= 0) errors.push('Children cannot be added without at least one adult.');
+  if (!this.sellingCurrency) errors.push('Selling currency is required.');
+  if ((this.totalFOC || 0) < 0) errors.push('FOC cannot be negative.');
+  if ((this.totalFOC || 0) >= Math.max(1, this.totalGuestCount())) errors.push('At least one paying passenger is required.');
+  if ((this.gstPercent || 0) < 0 || (this.gstPercent || 0) > 28) errors.push('GST must be between 0 and 28%.');
+  if ((this.markupAmount || 0) < 0) errors.push('Markup cannot be negative.');
+  if (childAges.some(age => age < 0 || age > 17)) errors.push('Child ages must be between 0 and 17 years.');
+  if (this.hotelRows().some(row => (row.NoOfRooms || 0) < 0 || (row.PaxPerRoom || 0) < 0 || (row.TotalPrice || 0) < 0)) {
+    errors.push('Hotel room counts, occupancy, and prices cannot be negative.');
+  }
+  if (this.transportRows().some(row => (row.Qty || 0) <= 0 || (row.SellingPrice || row.TotalPrice || 0) < 0)) {
+    errors.push('Transport rows must have a valid quantity and non-negative price.');
+  }
+  if (this.serviceRows().some(row => (row.Qty || 0) <= 0 || (row.SellingPrice || row.TotalPrice || 0) < 0)) {
+    errors.push('Service rows must have a valid quantity and non-negative price.');
+  }
+
+  packageIds.forEach(pkgId => {
+    const rows = this.getPackagePricingRows(pkgId);
+    const packageName = this.packageTypes().find(pkg => pkg.QuotePackageTypeId === pkgId)?.PackageTypeName || `Package ${pkgId}`;
+    const costTotal = this.getPackagePricingCostTotal(pkgId);
+    const packageTotal = this.getPackageTotalCost(pkgId);
+    const variance = Math.abs(costTotal - packageTotal);
+
+    if (rows.length === 0) errors.push(`${packageName}: pricing rows could not be generated.`);
+    if (packageTotal <= 0) errors.push(`${packageName}: hotel, transport, or activity costs are missing.`);
+    if (variance > 1) errors.push(`${packageName}: visible pricing rows (${this.formatMoney(costTotal)}) do not match package total (${this.formatMoney(packageTotal)}).`);
+    if (rows.some(row => row.costPrice < 0 || row.markupInput < 0 || row.gstAmount < 0)) {
+      errors.push(`${packageName}: pricing, markup, and GST values cannot be negative.`);
+    }
+
+    const buckets = this.getHotelBuckets(pkgId);
+    const childAboveTwo = childAges.filter(age => age > 2).length;
+    if (childAboveTwo > 0 && buckets.cwebCount + buckets.cnbCount < childAboveTwo) {
+      errors.push(`${packageName}: child accommodation is not fully assigned to CWEB or CNB.`);
+    }
+  });
+
+  return Array.from(new Set(errors));
+}
+
+hasPricingValidationErrors(): boolean {
+  return this.getPricingValidationErrors().length > 0;
+}
+
 // ── Package rounded price ─────────────────────────────────
 getPackageRoundedPrice(packageTypeId: number): number {
+  if (this.pricingStrategy === 'per-person') return this.getPackagePricingRoundedTotal(packageTypeId);
   return this.applyPackageRounding(this.getPackageFinalPrice(packageTypeId));
 }
 
@@ -6061,12 +6356,15 @@ getPackageRoundedPrice(packageTypeId: number): number {
 // }
 
 getPackagePerPersonTotal(packageTypeId: number): number {
+  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  if (row) return row.costPrice;
   const paying = this.payingGuestCount();
   const total = this.getPackageTotalCost(packageTypeId);
   return paying > 0 ? this.roundMoney(total / paying) : 0;
 }
 
 getPackageMarkupAmount(packageTypeId: number): number {
+  if (this.pricingStrategy === 'per-person') return this.getPackagePricingMarkupTotal(packageTypeId);
   const markup = this.getTotalMarkup(packageTypeId);
   if (this.markupType === 'percentage') {
     return this.roundMoney(this.getPackageTotalCost(packageTypeId) * (markup || 0) / 100);
@@ -6094,11 +6392,14 @@ getTaxAppliedOnLabel(): string {
 }
 
 getPackageGstAmount(packageTypeId: number): number {
+  if (this.pricingStrategy === 'per-person') return this.getPackagePricingGstTotal(packageTypeId);
   if (!this.gstEnabled) return 0;
   return this.roundMoney(this.getPackageTaxableAmount(packageTypeId) * (this.gstPercent || 0) / 100);
 }
 
 public getPackagePerPersonGstAmount(packageTypeId: number): number {
+  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  if (row) return row.gstAmount;
   if (!this.gstEnabled) return 0;
   const paying = this.payingGuestCount();
   if (paying <= 0) return 0;
@@ -6106,6 +6407,7 @@ public getPackagePerPersonGstAmount(packageTypeId: number): number {
 }
 
 getPackageFinalPrice(packageTypeId: number): number {
+  if (this.pricingStrategy === 'per-person') return this.getPackagePricingFinalTotal(packageTypeId);
   const cost = this.getPackageTotalCost(packageTypeId);
   const markup = this.getPackageMarkupAmount(packageTypeId);
   const gst = this.getPackageGstAmount(packageTypeId);
@@ -6113,17 +6415,23 @@ getPackageFinalPrice(packageTypeId: number): number {
 }
 
 getPackagePerPayingGuestPrice(packageTypeId: number): number {
+  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  if (row) return row.roundedTotal;
   const paying = this.payingGuestCount();
   if (paying <= 0) return 0;
   return this.roundMoney(this.getPackageRoundedPrice(packageTypeId) / paying);
 }
 
 getPackagePerPersonMarkupAmount(packageTypeId: number): number {
+  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  if (row) return row.markupAmount;
   const paying = this.payingGuestCount();
   return paying > 0 ? this.roundMoney(this.getPackageMarkupAmount(packageTypeId) / paying) : 0;
 }
 
 getPackagePerPersonFinalBeforeRounding(packageTypeId: number): number {
+  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  if (row) return row.totalBeforeRounding;
   const paying = this.payingGuestCount();
   return paying > 0 ? this.roundMoney(this.getPackageFinalPrice(packageTypeId) / paying) : 0;
 }

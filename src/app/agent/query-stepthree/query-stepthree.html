@@ -2237,20 +2237,22 @@
           </tr>
         </thead>
         <tbody>
+          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr>
             <td>
-              <div class="fw-medium">Person (Double Sharing) × {{ payingGuestCount() }} Pax</div>
+              <div class="fw-medium">{{ getPricingRowDisplay(row) }}</div>
             </td>
             <td class="text-end fw-semibold">
-              {{ formatMoney(getPackagePerPersonTotal(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(row.costPrice) }}
             </td>
             <td class="text-end text-muted" style="font-size:12px;">
-              @for (component of getPackageCostComponents(pkg.QuotePackageTypeId); track component.label) {
+              @for (component of row.breakdown; track component.label) {
               @if (!$first) { <span class="mx-1">|</span> }
-              <span>{{ component.label }}: {{ formatMoney(getPackagePerPersonComponentTotal(pkg.QuotePackageTypeId, component.total)) }}</span>
+              <span>{{ component.label }}: {{ formatMoney(component.amount) }}</span>
               }
             </td>
           </tr>
+          }
         </tbody>
       </table>
     </div>
@@ -2323,11 +2325,12 @@
         <!-- Per-Person Strategy -->
         @if (pricingStrategy === 'per-person') {
           <!-- Per-Person row -->
+          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr>
-            <td class="fw-semibold">/Person (Double Sharing)<br><span class="text-muted small">{{ payingGuestCount() }} Pax</span></td>
+            <td class="fw-semibold">{{ row.tableLabel }}<br><span class="text-muted small">{{ getPricingRowSubText(row) }}</span></td>
             <td class="text-end fw-bold">
-              {{ formatMoney(getPackagePerPersonTotal(pkg.QuotePackageTypeId)) }}
-              <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() || 1 }} = {{ formatMoney(getPackageTotalCost(pkg.QuotePackageTypeId)) }}</div>
+              {{ formatMoney(row.costPrice) }}
+              <div class="text-muted" style="font-size:10px;">× {{ row.qty }} = {{ formatMoney(row.costPrice * row.qty) }}</div>
             </td>
 
             <!-- MARKUP COLUMN - Per-Person EDIT MODE -->
@@ -2337,8 +2340,8 @@
                   <!-- Edit Mode -->
                   <input type="number" 
                     class="form-control form-control-sm text-end"
-                    [value]="getPerPersonMarkup(pkg.QuotePackageTypeId)"
-                    (change)="onPerPersonMarkupChange(pkg.QuotePackageTypeId, +$event.target.value)"
+                    [value]="row.markupInput"
+                    (change)="onPricingRowMarkupChange(row.key, +$event.target.value)"
                     style="width:70px; padding:2px 4px;"
                     min="0"
                     autofocus>
@@ -2348,7 +2351,7 @@
                   </button>
                 } @else {
                   <!-- View Mode -->
-                  <span class="fw-semibold">{{ formatMoney(getPerPersonMarkup(pkg.QuotePackageTypeId)) }}</span>
+                  <span class="fw-semibold">{{ formatMoney(row.markupInput) }}</span>
                   <button class="btn btn-sm btn-link p-0 text-muted" 
                     (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'person')"
                     matTooltip="Edit per-person markup">
@@ -2357,32 +2360,33 @@
                 }
               </div>
               <div class="text-muted" style="font-size:10px;">
-                = {{ formatMoney(getPackageMarkupAmount(pkg.QuotePackageTypeId)) }}
+                = {{ formatMoney(row.markupAmount * row.qty) }}
               </div>
             </td>
 
             <td class="text-end fw-semibold text-muted" style="font-size:12px;">{{ getTaxAppliedOnLabel() }}</td>
             <td class="text-end fw-bold">
-              {{ formatMoney(getPackagePerPersonGstAmount(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(row.gstAmount) }}
               <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
             </td>
             <td class="text-end fw-bold" style="color:#1a73e8;">
-              {{ formatMoney(getPackagePerPersonFinalBeforeRounding(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(row.totalBeforeRounding) }}
               <div class="text-muted" style="font-size:10px;">INR</div>
             </td>
             <td class="text-end fw-bold">
               @if (roundingMode !== 'none') {
-                {{ formatMoney(getPackagePerPayingGuestPrice(pkg.QuotePackageTypeId)) }}
-                <div class="text-muted" style="font-size:10px;">× {{ payingGuestCount() }}</div>
+                {{ formatMoney(row.roundedTotal) }}
+                <div class="text-muted" style="font-size:10px;">× {{ row.qty }}</div>
               }
             </td>
           </tr>
+          }
 
           <!-- Total row (Per-Person) -->
           <tr style="background:#fffbec;">
             <td class="fw-bold">Total</td>
             <td class="text-end fw-bold">
-              {{ formatMoney(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(getPackagePricingCostTotal(pkg.QuotePackageTypeId)) }}
             </td>
 
             <!-- MARKUP COLUMN - Total EDIT MODE -->
@@ -2403,7 +2407,7 @@
                   </button>
                 } @else {
                   <!-- View Mode -->
-                  <span class="fw-semibold">{{ formatMoney(getTotalMarkup(pkg.QuotePackageTypeId)) }}</span>
+                  <span class="fw-semibold">{{ formatMoney(getPackagePricingMarkupTotal(pkg.QuotePackageTypeId)) }}</span>
                   <button class="btn btn-sm btn-link p-0 text-muted" 
                     (click)="toggleMarkupEdit(pkg.QuotePackageTypeId, 'total')"
                     matTooltip="Edit total markup">
@@ -2412,22 +2416,22 @@
                 }
               </div>
               <div class="text-muted" style="font-size:10px;">
-                = {{ formatMoney(getPackageMarkupAmount(pkg.QuotePackageTypeId)) }}
+                = {{ formatMoney(getPackagePricingMarkupTotal(pkg.QuotePackageTypeId)) }}
               </div>
             </td>
 
             <td class="text-end fw-semibold text-muted" style="font-size:12px;">{{ getTaxAppliedOnLabel() }}</td>
             <td class="text-end fw-bold">
-              {{ formatMoney(getPackageGstAmount(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(getPackagePricingGstTotal(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">{{ gstPercent }}%</div>
             </td>
             <td class="text-end fw-bold" style="color:#1a73e8;">
-              {{ formatMoney(getPackageFinalPrice(pkg.QuotePackageTypeId)) }}
+              {{ formatMoney(getPackagePricingFinalTotal(pkg.QuotePackageTypeId)) }}
               <div class="text-muted" style="font-size:10px;">INR</div>
             </td>
             <td class="text-end fw-bold">
               @if (roundingMode !== 'none') {
-                {{ formatMoney(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
+                {{ formatMoney(getPackagePricingRoundedTotal(pkg.QuotePackageTypeId)) }}
                 <div class="text-muted" style="font-size:10px;">INR</div>
               } @else {
                 <span class="text-muted">—</span>
@@ -2642,7 +2646,7 @@
               <div class="text-muted" style="font-size:11px;">
                 Tax: GST
                 @if (gstEnabled) { (Included {{ gstPercent }}%) }
-                @else { (Not Applied) }
+                @else { (Excluded) }
               </div>
             </td>
             <td class="text-end" style="padding:10px 16px; border:none; vertical-align:middle;">
