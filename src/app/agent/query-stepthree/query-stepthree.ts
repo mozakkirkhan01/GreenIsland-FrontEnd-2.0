@@ -5777,10 +5777,10 @@ getActiveDayGroups(): DayGroup[] {
   // Replace existing loose properties with these:
   pricingStrategy: 'per-person' | 'overall' = 'per-person';
   sellingCurrency = 'INR';
-  markupType: 'percentage' | 'fixed' = 'percentage';
+  markupType: 'percentage' | 'fixed' = 'fixed';
   markupAmount = 0;
   gstEnabled = true;
-  roundingMode: 'none' | '1' | '10' | '100' = 'none';
+  roundingMode: 'none' | '1' | '10' | '100' = '10';
   remarksTab: 'write' | 'preview' = 'write';
   customerRemarks = '';
   totalFOC = 0;
