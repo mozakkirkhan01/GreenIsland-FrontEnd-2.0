@@ -2212,9 +2212,10 @@
   <!-- Package Content -->
   <div class="border border-top-0 rounded-bottom p-4 mb-4 bg-white">
 
+    <div class="row g-4">
     <!-- ── PER-PERSON MODE ── -->
     @if (pricingStrategy === 'per-person') {
-
+<div class="col-lg-4">
     <!-- Per-Person Settings header -->
     <div class="text-primary fw-semibold mb-2" style="font-size:13px;">
       Per-Person Settings
@@ -2226,6 +2227,43 @@
       @if (childrenCount > 0) { + {{ childrenCount }} Child{{ childrenCount > 1 ? 'ren' : '' }} }]
     </div>
 
+    <!-- Transport Inclusions -->
+    <div class="mb-3">
+      <div class="text-muted small fw-semibold mb-2">Transports Inclusions</div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <input type="checkbox" [(ngModel)]="excludeTransportCharges"
+          (ngModelChange)="markDirty()" id="excTransport_{{ pkg.QuotePackageTypeId }}" style="cursor:pointer;">
+        <label [for]="'excTransport_' + pkg.QuotePackageTypeId" class="small mb-0" style="cursor:pointer;">
+          Exc. Transport charges for
+        </label>
+        <input type="number" class="form-control form-control-sm text-center" style="width:55px;"
+          [(ngModel)]="excludeTransportCount" (ngModelChange)="markDirty()" min="0" [max]="totalAdults()">
+        <span class="small">Adults</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <input type="checkbox" [(ngModel)]="incAwebInTransports"
+          (ngModelChange)="markDirty()" id="incAweb_{{ pkg.QuotePackageTypeId }}" style="cursor:pointer;">
+        <label [for]="'incAweb_' + pkg.QuotePackageTypeId" class="small mb-0" style="cursor:pointer;">
+          Inc. AwEB in Transports
+        </label>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <input type="checkbox" [(ngModel)]="incChildInTransports"
+          (ngModelChange)="markDirty()" id="incChild_{{ pkg.QuotePackageTypeId }}" style="cursor:pointer;">
+        <label [for]="'incChild_' + pkg.QuotePackageTypeId" class="small mb-0" style="cursor:pointer;">
+          Inc. Child:
+        </label>
+        <input type="number" class="form-control form-control-sm text-center" style="width:55px;"
+          [(ngModel)]="incChildTransportAge" (ngModelChange)="markDirty()" min="0" max="17">
+        <span class="small">yrs and onwards</span>
+      </div>
+      <div class="text-muted small fst-italic">
+        {{ getTransportChargeableSummary(pkg.QuotePackageTypeId) }}
+      </div>
+    </div>
+</div>
+
+    <div class="col-lg-8">
     <!-- Per-Person breakdown mini table -->
     <div class="border rounded mb-4" style="overflow:hidden;">
       <table class="table table-sm mb-0" style="font-size:13px;">
@@ -2256,8 +2294,10 @@
         </tbody>
       </table>
     </div>
-    }
 
+    </div>
+    }
+</div>
     <!-- ── SET MARKUP, TAX AND ROUNDING ── -->
 <!-- Set Markup, Tax and Rounding Section -->
 <div class="mb-4">
@@ -2591,7 +2631,6 @@
   @let finalPrice   = getPackageFinalPrice(pkg.QuotePackageTypeId);
   @let roundedPrice = getPackageRoundedPrice(pkg.QuotePackageTypeId);
   @let displayPrice = roundedPrice > 0 ? roundedPrice : finalPrice;
-  @let perPaxPrice  = getPerPaxPrice(displayPrice);
 
   <div class="d-flex align-items-stretch gap-0 mb-3"
     style="border:1px solid #dee2e6; border-radius:6px; overflow:hidden;">
@@ -2623,21 +2662,24 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Data row -->
+          <!-- Data rows — sourced from the same getPackagePricingRows() the
+               calculation table uses, so Preview can never drift out of sync. -->
+          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr style="border-bottom:1px solid #dee2e6;">
             <td class="text-muted" style="padding:10px 16px; border:none;">
-              Person (Double Sharing) × {{ payingGuestCount() }} Pax
+              {{ getPricingRowDisplay(row) }}
             </td>
             <td class="text-end" style="padding:10px 12px; border:none;">
-              {{ formatCurrency(perPaxPrice) }}
+              {{ formatCurrency(row.roundedTotal) }}
             </td>
             <td class="text-end fw-semibold" style="padding:10px 12px; border:none; color:#1a73e8;">
-              {{ payingGuestCount() }}
+              {{ row.qty }}
             </td>
             <td class="text-end" style="padding:10px 16px; border:none;">
-              {{ formatCurrency(displayPrice) }}
+              {{ formatCurrency(row.roundedTotal * row.qty) }}
             </td>
           </tr>
+          }
           <!-- Total row -->
           <tr>
             <td style="padding:10px 16px; border:none;"></td>

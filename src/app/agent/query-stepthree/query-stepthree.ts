@@ -5801,6 +5801,9 @@ getActiveDayGroups(): DayGroup[] {
   // Add these properties
   excludeTransportCharges = false;
   excludeTransportCount = 1;
+  incAwebInTransports = false;
+  incChildInTransports = false;
+  incChildTransportAge = 6;
   taxAppliedOn: 'cost' | 'markup' | 'cost-markup' = 'cost-markup';
   roundingValue = 0;
   // ── Pricing Strategy ──────────────────────────────────────
@@ -6212,8 +6215,10 @@ private makePricingRow(
 getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
   const adults = Math.max(0, Number(this.tripInfo()?.NoOfAdults) || 0);
   const childAges = this.getChildrenAges();
-  const infantAges = childAges.filter(age => age <= 2);
-  const childAboveTwoAges = childAges.filter(age => age > 2);
+  // Reference behaviour: a 2-year-old is still a paying (CNB) child, not FOC —
+  // only children strictly under 2 are treated as no-cost infants.
+  const infantAges = childAges.filter(age => age < 2);
+  const childAboveTwoAges = childAges.filter(age => age >= 2);
   const hotelBuckets = this.getHotelBuckets(packageTypeId);
   const activityTotals = this.getActivityTotalsByPax();
   const transportTotal = this.getPackageTransportTotal(packageTypeId);
@@ -6221,8 +6226,33 @@ getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
   const extrasTotal = this.getPackageExtrasTotal(packageTypeId);
   const adultDoubleQty = adults > 1 ? adults - (adults % 2) : 0;
   const adultSingleQty = adults % 2;
-  const adultHotelPerPax = adults > 0 ? (hotelBuckets.roomTotal + hotelBuckets.awebTotal) / adults : 0;
-  const adultTransportPerPax = adults > 0 ? transportTotal / adults : 0;
+
+  // ── Hotel cost: double-sharing pax draw from the room-rate bucket,
+  //    extra-bed pax draw from the AWEB-rate bucket — never blended.
+  const adultDoubleHotelPerPax = adultDoubleQty > 0 ? hotelBuckets.roomTotal / adultDoubleQty : 0;
+  const adultSingleHotelPerPax = adultSingleQty > 0 ? hotelBuckets.awebTotal / adultSingleQty : 0;
+
+  // ── Transport: exclude N adults (extra-bed adults first), unless
+  //    "Inc. AwEB in Transports" is checked, in which case nobody is excluded.
+  //    Optionally include children >= incChildTransportAge in the same pool.
+  const excludedAdultCount = (this.excludeTransportCharges && !this.incAwebInTransports)
+    ? Math.max(0, Math.min(this.excludeTransportCount || 0, adults))
+    : 0;
+  const excludedFromSingle = Math.min(excludedAdultCount, adultSingleQty);
+  const excludedFromDouble = Math.max(0, excludedAdultCount - adultSingleQty);
+  const adultSingleTransportChargeableQty = Math.max(0, adultSingleQty - excludedFromSingle);
+  const adultDoubleTransportChargeableQty = Math.max(0, adultDoubleQty - excludedFromDouble);
+
+  const chargeableChildAges = this.incChildInTransports
+    ? childAboveTwoAges.filter(age => age >= (this.incChildTransportAge || 0))
+    : [];
+  const totalTransportChargeablePax = adultDoubleTransportChargeableQty + adultSingleTransportChargeableQty + chargeableChildAges.length;
+  const transportPerChargeablePax = totalTransportChargeablePax > 0 ? transportTotal / totalTransportChargeablePax : 0;
+
+  const adultDoubleTransportPerPax = adultDoubleTransportChargeableQty > 0 ? transportPerChargeablePax : 0;
+  const adultSingleTransportPerPax = adultSingleTransportChargeableQty > 0 ? transportPerChargeablePax : 0;
+  const childTransportPerPax = chargeableChildAges.length > 0 ? transportPerChargeablePax : 0;
+
   const adultActivityPerPax = adults > 0 ? activityTotals.adult / adults : 0;
   const visibleQty = adults + childAboveTwoAges.length + infantAges.length;
   const specialPerPax = visibleQty > 0 ? specialTotal / visibleQty : 0;
@@ -6236,19 +6266,21 @@ getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
 
   const rows: Array<GeneratedPricingRow | null> = [
     this.makePricingRow(packageTypeId, 'adult-double', 'Person (Double Sharing)', '/Person (Double Sharing)', adultDoubleQty, 'Pax', '', {
-      hotelCost: adultHotelPerPax, transportCost: adultTransportPerPax, activityCost: adultActivityPerPax,
+      hotelCost: adultDoubleHotelPerPax, transportCost: adultDoubleTransportPerPax, activityCost: adultActivityPerPax,
       specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
     }),
-    this.makePricingRow(packageTypeId, 'adult-single', 'Adult', '/Adult', adultSingleQty, 'Pax', '', {
-      hotelCost: adultHotelPerPax, transportCost: adultTransportPerPax, activityCost: adultActivityPerPax,
+    this.makePricingRow(packageTypeId, 'adult-single', 'Adult with Extra Bed/Mattress', '/Adult with Extra Bed/Mattress', adultSingleQty, 'Pax', '', {
+      hotelCost: adultSingleHotelPerPax, transportCost: adultSingleTransportPerPax, activityCost: adultActivityPerPax,
       specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
     }),
     this.makePricingRow(packageTypeId, 'child-cweb', 'Child with Extra Bed/Mattress', '/Child with Extra Bed/Mattress', cwebQty, 'Child', childAboveTwoAges.slice(0, cwebQty).join(', '), {
-      hotelCost: cwebQty > 0 ? hotelBuckets.cwebTotal / cwebQty : 0, activityCost: childActivityPerPax,
+      hotelCost: cwebQty > 0 ? hotelBuckets.cwebTotal / cwebQty : 0,
+      transportCost: childTransportPerPax, activityCost: childActivityPerPax,
       specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
     }),
-    this.makePricingRow(packageTypeId, 'child-cnb', 'Child Without Bed', '/Child Without Bed', noBedChildQty, 'Child', childAboveTwoAges.slice(cwebQty).join(', '), {
-      hotelCost: noBedChildQty > 0 ? hotelBuckets.cnbTotal / noBedChildQty : 0, activityCost: childActivityPerPax,
+    this.makePricingRow(packageTypeId, 'child-cnb', 'Child without Extra Bed/Mattress', '/Child without Extra Bed/Mattress', noBedChildQty, 'Child', childAboveTwoAges.slice(cwebQty).join(', '), {
+      hotelCost: noBedChildQty > 0 ? hotelBuckets.cnbTotal / noBedChildQty : 0,
+      transportCost: childTransportPerPax, activityCost: childActivityPerPax,
       specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
     }),
     this.makePricingRow(packageTypeId, 'infant', 'Infant', '/Infant', infantAges.length, 'Infant', infantAges.join(', '), {
@@ -6257,6 +6289,23 @@ getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
   ];
 
   return rows.filter((row): row is GeneratedPricingRow => !!row);
+}
+
+// ── Transport-cost note shown under Per-Person Settings, e.g.
+//    "[Transport cost for 2 Adults]" — mirrors the chargeable-pax math above.
+getTransportChargeableSummary(packageTypeId: number): string {
+  const adults = Math.max(0, Number(this.tripInfo()?.NoOfAdults) || 0);
+  const excludedAdultCount = (this.excludeTransportCharges && !this.incAwebInTransports)
+    ? Math.max(0, Math.min(this.excludeTransportCount || 0, adults))
+    : 0;
+  const chargeableAdults = Math.max(0, adults - excludedAdultCount);
+  const childAges = this.getChildrenAges().filter(age => age >= 2);
+  const chargeableChildren = this.incChildInTransports
+    ? childAges.filter(age => age >= (this.incChildTransportAge || 0)).length
+    : 0;
+  const parts = [`${chargeableAdults} Adult${chargeableAdults === 1 ? '' : 's'}`];
+  if (chargeableChildren > 0) parts.push(`${chargeableChildren} Child${chargeableChildren === 1 ? '' : 'ren'}`);
+  return `[Transport cost for ${parts.join(' + ')}]`;
 }
 
 getPricingRowDisplay(row: GeneratedPricingRow): string {
