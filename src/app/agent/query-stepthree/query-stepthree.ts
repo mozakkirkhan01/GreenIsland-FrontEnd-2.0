@@ -613,7 +613,32 @@ activityTotal = computed(() => {
           this.gstPercent = r.Quote.GstPercent ?? 5;
         }
 
+ if (r.Pricing) {
+          this.sellingCurrency = r.Pricing.SellingCurrency ?? 'INR';
+          this.pricingStrategy = r.Pricing.PricingStrategy ?? 'per-person';
+          this.markupType = r.Pricing.MarkupType ?? 'percentage';
+          this.markupAmount = r.Pricing.MarkupAmount ?? 0;
+          this.gstEnabled = r.Pricing.GstEnabled ?? false;
+          this.gstPercent = r.Pricing.GstPercent ?? this.gstPercent;
+          this.roundingMode = r.Pricing.RoundingMode ?? 'none';
+          this.totalFOC = r.Pricing.TotalFOC ?? 0;
+          this.taxAppliedOn = r.Pricing.TaxAppliedOn ?? 'total'; // after the DB/API change is in place
+        }
 
+         this.packageMarkups = {};
+        this.packageInternalNotes = {};
+        if (r.PackageMarkups?.length > 0) {
+          r.PackageMarkups.forEach((pm: any) => {
+            this.packageMarkups[pm.QuotePackageTypeId] = {
+              perPerson: Number(pm.PerPersonMarkup) || 0,
+              total: Number(pm.TotalMarkup) || 0,
+            };
+            this.markupEditMode[pm.QuotePackageTypeId] = 'none';
+            if (pm.InternalNotes) {
+              this.packageInternalNotes[pm.QuotePackageTypeId] = pm.InternalNotes;
+            }
+          });
+        }
         // ========== FIXED PACKAGE TYPES HANDLING ==========
         // Always fetch package types directly using the dedicated endpoint
         // This ensures we get the correct data regardless of what QuoteDetail returns
@@ -621,6 +646,11 @@ activityTotal = computed(() => {
         // ========== END PACKAGE TYPES HANDLING ==========
 
         if (r.Hotels?.length > 0) {
+          if (r.SpecialInclusions?.length > 0) {
+          this.specialInclusionRows.set(
+            r.SpecialInclusions.map((si: any) => this.mapSpecialInclusionRow(si))
+          );
+        }
   const allHotels = r.Hotels.map((h: any) => this.mapHotelRow(h));
   const mainRows = allHotels.filter((h: QuoteHotelRow) => h.IsMainHotel);
   const simRows  = allHotels.filter((h: QuoteHotelRow) => !h.IsMainHotel);
@@ -787,6 +817,33 @@ activityTotal = computed(() => {
       IsManualPrice: false,
       IsDatabasePrice: true,
       FinalPrice: sellingPrice * nights * rooms, // ← ADD THIS
+    };
+  }
+  private mapSpecialInclusionRow(si: any): QuoteSpecialInclusionRow {
+    return {
+      QuoteSpecialInclusionId: si.QuoteSpecialInclusionId,
+      QuoteId: si.QuoteId,
+      QuoteHotelId: si.QuoteHotelId ?? 0,
+      QuotePackageTypeId: this.toNumberId(si.QuotePackageTypeId),
+      HotelId: si.HotelId ?? 0,
+      NightNumbers: si.NightNumbers ?? (si.NightNumber ? [si.NightNumber] : []),
+      SpecialInclusionId: si.SpecialInclusionId ?? 0,
+      SpecialInclusionName: si.SpecialInclusionName ?? '',
+      HotelName: si.HotelName ?? '',
+      TotalPrice: si.TotalPrice ?? 0,
+      Comments: si.Comments ?? '',
+      ServiceSearch: si.SpecialInclusionName ?? '',
+      FilteredServices: [],
+      ShowServiceDropdown: false,
+      HotelSearch: si.HotelName ?? '',
+      FilteredHotels: [],
+      ShowHotelDropdown: false,
+      ManualLocationName: si.ManualLocationName ?? '',
+      UseManualLocation: si.UseManualLocation ?? false,
+      ShowNightDropdown: false,
+      SelectedNightsDisplay: (si.NightNumbers ?? []).map((n: number) => `Night ${n}`).join(', '),
+      AvailableServices: [],
+      IsSaving: false,
     };
   }
 
@@ -4141,6 +4198,17 @@ private buildCompleteQuotePayload(): any {
             TotalMarkup: this.getTotalMarkup(pkg.QuotePackageTypeId),
             InternalNotes: this.packageInternalNotes[pkg.QuotePackageTypeId] || '',
         })),
+         // ADD THIS BLOCK
+        RowMarkups: Object.entries(this.rowMarkups).map(([key, value]) => {
+            const idx = key.lastIndexOf('-');
+            return {
+                QuotePackageTypeId: Number(key.slice(0, idx)) || 0,
+                RowKind: key.slice(idx + 1),
+                MarkupInput: Number(value) || 0,
+            };
+
+
+        }).filter(rm => rm.QuotePackageTypeId > 0),
     };
 }
 
@@ -4152,6 +4220,8 @@ private buildCompleteQuotePayload(): any {
     });
 
     this.loading.set(true);
+    console.log("Complete payload",this.buildCompleteQuotePayload());
+    
     this.service.saveQuote(enc(this.buildCompleteQuotePayload())).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
@@ -6254,9 +6324,9 @@ getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
   const childTransportPerPax = chargeableChildAges.length > 0 ? transportPerChargeablePax : 0;
 
   const adultActivityPerPax = adults > 0 ? activityTotals.adult / adults : 0;
-  const visibleQty = adults + childAboveTwoAges.length + infantAges.length;
-  const specialPerPax = visibleQty > 0 ? specialTotal / visibleQty : 0;
-  const extrasPerPax = visibleQty > 0 ? extrasTotal / visibleQty : 0;
+  const adultCount = adults;
+  const specialPerAdult = adultCount > 0 ? specialTotal / adultCount : 0;
+  const extrasPerAdult = adultCount > 0 ? extrasTotal / adultCount : 0;
   const cwebQty = Math.min(hotelBuckets.cwebCount, childAboveTwoAges.length);
   const cnbQty = Math.min(hotelBuckets.cnbCount, Math.max(0, childAboveTwoAges.length - cwebQty));
   const fallbackChildQty = Math.max(0, childAboveTwoAges.length - cwebQty - cnbQty);
@@ -6267,24 +6337,24 @@ getPackagePricingRows(packageTypeId: number): GeneratedPricingRow[] {
   const rows: Array<GeneratedPricingRow | null> = [
     this.makePricingRow(packageTypeId, 'adult-double', 'Person (Double Sharing)', '/Person (Double Sharing)', adultDoubleQty, 'Pax', '', {
       hotelCost: adultDoubleHotelPerPax, transportCost: adultDoubleTransportPerPax, activityCost: adultActivityPerPax,
-      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+      specialInclusionCost: specialPerAdult, extrasCost: extrasPerAdult,
     }),
     this.makePricingRow(packageTypeId, 'adult-single', 'Adult with Extra Bed/Mattress', '/Adult with Extra Bed/Mattress', adultSingleQty, 'Pax', '', {
       hotelCost: adultSingleHotelPerPax, transportCost: adultSingleTransportPerPax, activityCost: adultActivityPerPax,
-      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+      specialInclusionCost: specialPerAdult, extrasCost: extrasPerAdult,
     }),
     this.makePricingRow(packageTypeId, 'child-cweb', 'Child with Extra Bed/Mattress', '/Child with Extra Bed/Mattress', cwebQty, 'Child', childAboveTwoAges.slice(0, cwebQty).join(', '), {
       hotelCost: cwebQty > 0 ? hotelBuckets.cwebTotal / cwebQty : 0,
       transportCost: childTransportPerPax, activityCost: childActivityPerPax,
-      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+      specialInclusionCost: 0, extrasCost: 0,
     }),
     this.makePricingRow(packageTypeId, 'child-cnb', 'Child without Extra Bed/Mattress', '/Child without Extra Bed/Mattress', noBedChildQty, 'Child', childAboveTwoAges.slice(cwebQty).join(', '), {
       hotelCost: noBedChildQty > 0 ? hotelBuckets.cnbTotal / noBedChildQty : 0,
       transportCost: childTransportPerPax, activityCost: childActivityPerPax,
-      specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+      specialInclusionCost: 0, extrasCost: 0,
     }),
     this.makePricingRow(packageTypeId, 'infant', 'Infant', '/Infant', infantAges.length, 'Infant', infantAges.join(', '), {
-      activityCost: infantActivityPerPax, specialInclusionCost: specialPerPax, extrasCost: extrasPerPax,
+      activityCost: infantActivityPerPax, specialInclusionCost: 0, extrasCost: 0,
     }),
   ];
 
