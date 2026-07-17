@@ -683,6 +683,10 @@ activityTotal = computed(() => {
           this.syncSelectedDaysFromTransportRows();
         }
 
+        if (r.DayGroups?.length > 0) {
+          this.rehydrateDayGroups(r.DayGroups, r.Activities ?? []);
+        }
+
         if (destId === 0) {
           this.toastr.warning('Destination not found for this trip');
           this.loading.set(false);
@@ -845,6 +849,112 @@ activityTotal = computed(() => {
       AvailableServices: [],
       IsSaving: false,
     };
+  }
+  
+
+private rehydrateDayGroups(rawGroups: any[], rawActivities: any[]): void {
+    const groups: DayGroup[] = rawGroups.map((g: any) => {
+      const groupId = g.GroupNumber || ++this.dayGroupCounter;
+      const dayNumbers: number[] = g.DayNumbers ?? [];
+      const packageTypeId = this.toNumberId(g.QuotePackageTypeId);
+
+      const group: DayGroup = {
+        GroupId: groupId,
+        QuotePackageTypeId: packageTypeId,
+        DayNumbers: dayNumbers,
+        ShowDayDropdown: false,
+        SelectedDaysDisplay: '',
+        TransportRows: [],
+        ActivityRows: this.rebuildActivityRowsForGroup(rawActivities, packageTypeId, dayNumbers),
+      };
+      this.updateDayGroupDisplay(group);
+      return group;
+    });
+
+    // Keep the counter ahead of every GroupId we just reused, so new groups don't collide
+    this.dayGroupCounter = Math.max(this.dayGroupCounter, ...groups.map(g => g.GroupId), 0);
+
+    this.dayGroups.set(groups);
+
+    // Fetch DateRates for every reconstructed activity row, per its own group's days —
+    // this merges into the TypeGroups/Entries we already built, preserving GivenPrice.
+    groups.forEach(group => {
+      group.ActivityRows.forEach(row => {
+        if (row.ActivityServiceId) {
+          this.loadDateRatesForGroupDays(row, group.DayNumbers);
+        }
+      });
+    });
+  }
+
+  private rebuildActivityRowsForGroup(
+    rawActivities: any[],
+    packageTypeId: number,
+    dayNumbers: number[]
+  ): ActivityTicketRow[] {
+    // Only entries whose DayNumber belongs to THIS group, and matching package type
+    const relevant = rawActivities.filter((a: any) =>
+      this.toNumberId(a.QuotePackageTypeId) === packageTypeId &&
+      dayNumbers.includes(a.DayNumber)
+    );
+
+    const rowMap = new Map<string, ActivityTicketRow>();
+
+    relevant.forEach((a: any) => {
+      const rowKey = `${a.LocationId}-${a.ActivityServiceId}`;
+      if (!rowMap.has(rowKey)) {
+        rowMap.set(rowKey, {
+          RowId: ++this.activityRowCounter,
+          QuotePackageTypeId: packageTypeId,
+          LocationId: a.LocationId,
+          LocationName: a.LocationName ?? '',
+          LocationSearch: a.LocationName ?? '',
+          FilteredLocations: [],
+          ShowLocationDropdown: false,
+          ActivityServiceId: a.ActivityServiceId,
+          ActivityServiceName: a.ActivityServiceName ?? '',
+          TicketTypeSearch: a.ActivityServiceName ?? '',
+          FilteredActivityServices: [],
+          ShowTicketTypeDropdown: false,
+          DateRates: [],
+          TypeGroups: [],
+          Entries: [],
+        });
+      }
+
+      const row = rowMap.get(rowKey)!;
+      const groupKey = a.TypeGroupId || 0;
+      let typeGroup = row.TypeGroups.find(g => g.GroupId === groupKey);
+      if (!typeGroup) {
+        typeGroup = {
+          GroupId: groupKey || ++this.activityRowCounter,
+          PaxType: (a.PaxType ?? 'Adult') as ActivityPaxType,
+          PaxTypeLabel: a.PaxTypeLabel ?? 'Adult',
+          TypeSearch: a.PaxTypeLabel ?? 'Adult',
+          ShowTypeDropdown: false,
+          Qty: a.Qty ?? 1,
+          Entries: [],
+        };
+        row.TypeGroups.push(typeGroup);
+      }
+typeGroup.Entries.push({
+        QuoteServiceId: 0, // this field isn't used by the save payload for Activities — safe to leave 0
+        DayNumber: a.DayNumber,
+        ServiceDate: new Date(a.ServiceDate),
+        Qty: a.Qty ?? 1,
+        Rate: a.Rate ?? 0,
+        GivenPrice: a.GivenPrice ?? 0,
+        IsSaving: false,
+      });
+    });
+
+    // Keep the shared counter ahead of every GroupId we just reused
+    const maxGroupId = Array.from(rowMap.values())
+      .flatMap(r => r.TypeGroups.map(g => g.GroupId))
+      .reduce((m, id) => Math.max(m, id), 0);
+    this.activityRowCounter = Math.max(this.activityRowCounter, maxGroupId);
+
+    return Array.from(rowMap.values());
   }
 
   private mapServiceRow(s: any): QuoteServiceRow {
@@ -3924,22 +4034,7 @@ getPackageActivityTotal(pkgId: number): number {
     return payload;
   }
 
-  private serializeSpecialInclusion(row: QuoteSpecialInclusionRow): any {
-    return {
-      QuoteSpecialInclusionId: row.QuoteSpecialInclusionId || 0,
-      QuoteId: row.QuoteId || this.QuoteId,
-      QuoteHotelId: row.UseManualLocation ? 0 : (row.QuoteHotelId || 0),
-      QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
-      HotelId: row.UseManualLocation ? 0 : (row.HotelId || 0),
-      UseManualLocation: !!row.UseManualLocation,
-      ManualLocationName: row.UseManualLocation ? (row.ManualLocationName || '') : '',
-      NightNumbers: this.deepCopy(row.NightNumbers ?? []),
-      SpecialInclusionId: row.SpecialInclusionId || 0,
-      SpecialInclusionName: row.SpecialInclusionName || '',
-      TotalPrice: row.TotalPrice || 0,
-      Comments: row.Comments || '',
-    };
-  }
+
 
   private serializeTransport(row: QuoteTransportRow, groupId: number | null = null): any {
     const dayNumbers = this.deepCopy(row.DayNumbers?.length ? row.DayNumbers : [row.DayNumber || 1]);
@@ -4088,9 +4183,9 @@ private buildCompleteQuotePayload(): any {
           .filter(row => (row.SpecialInclusionId || 0) > 0 && ((row.HotelId || 0) > 0 || row.UseManualLocation))
           .map(row => ({
             QuoteSpecialInclusionId: row.QuoteSpecialInclusionId || 0,
-            QuoteHotelId: row.QuoteHotelId || 0,
+            QuoteHotelId: row.UseManualLocation ? null : (row.QuoteHotelId || 0),
             QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
-            HotelId: row.HotelId || 0,
+            HotelId: row.UseManualLocation ? null : (row.HotelId || 0),
             NightNumbers: row.NightNumbers || [],
             SpecialInclusionId: row.SpecialInclusionId || 0,
             SpecialInclusionName: row.SpecialInclusionName || '',
@@ -4221,7 +4316,9 @@ private buildCompleteQuotePayload(): any {
 
     this.loading.set(true);
     console.log("Complete payload",this.buildCompleteQuotePayload());
-    
+    console.log("Services", this.buildCompleteQuotePayload().Services);
+console.log("Activities", this.buildCompleteQuotePayload().Activities);
+console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
     this.service.saveQuote(enc(this.buildCompleteQuotePayload())).subscribe({
       next: (r: any) => {
         if (r.Message === ConstantData.SuccessMessage) {
