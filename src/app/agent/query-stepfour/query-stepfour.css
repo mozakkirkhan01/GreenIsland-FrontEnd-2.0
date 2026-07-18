@@ -6,7 +6,12 @@
   color: #5f6b7a;
   font-size: 13px;
 }
+/* Intentionally minimal — layout and spacing are handled by Bootstrap
+   utility classes in the template. Only true one-offs live here. */
 
+.navbar-brand img {
+  object-fit: contain;
+}
 .quote-preview-shell {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr);
