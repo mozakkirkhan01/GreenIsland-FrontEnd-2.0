@@ -663,7 +663,16 @@ activityTotal = computed(() => {
   });
 
   this.hotelRows.set(allHotels);
-  this.similarHotels.set([]);  // no longer used globally
+  console.log('[Save/Load Debug] Hotels loaded from GetQuoteDetail', allHotels.map((h: QuoteHotelRow) => ({
+    QuoteHotelId: h.QuoteHotelId,
+    HotelName: h.HotelName,
+    NightNumbers: h.NightNumbers,
+    NightPricesCount: (h.NightPrices ?? []).length,
+  })));
+  allHotels.forEach((row: QuoteHotelRow) => {
+    this.loadRoomTypesForRow(row);
+    row.SimilarHotels.forEach((sim: QuoteHotelRow) => this.loadRoomTypesForRow(sim));
+  });
 }
 
         if (r.Services?.length > 0) {
@@ -684,7 +693,7 @@ activityTotal = computed(() => {
         }
 
         if (r.DayGroups?.length > 0) {
-          this.rehydrateDayGroups(r.DayGroups, r.Activities ?? []);
+          this.rehydrateDayGroups(r.DayGroups, r.Activities ?? [], r.Services ?? []);
         }
 
         if (destId === 0) {
@@ -792,15 +801,26 @@ activityTotal = computed(() => {
     });
   }
   // ── Map rows ──────────────────────────────────────────────
-  private mapHotelRow(h: any): QuoteHotelRow {
+private mapHotelRow(h: any): QuoteHotelRow {
     const sellingPrice = h.SellingPrice ?? 0;
-  const nights = 1; // Default for single night
-  const rooms = h.NoOfRooms ?? 1;
-    return {
+    const rooms = h.NoOfRooms ?? 1;
+
+    let nightNumbers: number[];
+    if (Array.isArray(h.NightNumbers)) {
+      nightNumbers = h.NightNumbers;
+    } else if (typeof h.NightNumbers === 'string' && h.NightNumbers.trim().length > 0) {
+      try { nightNumbers = JSON.parse(h.NightNumbers); }
+      catch { nightNumbers = [h.NightNumber]; }
+    } else {
+      nightNumbers = [h.NightNumber];
+    }
+    const nights = nightNumbers.length || 1;
+
+    const row: QuoteHotelRow = {
       QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
       QuotePackageTypeId: this.toNumberId(h.QuotePackageTypeId),
       NightNumber: h.NightNumber, StayDate: new Date(h.StayDate),
-      NightNumbers: [h.NightNumber],
+      NightNumbers: nightNumbers,
       HotelId: h.HotelId, HotelName: h.HotelName ?? '',
       LocationName: h.LocationName ?? '',
       HotelCategoryName: h.HotelCategoryName ?? '',
@@ -809,19 +829,48 @@ activityTotal = computed(() => {
       NoOfRooms: h.NoOfRooms ?? 1, PaxPerRoom: h.PaxPerRoom ?? 2,
       AWEB: h.AWEB ?? 0, CWEB: h.CWEB ?? 0, CNB: h.CNB ?? 0,
       CostPrice: h.CostPrice ?? 0, SellingPrice: h.SellingPrice ?? 0,
-      BaseRate: 0, AwebRate: 0, CwebRate: 0, CnbRate: 0,
-      TotalPrice: h.SellingPrice ?? 0,
+      BaseRate: h.BaseRate ?? 0, AwebRate: h.AwebRate ?? 0,
+      CwebRate: h.CwebRate ?? 0, CnbRate: h.CnbRate ?? 0,
+      TotalPrice: h.TotalPrice ?? sellingPrice,
       RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: h.HotelName ?? '',
       FilteredHotels: [],
       ShowDropdown: false,
       ShowNightDropdown: false,
-      SelectedNightsDisplay: `Night ${h.NightNumber}`,
-      SimilarHotels: [],       // ADD
-      IsMainHotel: true,       // ADD
+      SelectedNightsDisplay: '',
+      SimilarHotels: [],
+      IsMainHotel: h.IsMainHotel === true || h.IsMainHotel === undefined ? true : !!h.IsMainHotel,
       IsManualPrice: false,
       IsDatabasePrice: true,
-      FinalPrice: sellingPrice * nights * rooms, // ← ADD THIS
+      FinalPrice: h.FinalPrice ?? (sellingPrice * nights * rooms),
+      SimilarHotelParentId: h.SimilarHotelParentId,
+      NightPrices: (h.NightPrices ?? []).map((np: any) => ({
+        NightNumber: np.NightNumber,
+        StayDate: np.StayDate,
+        DateLabel: '',
+        BaseRate: np.BaseRate ?? 0,
+        Rooms: np.Rooms ?? rooms,
+        RoomTotal: np.RoomTotal ?? 0,
+        AWEB: np.AWEB ?? 0, AwebRate: np.AwebRate ?? 0, AwebTotal: np.AwebTotal ?? 0,
+        CWEB: np.CWEB ?? 0, CwebRate: np.CwebRate ?? 0, CwebTotal: np.CwebTotal ?? 0,
+        CNB: np.CNB ?? 0, CnbRate: np.CnbRate ?? 0, CnbTotal: np.CnbTotal ?? 0,
+        Total: np.Total ?? 0,
+      })),
     };
+
+    this.updateHotelNightsDisplay(row);
+    return row;
+  }
+  private loadRoomTypesForRow(row: QuoteHotelRow): void {
+    if (!(row.HotelId > 0)) return;
+    const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
+    this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          row.RoomTypes = r.RoomTypeList ?? [];
+          this.hotelRows.update(rows => [...rows]); // does NOT touch RoomTypeId/CostPrice — preserves loaded values
+        }
+      }
+    });
   }
   private mapSpecialInclusionRow(si: any): QuoteSpecialInclusionRow {
     return {
@@ -852,7 +901,12 @@ activityTotal = computed(() => {
   }
   
 
-private rehydrateDayGroups(rawGroups: any[], rawActivities: any[]): void {
+private rehydrateDayGroups(rawGroups: any[], rawActivities: any[], rawServices: any[]): void {
+    // Only ServiceType 1 (transport) rows belong here — ServiceType 2 rows in
+    // QuoteServices are legacy/unused by the live UI (activities come from
+    // the separate Activities/QuoteActivityEntries array instead).
+    const rawTransport = (rawServices ?? []).filter((s: any) => Number(s.ServiceType) === 1);
+
     const groups: DayGroup[] = rawGroups.map((g: any) => {
       const groupId = g.GroupNumber || ++this.dayGroupCounter;
       const dayNumbers: number[] = g.DayNumbers ?? [];
@@ -864,7 +918,7 @@ private rehydrateDayGroups(rawGroups: any[], rawActivities: any[]): void {
         DayNumbers: dayNumbers,
         ShowDayDropdown: false,
         SelectedDaysDisplay: '',
-        TransportRows: [],
+        TransportRows: this.rebuildTransportRowsForGroup(rawTransport, packageTypeId, dayNumbers),
         ActivityRows: this.rebuildActivityRowsForGroup(rawActivities, packageTypeId, dayNumbers),
       };
       this.updateDayGroupDisplay(group);
@@ -875,6 +929,12 @@ private rehydrateDayGroups(rawGroups: any[], rawActivities: any[]): void {
     this.dayGroupCounter = Math.max(this.dayGroupCounter, ...groups.map(g => g.GroupId), 0);
 
     this.dayGroups.set(groups);
+    console.log('[Save/Load Debug] Day groups reconstructed from GetQuoteDetail', groups.map(g => ({
+      GroupId: g.GroupId,
+      DayNumbers: g.DayNumbers,
+      TransportRowCount: g.TransportRows.length,
+      ActivityRowCount: g.ActivityRows.length,
+    })));
 
     // Fetch DateRates for every reconstructed activity row, per its own group's days —
     // this merges into the TypeGroups/Entries we already built, preserving GivenPrice.
@@ -884,6 +944,68 @@ private rehydrateDayGroups(rawGroups: any[], rawActivities: any[]): void {
           this.loadDateRatesForGroupDays(row, group.DayNumbers);
         }
       });
+    });
+  }
+
+  /**
+   * Rebuilds one QuoteTransportRow per QuoteService (ServiceType=1) row for
+   * this day group. Unlike activities, transport rows are NOT fragmented on
+   * save (serializeTransport maps one QuoteTransportRow to exactly one saved
+   * row), so this is a straight 1:1 reconstruction — no grouping/merging
+   * needed. `s.DayNumbers` is the multi-day list reconstructed by the
+   * backend from the QuoteService.DayNumbers JSON column (see backend
+   * patch); falls back to the single DayNumber for any legacy row saved
+   * before that column existed.
+   */
+  private rebuildTransportRowsForGroup(
+    rawTransport: any[],
+    packageTypeId: number,
+    dayNumbers: number[]
+  ): QuoteTransportRow[] {
+    const relevant = rawTransport.filter((s: any) => {
+      if (this.toNumberId(s.QuotePackageTypeId) !== packageTypeId) return false;
+      const serviceDays: number[] = Array.isArray(s.DayNumbers) && s.DayNumbers.length
+        ? s.DayNumbers
+        : [s.DayNumber];
+      return serviceDays.some((d: number) => dayNumbers.includes(d));
+    });
+
+    return relevant.map((s: any): QuoteTransportRow => {
+      const serviceDays: number[] = Array.isArray(s.DayNumbers) && s.DayNumbers.length
+        ? s.DayNumbers
+        : [s.DayNumber];
+      return {
+        QuoteServiceId: s.QuoteServiceId || 0,
+        QuoteId: this.QuoteId,
+        QuotePackageTypeId: packageTypeId,
+        DayNumbers: serviceDays,
+        DayNumber: s.DayNumber,
+        ServiceDate: new Date(s.ServiceDate),
+        LocationId: s.LocationId || 0,
+        LocationName: s.LocationName ?? '',
+        IteneraryServiceId: s.IteneraryServiceId || 0,
+        IteneraryServiceName: s.IteneraryServiceName ?? '',
+        VehicleTypeId: s.VehicleTypeId || 0,
+        VehicleTypeName: s.VehicleTypeName ?? '',
+        SameCabForAll: !!s.SameCabForAll,
+        Qty: s.Qty ?? 1,
+        CostPrice: s.CostPrice ?? 0,
+        SellingPrice: s.SellingPrice ?? 0,
+        TotalPrice: s.TotalPrice ?? 0,
+        Notes: s.Notes ?? '',
+        IsSaving: false,
+        LocationSearch: s.LocationName ?? '',
+        FilteredLocations: [],
+        ShowLocationDropdown: false,
+        ServiceSearch: s.IteneraryServiceName ?? '',
+        FilteredServices: [],
+        ShowServiceDropdown: false,
+        VehicleSearch: s.VehicleTypeName ?? '',
+        FilteredVehicles: [],
+        ShowVehicleDropdown: false,
+        ShowDayDropdown: false,
+        SelectedDaysDisplay: '',
+      };
     });
   }
 
@@ -1623,6 +1745,7 @@ closeSimilarHotelEditPriceModal(): void {
       IsMainHotel: false,
       IsManualPrice: false,
       IsDatabasePrice: false,
+      SimilarHotelParentId: mainHotel.QuoteHotelId || undefined,
     };
     this.setSimilarHotelPrimaryNight(row);
     this.calculateSimilarHotelPrice(row);
@@ -1644,6 +1767,7 @@ closeSimilarHotelEditPriceModal(): void {
       IsMainHotel: false,
       SellingPrice: source.SellingPrice || source.TotalPrice || 0,
       FinalPrice: source.SellingPrice || source.TotalPrice || 0,
+      SimilarHotelParentId: source.SimilarHotelParentId,
     };
     this.setSimilarHotelPrimaryNight(row);
     this.calculateSimilarHotelPrice(row);
@@ -4149,7 +4273,8 @@ private buildCompleteQuotePayload(): any {
             SortOrder: 1,
         })),
         
-        Hotels: this.hotelRows()
+       Hotels: this.hotelRows()
+          .flatMap(row => [row, ...(row.SimilarHotels ?? [])])
           .filter(row => (row.HotelId || 0) > 0 && (row.RoomTypeId || 0) > 0)
           .map(row => ({
             QuoteHotelId: row.QuoteHotelId || 0,
@@ -4195,38 +4320,31 @@ private buildCompleteQuotePayload(): any {
             ManualLocationName: row.ManualLocationName || '',
         })),
         
-        Services: this.serviceRows()
-          .filter(row => {
-            const serviceType = Number(row.ServiceType || 1);
-            if (serviceType === 1) {
-              return (row.IteneraryServiceId || 0) > 0 && (row.VehicleTypeId || 0) > 0;
-            }
-            if (serviceType === 2) {
-              return (row.ActivityServiceId || 0) > 0;
-            }
-            return false;
-          })
+        Services: this.dayGroups()
+          .flatMap(group => group.TransportRows.map(row => ({ ...row, QuotePackageTypeId: row.QuotePackageTypeId || group.QuotePackageTypeId })))
+          .filter(row => (row.IteneraryServiceId || 0) > 0 && (row.VehicleTypeId || 0) > 0)
           .map(row => ({
             QuoteServiceId: row.QuoteServiceId || 0,
             QuotePackageTypeId: row.QuotePackageTypeId || this.activePackageTypeId(),
             DayNumber: row.DayNumber || 1,
             ServiceDate: row.ServiceDate,
-            ServiceType: row.ServiceType || 1,
+            ServiceType: 1,
             IteneraryServiceId: (row.IteneraryServiceId || 0) > 0 ? row.IteneraryServiceId : null,
             VehicleTypeId: (row.VehicleTypeId || 0) > 0 ? row.VehicleTypeId : null,
             SameCabForAll: row.SameCabForAll || false,
-            ActivityServiceId: (row.ActivityServiceId || 0) > 0 ? row.ActivityServiceId : null,
+            ActivityServiceId: null,
             Qty: row.Qty || 1,
             CostPrice: row.CostPrice || 0,
             SellingPrice: row.SellingPrice || 0,
             TotalPrice: row.TotalPrice || 0,
             Notes: row.Notes || '',
             LocationId: (row.LocationId || 0) > 0 ? row.LocationId : null,
-            DayNumbers: [row.DayNumber || 1],
+            DayNumbers: row.DayNumbers?.length > 0 ? row.DayNumbers : [row.DayNumber || 1],
             SortOrder: 1,
         })),
         
-        Activities: this.activityTicketRows()
+       Activities: this.dayGroups()
+          .flatMap(group => group.ActivityRows.map(row => ({ ...row, QuotePackageTypeId: row.QuotePackageTypeId || group.QuotePackageTypeId })))
           .filter(row => (row.LocationId || 0) > 0 && (row.ActivityServiceId || 0) > 0)
           .flatMap(row => 
             row.TypeGroups.flatMap(group => 
