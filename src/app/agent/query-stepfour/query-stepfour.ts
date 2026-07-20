@@ -357,11 +357,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   inclusionText(row: any): string {
-    return row.InclusionName || row.Name || row.Description || row.Inclusion || '';
+    return row.InclusionDetails || row.InclusionName || row.Name || row.Description || row.Inclusion || '';
   }
 
   exclusionText(row: any): string {
-    return row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
+    return row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
   }
 
   termHtml(row: any): string {
