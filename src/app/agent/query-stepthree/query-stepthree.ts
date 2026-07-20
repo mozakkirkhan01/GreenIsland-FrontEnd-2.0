@@ -587,7 +587,7 @@ activityTotal = computed(() => {
     ).subscribe({
       next: (r: any) => {
         if (r.Message !== ConstantData.SuccessMessage) {
-          if (this.QuoteId === 0) {
+                    if (this.QuoteId === 0) {
             console.log('No existing quote found, initializing new quote flow');
             this.loadTripInfoForNewQuote();
             return;
@@ -751,7 +751,7 @@ activityTotal = computed(() => {
         });
       },
       error: (err: any) => {
-        if (this.QuoteId === 0 && err?.status === 404) {
+                if (this.QuoteId === 0 && err?.status === 404) {
           console.log('Quote detail returned 404 for new quote; initializing new quote flow');
           this.loadTripInfoForNewQuote();
           return;
@@ -761,7 +761,56 @@ activityTotal = computed(() => {
       }
     });
   }
+  autoCreateDefaultPackageType(): void {
+    // Don't create if we already have package types
+    if (this.packageTypes().length > 0) {
+      console.log('Package types already exist, skipping auto-create');
+      return;
+    }
 
+    // Don't create for existing quotes
+    if (this.QuoteId > 0) {
+      console.log('Existing quote (QuoteId > 0), skipping auto-create');
+      return;
+    }
+
+    console.log('Creating default package type for new quote');
+
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    const payload = {
+      QueryStepOneId: this.QueryStepOneId,
+      CreatedBy: this.staffLogin.StaffLoginId,
+      PackageTypes: [{ QuotePackageTypeId: 0, PackageTypeName: 'Deluxe Package' }],
+    };
+
+    this.service.savePackageTypes(enc(payload)).subscribe({
+      next: (r: any) => {
+        console.log('Save package types response:', r);
+        if (r.Message === ConstantData.SuccessMessage) {
+          const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
+            QuotePackageTypeId: this.toNumberId(p.QuotePackageTypeId),
+            PackageTypeName: p.PackageTypeName,
+          }));
+          this.packageTypes.set(saved);
+          if (saved.length > 0) {
+            this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
+          }
+          this.packageTypesLoaded = true;
+          this.toastr.success('Default package type created');
+        } else {
+          this.toastr.error(r.Message);
+        }
+      },
+      error: (err) => {
+        console.error('Error creating default package type:', err);
+        this.toastr.error('Error creating default package type');
+      }
+    });
+  }
+  
   private loadTripInfoForNewQuote(): void {
     const enc = (d: object): RequestModel => ({
       request: this.local.encrypt(JSON.stringify(d)).toString()
@@ -840,55 +889,6 @@ activityTotal = computed(() => {
       error: () => {
         this.toastr.error('Error loading trip information for new quote');
         this.loading.set(false);
-      }
-    });
-  }
-  autoCreateDefaultPackageType(): void {
-    // Don't create if we already have package types
-    if (this.packageTypes().length > 0) {
-      console.log('Package types already exist, skipping auto-create');
-      return;
-    }
-
-    // Don't create for existing quotes
-    if (this.QuoteId > 0) {
-      console.log('Existing quote (QuoteId > 0), skipping auto-create');
-      return;
-    }
-
-    console.log('Creating default package type for new quote');
-
-    const enc = (d: object): RequestModel => ({
-      request: this.local.encrypt(JSON.stringify(d)).toString()
-    });
-
-    const payload = {
-      QueryStepOneId: this.QueryStepOneId,
-      CreatedBy: this.staffLogin.StaffLoginId,
-      PackageTypes: [{ QuotePackageTypeId: 0, PackageTypeName: 'Deluxe Package' }],
-    };
-
-    this.service.savePackageTypes(enc(payload)).subscribe({
-      next: (r: any) => {
-        console.log('Save package types response:', r);
-        if (r.Message === ConstantData.SuccessMessage) {
-          const saved: PackageTypeRow[] = (r.PackageTypes ?? []).map((p: any) => ({
-            QuotePackageTypeId: this.toNumberId(p.QuotePackageTypeId),
-            PackageTypeName: p.PackageTypeName,
-          }));
-          this.packageTypes.set(saved);
-          if (saved.length > 0) {
-            this.activePackageTypeId.set(saved[0].QuotePackageTypeId);
-          }
-          this.packageTypesLoaded = true;
-          this.toastr.success('Default package type created');
-        } else {
-          this.toastr.error(r.Message);
-        }
-      },
-      error: (err) => {
-        console.error('Error creating default package type:', err);
-        this.toastr.error('Error creating default package type');
       }
     });
   }
@@ -4366,7 +4366,10 @@ private buildCompleteQuotePayload(): any {
         })),
         
        Hotels: this.hotelRows()
-          .flatMap(row => [row, ...(row.SimilarHotels ?? [])])
+          .flatMap((row, mainIdx) => [
+            { ...row, MainHotelIndex: mainIdx },
+            ...(row.SimilarHotels ?? []).map(sim => ({ ...sim, MainHotelIndex: mainIdx })),
+          ])
           .filter(row => (row.HotelId || 0) > 0 && (row.RoomTypeId || 0) > 0)
           .map(row => ({
             QuoteHotelId: row.QuoteHotelId || 0,
@@ -4391,7 +4394,15 @@ private buildCompleteQuotePayload(): any {
             FinalPrice: row.FinalPrice || 0,
             NightNumbers: row.NightNumbers || [row.NightNumber || 1],
             IsMainHotel: row.IsMainHotel !== undefined ? row.IsMainHotel : true,
+            // SimilarHotelParentId is sent as a best-effort real ID when the main
+            // hotel already has one (existing quote). MainHotelIndex is the
+            // authoritative correlator the backend resolves AFTER new hotels get
+            // real IDs assigned in the same request — this is what fixes the
+            // "SimilarHotelParentId never saves for a brand-new main hotel" case,
+            // since QuoteHotelId simply doesn't exist yet at the moment this
+            // payload is built.
             SimilarHotelParentId: row.SimilarHotelParentId || null,
+            MainHotelIndex: (row as any).MainHotelIndex,
             SortOrder: 1,
             NightPrices: row.NightPrices || [],
         })),
