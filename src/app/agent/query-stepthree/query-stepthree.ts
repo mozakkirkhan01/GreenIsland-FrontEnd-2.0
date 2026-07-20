@@ -587,6 +587,11 @@ activityTotal = computed(() => {
     ).subscribe({
       next: (r: any) => {
         if (r.Message !== ConstantData.SuccessMessage) {
+          if (this.QuoteId === 0) {
+            console.log('No existing quote found, initializing new quote flow');
+            this.loadTripInfoForNewQuote();
+            return;
+          }
           this.toastr.error(r.Message);
           this.loading.set(false);
           return;
@@ -746,7 +751,94 @@ activityTotal = computed(() => {
         });
       },
       error: (err: any) => {
+        if (this.QuoteId === 0 && err?.status === 404) {
+          console.log('Quote detail returned 404 for new quote; initializing new quote flow');
+          this.loadTripInfoForNewQuote();
+          return;
+        }
         this.toastr.error('Error loading quote: ' + err.status);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private loadTripInfoForNewQuote(): void {
+    const enc = (d: object): RequestModel => ({
+      request: this.local.encrypt(JSON.stringify(d)).toString()
+    });
+
+    this.service.getQueryStepOneList(enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
+      next: (r: any) => {
+        if (r.Message !== ConstantData.SuccessMessage || !r.QueryStepOneList?.length) {
+          this.toastr.error(r.Message || 'Unable to load trip information for new quote');
+          this.loading.set(false);
+          return;
+        }
+
+        const item = r.QueryStepOneList[0];
+        this.tripInfo.set({
+          QueryStepOneId: item.QueryStepOneId,
+          QuotationNo: item.QuotationNo ?? 0,
+          DestinationId: item.DestinationId ?? 0,
+          DestinationName: item.DestinationName ?? '',
+          StartDate: item.StartDate ?? '',
+          NoOfNights: item.NoOfNights ?? 0,
+          NoOfAdults: item.NoOfAdults ?? 0,
+          ChildrenAges: item.ChildrenAges ?? '[]',
+        });
+        this.gstPercent = 5;
+
+        const destId = item.DestinationId ?? 0;
+        if (!destId) {
+          this.toastr.warning('Destination not found for this trip');
+          this.loading.set(false);
+          return;
+        }
+
+        this.fetchPackageTypesSeparately();
+        forkJoin({
+          hotels: this.service.getHotelList(enc({ DestinationId: destId, LocationId: 0, HotelId: 0 })),
+          itinerary: this.service.getIteneraryServiceList(enc({ DestinationId: destId, LocationId: 0, IteneraryServiceId: 0 })),
+          activities: this.service.getActivityServiceList(enc({ DestinationId: destId, LocationId: 0 })),
+          vehicles: this.service.getVehicleTypeList(enc({ DestinationId: destId })),
+          locations: this.service.getLocationList(enc({ DestinationId: destId, LocationId: 0 })),
+          hotelCategories: this.service.getHotelCategoryList(enc({ HotelCategoryId: 0 })),
+          specialInclusionTypes: this.service.getSpecialInclusionTypeList(enc({ SpecialInclusionTypeId: 0 })),
+        }).subscribe({
+          next: ({ hotels, itinerary, activities, vehicles, locations, hotelCategories, specialInclusionTypes }) => {
+            const h = hotels as any;
+            const i = itinerary as any;
+            const a = activities as any;
+            const v = vehicles as any;
+            const l = locations as any;
+            const hc = hotelCategories as any;
+            const sit = specialInclusionTypes as any;
+
+            if (sit.Message === ConstantData.SuccessMessage)
+              this.specialInclusionMasterList.set(sit.SpecialInclusionTypeList ?? []);
+            if (h.Message === ConstantData.SuccessMessage)
+              this.hotelList.set(h.HotelList ?? []);
+            if (i.Message === ConstantData.SuccessMessage)
+              this.itineraryList.set(i.IteneraryServiceList ?? []);
+            if (a.Message === ConstantData.SuccessMessage)
+              this.activityList.set(a.ActivityServiceList ?? []);
+            if (v.Message === ConstantData.SuccessMessage)
+              this.vehicleTypeList.set(v.VehicleTypeList ?? []);
+            if (l.Message === ConstantData.SuccessMessage)
+              this.locationList.set(l.LocationList ?? []);
+            if (hc.Message === ConstantData.SuccessMessage)
+              this.hotelCategoryList.set(hc.HotelCategoryList ?? []);
+
+            this.loading.set(false);
+          },
+          error: () => {
+            this.toastr.error('Error loading master data');
+            this.loading.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.toastr.error('Error loading trip information for new quote');
         this.loading.set(false);
       }
     });
