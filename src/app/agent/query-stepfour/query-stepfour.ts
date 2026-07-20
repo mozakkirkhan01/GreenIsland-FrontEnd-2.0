@@ -230,11 +230,105 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   hasSimilarHotels(quoteHotelId: number): boolean {
-    return this.similarHotels().some(row => row.ParentQuoteHotelId === quoteHotelId);
+    return this.similarHotels().some(row => Number(row.ParentQuoteHotelId) === Number(quoteHotelId));
+  }
+
+  /**
+   * Groups each main accommodation row with its similar-hotel alternatives
+   * for a given package option, so the Accommodation table can render the
+   * "main hotel / similar hotel" hierarchy from the reference design.
+   *
+   * The relationship can show up on either side of the data, depending on
+   * how a given quote was saved:
+   *  - `similarHotels()` (QuoteSimilarHotels, via ParentQuoteHotelId/QuoteHotelId)
+   *  - the hotel row's own `SimilarHotelParentId` (QuoteHotels)
+   * A hotel is treated as "similar to" a main hotel if EITHER signal says
+   * so — a union, not a strict intersection — so grouping still works even
+   * if only one of the two was populated when the quote was saved. Full
+   * room/price detail for each similar hotel comes from its own row in
+   * `hotels()` (QuoteHotels already returns every row for the quote, main
+   * and similar alike).
+   *
+   * The main hotel keeps the original night order (same sort as
+   * hotelsByPackage). Similar hotels within a group are ordered by their
+   * own SortOrder. Works for any number of similar hotels per night, and
+   * for any package option — nothing here is hardcoded.
+   */
+  private nightsOf(row: any): number[] {
+    return Array.isArray(row.NightNumbers) && row.NightNumbers.length ? row.NightNumbers : [Number(row.NightNumber) || 1];
+  }
+
+  private perNightPrice(row: any): number {
+    return this.money(row) / (this.nightsOf(row).length || 1);
+  }
+
+  nightDate(nightNumber: number): Date | null {
+    const start = this.tripInfo()?.StartDate;
+    if (!start) return null;
+    const d = new Date(start);
+    d.setDate(d.getDate() + (nightNumber - 1));
+    return d;
+  }
+
+  /** Location/category for a Special Inclusion row — looked up from the hotel's own accommodation row (not returned directly on SpecialInclusions). */
+  hotelLocationCategory(hotelId: number): string {
+    const h = this.hotels().find(row => Number(row.HotelId) === Number(hotelId));
+    return h ? `${h.LocationName || '-'}, ${h.HotelCategoryName || '-'}` : '';
+  }
+
+  /** Similar hotels linked to a main QuoteHotelId, via either relationship signal. */
+  private similarRowsFor(mainId: number, packageTypeId: number): any[] {
+    const hotelRowsById = new Map<number, any>();
+    for (const row of this.hotels()) if (row.QuoteHotelId) hotelRowsById.set(Number(row.QuoteHotelId), row);
+
+    const linkedIds = new Set<number>(
+      this.similarHotels().filter(l => Number(l.ParentQuoteHotelId) === mainId).map(l => Number(l.QuoteHotelId))
+    );
+    for (const row of this.hotels()) {
+      if (this.samePackage(row, packageTypeId) && Number(row.SimilarHotelParentId) === mainId) linkedIds.add(Number(row.QuoteHotelId));
+    }
+    linkedIds.delete(mainId);
+
+    return Array.from(linkedIds)
+      .map(id => hotelRowsById.get(id))
+      .filter((r): r is any => !!r)
+      .sort((a, b) => (Number(a.SortOrder) || 0) - (Number(b.SortOrder) || 0));
+  }
+
+  /**
+   * One entry per NIGHT (not per QuoteHotel row) — a row's NightNumbers
+   * array (e.g. [1,2,3]) means one hotel booking spans those nights, so
+   * it's expanded here. Its aggregate FinalPrice is divided evenly across
+   * its own night count; each similar hotel's price is divided the same
+   * way, then the highest per-night value wins for that night.
+   */
+  hotelGroupsByPackage(packageTypeId: number): { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] {
+    const groups: { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] = [];
+
+    for (const main of this.hotelsByPackage(packageTypeId)) {
+      const similar = this.similarRowsFor(Number(main.QuoteHotelId), packageTypeId);
+      const prices = [this.perNightPrice(main), ...similar.map(r => this.perNightPrice(r))];
+      const maxPrice = Math.max(...prices);
+
+      for (const nightNumber of this.nightsOf(main)) {
+        groups.push({ nightNumber, stayDate: this.nightDate(nightNumber), main, similar, maxPrice });
+      }
+    }
+
+    return groups.sort((a, b) => a.nightNumber - b.nightNumber);
+  }
+
+  /** Highest FinalPrice among a group's main hotel + all its similar hotels. */
+  groupPrice(quoteHotelId: number): number {
+    for (const pkg of this.packageTypes()) {
+      const group = this.hotelGroupsByPackage(pkg.QuotePackageTypeId).find(g => Number(g.main.QuoteHotelId) === Number(quoteHotelId));
+      if (group) return group.maxPrice;
+    }
+    return 0;
   }
 
   packageHotelTotal(packageTypeId: number): number {
-    return this.hotelsByPackage(packageTypeId).reduce((sum, row) => sum + this.money(row), 0);
+    return this.hotelGroupsByPackage(packageTypeId).reduce((sum, group) => sum + group.maxPrice, 0);
   }
 
   packageSpecialInclusionTotal(packageTypeId: number): number {

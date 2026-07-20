@@ -66,6 +66,28 @@
   </div>
 </nav>
 
+<!-- ══════════════════════════════════════════════════════════════
+     Scoped styles for the Accommodation "main hotel / similar hotel"
+     hierarchy. If query-stepfour.css already defines .quote-row cell
+     spacing, these only add the new hotel-cell/hotel-line rules and
+     won't conflict with existing selectors.
+     ══════════════════════════════════════════════════════════════ -->
+<style>
+  .hotel-cell { display: flex; flex-direction: column; gap: 2px; }
+  .hotel-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+  .hotel-line .hotel-name { font-weight: 600; }
+  .hotel-line-main .hotel-name { color: #1f2937; }
+  .hotel-line span:not(.similar-slash) { font-size: 0.8rem; color: #6c757d; }
+  .hotel-line-similar { padding-left: 14px; margin-top: 2px; }
+  .hotel-line-similar .hotel-name { color: #0d6efd; font-weight: 600; font-size: 0.92rem; }
+  .similar-slash { color: #adb5bd; font-weight: 600; }
+  .similar-room-detail { flex-basis: 100%; padding-left: 14px; font-size: 0.78rem; color: #6c757d; }
+  .quote-head-4, .quote-row-4 { display: grid; grid-template-columns: 0.8fr 2fr 2fr 1fr; gap: 8px; padding: 10px 4px; align-items: center; }
+  .quote-head-4 { font-weight: 600; border-bottom: 1px solid #e9ecef; }
+  .quote-row-4 { border-bottom: 1px solid #f1f3f5; }
+  .quote-row-4 .si-comment { display: block; font-size: 0.78rem; color: #6c757d; border-left: 2px solid #dee2e6; padding-left: 6px; margin-top: 2px; }
+</style>
+
 @if (loading()) {
 <div class="quote-loading">
   <div class="spinner-border spinner-border-sm text-primary me-2"></div>
@@ -167,36 +189,79 @@
                 <div class="quote-row quote-head">
                   <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
                 </div>
-                @for (hotel of hotelsByPackage(pkg.QuotePackageTypeId); track hotel.QuoteHotelId || $index) {
+                @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
                 <div class="quote-row">
                   <div>
-                    {{ hotel.NightNumber }}{{ ordinal(hotel.NightNumber) }}
-                    <span>{{ hotel.StayDate | date:'dd MMM' }}</span>
+                    {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
+                    <span>{{ group.stayDate | date:'dd MMM' }}</span>
                   </div>
-                  <div>
-                    {{ hotel.HotelName }}
-                    @if (hasSimilarHotels(hotel.QuoteHotelId)) {
-                    <i class="bx bx-link-alt text-muted small ms-1" title="Similar hotels available"></i>
+                  <div class="hotel-cell">
+                    <div class="hotel-line hotel-line-main">
+                      <span class="hotel-name">{{ group.main.HotelName }}</span>
+                      @if (group.similar.length) {
+                      <i class="bx bx-link-alt text-muted small ms-1" title="Similar hotels available"></i>
+                      }
+                      <span>{{ group.main.LocationName || '-' }}, {{ group.main.HotelCategoryName || '-' }}</span>
+                    </div>
+                    @for (sim of group.similar; track sim.QuoteHotelId) {
+                    <div class="hotel-line hotel-line-similar">
+                      <span class="similar-slash">/</span>
+                      <span class="hotel-name">{{ sim.HotelName }}</span>
+                      <span>{{ sim.HotelCategoryName || '-' }}</span>
+                      <div class="similar-room-detail">
+                        {{ sim.NoOfRooms || 1 }} {{ sim.RoomTypeName || 'Room' }}
+                        <span>({{ sim.PaxPerRoom || 0 }}A + {{ sim.AWEB || 0 }} AwEB + {{ sim.CNB || 0 }} CNB)</span>
+                      </div>
+                    </div>
                     }
-                    <span>{{ hotel.LocationName || '-' }}, {{ hotel.HotelCategoryName || '-' }}</span>
                   </div>
-                  <div>{{ hotel.MealPlan || '-' }}</div>
+                  <div>{{ group.main.MealPlan || '-' }}</div>
                   <div>
-                    {{ hotel.NoOfRooms || 1 }} {{ hotel.RoomTypeName || 'Room' }}
-                    <span>{{ hotel.AWEB || 0 }} AwEB + {{ hotel.CNB || 0 }} CNB</span>
+                    {{ group.main.NoOfRooms || 1 }} {{ group.main.RoomTypeName || 'Room' }}
+                    <span>{{ group.main.AWEB || 0 }} AwEB + {{ group.main.CNB || 0 }} CNB</span>
                   </div>
                   <div class="price-cell">
                     <i class="bx bx-check-circle text-success"></i>
                     <span>INR</span>
-                    {{ formatCurrency(hotel.FinalPrice || hotel.TotalPrice || hotel.SellingPrice || 0) }}
+                    {{ formatCurrency(group.maxPrice) }}
                   </div>
                 </div>
                 } @empty {
                 <div class="empty-row">No accommodation added for this package.</div>
                 }
               </div>
+
+              @if (specialInclusionsByPackage(pkg.QuotePackageTypeId).length) {
+              <h5 class="mt-3">Hotel Special Inclusions</h5>
+              <div class="quote-table mb-2">
+                <div class="quote-row quote-head-4">
+                  <div>Night</div><div>Hotel</div><div>Service</div><div class="text-end">Price</div>
+                </div>
+                @for (si of specialInclusionsByPackage(pkg.QuotePackageTypeId); track si.QuoteSpecialInclusionId) {
+                <div class="quote-row-4">
+                  <div>
+                    {{ si.NightNumber }}{{ ordinal(si.NightNumber) }}
+                    <span>{{ nightDate(si.NightNumber) | date:'dd MMM' }}</span>
+                  </div>
+                  <div>
+                    {{ si.HotelName }}
+                    <span>{{ hotelLocationCategory(si.HotelId) }}</span>
+                  </div>
+                  <div>
+                    {{ si.SpecialInclusionName }}
+                    @if (si.Comments) { <span class="si-comment">{{ si.Comments }}</span> }
+                  </div>
+                  <div class="price-cell">
+                    <span>INR</span>
+                    {{ formatCurrency(si.TotalPrice) }}
+                  </div>
+                </div>
+                }
+              </div>
+              }
+
               <div class="section-total">
-                Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId)) }}
+                Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) + packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
               </div>
             </div>
           </div>
