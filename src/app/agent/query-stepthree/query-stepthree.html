@@ -1838,6 +1838,7 @@
               @for (group of getGroupedHotelsByPackage(pkg.QuotePackageTypeId);
                     track group.hotel.QuoteHotelId) {
                 @let h = group.hotel;
+                @let effective = getEffectiveHotel(h);
                 @for (nightNum of group.nightNumbers; track nightNum) {
                   @let nightSlot = nightSlots().find(s => s.NightNumber === nightNum);
                   <tr style="border-bottom:1px solid #f5f5f5;">
@@ -1853,26 +1854,46 @@
                       <div class="fw-medium">{{ h.HotelName }}</div>
                       <div class="text-muted d-flex align-items-center gap-1"
                            style="font-size:11px;">
-                        {{ h.LocationName }},
-                        {{ h.HotelCategoryName }}
+                        {{ effective.LocationName }},
+                        {{ effective.HotelCategoryName }}
                       </div>
-                    </td>
-                    <td class="py-2">{{ h.MealPlan }}</td>
-                    <td class="py-2">
-                      <div>{{ h.NoOfRooms }} {{ h.RoomTypeName }}</div>
-                      <div class="text-muted" style="font-size:11px;">
-                        {{ h.PaxPerRoom }} Pax
-                      </div>
-                    </td>
-                    <td class="py-2 text-end">
-                      @if (getAccommodationSummaryPrice(h, group.nightNumbers.length) > 0) {
-                        <span class="text-success me-1">✓</span>
+                      @for (sim of h.SimilarHotels; track sim.QuoteHotelId) {
+                        <div class="text-muted" style="font-size:11px;">
+                          / <span class="fw-medium">{{ sim.HotelName }}</span>
+                          @if (sim.HotelCategoryName) { {{ sim.HotelCategoryName }} }
+                          <br>
+                          {{ sim.NoOfRooms }} {{ sim.RoomTypeName }}
+                          ({{ sim.PaxPerRoom }}A
+                          @if (sim.AWEB) { · {{ sim.AWEB }} AwEB }
+                          @if (sim.CNB) { · {{ sim.CNB }} CNB }
+                          )
+                        </div>
                       }
-                      <span class="text-muted" style="font-size:10px;">INR</span>
-                      <span class="fw-medium">
-                        {{ formatCurrency(getAccommodationSummaryPrice(h, group.nightNumbers.length)) }}
-                      </span>
                     </td>
+                    <td class="py-2">{{ effective.MealPlan }}</td>
+                    <td class="py-2">
+                      <div>{{ effective.NoOfRooms }} {{ effective.RoomTypeName }}</div>
+                      <div class="text-muted" style="font-size:11px;">
+                        {{ effective.PaxPerRoom }} Pax
+                      </div>
+                    </td>
+                   <td class="py-2 text-end">
+    @let summaryPrice = getAccommodationSummaryPrice(h, group.nightNumbers.length);
+    @if (summaryPrice > 0) {
+        <span class="text-success me-1">✓</span>
+    }
+    <span class="text-muted" style="font-size:10px;">INR</span>
+    <span class="fw-medium">
+        {{ formatCurrency(summaryPrice) }}
+    </span>
+    @if (effective.AWEB > 0 || effective.CWEB > 0 || effective.CNB > 0) {
+        <div class="text-muted" style="font-size:9px;">
+            @if (effective.AWEB > 0) { +{{ effective.AWEB }} AwEB }
+            @if (effective.CWEB > 0) { +{{ effective.CWEB }} CWEB }
+            @if (effective.CNB > 0) { +{{ effective.CNB }} CNB }
+        </div>
+    }
+</td>
                   </tr>
                 }
               }

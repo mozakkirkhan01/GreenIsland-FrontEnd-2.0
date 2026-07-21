@@ -3785,13 +3785,39 @@ getNightDate(nightNumber: number): string {
 }
 
 getAccommodationSummaryPrice(hotel: QuoteHotelRow, nightCount: number): number {
-  if (hotel?.BaseRate > 0) {
-    return hotel.BaseRate;
-  }
-
-  const total = hotel?.SellingPrice || hotel?.FinalPrice || hotel?.TotalPrice || 0;
-  const nights = Math.max(nightCount || hotel?.NightNumbers?.length || 1, 1);
-  return total > 0 ? total / nights : 0;
+    const effective = this.getEffectiveHotel(hotel);
+    if (!effective) return 0;
+    
+    const nights = Math.max(nightCount || effective.NightNumbers?.length || 1, 1);
+    
+    // Calculate per night: Room Rate × Rooms
+    const roomRate = effective.BaseRate || 0;
+    const rooms = effective.NoOfRooms || 1;
+    const roomTotalPerNight = roomRate * rooms;
+    
+    // Extra bed charges per night
+    const awebRate = effective.AwebRate || 0;
+    const awebQty = effective.AWEB || 0;
+    const awebTotalPerNight = awebRate * awebQty;
+    
+    const cwebRate = effective.CwebRate || 0;
+    const cwebQty = effective.CWEB || 0;
+    const cwebTotalPerNight = cwebRate * cwebQty;
+    
+    const cnbRate = effective.CnbRate || 0;
+    const cnbQty = effective.CNB || 0;
+    const cnbTotalPerNight = cnbRate * cnbQty;
+    
+    // Sum all per-night charges
+    const perNightTotal = roomTotalPerNight + awebTotalPerNight + cwebTotalPerNight + cnbTotalPerNight;
+    
+    // If we have a SellingPrice/FinalPrice, use that instead (manual override)
+    const totalPrice = effective.SellingPrice || effective.FinalPrice || effective.TotalPrice || 0;
+    if (totalPrice > 0) {
+        return totalPrice / nights;
+    }
+    
+    return perNightTotal;
 }
 
 // ── Group consecutive nights for the same hotel ──────────
@@ -3858,6 +3884,20 @@ getHotelsByPackage(pkgId: number): QuoteHotelRow[] {
   );
 }
 
+// ── Effective Hotel: the Main Hotel plus all its Similar Hotels form one
+// group; the member with the highest FinalPrice is used for ALL display
+// and calculation purposes (room type, meal plan, category, price...).
+// This is the single source of truth — every other function that used to
+// read the Main Hotel's own fields directly should call this instead.
+getEffectiveHotel(mainHotel: QuoteHotelRow): QuoteHotelRow {
+  const candidates: QuoteHotelRow[] = [mainHotel, ...(mainHotel.SimilarHotels ?? [])];
+  return candidates.reduce((best, candidate) => {
+    const bestPrice = best.FinalPrice || best.TotalPrice || 0;
+    const candidatePrice = candidate.FinalPrice || candidate.TotalPrice || 0;
+    return candidatePrice > bestPrice ? candidate : best;
+  }, mainHotel);
+}
+
 // In getPackageAccommodationTotal:
 getPackageAccommodationTotal(pkgId: number): number {
   // Use effective hotel total (comparing main vs similar hotels)
@@ -3885,36 +3925,24 @@ getPackageExtrasTotal(_pkgId: number): number {
   return 0;
 }
 
-// ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
-// ── NEW METHOD: Calculate effective hotel total (main vs similar) ──
+// ── Sum of getEffectiveHotel's price across every main hotel in the package —
+// now a thin wrapper so there is exactly one place the max-comparison happens ──
 getEffectiveHotelTotal(pkgId: number): number {
   const mainHotels = this.hotelRows().filter(
     r => r.QuotePackageTypeId === pkgId && r.HotelId > 0 && r.IsMainHotel
   );
 
   return mainHotels.reduce((total, main) => {
-    // Use FinalPrice (total) instead of calculating
-    const mainPrice = main.FinalPrice || main.TotalPrice || 0;
-    
-    let maxSimilar = 0;
-    if (main.SimilarHotels && main.SimilarHotels.length > 0) {
-      maxSimilar = Math.max(...main.SimilarHotels.map(s => s.FinalPrice || s.TotalPrice || 0));
-    }
-    
-    return total + Math.max(mainPrice, maxSimilar);
+    const effective = this.getEffectiveHotel(main);
+    return total + (effective.FinalPrice || effective.TotalPrice || 0);
   }, 0);
 }
 
-// Also update effectivePriceForGroup for consistency
+// Kept for backward compatibility with existing template bindings —
+// now delegates to getEffectiveHotel() instead of duplicating the comparison.
 effectivePriceForGroup(mainHotel: QuoteHotelRow): number {
-  const mainPrice = mainHotel.FinalPrice || mainHotel.TotalPrice || 0;
-  
-  if (!mainHotel.SimilarHotels || mainHotel.SimilarHotels.length === 0) {
-    return mainPrice;
-  }
-  
-  const maxSimilar = Math.max(...mainHotel.SimilarHotels.map(s => s.FinalPrice || s.TotalPrice || 0));
-  return Math.max(mainPrice, maxSimilar);
+  const effective = this.getEffectiveHotel(mainHotel);
+  return effective.FinalPrice || effective.TotalPrice || 0;
 }
 
 // In getPackageGrandTotal:
@@ -6496,19 +6524,17 @@ private getHotelBuckets(packageTypeId: number): {
   const buckets = this.getHotelsByPackage(packageTypeId)
     .filter(row => row.IsMainHotel !== false)
     .reduce((acc, row) => {
-      const nights = row.NightPrices?.length ? row.NightPrices : this.getHotelNightPricePayload(row);
+      const effective = this.getEffectiveHotel(row);
+      const nights = effective.NightPrices?.length ? effective.NightPrices : this.getHotelNightPricePayload(effective);
       acc.roomTotal += nights.reduce((sum, night) => sum + (Number(night.RoomTotal) || 0), 0);
       acc.awebTotal += nights.reduce((sum, night) => sum + (Number(night.AwebTotal) || 0), 0);
       acc.cwebTotal += nights.reduce((sum, night) => sum + (Number(night.CwebTotal) || 0), 0);
       acc.cnbTotal += nights.reduce((sum, night) => sum + (Number(night.CnbTotal) || 0), 0);
-      acc.cwebCount = Math.max(acc.cwebCount, Number(row.CWEB) || 0);
-      acc.cnbCount = Math.max(acc.cnbCount, Number(row.CNB) || 0);
+      acc.cwebCount = Math.max(acc.cwebCount, Number(effective.CWEB) || 0);
+      acc.cnbCount = Math.max(acc.cnbCount, Number(effective.CNB) || 0);
       return acc;
     }, { roomTotal: 0, awebTotal: 0, cwebTotal: 0, cnbTotal: 0, cwebCount: 0, cnbCount: 0 });
 
-  const effectiveHotelTotal = this.getPackageHotelTotal(packageTypeId);
-  const bucketTotal = buckets.roomTotal + buckets.awebTotal + buckets.cwebTotal + buckets.cnbTotal;
-  if (effectiveHotelTotal > bucketTotal) buckets.roomTotal += effectiveHotelTotal - bucketTotal;
   return buckets;
 }
 
