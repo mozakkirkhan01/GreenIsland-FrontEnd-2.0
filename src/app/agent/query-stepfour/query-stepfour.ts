@@ -58,6 +58,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   specialInclusions = computed<any[]>(() => this.quoteDetail()?.SpecialInclusions ?? []);
   activities = computed<any[]>(() => this.quoteDetail()?.Activities ?? []);
   similarHotels = computed<any[]>(() => this.quoteDetail()?.SimilarHotels ?? []);
+  pricing = computed<any>(() => this.quoteDetail()?.Pricing ?? null);
+  packageMarkups = computed<any[]>(() => this.quoteDetail()?.PackageMarkups ?? []);
 
   // ── Activities grouped by Location + ActivityService + Day ──────
   // Source: quoteDetail().Activities (QuoteActivityEntries table). Each
@@ -209,6 +211,17 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
   }
 
+  /** Real child ages from TripInfo.ChildrenAges (JSON array), oldest-first order as stored. */
+  childrenAgesList(): number[] {
+    const raw = this.tripInfo()?.ChildrenAges;
+    if (!raw) return [];
+    try {
+      return Array.isArray(raw) ? raw : JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
   durationLabel(): string {
     const nights = Number(this.tripInfo()?.NoOfNights) || 0;
     return `${nights + 1}D, ${nights}N`;
@@ -258,7 +271,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return Array.isArray(row.NightNumbers) && row.NightNumbers.length ? row.NightNumbers : [Number(row.NightNumber) || 1];
   }
 
-  private perNightPrice(row: any): number {
+  /** Real per-night breakdown (RoomTotal/AwebTotal/CwebTotal/CnbTotal/Total) when saved, else null. */
+  private nightPriceEntry(row: any, nightNumber: number): any | null {
+    return (row.NightPrices || []).find((n: any) => Number(n.NightNumber) === nightNumber) || null;
+  }
+
+  /** Price for one specific night: real NightPrices total if saved, else the row's aggregate split evenly across its own nights. */
+  private priceForNight(row: any, nightNumber: number): number {
+    const np = this.nightPriceEntry(row, nightNumber);
+    if (np) return Number(np.Total) || 0;
     return this.money(row) / (this.nightsOf(row).length || 1);
   }
 
@@ -295,27 +316,181 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .sort((a, b) => (Number(a.SortOrder) || 0) - (Number(b.SortOrder) || 0));
   }
 
+  /** Whichever row (main or a similar) has the highest price for a given night — the one the "always show highest price" rule picks. */
+  private winningRowForNight(main: any, similar: any[], nightNumber: number): any {
+    let winner = main;
+    let winnerPrice = this.priceForNight(main, nightNumber);
+    for (const row of similar) {
+      const price = this.priceForNight(row, nightNumber);
+      if (price > winnerPrice) { winner = row; winnerPrice = price; }
+    }
+    return winner;
+  }
+
   /**
    * One entry per NIGHT (not per QuoteHotel row) — a row's NightNumbers
    * array (e.g. [1,2,3]) means one hotel booking spans those nights, so
-   * it's expanded here. Its aggregate FinalPrice is divided evenly across
-   * its own night count; each similar hotel's price is divided the same
-   * way, then the highest per-night value wins for that night.
+   * it's expanded here. Price per night uses the real NightPrices total
+   * when saved (falls back to an even split of the aggregate otherwise);
+   * the highest priced row (main or similar) wins for that night.
    */
   hotelGroupsByPackage(packageTypeId: number): { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] {
     const groups: { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] = [];
 
     for (const main of this.hotelsByPackage(packageTypeId)) {
       const similar = this.similarRowsFor(Number(main.QuoteHotelId), packageTypeId);
-      const prices = [this.perNightPrice(main), ...similar.map(r => this.perNightPrice(r))];
-      const maxPrice = Math.max(...prices);
 
       for (const nightNumber of this.nightsOf(main)) {
+        const winner = this.winningRowForNight(main, similar, nightNumber);
+        const maxPrice = this.priceForNight(winner, nightNumber);
         groups.push({ nightNumber, stayDate: this.nightDate(nightNumber), main, similar, maxPrice });
       }
     }
 
     return groups.sort((a, b) => a.nightNumber - b.nightNumber);
+  }
+
+  /** One block per hotel booking (a QuoteHotel row = a contiguous stay, possibly spanning several nights via NightNumbers), with its similar-hotel alternatives. Used for messaging/email, where consecutive nights at the same hotel are shown together rather than one row per night. */
+  stayBlocksByPackage(packageTypeId: number): { main: any; similar: any[]; nights: number[]; checkIn: Date | null; checkOut: Date | null }[] {
+    return this.hotelsByPackage(packageTypeId).map(main => {
+      const nights = this.nightsOf(main).slice().sort((a, b) => a - b);
+      const similar = this.similarRowsFor(Number(main.QuoteHotelId), packageTypeId);
+      return {
+        main,
+        similar,
+        nights,
+        checkIn: this.nightDate(nights[0]),
+        checkOut: this.nightDate(nights[nights.length - 1] + 1),
+      };
+    });
+  }
+
+  /**
+   * Real per-guest-category pricing for a package, used for WhatsApp/Email
+   * "Price (INR)" lines: Per Person (Double Sharing) / Per Adult with Extra
+   * Bed / Per Child with Extra Bed / Per Child without Extra Bed.
+   *
+   * Accommodation split: for each night, uses the real NightPrices
+   * RoomTotal/AwebTotal/CwebTotal/CnbTotal from the winning (highest-price)
+   * hotel row when saved; if a row has no NightPrices, its night total is
+   * split evenly per head across its own AWEB/CWEB/CNB/base counts (neutral
+   * default — adjust here if your pricing engine weights extra beds
+   * differently from base occupancy).
+   * Shared costs (special inclusions, transport, activity, package-level
+   * TotalMarkup) are split evenly across every paying guest and folded into
+   * each category, along with any PerPersonMarkup. GST is then applied to
+   * each per-person rate, so `count * amount` summed across rows equals the
+   * GST-inclusive package total.
+   */
+  guestCategoryTotals(packageTypeId: number): { label: string; count: number; paxLabel: string; amount: number }[] {
+    const totals = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
+    let counts = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
+    let countsSet = false;
+
+    for (const main of this.hotelsByPackage(packageTypeId)) {
+      const similar = this.similarRowsFor(Number(main.QuoteHotelId), packageTypeId);
+      for (const nightNumber of this.nightsOf(main)) {
+        const winner = this.winningRowForNight(main, similar, nightNumber);
+        const base = (Number(winner.NoOfRooms) || 1) * (Number(winner.PaxPerRoom) || 2);
+        const aweb = Number(winner.AWEB) || 0;
+        const cweb = Number(winner.CWEB) || 0;
+        const cnb = Number(winner.CNB) || 0;
+        const np = this.nightPriceEntry(winner, nightNumber);
+
+        if (np) {
+          totals.double += Number(np.RoomTotal) || 0;
+          totals.aweb += Number(np.AwebTotal) || 0;
+          totals.cweb += Number(np.CwebTotal) || 0;
+          totals.cnb += Number(np.CnbTotal) || 0;
+        } else {
+          const nightTotal = this.priceForNight(winner, nightNumber);
+          const heads = base + aweb + cweb + cnb;
+          const perHead = heads ? nightTotal / heads : 0;
+          totals.double += perHead * base;
+          totals.aweb += perHead * aweb;
+          totals.cweb += perHead * cweb;
+          totals.cnb += perHead * cnb;
+        }
+
+        if (!countsSet) {
+          counts = { double: base, aweb, cweb, cnb };
+          countsSet = true;
+        }
+      }
+    }
+
+    const ages = this.childrenAgesList();
+    const cwebAges = ages.slice(0, counts.cweb);
+    const cnbAges = ages.slice(counts.cweb, counts.cweb + counts.cnb);
+    const childLabel = (n: number, group: number[]): string =>
+      group.length ? `${n} Child${n > 1 ? 'ren' : ''} (${group.map(a => a + 'y').join(', ')})` : `${n} Child${n > 1 ? 'ren' : ''}`;
+
+    const markup = this.packageMarkups().find(m => Number(m.QuotePackageTypeId) === Number(packageTypeId)) || null;
+    const totalGuests = counts.double + counts.aweb + counts.cweb + counts.cnb;
+    const sharedPool = this.packageSpecialInclusionTotal(packageTypeId) + this.transportTotal() + this.activityTotal() + (Number(markup?.TotalMarkup) || 0);
+    const sharedPerHead = totalGuests ? sharedPool / totalGuests : 0;
+    const perPersonMarkup = Number(markup?.PerPersonMarkup) || 0;
+    const gstPercent = Number(this.pricing()?.GstPercent ?? this.quoteHeader()?.GstPercent ?? 0);
+    const gstFactor = 1 + gstPercent / 100;
+
+    const rows = [
+      { key: 'double', label: 'Per Person (Double Sharing)', count: counts.double, base: totals.double, paxLabel: 'Pax' },
+      { key: 'aweb', label: 'Per Adult with Extra Bed/Mattress', count: counts.aweb, base: totals.aweb, paxLabel: 'Pax' },
+      { key: 'cweb', label: 'Per Child with Extra Bed/Mattress', count: counts.cweb, base: totals.cweb, paxLabel: childLabel(counts.cweb, cwebAges) },
+      { key: 'cnb', label: 'Per Child without Extra Bed/Mattress', count: counts.cnb, base: totals.cnb, paxLabel: childLabel(counts.cnb, cnbAges) },
+    ];
+
+    return rows
+      .filter(r => r.count > 0)
+      .map(r => ({
+        label: r.label,
+        count: r.count,
+        paxLabel: r.paxLabel,
+        amount: Math.round(((r.base / r.count) + sharedPerHead + perPersonMarkup) * gstFactor),
+      }));
+  }
+
+  /** Sum of count × amount across all guest categories — matches the GST-inclusive package total shown in messages/emails. */
+  packageGrandTotal(packageTypeId: number): number {
+    return this.guestCategoryTotals(packageTypeId).reduce((sum, r) => sum + r.amount * r.count, 0);
+  }
+
+  private nightRangeLabel(nights: number[]): string {
+    const label = nights.map(n => `${n}${this.ordinal(n)}`).join(', ');
+    return `${label} Night${nights.length > 1 ? 's' : ''}`;
+  }
+
+  /** e.g. "2 Pax + 1 Adult with Extra Bed/Mattress + 1 Child without Extra Bed/Mattress" for one hotel row. */
+  paxSummary(row: any): string {
+    const parts: string[] = [];
+    const base = (Number(row.NoOfRooms) || 1) * (Number(row.PaxPerRoom) || 2);
+    if (base) parts.push(`${base} Pax`);
+    if (row.AWEB) parts.push(`${row.AWEB} Adult with Extra Bed/Mattress`);
+    if (row.CWEB) parts.push(`${row.CWEB} Child with Extra Bed/Mattress`);
+    if (row.CNB) parts.push(`${row.CNB} Child without Extra Bed/Mattress`);
+    return parts.join(' + ');
+  }
+
+  private shortDate(value: any): string {
+    if (!value) return '';
+    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }
+
+  /** "Tue, 28th Jul'26" style day header used in the WhatsApp itinerary. */
+  private dayHeaderDate(date: Date): string {
+    const weekday = date.toLocaleDateString('en-IN', { weekday: 'short' });
+    const day = date.getDate();
+    const month = date.toLocaleDateString('en-IN', { month: 'short' });
+    const yr = date.getFullYear().toString().slice(-2);
+    return `${weekday}, ${day}${this.ordinal(day)} ${month}'${yr}`;
+  }
+
+  /** Vehicle name for cab-based services; real trip pax breakdown ("3Ad. + 1Ch.") for per-person services (e.g. ferries) that don't carry their own pax split. */
+  private serviceQualifier(row: any): string {
+    if (row.VehicleTypeId) return row.VehicleTypeName || 'Vehicle';
+    const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
+    const ages = this.childrenAgesList();
+    return `${adults}Ad.${ages.length ? ` + ${ages.length}Ch.` : ''}`;
   }
 
   /** Highest FinalPrice among a group's main hotel + all its similar hotels. */
@@ -500,49 +675,83 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   /** Plain-text message for the wa.me deep link. Respects the toggle state. */
   buildWhatsAppText(): string {
     const trip = this.tripInfo();
+    const nights = Number(trip?.NoOfNights) || 0;
+    const days = nights + 1;
+    const adults = Number(trip?.NoOfAdults) || 0;
+    const ages = this.childrenAgesList();
     const lines: string[] = [];
-    lines.push(`Hi ${trip?.ContactName || 'there'},`);
-    lines.push('');
-    lines.push('Greetings from Green Island Tours and Travels Private Limited.');
-    lines.push('');
-    lines.push(`Trip ID ${trip?.QuotationNo ? this.formatQuotationNo(trip.QuotationNo) : this.QueryStepOneId}`);
-    lines.push(`${trip?.DestinationName || ''} Trip`);
-    lines.push(`• ${this.formatDate(trip?.StartDate)} for ${this.durationLabel()}`);
-    lines.push(`• ${this.totalGuestCount()} Adults`);
-    lines.push('');
 
-    for (const pkg of this.packageTypes()) {
-      lines.push(`OPTION: ${pkg.PackageTypeName}`);
+    lines.push(`Hi ${trip?.ContactName || 'there'},`);
+    lines.push('Greetings from Green Island Tours and Travels Private Limited.');
+    lines.push('Thank you for your query with us. As per your requirements, following are the package details.');
+    lines.push(`*Trip ID ${trip?.QuotationNo ? this.formatQuotationNo(trip.QuotationNo) : this.QueryStepOneId}* _(${this.packageTypes().length} Package Category/Options)_`);
+    lines.push('----------');
+    lines.push(`*${trip?.DestinationName || ''} Trip*`);
+    lines.push(`• *${this.shortDate(trip?.StartDate)}* _for_ *${nights} Nights, ${days} Days*`);
+    const childrenLabel = ages.length ? `, ${ages.length} Child${ages.length > 1 ? 'ren' : ''} (${ages.map(a => a + 'y').join(', ')})` : '';
+    lines.push(`• *${adults} Adults${childrenLabel}*`);
+
+    this.packageTypes().forEach((pkg, idx) => {
+      lines.push(`⏬ *OPTION ${idx + 1}: ${pkg.PackageTypeName}*`);
+
       if (!this.hideTotalPrice()) {
-        lines.push(`Total Price (INR): ${this.formatCurrency(this.packageQuotePrice(pkg.QuotePackageTypeId))}/- (inc. GST)`);
+        lines.push('*Price (INR):*');
+        for (const c of this.guestCategoryTotals(pkg.QuotePackageTypeId)) {
+          lines.push(`• *${this.formatCurrency(c.amount)} /- ${c.label}* x ${c.count} ${c.paxLabel}`);
+        }
+        lines.push(`*Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-* _(inc. GST)_`);
       }
-      lines.push('');
-      lines.push('Hotels');
-      for (const hotel of this.hotelsByPackage(pkg.QuotePackageTypeId)) {
-        lines.push(`${hotel.NightNumber}${this.ordinal(hotel.NightNumber)} Night at ${hotel.LocationName || ''}`);
-        lines.push(`${hotel.HotelName} (${hotel.HotelCategoryName || ''})`);
-        lines.push(`${hotel.MealPlan || ''} • ${hotel.NoOfRooms || 1} ${hotel.RoomTypeName || 'Room'}`);
-        lines.push('');
+
+      if (!this.removeItinerary()) {
+        lines.push('🏨  *_Hotels_*');
+        lines.push('-----------');
+        for (const stay of this.stayBlocksByPackage(pkg.QuotePackageTypeId)) {
+          lines.push(`*${this.nightRangeLabel(stay.nights)}* _at_ *${stay.main.LocationName || ''}*`);
+          lines.push(`_Check-in: ${this.shortDate(stay.checkIn)}_ & _Check-out: ${this.shortDate(stay.checkOut)}_`);
+          lines.push(`*${stay.main.HotelName}* (${stay.main.HotelCategoryName || ''})`);
+          lines.push(`${stay.main.MealPlan || '-'} • ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'} (${this.paxSummary(stay.main)})`);
+          if (stay.similar.length) {
+            lines.push('*Similar Options:*');
+            for (const sim of stay.similar) {
+              lines.push(`\`\`\`-\`\`\` *${sim.HotelName}* (${sim.HotelCategoryName || ''})`);
+              lines.push(`\`\`\`•\`\`\` ${sim.NoOfRooms || 1} ${sim.RoomTypeName || 'Room'} (${this.paxSummary(sim)})`);
+            }
+          }
+        }
+
+        const inclusions = this.specialInclusionsByPackage(pkg.QuotePackageTypeId);
+        if (inclusions.length) {
+          lines.push('*Hotel Special Inclusions*');
+          lines.push('-------');
+          for (const si of inclusions) {
+            lines.push(`*${si.NightNumber}${this.ordinal(si.NightNumber)} Night* - *${si.SpecialInclusionName}* (${si.HotelName})`);
+          }
+        }
       }
-    }
+    });
 
     if (!this.removeTransportActivities() && !this.removeItinerary()) {
-      lines.push('Transportation and Activities');
+      lines.push('-------');
+      lines.push('⏩ *For All Options*');
+      lines.push('Details below are applicable for all the options.');
+      lines.push('-------');
+      lines.push('🚖  *Transportation and Activities*');
+      lines.push('-----------');
       for (const day of this.daySlots()) {
         if (!this.dayHasServices(day.dayNumber)) continue;
-        lines.push(`Day ${day.dayNumber} - ${day.shortDate}`);
+        lines.push(`*${day.dayNumber}${this.ordinal(day.dayNumber)} Day - ${this.dayHeaderDate(day.date)}*`);
         for (const svc of this.servicesForDay(day.dayNumber)) {
-          lines.push(`• ${this.serviceTitle(svc)} (${this.serviceDetail(svc)})`);
+          if (Number(svc.ServiceType) === 1) {
+            lines.push(`• ${svc.LocationName || svc.IteneraryServiceName || 'Transport'} _(${this.serviceQualifier(svc)})_`);
+          } else {
+            lines.push(`• ${svc.LocationName || svc.ActivityServiceName || 'Activity'} _(${this.serviceDetail(svc)})_`);
+          }
         }
         for (const group of this.activityGroupsForDay(day.dayNumber)) {
-          lines.push(`• ${this.activityGroupTitle(group)} (${this.formatCurrency(group.total)})`);
+          const paxLabel = group.entries.map((e: any) => `${e.Qty}${(e.PaxTypeLabel || e.PaxType || 'Pax').charAt(0)}.`).join(' + ');
+          lines.push(`• ${this.activityGroupTitle(group)} _(${paxLabel})_`);
         }
       }
-      lines.push('');
-    }
-
-    if (!this.removeTerms() && this.hasTerms()) {
-      lines.push('Terms and Conditions apply. Full details in the attached quotation.');
     }
 
     return lines.join('\n');
@@ -565,44 +774,113 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   buildEmailHtml(): SafeHtml {
     const trip = this.tripInfo();
     let html = `
+      <p>Greetings from Green Island Tours and Travels Private Limited!</p>
       <p>Dear Sir / Madam,</p>
       <p>Thank you for reaching out to us with your travel requirements. As your trusted
       Destination Management Company (DMC) for ${trip?.DestinationName || 'your destination'},
-      we are pleased to share the proposed quotation for your upcoming travel plans.</p>
+      we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
       <h4>Package Overview</h4>
       <table class="table table-bordered table-sm">
         <tr><td>Trip ID</td><td>${this.formatQuotationNo(trip?.QuotationNo)}</td></tr>
         <tr><td>Destination</td><td>${trip?.DestinationName || ''}</td></tr>
         <tr><td>Start Date</td><td>${this.formatDate(trip?.StartDate)}</td></tr>
-        <tr><td>Duration</td><td>${this.durationLabel()}</td></tr>
-        <tr><td>Pax</td><td>${this.totalGuestCount()} Adults</td></tr>
+        <tr><td>Trip Duration</td><td>${this.durationLabel()}</td></tr>
+        <tr><td>Pax</td><td>${this.paxOverviewLabel()}</td></tr>
       </table>`;
 
-    for (const pkg of this.packageTypes()) {
-      html += `<h5>${pkg.PackageTypeName}</h5>`;
-      if (!this.hideTotalPrice()) {
-        html += `<p><strong>Total Price (INR): ${this.formatCurrency(this.packageQuotePrice(pkg.QuotePackageTypeId))}/- (inc. GST)</strong></p>`;
+    if (!this.removeItinerary()) {
+      html += `<h4>Hotels</h4>`;
+      this.packageTypes().forEach((pkg, idx) => {
+        html += `<h5>Option ${idx + 1}: ${pkg.PackageTypeName}</h5>`;
+        html += `<table class="table table-bordered table-sm">
+          <thead><tr><th>Nights</th><th>City</th><th>Hotel Name</th><th>Meal Plan</th><th>Accommodation</th></tr></thead><tbody>`;
+        for (const stay of this.stayBlocksByPackage(pkg.QuotePackageTypeId)) {
+          const nightsCell = stay.nights.map(n => `${n}${this.ordinal(n)} (${this.shortDate(this.nightDate(n))})`).join('<br>');
+          let hotelCell = `<strong>${stay.main.HotelName}</strong> (${stay.main.HotelCategoryName || ''})`;
+          for (const sim of stay.similar) {
+            hotelCell += `<br>/ ${sim.HotelName} (${sim.RoomTypeName || 'Room'})`;
+          }
+          html += `<tr>
+            <td>${nightsCell}</td>
+            <td>${stay.main.LocationName || ''}</td>
+            <td>${hotelCell}</td>
+            <td>${stay.main.MealPlan || '-'}</td>
+            <td>${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br>${this.paxSummary(stay.main)}</td>
+          </tr>`;
+        }
+        html += `</tbody></table>`;
+
+        const inclusions = this.specialInclusionsByPackage(pkg.QuotePackageTypeId);
+        if (inclusions.length) {
+          html += `<p><strong>Hotel Special Inclusions</strong></p><table class="table table-bordered table-sm"><tbody>`;
+          for (const si of inclusions) {
+            html += `<tr>
+              <td>${si.NightNumber}${this.ordinal(si.NightNumber)} (${this.shortDate(this.nightDate(si.NightNumber))})</td>
+              <td>${this.hotelLocationCategory(si.HotelId).split(',')[0]}</td>
+              <td>${si.HotelName}</td>
+              <td>${si.SpecialInclusionName}</td>
+            </tr>`;
+          }
+          html += `</tbody></table>`;
+        }
+
+        if (!this.hideTotalPrice()) {
+          html += `<p><strong>Prices (INR)</strong></p><ul>`;
+          for (const c of this.guestCategoryTotals(pkg.QuotePackageTypeId)) {
+            html += `<li>${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</li>`;
+          }
+          html += `</ul><p><strong>Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-</strong> (including GST)</p>`;
+        }
+      });
+    }
+
+    if (!this.removeItinerary()) {
+      html += `<h4>Day Wise Itinerary</h4>`;
+      for (const day of this.daySlots()) {
+        const sched = this.daySchedule(day.dayNumber);
+        if (!sched) continue;
+        html += `<p><strong>${day.dayNumber}${this.ordinal(day.dayNumber)} Day (${this.dayHeaderDate(day.date).replace(`'${day.date.getFullYear().toString().slice(-2)}`, '')}) : ${sched.title}</strong></p>`;
+        if (sched.intro) html += `<p>${sched.intro}</p>`;
+        for (const section of sched.sections) {
+          html += `<p><em>${section.heading}</em><br>${section.body}</p>`;
+        }
       }
-      html += `<table class="table table-bordered table-sm">
-        <thead><tr><th>Night</th><th>Hotel</th><th>Meal</th><th>Rooms</th></tr></thead><tbody>`;
-      for (const hotel of this.hotelsByPackage(pkg.QuotePackageTypeId)) {
-        html += `<tr>
-          <td>${hotel.NightNumber}${this.ordinal(hotel.NightNumber)}</td>
-          <td>${hotel.HotelName} (${hotel.HotelCategoryName || ''})</td>
-          <td>${hotel.MealPlan || '-'}</td>
-          <td>${hotel.NoOfRooms || 1} ${hotel.RoomTypeName || 'Room'}</td>
-        </tr>`;
+    }
+
+    if (!this.removeTransportActivities() && !this.removeItinerary()) {
+      html += `<h4>Transportation and Activities (for all options)</h4>
+        <table class="table table-bordered table-sm">
+        <thead><tr><th>Day</th><th>Service</th></tr></thead><tbody>`;
+      for (const day of this.daySlots()) {
+        if (!this.dayHasServices(day.dayNumber)) continue;
+        html += `<tr><td>${day.dayNumber}${this.ordinal(day.dayNumber)} Day<br>(${this.dayHeaderDate(day.date)})</td><td>`;
+        for (const svc of this.servicesForDay(day.dayNumber)) {
+          const qualifier = Number(svc.ServiceType) === 1 ? this.serviceQualifier(svc) : this.serviceDetail(svc);
+          html += `${svc.LocationName || svc.IteneraryServiceName || svc.ActivityServiceName || 'Service'}<br><small>${qualifier}</small><br>`;
+        }
+        for (const group of this.activityGroupsForDay(day.dayNumber)) {
+          const paxLabel = group.entries.map((e: any) => `${e.Qty}${(e.PaxTypeLabel || e.PaxType || 'Pax').charAt(0)}.`).join(' + ');
+          html += `${this.activityGroupTitle(group)}<br><small>${paxLabel}</small><br>`;
+        }
+        html += `</td></tr>`;
       }
       html += `</tbody></table>`;
     }
 
     if (!this.removeTerms() && this.hasTerms()) {
-      html += `<h5>Terms and Conditions</h5><ul>`;
+      html += `<h4>Terms and Conditions</h4><ul>`;
       for (const term of this.terms()) html += `<li>${this.termHtml(term)}</li>`;
       html += `</ul>`;
     }
 
     return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  private paxOverviewLabel(): string {
+    const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
+    const ages = this.childrenAgesList();
+    const childLabel = ages.length ? `, ${ages.length} Child${ages.length > 1 ? 'ren' : ''} (${ages.map(a => a + 'y').join(', ')})` : '';
+    return `${adults} Adults${childLabel}`;
   }
 
   copyEmailHtml(): void {
