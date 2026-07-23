@@ -3,12 +3,17 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ToastrService } from 'ngx-toastr';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
 import { RequestModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
+
+// npm install pdfmake  (and, if using TS strict mode, npm install -D @types/pdfmake)
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs;
 
 type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: number; CostPrice?: number };
 
@@ -31,6 +36,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   QuoteId = 0;
 
   loading = signal(false);
+  pdfLoading = signal(false);
   quoteDetail = signal<any | null>(null);
   inclusions = signal<any[]>([]);
   exclusions = signal<any[]>([]);
@@ -62,13 +68,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   packageMarkups = computed<any[]>(() => this.quoteDetail()?.PackageMarkups ?? []);
 
   // ── Activities grouped by Location + ActivityService + Day ──────
-  // Source: quoteDetail().Activities (QuoteActivityEntries table). Each
-  // entry is one pax-type row (Adult / Child) with its own Rate/Qty/
-  // SellingPrice; grouped here so a ferry or ticket with an Adult line
-  // and a Child line renders as ONE row with two pax sub-lines, matching
-  // how Step Three actually saves them (one QuoteActivityEntry per
-  // pax-type group). Insertion order follows the API's own
-  // `orderby a.DayNumber, a.SortOrder` — never re-sorted here.
   activityGroups = computed(() => {
     const groups = new Map<string, any>();
     for (const row of this.activities()) {
@@ -211,7 +210,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
   }
 
-  /** Real child ages from TripInfo.ChildrenAges (JSON array), oldest-first order as stored. */
   childrenAgesList(): number[] {
     const raw = this.tripInfo()?.ChildrenAges;
     if (!raw) return [];
@@ -246,37 +244,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.similarHotels().some(row => Number(row.ParentQuoteHotelId) === Number(quoteHotelId));
   }
 
-  /**
-   * Groups each main accommodation row with its similar-hotel alternatives
-   * for a given package option, so the Accommodation table can render the
-   * "main hotel / similar hotel" hierarchy from the reference design.
-   *
-   * The relationship can show up on either side of the data, depending on
-   * how a given quote was saved:
-   *  - `similarHotels()` (QuoteSimilarHotels, via ParentQuoteHotelId/QuoteHotelId)
-   *  - the hotel row's own `SimilarHotelParentId` (QuoteHotels)
-   * A hotel is treated as "similar to" a main hotel if EITHER signal says
-   * so — a union, not a strict intersection — so grouping still works even
-   * if only one of the two was populated when the quote was saved. Full
-   * room/price detail for each similar hotel comes from its own row in
-   * `hotels()` (QuoteHotels already returns every row for the quote, main
-   * and similar alike).
-   *
-   * The main hotel keeps the original night order (same sort as
-   * hotelsByPackage). Similar hotels within a group are ordered by their
-   * own SortOrder. Works for any number of similar hotels per night, and
-   * for any package option — nothing here is hardcoded.
-   */
   private nightsOf(row: any): number[] {
     return Array.isArray(row.NightNumbers) && row.NightNumbers.length ? row.NightNumbers : [Number(row.NightNumber) || 1];
   }
 
-  /** Real per-night breakdown (RoomTotal/AwebTotal/CwebTotal/CnbTotal/Total) when saved, else null. */
   private nightPriceEntry(row: any, nightNumber: number): any | null {
     return (row.NightPrices || []).find((n: any) => Number(n.NightNumber) === nightNumber) || null;
   }
 
-  /** Price for one specific night: real NightPrices total if saved, else the row's aggregate split evenly across its own nights. */
   private priceForNight(row: any, nightNumber: number): number {
     const np = this.nightPriceEntry(row, nightNumber);
     if (np) return Number(np.Total) || 0;
@@ -291,13 +266,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return d;
   }
 
-  /** Location/category for a Special Inclusion row — looked up from the hotel's own accommodation row (not returned directly on SpecialInclusions). */
   hotelLocationCategory(hotelId: number): string {
     const h = this.hotels().find(row => Number(row.HotelId) === Number(hotelId));
     return h ? `${h.LocationName || '-'}, ${h.HotelCategoryName || '-'}` : '';
   }
 
-  /** Similar hotels linked to a main QuoteHotelId, via either relationship signal. */
   private similarRowsFor(mainId: number, packageTypeId: number): any[] {
     const hotelRowsById = new Map<number, any>();
     for (const row of this.hotels()) if (row.QuoteHotelId) hotelRowsById.set(Number(row.QuoteHotelId), row);
@@ -316,7 +289,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .sort((a, b) => (Number(a.SortOrder) || 0) - (Number(b.SortOrder) || 0));
   }
 
-  /** Whichever row (main or a similar) has the highest price for a given night — the one the "always show highest price" rule picks. */
   private winningRowForNight(main: any, similar: any[], nightNumber: number): any {
     let winner = main;
     let winnerPrice = this.priceForNight(main, nightNumber);
@@ -327,13 +299,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return winner;
   }
 
-  /**
-   * One entry per NIGHT (not per QuoteHotel row) — a row's NightNumbers
-   * array (e.g. [1,2,3]) means one hotel booking spans those nights, so
-   * it's expanded here. Price per night uses the real NightPrices total
-   * when saved (falls back to an even split of the aggregate otherwise);
-   * the highest priced row (main or similar) wins for that night.
-   */
   hotelGroupsByPackage(packageTypeId: number): { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] {
     const groups: { nightNumber: number; stayDate: Date | null; main: any; similar: any[]; maxPrice: number }[] = [];
 
@@ -350,7 +315,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return groups.sort((a, b) => a.nightNumber - b.nightNumber);
   }
 
-  /** One block per hotel booking (a QuoteHotel row = a contiguous stay, possibly spanning several nights via NightNumbers), with its similar-hotel alternatives. Used for messaging/email, where consecutive nights at the same hotel are shown together rather than one row per night. */
   stayBlocksByPackage(packageTypeId: number): { main: any; similar: any[]; nights: number[]; checkIn: Date | null; checkOut: Date | null }[] {
     return this.hotelsByPackage(packageTypeId).map(main => {
       const nights = this.nightsOf(main).slice().sort((a, b) => a - b);
@@ -365,23 +329,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     });
   }
 
-  /**
-   * Real per-guest-category pricing for a package, used for WhatsApp/Email
-   * "Price (INR)" lines: Per Person (Double Sharing) / Per Adult with Extra
-   * Bed / Per Child with Extra Bed / Per Child without Extra Bed.
-   *
-   * Accommodation split: for each night, uses the real NightPrices
-   * RoomTotal/AwebTotal/CwebTotal/CnbTotal from the winning (highest-price)
-   * hotel row when saved; if a row has no NightPrices, its night total is
-   * split evenly per head across its own AWEB/CWEB/CNB/base counts (neutral
-   * default — adjust here if your pricing engine weights extra beds
-   * differently from base occupancy).
-   * Shared costs (special inclusions, transport, activity, package-level
-   * TotalMarkup) are split evenly across every paying guest and folded into
-   * each category, along with any PerPersonMarkup. GST is then applied to
-   * each per-person rate, so `count * amount` summed across rows equals the
-   * GST-inclusive package total.
-   */
   guestCategoryTotals(packageTypeId: number): { label: string; count: number; paxLabel: string; amount: number }[] {
     const totals = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
     let counts = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
@@ -450,7 +397,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       }));
   }
 
-  /** Sum of count × amount across all guest categories — matches the GST-inclusive package total shown in messages/emails. */
   packageGrandTotal(packageTypeId: number): number {
     return this.guestCategoryTotals(packageTypeId).reduce((sum, r) => sum + r.amount * r.count, 0);
   }
@@ -460,7 +406,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `${label} Night${nights.length > 1 ? 's' : ''}`;
   }
 
-  /** e.g. "2 Pax + 1 Adult with Extra Bed/Mattress + 1 Child without Extra Bed/Mattress" for one hotel row. */
   paxSummary(row: any): string {
     const parts: string[] = [];
     const base = (Number(row.NoOfRooms) || 1) * (Number(row.PaxPerRoom) || 2);
@@ -476,7 +421,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   }
 
-  /** "Tue, 28th Jul'26" style day header used in the WhatsApp itinerary. */
   private dayHeaderDate(date: Date): string {
     const weekday = date.toLocaleDateString('en-IN', { weekday: 'short' });
     const day = date.getDate();
@@ -485,7 +429,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `${weekday}, ${day}${this.ordinal(day)} ${month}'${yr}`;
   }
 
-  /** Vehicle name for cab-based services; real trip pax breakdown ("3Ad. + 1Ch.") for per-person services (e.g. ferries) that don't carry their own pax split. */
   private serviceQualifier(row: any): string {
     if (row.VehicleTypeId) return row.VehicleTypeName || 'Vehicle';
     const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
@@ -493,7 +436,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `${adults}Ad.${ages.length ? ` + ${ages.length}Ch.` : ''}`;
   }
 
-  /** Highest FinalPrice among a group's main hotel + all its similar hotels. */
   groupPrice(quoteHotelId: number): number {
     for (const pkg of this.packageTypes()) {
       const group = this.hotelGroupsByPackage(pkg.QuotePackageTypeId).find(g => Number(g.main.QuoteHotelId) === Number(quoteHotelId));
@@ -558,13 +500,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.servicesForDay(dayNumber).length > 0 || this.activityGroupsForDay(dayNumber).length > 0;
   }
 
-  /**
-   * The day's narrative itinerary comes from IteneraryService.DaySchedule
-   * (via the transport QuoteService row for that day) — real DB text, not
-   * assembled from location/service names. Returns null when no transport
-   * row exists for the day; the template must not fall back to placeholder
-   * prose in that case.
-   */
   scheduleServiceForDay(dayNumber: number): any | null {
     return this.transportServices().find(row => Number(row.DayNumber) === dayNumber) || null;
   }
@@ -575,12 +510,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return { title: svc.IteneraryServiceName || '', ...this.parseDaySchedule(svc.DaySchedule) };
   }
 
-  /**
-   * DaySchedule is stored as plain text: an intro paragraph, then
-   * blank-line-separated blocks where a "• Heading" line introduces a
-   * sub-section body paragraph (per the Master Entry "Activity Schedule"
-   * field). Parsed here for display only — no text is invented.
-   */
   private parseDaySchedule(raw: string): { intro: string; sections: { heading: string; body: string }[] } {
     const blocks = (raw || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
     const sections: { heading: string; body: string }[] = [];
@@ -651,7 +580,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // SHARE DIALOG — WhatsApp (wa.me deep link) + Email (preview/copy)
+  // SHARE DIALOG
   // ══════════════════════════════════════════════════════════════
 
   openShare(channel: 'whatsapp' | 'email' = 'whatsapp'): void {
@@ -672,7 +601,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   toggleRemoveTerms(): void { this.removeTerms.update(v => !v); }
   toggleRemoveTransportActivities(): void { this.removeTransportActivities.update(v => !v); }
 
-  /** Plain-text message for the wa.me deep link. Respects the toggle state. */
   buildWhatsAppText(): string {
     const trip = this.tripInfo();
     const nights = Number(trip?.NoOfNights) || 0;
@@ -770,7 +698,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .catch(() => this.toastr.error('Could not copy'));
   }
 
-  /** HTML email preview — sanitized once via DomSanitizer for [innerHTML] binding. */
   buildEmailHtml(): SafeHtml {
     const trip = this.tripInfo();
     let html = `
@@ -893,25 +820,370 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   private formatDate(value: any): string {
     if (!value) return '';
+    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // CLIENT-SIDE PDF GENERATION — pdfmake
+  //
+  // Rewritten from the previous jsPDF implementation, which had the
+  // exact hardcoded-data problem this whole module has been built to
+  // avoid: it baked in "GREEN ISLAND", "ANDAMAN", a fixed phone number,
+  // email, and office-locations string for every quote regardless of
+  // which agency or destination the quote actually belongs to. On a
+  // multi-agency platform (TripInfoModel.AgencyName varies per trip)
+  // that means every other agency's customer was seeing Green Island's
+  // own contact details on their PDF. None of that is carried forward.
+  //
+  // What's real vs. what's a known gap:
+  // - Destination, agency name, contact name, pax, dates, consultant,
+  //   package prices, hotels, transport/activities, day schedule,
+  //   inclusions/exclusions/terms — all bound to actual API fields.
+  // - Company phone/email/office-address: TripInfoModel has no such
+  //   fields (only AgencyName). I'm not hardcoding Green Island's own
+  //   contact info here — if you want a real per-agency contact block,
+  //   GetQuoteDetail's TripInfoModel needs Agency phone/email/address
+  //   fields added first.
+  // - Cover photo collage: no image assets available; using a clean
+  //   text-only branded cover instead of fabricated stock photography.
+  //
+  // npm install pdfmake  (and -D @types/pdfmake if you want types)
+  // ══════════════════════════════════════════════════════════════
+
+  async downloadPdf(): Promise<void> {
+    this.pdfLoading.set(true);
+    try {
+      const docDefinition = this.buildPdfDocDefinition();
+      pdfMake.createPdf(docDefinition).download(
+        `Quotation-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.pdf`
+      );
+    } catch (e) {
+      console.error('PDF generation error', e);
+      this.toastr.error('Error generating PDF');
+    } finally {
+      this.pdfLoading.set(false);
+    }
+  }
+
+  // ── Diagonal tiled watermark, drawn fresh on every page via pdfmake's
+  // background callback — this is the exact thing jsPDF made painful. ──
+  private pdfWatermark(pageSize: { width: number; height: number }): any[] {
+    const trip = this.tripInfo();
+    const label = [trip?.AgencyName, `Trip# ${this.formatQuotationNo(trip?.QuotationNo)}`]
+      .filter(Boolean).join(' • ');
+    if (!label) return [];
+
+    const elements: any[] = [];
+    const stepX = 220, stepY = 90;
+    for (let y = -60; y < pageSize.height + 60; y += stepY) {
+      for (let x = -80; x < pageSize.width + 80; x += stepX) {
+        elements.push({
+          text: label,
+          fontSize: 9,
+          color: '#94a3b8',
+          opacity: 0.18,
+          angle: -30,
+          absolutePosition: { x, y },
+        });
+      }
+    }
+    return elements;
+  }
+
+  private stripHtml(value: string | null | undefined): string {
+    return (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  private buildPdfDocDefinition(): any {
+    const trip = this.tripInfo();
+    const pkgTypes = this.packageTypes();
+    const primary = '#0d6efd';
+
+    const endDate = trip?.StartDate ? new Date(trip.StartDate) : null;
+    if (endDate) endDate.setDate(endDate.getDate() + Number(trip?.NoOfNights || 0));
+
+    const content: any[] = [];
+
+    // ─── Cover ───────────────────────────────────────────────────
+    content.push(
+      { text: trip?.AgencyName || '', style: 'agencyName', alignment: 'center', margin: [0, 20, 0, 4] },
+      { text: "It's Time to Explore", style: 'coverTagline', alignment: 'center' },
+      { text: (trip?.DestinationName || '').toUpperCase(), style: 'coverDestination', alignment: 'center' },
+      {
+        columns: [
+          {
+            width: '50%',
+            table: {
+              widths: ['*'],
+              body: [[{
+                stack: [
+                  { text: 'Trip ID', style: 'label' },
+                  { text: `#${this.formatQuotationNo(trip?.QuotationNo)}`, style: 'value' },
+                  { text: trip?.ContactName || 'Guest', margin: [0, 6, 0, 0] },
+                  { text: `${this.totalGuestCount()} Guests`, style: 'label' },
+                  { text: 'Starts / Ends', style: 'label', margin: [0, 6, 0, 0] },
+                  { text: `${this.formatDateShort(trip?.StartDate)}  —  ${this.formatDateShort(endDate)} (${this.durationLabel()})`, style: 'value' },
+                ],
+                margin: [8, 8, 8, 8],
+              }]],
+            },
+            layout: 'lightHorizontalLines',
+          },
+          {
+            width: '50%',
+            table: {
+              widths: ['*'],
+              body: [[{
+                stack: [
+                  { text: 'Your Holiday Consultant', style: 'label' },
+                  { text: trip?.SalesPersonName || '', style: 'value' },
+                ],
+                margin: [8, 8, 8, 8],
+              }]],
+            },
+            layout: 'lightHorizontalLines',
+          },
+        ],
+        columnGap: 12,
+        margin: [0, 30, 0, 0],
+      },
+      { text: '', pageBreak: 'after' },
+    );
+
+    // ─── Greeting + Quote Price ──────────────────────────────────
+    content.push(
+      { text: `Dear ${trip?.ContactName || 'Guest'},`, style: 'h2' },
+      { text: `Greetings from ${trip?.AgencyName || 'us'}.`, margin: [0, 4, 0, 4] },
+      {
+        text: "Our sales team has put up this Quote regarding your upcoming trip. Please go through it and let us know if you would like any changes in any of the provided services.",
+        margin: [0, 0, 0, 12],
+      },
+      {
+        columns: [
+          { width: '33%', stack: [{ text: 'DESTINATION', style: 'label' }, { text: trip?.DestinationName || '', style: 'value' }] },
+          { width: '33%', stack: [{ text: 'START DATE', style: 'label' }, { text: this.formatDateLong(trip?.StartDate), style: 'value' }] },
+          { width: '34%', stack: [{ text: 'DURATION', style: 'label' }, { text: this.durationLabel(), style: 'value' }] },
+        ],
+        margin: [0, 0, 0, 12],
+      },
+    );
+
+    if (!this.hideTotalPrice() && pkgTypes.length) {
+      content.push(
+        { text: `Quote Price (${pkgTypes.length} Package Option${pkgTypes.length > 1 ? 's' : ''})`, style: 'sectionBanner' },
+        {
+          table: {
+            widths: ['auto', '*', 'auto'],
+            body: [
+              [{ text: '#', style: 'tableHead' }, { text: 'Option', style: 'tableHead' }, { text: 'Total (INR)', style: 'tableHead' }],
+              ...pkgTypes.map((pkg: any, idx: number) => [
+                String(idx + 1),
+                pkg.PackageTypeName,
+                { text: `${this.formatCurrency(this.packageQuotePrice(pkg.QuotePackageTypeId))} /-
+(including ${this.quoteHeader()?.GstPercent || 5}% GST)`, style: 'priceCell' },
+              ]),
+            ],
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 16],
+        },
+      );
+    }
+
+    // ─── Hotels / Accommodations, per package ───────────────────
+    for (const pkg of pkgTypes) {
+      const hotels = this.hotelsByPackage(pkg.QuotePackageTypeId);
+      if (!hotels.length) continue;
+
+      content.push({ text: `Hotels / Accommodations`, style: 'sectionBanner' });
+      content.push({ text: `Option: ${pkg.PackageTypeName}`, style: 'h3', margin: [0, 0, 0, 8] });
+
+      for (const hotel of hotels) {
+        content.push({
+          table: {
+            widths: ['*'],
+            body: [[{
+              stack: [
+                { text: `${hotel.NightNumber}${this.ordinal(hotel.NightNumber)} Night at ${hotel.LocationName || ''}`, style: 'h4' },
+                { text: `Check-in on ${this.formatDateLong(hotel.StayDate)}`, style: 'label', margin: [0, 0, 0, 6] },
+                { text: hotel.HotelName, style: 'hotelName' },
+                {
+                  columns: [
+                    { width: '50%', stack: [{ text: 'ROOMS', style: 'label' }, { text: `${hotel.NoOfRooms} ${hotel.RoomTypeName || ''}`, bold: true }, { text: `${hotel.PaxPerRoom} Pax`, style: 'label' }] },
+                    { width: '50%', stack: [{ text: 'MEAL PLAN', style: 'label' }, { text: hotel.MealPlan || '', bold: true }] },
+                  ],
+                  margin: [0, 4, 0, 0],
+                },
+                ...(this.hasSimilarHotels(hotel.QuoteHotelId) ? [{
+                  text: 'Similar alternatives: ' + this.similarHotels()
+                    .filter((s: any) => s.ParentQuoteHotelId === hotel.QuoteHotelId)
+                    .map((s: any) => s.HotelName).join(', '),
+                  style: 'label',
+                  margin: [0, 6, 0, 0],
+                }] : []),
+              ],
+              margin: [10, 10, 10, 10],
+            }]],
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 8],
+        });
+
+        const inclusionsForHotel = this.specialInclusions().filter((si: any) => si.QuoteHotelId === hotel.QuoteHotelId);
+        if (inclusionsForHotel.length) {
+          content.push({ text: 'Hotel Special Inclusions', style: 'h4', margin: [0, 4, 0, 4] });
+          for (const si of inclusionsForHotel) {
+            content.push({
+              table: {
+                widths: ['*'],
+                body: [[{
+                  stack: [
+                    { text: si.SpecialInclusionName, bold: true },
+                    { text: `${si.NightNumber ? this.ordinal(si.NightNumber) + ' Night' : ''} at ${si.HotelName || ''}` },
+                  ],
+                  margin: [8, 8, 8, 8],
+                }]],
+              },
+              layout: 'lightHorizontalLines',
+              margin: [0, 0, 0, 8],
+            });
+          }
+        }
+      }
+    }
+
+    // ─── Transportation and Activities ───────────────────────────
+    if (!this.removeTransportActivities()) {
+      const days = this.daySlots().filter((d: any) => this.servicesForDay(d.dayNumber).length || this.activityGroupsForDay(d.dayNumber).length);
+      if (days.length) {
+        content.push({ text: 'Transportation and Activities', style: 'sectionBanner' });
+        const rows: any[] = [[{ text: 'Day', style: 'tableHead' }, { text: 'Service', style: 'tableHead' }, { text: '', style: 'tableHead' }]];
+        for (const day of days) {
+          const serviceLines: any[] = [];
+          for (const svc of this.servicesForDay(day.dayNumber)) {
+            serviceLines.push({
+              cols: [`${this.serviceTitle(svc)} - ${this.serviceSubtitle(svc)}`, svc.VehicleTypeName || '', this.serviceBreakdown(svc)],
+            });
+          }
+          for (const group of this.activityGroupsForDay(day.dayNumber)) {
+            serviceLines.push({
+              cols: [this.activityGroupTitle(group), group.entries.map((e: any) => `${e.Qty} ${e.PaxTypeLabel || e.PaxType}`).join(', '), ''],
+            });
+          }
+          serviceLines.forEach((line, idx) => {
+            rows.push([
+              idx === 0 ? { text: [`${day.dayNumber}${this.ordinal(day.dayNumber)} Day
+`, { text: day.shortDate, style: 'label' }], rowSpan: serviceLines.length } : {},
+              line.cols[0],
+              [line.cols[1], line.cols[2]].filter(Boolean).join(''),
+            ]);
+          });
+        }
+        content.push({
+          table: { widths: ['auto', '*', 'auto'], body: rows },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 16],
+        });
+      }
+    }
+
+    // ─── Day Wise Itinerary ──────────────────────────────────────
+    if (!this.removeItinerary()) {
+      const days = this.daySlots().filter((d: any) => this.daySchedule(d.dayNumber));
+      if (days.length) {
+        content.push({ text: 'Day Wise Itinerary', style: 'sectionBanner' });
+        for (const day of days) {
+          const sched = this.daySchedule(day.dayNumber)!;
+          content.push({
+            columns: [
+              { width: 60, text: [`${day.dayNumber}${this.ordinal(day.dayNumber)}
+`, { text: 'Day', style: 'label' }], style: 'dayBadge' },
+              {
+                width: '*',
+                stack: [
+                  { text: this.formatDateLong(day.date), style: 'label' },
+                  { text: sched.title, style: 'h4' },
+                  ...(sched.intro ? [{ text: sched.intro, margin: [0, 4, 0, 4] }] : []),
+                  ...sched.sections.flatMap((s: any) => ([
+                    { text: s.heading, bold: true, margin: [0, 4, 0, 2] },
+                    { text: s.body, margin: [0, 0, 0, 4] },
+                  ])),
+                ],
+              },
+            ],
+            margin: [0, 0, 0, 12],
+          });
+        }
+      }
+    }
+
+    // ─── Terms and Conditions / Inclusions / Exclusions ──────────
+    if (!this.removeTerms()) {
+      if (this.inclusions().length || this.exclusions().length) {
+        content.push({ text: 'Inclusions / Exclusions', style: 'sectionBanner' });
+        content.push({
+          columns: [
+            { width: '50%', ul: this.inclusions().map((i: any) => this.inclusionText(i)) },
+            { width: '50%', ul: this.exclusions().map((e: any) => this.exclusionText(e)) },
+          ],
+          margin: [0, 0, 0, 16],
+        });
+      }
+      if (this.hasTerms()) {
+        content.push({ text: 'Terms and Conditions', style: 'sectionBanner' });
+        for (const term of this.terms()) {
+          content.push({ text: this.stripHtml(this.termHtml(term)), margin: [0, 0, 0, 8] });
+        }
+      }
+    }
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [40, 50, 40, 40],
+      background: (currentPage: number, pageSize: any) => ({
+        stack: this.pdfWatermark(pageSize),
+      }),
+      header: (currentPage: number) => currentPage === 1 ? null : {
+        text: trip?.AgencyName || '',
+        alignment: 'center',
+        color: primary,
+        bold: true,
+        margin: [0, 16, 0, 0],
+      },
+      footer: (currentPage: number, pageCount: number) => ({
+        text: `${currentPage} / ${pageCount}`,
+        alignment: 'center',
+        style: 'label',
+      }),
+      content,
+      styles: {
+        agencyName: { fontSize: 20, bold: true, color: primary },
+        coverTagline: { fontSize: 16, margin: [0, 30, 0, 0] },
+        coverDestination: { fontSize: 30, bold: true, color: primary, margin: [0, 4, 0, 0] },
+        sectionBanner: { fontSize: 13, bold: true, color: primary, fillColor: '#e7edff', margin: [0, 12, 0, 8] },
+        h2: { fontSize: 14, bold: true },
+        h3: { fontSize: 12, bold: true, color: primary },
+        h4: { fontSize: 11, bold: true, color: primary },
+        hotelName: { fontSize: 12, bold: true, color: '#1e293b', margin: [0, 2, 0, 4] },
+        label: { fontSize: 8, color: '#64748b' },
+        value: { fontSize: 11, bold: true },
+        priceCell: { fontSize: 12, bold: true, color: primary },
+        tableHead: { bold: true, fillColor: '#f1f5f9' },
+        dayBadge: { fontSize: 16, bold: true, color: primary },
+      },
+      defaultStyle: { fontSize: 9 },
+    };
+  }
+
+
+  private formatDateShort(value: any): string {
+    if (!value) return '';
     return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  /**
-   * Server-side PDF download. Depends on the GeneratePdf endpoint —
-   * Stage 3, not yet built. Wired here so the button works the moment
-   * that endpoint exists; calling it now will 404 until then.
-   */
-  downloadPdf(): void {
-    this.service.generateQuotePdf(this.enc({ QueryStepOneId: this.QueryStepOneId, QuoteId: this.QuoteId })).subscribe({
-      next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Quotation-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: () => this.toastr.error('Error generating PDF'),
-    });
+  private formatDateLong(value: any): string {
+    if (!value) return '';
+    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
   }
 }
