@@ -698,6 +698,21 @@ activityTotal = computed(() => {
             }
           });
         }
+        // ── Rehydrate row-level (per-pax-type) markups saved via QuoteRowMarkup ──
+        // Mirrors the PackageMarkups block above. Key format must match the one
+        // built in makePricingRow(): `${packageTypeId}-${kind}`, e.g. "1125-adult-double".
+        // Without this, this.rowMarkups stays empty on load and every row-level
+        // markup input silently resets to 0 (or markupAmount for % type) via the
+        // lazy-default in getPricingRowMarkupInput(), even though the value is
+        // correctly saved in the database.
+        this.rowMarkups = {};
+        if (r.RowMarkups?.length > 0) {
+          r.RowMarkups.forEach((rm: any) => {
+            const key = `${rm.QuotePackageTypeId}-${rm.RowKind}`;
+            this.rowMarkups[key] = Number(rm.MarkupInput) || 0;
+          });
+        }
+
         // ========== FIXED PACKAGE TYPES HANDLING ==========
         // Always fetch package types directly using the dedicated endpoint
         // This ensures we get the correct data regardless of what QuoteDetail returns
@@ -4674,16 +4689,19 @@ private buildCompleteQuotePayload(): any {
             TotalMarkup: this.getTotalMarkup(pkg.QuotePackageTypeId),
             InternalNotes: this.packageInternalNotes[pkg.QuotePackageTypeId] || '',
         })),
-         // ADD THIS BLOCK
+        // key is built as `${packageTypeId}-${kind}` in makePricingRow(), and kind
+        // values like 'adult-double' / 'adult-single' / 'child-cweb' / 'child-cnb'
+        // contain hyphens themselves. packageTypeId is always a plain numeric id
+        // with no hyphen, so we must split on the FIRST hyphen (indexOf), not the
+        // last (lastIndexOf) -- otherwise the id parses as NaN, falls back to 0,
+        // and every row gets stripped by the QuotePackageTypeId > 0 filter below.
         RowMarkups: Object.entries(this.rowMarkups).map(([key, value]) => {
-            const idx = key.lastIndexOf('-');
+            const idx = key.indexOf('-');
             return {
                 QuotePackageTypeId: Number(key.slice(0, idx)) || 0,
                 RowKind: key.slice(idx + 1),
                 MarkupInput: Number(value) || 0,
             };
-
-
         }).filter(rm => rm.QuotePackageTypeId > 0),
     PricingSnapshots: this.packageTypes()
           .flatMap(pkg => this.buildPricingSnapshotsForPackage(pkg.QuotePackageTypeId)),
