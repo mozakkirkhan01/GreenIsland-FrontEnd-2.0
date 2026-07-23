@@ -325,6 +325,53 @@ export interface GeneratedPricingRow {
   roundedTotal: number;
   breakdown: PricingComponentBreakdown[];
 }
+export interface PricingSnapshotRow {
+  QuotePricingSnapshotId?: number;
+  QuotePackageTypeId: number;
+  RowKind: string;
+  RowLabel: string;
+  Qty: number;
+  HotelAmount: number;
+  TransportAmount: number;
+  ActivityAmount: number;
+  SpecialInclusionAmount: number;
+  ExtrasAmount: number;
+  CostPrice: number;
+  MarkupAmount: number;
+  TaxableAmount: number;
+  GSTAmount: number;
+  RoundedAmount: number;
+  FinalPrice: number;
+  SortOrder: number;
+}
+ 
+export interface PackageSummaryRow {
+  QuotePackageSummaryId?: number;
+  QuotePackageTypeId: number;
+  PackageName: string;
+  HotelTotal: number;
+  TransportTotal: number;
+  ActivityTotal: number;
+  SpecialInclusionTotal: number;
+  CostPrice: number;
+  MarkupTotal: number;
+  GSTAmount: number;
+  GrandTotal: number;
+  AdultPrice: number | null;
+  ChildPrice: number | null;
+  InfantPrice: number | null;
+  TotalPax: number;
+}
+ 
+export interface PricingBreakdownRow {
+  QuotePricingBreakdownId?: number;
+  QuotePackageTypeId: number;
+  RowKind: string;
+  ComponentType: string;
+  Amount: number;
+  SortOrder: number;
+}
+
 
 @Component({
   selector: 'app-query-stepthree',
@@ -398,6 +445,10 @@ export class QueryStepthree implements OnInit, CanComponentDeactivate {
 
   hotelRows = signal<QuoteHotelRow[]>([]);
   serviceRows = signal<QuoteServiceRow[]>([]);
+
+  pricingSnapshots = signal<PricingSnapshotRow[]>([]);
+  packageSummaries = signal<PackageSummaryRow[]>([]);
+  pricingBreakdowns = signal<PricingBreakdownRow[]>([]);
 
   // New hotel model
   newHotel = {
@@ -631,6 +682,9 @@ activityTotal = computed(() => {
         }
 
          this.packageMarkups = {};
+         this.pricingSnapshots.set(r.PricingSnapshots ?? []);
+        this.packageSummaries.set(r.PackageSummaries ?? []);
+        this.pricingBreakdowns.set(r.PricingBreakdowns ?? []);
         this.packageInternalNotes = {};
         if (r.PackageMarkups?.length > 0) {
           r.PackageMarkups.forEach((pm: any) => {
@@ -4362,6 +4416,84 @@ getPackageActivityTotal(pkgId: number): number {
     };
   }
 
+  private buildPricingSnapshotsForPackage(packageTypeId: number): any[] {
+  return this.getPackagePricingRows(packageTypeId).map((row, idx) => ({
+    QuotePricingSnapshotId: 0,
+    QuotePackageTypeId: packageTypeId,
+    RowKind: row.kind,
+    RowLabel: row.tableLabel || row.label,
+    Qty: row.qty,
+    HotelAmount: row.hotelCost,
+    TransportAmount: row.transportCost,
+    ActivityAmount: row.activityCost,
+    SpecialInclusionAmount: row.specialInclusionCost,
+    ExtrasAmount: row.extrasCost,
+    CostPrice: row.costPrice,
+    MarkupAmount: row.markupAmount,
+    TaxableAmount: row.taxableAmount,
+    GSTAmount: row.gstAmount,
+    RoundedAmount: row.roundedTotal,
+    FinalPrice: row.totalBeforeRounding,
+    SortOrder: idx + 1,
+  }));
+}
+ 
+// ── Build one breakdown row per non-zero cost component per pricing row ──
+private buildPricingBreakdownsForPackage(packageTypeId: number): any[] {
+  const breakdowns: any[] = [];
+  this.getPackagePricingRows(packageTypeId).forEach(row => {
+    row.breakdown.forEach((component, idx) => {
+      breakdowns.push({
+        QuotePricingBreakdownId: 0,
+        QuotePackageTypeId: packageTypeId,
+        RowKind: row.kind,
+        ComponentType: component.label,
+        Amount: component.amount,
+        SortOrder: idx + 1,
+      });
+    });
+  });
+  return breakdowns;
+}
+ 
+// ── Build the one grand-total summary row for a package ───────────────
+// Reads existing getPackage*Total()/getPackage*Price() helpers only —
+// no new pricing math.
+private buildPackageSummary(packageTypeId: number, packageName: string): any {
+  const rows = this.getPackagePricingRows(packageTypeId);
+  const adultRow = rows.find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  const childRow = rows.find(r => r.kind === 'child-cweb' || r.kind === 'child-cnb');
+  const infantRow = rows.find(r => r.kind === 'infant');
+ 
+  // Mirrors the same rounding decision the template already makes when
+  // choosing between totalBeforeRounding and roundedTotal for display.
+  const priceForRow = (row?: GeneratedPricingRow): number | null => {
+    if (!row) return null;
+    return this.roundingMode !== 'none' ? row.roundedTotal : row.totalBeforeRounding;
+  };
+ 
+  return {
+    QuotePackageSummaryId: 0,
+    QuotePackageTypeId: packageTypeId,
+    PackageName: packageName || '',
+    HotelTotal: this.getPackageHotelTotal(packageTypeId),
+    TransportTotal: this.getPackageTransportTotal(packageTypeId),
+    ActivityTotal: this.getPackageActivityTotal(packageTypeId),
+    SpecialInclusionTotal: this.getPackageSpecialInclusionTotal(packageTypeId),
+    CostPrice: this.getPackageTotalCost(packageTypeId),
+    MarkupTotal: this.getPackageMarkupAmount(packageTypeId),
+    GSTAmount: this.getPackageGstAmount(packageTypeId),
+    GrandTotal: this.getPackageRoundedPrice(packageTypeId),
+    AdultPrice: priceForRow(adultRow),
+    ChildPrice: priceForRow(childRow),
+    InfantPrice: priceForRow(infantRow),
+    TotalPax: this.payingGuestCount(),
+  };
+}
+
+ 
+
+
 private buildCompleteQuotePayload(): any {
     return {
         QuoteId: this.QuoteId,
@@ -4553,6 +4685,14 @@ private buildCompleteQuotePayload(): any {
 
 
         }).filter(rm => rm.QuotePackageTypeId > 0),
+    PricingSnapshots: this.packageTypes()
+          .flatMap(pkg => this.buildPricingSnapshotsForPackage(pkg.QuotePackageTypeId)),
+ 
+        PackageSummaries: this.packageTypes()
+          .map(pkg => this.buildPackageSummary(pkg.QuotePackageTypeId, pkg.PackageTypeName)),
+ 
+        PricingBreakdowns: this.packageTypes()
+          .flatMap(pkg => this.buildPricingBreakdownsForPackage(pkg.QuotePackageTypeId)),
     };
 }
 
