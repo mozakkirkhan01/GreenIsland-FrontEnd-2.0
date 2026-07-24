@@ -2098,6 +2098,7 @@
               <div class="d-flex flex-row gap-3 mt-3">
 
                 @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let index = $index) {
+                @let overviewSummary = getDisplayPackageSummary(pkg.QuotePackageTypeId, pkg.PackageTypeName);
                 <div class="border rounded-3 p-3 bg-white shadow-sm" style="border:1px solid #d2d8f7 !important;">
 
                   <!-- Package Heading -->
@@ -2116,7 +2117,7 @@
                       <div class="fw-semibold text-primary mb-1" style="font-size:12px;">Total Cost</div>
                       <div class="fw-bold text-dark" style="font-size:16px;">
                         <span class="text-secondary fw-normal" style="font-size:10px;">INR</span>
-                        {{ formatCurrency(getPackageTotalCost(pkg.QuotePackageTypeId)) }}
+                        {{ formatCurrency(overviewSummary.CostPrice) }}
                       </div>
                     </div>
 
@@ -2128,7 +2129,7 @@
                         <div class="fw-semibold mb-1" style="font-size:12px;">Hotels</div>
                         <div class="fw-bold" style="font-size:14px;">
                           <span class="text-secondary fw-normal" style="font-size:10px;">INR</span>
-                          {{ formatCurrency(getPackageHotelTotal(pkg.QuotePackageTypeId)) }}
+                          {{ formatCurrency(overviewSummary.HotelTotal) }}
                         </div>
                       </div>
 
@@ -2139,8 +2140,7 @@
                         <div class="fw-semibold mb-1" style="font-size:12px;">Activities/Tickets</div>
                         <div class="fw-bold" style="font-size:14px;">
                           <span class="text-secondary fw-normal" style="font-size:10px;">INR</span>
-                          {{ formatCurrency(getPackageTransportTotal(pkg.QuotePackageTypeId) +
-                          getPackageActivityTotal(pkg.QuotePackageTypeId)) }}
+                          {{ formatCurrency(overviewSummary.TransportTotal + overviewSummary.ActivityTotal) }}
                         </div>
                       </div>
 
@@ -2296,7 +2296,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
+          @for (row of getDisplayPricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr>
             <td>
               <div class="fw-medium">{{ getPricingRowDisplay(row) }}</div>
@@ -2386,7 +2386,7 @@
         <!-- Per-Person Strategy -->
         @if (pricingStrategy === 'per-person') {
           <!-- Per-Person row -->
-          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
+          @for (row of getDisplayPricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr>
             <td class="fw-semibold">{{ row.tableLabel }}<br><span class="text-muted small">{{ getPricingRowSubText(row) }}</span></td>
             <td class="text-end fw-bold">
@@ -2575,7 +2575,7 @@
       <span class="mx-2">×</span>
       <span>{{ payingGuestCount() }} guests =</span>
       <span class="fw-bold text-dark ms-1">
-        INR {{ formatMoney(getPackageRoundedPrice(pkg.QuotePackageTypeId)) }}
+        INR {{ formatMoney(getDisplayPackageSummary(pkg.QuotePackageTypeId, pkg.PackageTypeName).GrandTotal) }}
       </span>
     </div>
     }
@@ -2649,9 +2649,8 @@
   <!-- One row per package -->
   @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pi = $index) {
 
-  @let finalPrice   = getPackageFinalPrice(pkg.QuotePackageTypeId);
-  @let roundedPrice = getPackageRoundedPrice(pkg.QuotePackageTypeId);
-  @let displayPrice = roundedPrice > 0 ? roundedPrice : finalPrice;
+  @let displaySummary = getDisplayPackageSummary(pkg.QuotePackageTypeId, pkg.PackageTypeName);
+  @let displayPrice = displaySummary.GrandTotal;
 
   <div class="d-flex align-items-stretch gap-0 mb-3"
     style="border:1px solid #dee2e6; border-radius:6px; overflow:hidden;">
@@ -2685,7 +2684,7 @@
         <tbody>
           <!-- Data rows — sourced from the same getPackagePricingRows() the
                calculation table uses, so Preview can never drift out of sync. -->
-          @for (row of getPackagePricingRows(pkg.QuotePackageTypeId); track row.key) {
+          @for (row of getDisplayPricingRows(pkg.QuotePackageTypeId); track row.key) {
           <tr style="border-bottom:1px solid #dee2e6;">
             <td class="text-muted" style="padding:10px 16px; border:none;">
               {{ getPricingRowDisplay(row) }}

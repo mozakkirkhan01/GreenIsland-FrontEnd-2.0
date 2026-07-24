@@ -811,6 +811,14 @@ activityTotal = computed(() => {
             if (hc.Message === ConstantData.SuccessMessage)
               this.hotelCategoryList.set(hc.HotelCategoryList ?? []);
 
+            // Loading a quote is not editing it. Force this explicitly rather
+            // than assuming nothing upstream flipped it -- several of the
+            // rehydration calls above (mapHotelRow, mapServiceRow, etc.) reuse
+            // the same setters user edits go through, and any one of them
+            // calling markDirty() internally would silently disable the
+            // snapshot-first display below on every single load.
+            this.markClean();
+
             this.loading.set(false);
           },
           error: () => {
@@ -4506,7 +4514,78 @@ private buildPackageSummary(packageTypeId: number, packageName: string): any {
   };
 }
 
- 
+// ── Snapshot-first display (read path) ───────────────────────────────
+// getPackagePricingRows() is a LIVE recompute — it depends on hotelRows()/
+// serviceRows()/etc. being fully and correctly hydrated on every call, with
+// no saved-state fallback of any kind. That's what was producing the
+// "Hotels disappear on reopen" bug: the moment reload hydration is even
+// slightly off, the live numbers silently diverge from what was saved and
+// there's no path back to the truth.
+//
+// These two methods add that path back. They prefer the frozen
+// QuotePricingSnapshot/QuotePricingBreakdown/QuotePackageSummary data (which
+// is populated from loadAll() and proven correct — see the console dump
+// this was built against) as long as the user hasn't edited anything since
+// load. The instant markDirty() fires anywhere (all ~84 existing edit
+// handlers already call it), hasUnsavedChanges flips true and every package
+// falls straight back to the exact same live getPackagePricingRows() /
+// buildPackageSummary() this file already used before — so active editing
+// is never frozen or stale, only the "just opened it" state is.
+hasPricingSnapshot(packageTypeId: number): boolean {
+  return this.pricingSnapshots().some(s => s.QuotePackageTypeId === packageTypeId);
+}
+
+getDisplayPricingRows(packageTypeId: number): GeneratedPricingRow[] {
+  if (this.hasUnsavedChanges || !this.hasPricingSnapshot(packageTypeId)) {
+    // No snapshot yet (brand-new quote), or the user has started editing
+    // since load — always fall back to the live calculation.
+    return this.getPackagePricingRows(packageTypeId);
+  }
+
+  const breakdownsByKind = new Map<string, PricingComponentBreakdown[]>();
+  this.pricingBreakdowns()
+    .filter(b => b.QuotePackageTypeId === packageTypeId)
+    .sort((a, b) => a.SortOrder - b.SortOrder)
+    .forEach(b => {
+      const list = breakdownsByKind.get(b.RowKind) ?? [];
+      list.push({ label: b.ComponentType, amount: b.Amount });
+      breakdownsByKind.set(b.RowKind, list);
+    });
+
+  return this.pricingSnapshots()
+    .filter(s => s.QuotePackageTypeId === packageTypeId)
+    .sort((a, b) => a.SortOrder - b.SortOrder)
+    .map(s => ({
+      key: `${packageTypeId}-${s.RowKind}`,
+      kind: s.RowKind as PricingRowKind,
+      label: s.RowLabel,
+      tableLabel: s.RowLabel,
+      qty: s.Qty,
+      unitLabel: '',
+      ageLabel: '',
+      hotelCost: s.HotelAmount,
+      transportCost: s.TransportAmount,
+      activityCost: s.ActivityAmount,
+      specialInclusionCost: s.SpecialInclusionAmount,
+      extrasCost: s.ExtrasAmount,
+      costPrice: s.CostPrice,
+      markupInput: 0,
+      markupAmount: s.MarkupAmount,
+      taxableAmount: s.TaxableAmount,
+      gstAmount: s.GSTAmount,
+      totalBeforeRounding: s.FinalPrice,
+      roundedTotal: s.RoundedAmount,
+      breakdown: breakdownsByKind.get(s.RowKind) ?? [],
+    }));
+}
+
+getDisplayPackageSummary(packageTypeId: number, packageName: string): PackageSummaryRow {
+  if (!this.hasUnsavedChanges) {
+    const frozen = this.packageSummaries().find(s => s.QuotePackageTypeId === packageTypeId);
+    if (frozen) return frozen;
+  }
+  return this.buildPackageSummary(packageTypeId, packageName) as PackageSummaryRow;
+}
 
 
 private buildCompleteQuotePayload(): any {
@@ -6890,24 +6969,31 @@ getPricingRowSubText(row: GeneratedPricingRow): string {
   return `${row.qty} ${row.unitLabel}${ageText}`;
 }
 
+// NOTE: these five feed the per-person "Total" row directly beneath the
+// segregation table in the template. They now read getDisplayPricingRows()
+// (snapshot-first, falls back to live once the user edits anything) instead
+// of getPackagePricingRows() (always-live) -- otherwise the segregation rows
+// above would show frozen/correct saved numbers while this Total row kept
+// showing the broken live recompute directly underneath them, which is its
+// own confusing bug even after the main one is fixed.
 getPackagePricingCostTotal(packageTypeId: number): number {
-  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.costPrice * row.qty, 0));
+  return this.roundMoney(this.getDisplayPricingRows(packageTypeId).reduce((sum, row) => sum + row.costPrice * row.qty, 0));
 }
 
 getPackagePricingMarkupTotal(packageTypeId: number): number {
-  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.markupAmount * row.qty, 0));
+  return this.roundMoney(this.getDisplayPricingRows(packageTypeId).reduce((sum, row) => sum + row.markupAmount * row.qty, 0));
 }
 
 getPackagePricingGstTotal(packageTypeId: number): number {
-  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.gstAmount * row.qty, 0));
+  return this.roundMoney(this.getDisplayPricingRows(packageTypeId).reduce((sum, row) => sum + row.gstAmount * row.qty, 0));
 }
 
 getPackagePricingFinalTotal(packageTypeId: number): number {
-  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.totalBeforeRounding * row.qty, 0));
+  return this.roundMoney(this.getDisplayPricingRows(packageTypeId).reduce((sum, row) => sum + row.totalBeforeRounding * row.qty, 0));
 }
 
 getPackagePricingRoundedTotal(packageTypeId: number): number {
-  return this.roundMoney(this.getPackagePricingRows(packageTypeId).reduce((sum, row) => sum + row.roundedTotal * row.qty, 0));
+  return this.roundMoney(this.getDisplayPricingRows(packageTypeId).reduce((sum, row) => sum + row.roundedTotal * row.qty, 0));
 }
 
 getPricingValidationErrors(packageTypeId?: number): string[] {
@@ -7036,7 +7122,7 @@ getPackageFinalPrice(packageTypeId: number): number {
 }
 
 getPackagePerPayingGuestPrice(packageTypeId: number): number {
-  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  const row = this.getDisplayPricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
   if (row) return row.roundedTotal;
   const paying = this.payingGuestCount();
   if (paying <= 0) return 0;
@@ -7044,14 +7130,14 @@ getPackagePerPayingGuestPrice(packageTypeId: number): number {
 }
 
 getPackagePerPersonMarkupAmount(packageTypeId: number): number {
-  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  const row = this.getDisplayPricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
   if (row) return row.markupAmount;
   const paying = this.payingGuestCount();
   return paying > 0 ? this.roundMoney(this.getPackageMarkupAmount(packageTypeId) / paying) : 0;
 }
 
 getPackagePerPersonFinalBeforeRounding(packageTypeId: number): number {
-  const row = this.getPackagePricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
+  const row = this.getDisplayPricingRows(packageTypeId).find(r => r.kind === 'adult-double' || r.kind === 'adult-single');
   if (row) return row.totalBeforeRounding;
   const paying = this.payingGuestCount();
   return paying > 0 ? this.roundMoney(this.getPackageFinalPrice(packageTypeId) / paying) : 0;
