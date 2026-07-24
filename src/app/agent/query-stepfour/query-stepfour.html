@@ -105,6 +105,18 @@
     background: #fff; border-radius: 12px; padding: 32px 40px;
     text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   }
+
+  /* Schedule layout: prevent description from overflowing the page */
+  .schedule-item { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .schedule-date { flex: 0 0 160px; min-width: 120px; color: #374151; }
+  .schedule-copy { flex: 1 1 0; min-width: 220px; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
+  .schedule-copy h5, .schedule-copy h6, .schedule-copy div { word-break: break-word; overflow-wrap: anywhere; }
+  .schedule-copy img { max-width: 100%; height: auto; display: block; }
+
+  @media (max-width: 768px) {
+    .schedule-item { flex-direction: column; }
+    .schedule-date { flex-basis: auto; }
+  }
 </style>
 
 <!-- PDF Loading overlay -->
