@@ -69,6 +69,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   similarHotels = computed<any[]>(() => this.quoteDetail()?.SimilarHotels ?? []);
   pricing = computed<any>(() => this.quoteDetail()?.Pricing ?? null);
   packageMarkups = computed<any[]>(() => this.quoteDetail()?.PackageMarkups ?? []);
+  // ── Snapshot pricing (frozen at save time, proven correct against the
+  // saved DB state) — everything below prefers these over any from-scratch
+  // recomputation, and only falls back to computing when a quote predates
+  // this feature (no rows in either table for its QuoteId). ──────────
+  pricingSnapshots = computed<any[]>(() => this.quoteDetail()?.PricingSnapshots ?? []);
+  packageSummaries = computed<any[]>(() => this.quoteDetail()?.PackageSummaries ?? []);
 
   // ── Activities grouped by Location + ActivityService + Day ──────
   activityGroups = computed(() => {
@@ -336,7 +342,63 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     });
   }
 
+  // ── Snapshot-first pricing helpers ───────────────────────────────
+  private packagePricingSnapshotsFor(packageTypeId: number): any[] {
+    return this.pricingSnapshots()
+      .filter(s => Number(s.QuotePackageTypeId) === Number(packageTypeId))
+      .sort((a, b) => (Number(a.SortOrder) || 0) - (Number(b.SortOrder) || 0));
+  }
+
+  private packageSummaryFor(packageTypeId: number): any | null {
+    return this.packageSummaries().find(s => Number(s.QuotePackageTypeId) === Number(packageTypeId)) || null;
+  }
+
+  private childLabel(n: number, ages: number[]): string {
+    return ages.length
+      ? `${n} Child${n > 1 ? 'ren' : ''} (${ages.map(a => a + 'y').join(', ')})`
+      : `${n} Child${n > 1 ? 'ren' : ''}`;
+  }
+
+  private rowKindDisplay(kind: string, count: number, cwebAges: number[], cnbAges: number[]): { label: string; paxLabel: string } {
+    switch (kind) {
+      case 'adult-double': return { label: 'Per Person (Double Sharing)', paxLabel: 'Pax' };
+      case 'adult-single': return { label: 'Per Adult with Extra Bed/Mattress', paxLabel: 'Pax' };
+      case 'child-cweb': return { label: 'Per Child with Extra Bed/Mattress', paxLabel: this.childLabel(count, cwebAges) };
+      case 'child-cnb': return { label: 'Per Child without Extra Bed/Mattress', paxLabel: this.childLabel(count, cnbAges) };
+      case 'infant': return { label: 'Per Infant', paxLabel: this.childLabel(count, []) };
+      default: return { label: kind, paxLabel: 'Pax' };
+    }
+  }
+
+  // Uses the frozen per-row FinalPrice/RoundedAmount exactly as saved --
+  // same markup, GST, and rounding that were actually applied when the
+  // quote was saved, instead of re-deriving them from PackageMarkup.PerPersonMarkup
+  // (which the old fallback below does, and which ignores QuoteRowMarkup
+  // entirely -- that's what produced the wrong 8,501 figure).
+  private guestCategoryTotalsFromSnapshot(packageTypeId: number, rows: any[]): { label: string; count: number; paxLabel: string; amount: number }[] {
+    const roundingMode = this.pricing()?.RoundingMode ?? this.quoteHeader()?.RoundingMode ?? 'none';
+    const ages = this.childrenAgesList();
+    const cwebCount = Number(rows.find(r => r.RowKind === 'child-cweb')?.Qty) || 0;
+    const cnbCount = Number(rows.find(r => r.RowKind === 'child-cnb')?.Qty) || 0;
+    const cwebAges = ages.slice(0, cwebCount);
+    const cnbAges = ages.slice(cwebCount, cwebCount + cnbCount);
+
+    return rows
+      .filter(r => (Number(r.Qty) || 0) > 0)
+      .map(r => {
+        const count = Number(r.Qty) || 0;
+        const { label, paxLabel } = this.rowKindDisplay(r.RowKind, count, cwebAges, cnbAges);
+        const amount = roundingMode !== 'none' ? Number(r.RoundedAmount) || 0 : Number(r.FinalPrice) || 0;
+        return { label, count, paxLabel, amount };
+      });
+  }
+
   guestCategoryTotals(packageTypeId: number): { label: string; count: number; paxLabel: string; amount: number }[] {
+    const snapshotRows = this.packagePricingSnapshotsFor(packageTypeId);
+    if (snapshotRows.length) {
+      return this.guestCategoryTotalsFromSnapshot(packageTypeId, snapshotRows);
+    }
+    // ── Fallback for quotes saved before the snapshot feature existed ──
     const totals = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
     let counts = { double: 0, aweb: 0, cweb: 0, cnb: 0 };
     let countsSet = false;
@@ -405,6 +467,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   packageGrandTotal(packageTypeId: number): number {
+    const summary = this.packageSummaryFor(packageTypeId);
+    if (summary) return Number(summary.GrandTotal) || 0;
     return this.guestCategoryTotals(packageTypeId).reduce((sum, r) => sum + r.amount * r.count, 0);
   }
 
@@ -460,7 +524,18 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .reduce((sum, row) => sum + (Number(row.TotalPrice) || 0), 0);
   }
 
+  // This used to be cost-only (hotel+special+transport+activity, no
+  // markup/GST/rounding at all) while being displayed as "Package (INR)" --
+  // the headline selling price. It was never a price. Now it prefers the
+  // frozen GrandTotal from PackageSummary (the actual saved selling price,
+  // same source guestCategoryTotals/packageGrandTotal now use), and only
+  // falls back to the old cost-only sum for quotes saved before the
+  // snapshot feature existed -- which will still under-report until that
+  // quote is re-saved from query-stepthree, but at least won't silently
+  // mislabel a cost total as a price for anything saved after this fix.
   packageQuotePrice(packageTypeId: number): number {
+    const summary = this.packageSummaryFor(packageTypeId);
+    if (summary) return Number(summary.GrandTotal) || 0;
     return this.packageHotelTotal(packageTypeId)
       + this.packageSpecialInclusionTotal(packageTypeId)
       + this.transportTotal()
@@ -468,6 +543,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   packageCostPrice(packageTypeId: number): number {
+    const summary = this.packageSummaryFor(packageTypeId);
+    if (summary) return Number(summary.CostPrice) || 0;
     return this.hotelsByPackage(packageTypeId).reduce((sum, row) => sum + (Number(row.CostPrice) || 0), 0)
       + this.transportTotal()
       + this.activityTotal();
@@ -843,13 +920,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   //    convention, add a CoverImageUrl field to Destination/TripInfoModel
   //    and swap PdfImageLoader.loadCoverImage's URL-building for that.
   //
-  // 2. Snapshot pricing: PricingSnapshots/PackageSummaries may be EMPTY
-  //    arrays right now — the save-side generator for those tables was
-  //    never written (blocked on the actual pricing-row calculation
-  //    function, which I never received). Every price in this PDF checks
-  //    snapshot first, falls back to the same computed signals used
-  //    elsewhere in this component (packageQuotePrice(), etc.) — not
-  //    duplicated math, the same calls.
+  // 2. Snapshot pricing: PricingSnapshots/PackageSummaries are populated by
+  //    SaveQuote() in query-stepthree's controller and proven correct against
+  //    the saved DB state. guestCategoryTotals()/packageGrandTotal()/
+  //    packageQuotePrice()/packageCostPrice() above all check snapshot data
+  //    first now and only fall back to a live/raw computation for quotes
+  //    saved before this feature existed (no rows for that QuoteId in either
+  //    table). The PDF builder receives the same pricingSnapshots()/
+  //    packageSummaries() signals and is expected to apply the identical
+  //    snapshot-first / live-fallback rule -- not duplicate the math.
   // ══════════════════════════════════════════════════════════════
 
   private readonly pdfImages = new PdfImageLoader();
@@ -885,8 +964,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         termHtml: (t: any) => this.termHtml(t),
         packageQuotePrice: (id: number) => this.packageQuotePrice(id),
         packageCostPrice: (id: number) => this.packageCostPrice(id),
-        pricingSnapshots: this.quoteDetail()?.PricingSnapshots ?? [],
-        packageSummaries: this.quoteDetail()?.PackageSummaries ?? [],
+        pricingSnapshots: this.pricingSnapshots(),
+        packageSummaries: this.packageSummaries(),
         durationLabel: this.durationLabel(),
         totalGuestCount: this.totalGuestCount(),
         formatCurrency: (n: number) => this.formatCurrency(n),
