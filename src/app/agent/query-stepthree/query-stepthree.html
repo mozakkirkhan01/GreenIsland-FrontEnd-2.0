@@ -2129,8 +2129,9 @@
                         <div class="fw-semibold mb-1" style="font-size:12px;">Hotels</div>
                         <div class="fw-bold" style="font-size:14px;">
                           <span class="text-secondary fw-normal" style="font-size:10px;">INR</span>
-                          {{ formatCurrency(overviewSummary.HotelTotal) }}
+                          {{ formatCurrency((overviewSummary.HotelTotal || 0) + (overviewSummary.SpecialInclusionTotal || 0)) }}
                         </div>
+                        <div class="text-muted small" style="font-size:10px;">(includes special inclusions)</div>
                       </div>
 
                       <div class="fw-bold" style="font-size:18px;">+</div>

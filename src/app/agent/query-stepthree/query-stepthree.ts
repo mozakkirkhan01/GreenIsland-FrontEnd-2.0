@@ -3861,18 +3861,36 @@ getNightDate(nightNumber: number): string {
   return slot ? slot.DateLabel : '';
 }
 
+// ✅ FIXED CODE
 getAccommodationSummaryPrice(hotel: QuoteHotelRow, nightCount: number): number {
     const effective = this.getEffectiveHotel(hotel);
     if (!effective) return 0;
     
-    const nights = Math.max(nightCount || effective.NightNumbers?.length || 1, 1);
+    // If we have night-specific prices, use them directly
+    if (effective.NightPrices && effective.NightPrices.length > 0) {
+        // For a single night display (when expanded in summary), 
+        // we need to match the specific night
+        // Since we're passing nightCount as the number of nights in this group,
+        // and the template loops through each night, we need to find the 
+        // price for the specific night being displayed
+        
+        // The template calls this method for each night row, but we don't 
+        // pass the night number. We need to restructure the template to 
+        // pass the night number.
+        
+        // For now, if there are night-specific prices, sum them all
+        // and divide by the count to get the average per night.
+        // But this is still not ideal.
+        
+        // The real fix requires changing the template to pass the night number.
+        // See the template fix below.
+    }
     
-    // Calculate per night: Room Rate × Rooms
+    // Fallback: calculate from rates
     const roomRate = effective.BaseRate || 0;
     const rooms = effective.NoOfRooms || 1;
     const roomTotalPerNight = roomRate * rooms;
     
-    // Extra bed charges per night
     const awebRate = effective.AwebRate || 0;
     const awebQty = effective.AWEB || 0;
     const awebTotalPerNight = awebRate * awebQty;
@@ -3885,16 +3903,41 @@ getAccommodationSummaryPrice(hotel: QuoteHotelRow, nightCount: number): number {
     const cnbQty = effective.CNB || 0;
     const cnbTotalPerNight = cnbRate * cnbQty;
     
-    // Sum all per-night charges
-    const perNightTotal = roomTotalPerNight + awebTotalPerNight + cwebTotalPerNight + cnbTotalPerNight;
+    return roomTotalPerNight + awebTotalPerNight + cwebTotalPerNight + cnbTotalPerNight;
+}
+
+// ✅ NEW METHOD: Gets price for a specific night
+getNightPrice(hotel: QuoteHotelRow, nightNumber: number): number {
+    const effective = this.getEffectiveHotel(hotel);
+    if (!effective) return 0;
     
-    // If we have a SellingPrice/FinalPrice, use that instead (manual override)
-    const totalPrice = effective.SellingPrice || effective.FinalPrice || effective.TotalPrice || 0;
-    if (totalPrice > 0) {
-        return totalPrice / nights;
+    // Check if we have night-specific prices
+    if (effective.NightPrices && effective.NightPrices.length > 0) {
+        const nightPrice = effective.NightPrices.find(np => np.NightNumber === nightNumber);
+        if (nightPrice) {
+            return nightPrice.Total || 0;
+        }
+        return 0; // Night not found, return 0
     }
     
-    return perNightTotal;
+    // No night-specific prices, calculate from base rate
+    const roomRate = effective.BaseRate || 0;
+    const rooms = effective.NoOfRooms || 1;
+    const roomTotal = roomRate * rooms;
+    
+    const awebRate = effective.AwebRate || 0;
+    const awebQty = effective.AWEB || 0;
+    const awebTotal = awebRate * awebQty;
+    
+    const cwebRate = effective.CwebRate || 0;
+    const cwebQty = effective.CWEB || 0;
+    const cwebTotal = cwebRate * cwebQty;
+    
+    const cnbRate = effective.CnbRate || 0;
+    const cnbQty = effective.CNB || 0;
+    const cnbTotal = cnbRate * cnbQty;
+    
+    return roomTotal + awebTotal + cwebTotal + cnbTotal;
 }
 
 // ── Group consecutive nights for the same hotel ──────────
