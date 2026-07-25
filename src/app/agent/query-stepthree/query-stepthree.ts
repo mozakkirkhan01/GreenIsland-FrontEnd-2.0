@@ -169,9 +169,11 @@ export interface QuoteHotelRow {
   IsManualPrice: boolean;
   IsDatabasePrice: boolean;
   FinalPrice: number;  
-  SimilarHotelParentId?: number; // ← ADD THIS
+  SimilarHotelParentId?: number;
   NightPrices?: HotelNightPriceBreakdown[];
   PriceBreakdown?: HotelPriceBreakdown;
+  // ✅ NEW: Flag to prevent recalculation on load
+  IsLoadedFromAPI?: boolean;
 }
 export type ActivityPaxType = 'Adult' | 'Child' | 'ChildBelowTwoYear';
 
@@ -719,30 +721,39 @@ activityTotal = computed(() => {
         this.fetchPackageTypesSeparately();
         // ========== END PACKAGE TYPES HANDLING ==========
 
-        if (r.Hotels?.length > 0) {
-          if (r.SpecialInclusions?.length > 0) {
-          this.specialInclusionRows.set(
-            r.SpecialInclusions.map((si: any) => this.mapSpecialInclusionRow(si))
-          );
-        }
+       if (r.Hotels?.length > 0) {
+  if (r.SpecialInclusions?.length > 0) {
+    this.specialInclusionRows.set(
+      r.SpecialInclusions.map((si: any) => this.mapSpecialInclusionRow(si))
+    );
+  }
+  
   const allHotels = r.Hotels.map((h: any) => this.mapHotelRow(h));
   const mainRows = allHotels.filter((h: QuoteHotelRow) => h.IsMainHotel);
-  const simRows  = allHotels.filter((h: QuoteHotelRow) => !h.IsMainHotel);
+  const simRows = allHotels.filter((h: QuoteHotelRow) => !h.IsMainHotel);
 
   // Nest similar hotels under their parent by matching NightNumbers
   mainRows.forEach((main: QuoteHotelRow) => {
-    main.SimilarHotels = simRows.filter((s: QuoteHotelRow) =>
-      s.NightNumbers.some(n => main.NightNumbers.includes(n))
-    );
+    // ✅ FIX: Set IsLoadedFromAPI for main hotels
+    main.IsLoadedFromAPI = true;
+    
+    main.SimilarHotels = simRows.filter((s: QuoteHotelRow) => {
+      // ✅ FIX: Set IsLoadedFromAPI for similar hotels
+      s.IsLoadedFromAPI = true;
+      return s.NightNumbers.some(n => main.NightNumbers.includes(n));
+    });
   });
 
   this.hotelRows.set(allHotels);
+  
   console.log('[Save/Load Debug] Hotels loaded from GetQuoteDetail', allHotels.map((h: QuoteHotelRow) => ({
     QuoteHotelId: h.QuoteHotelId,
     HotelName: h.HotelName,
     NightNumbers: h.NightNumbers,
     NightPricesCount: (h.NightPrices ?? []).length,
+    IsLoadedFromAPI: h.IsLoadedFromAPI,
   })));
+  
   allHotels.forEach((row: QuoteHotelRow) => {
     this.loadRoomTypesForRow(row);
     row.SimilarHotels.forEach((sim: QuoteHotelRow) => this.loadRoomTypesForRow(sim));
@@ -985,23 +996,64 @@ private mapHotelRow(h: any): QuoteHotelRow {
     }
     const nights = nightNumbers.length || 1;
 
+    // ✅ FIX: Properly map NightPrices with all fields including DateLabel
+    const nightPrices: HotelNightPriceBreakdown[] = (h.NightPrices ?? []).map((np: any) => {
+      // Get the date label from nightSlots if available
+      const slot = this.nightSlots().find(n => n.NightNumber === np.NightNumber);
+      return {
+        NightNumber: np.NightNumber,
+        StayDate: np.StayDate,
+        DateLabel: slot?.DateLabel ?? np.DateLabel ?? '',
+        BaseRate: np.BaseRate ?? 0,
+        Rooms: np.Rooms ?? rooms,
+        RoomTotal: np.RoomTotal ?? 0,
+        AWEB: np.AWEB ?? 0,
+        AwebRate: np.AwebRate ?? 0,
+        AwebTotal: np.AwebTotal ?? 0,
+        CWEB: np.CWEB ?? 0,
+        CwebRate: np.CwebRate ?? 0,
+        CwebTotal: np.CwebTotal ?? 0,
+        CNB: np.CNB ?? 0,
+        CnbRate: np.CnbRate ?? 0,
+        CnbTotal: np.CnbTotal ?? 0,
+        Total: np.Total ?? 0,
+      };
+    });
+
+    // ✅ LOG: Verify NightPrices are mapped correctly
+    console.log('API NightPrices', h.NightPrices);
+    console.log('Mapped NightPrices', nightPrices);
+
     const row: QuoteHotelRow = {
-      QuoteHotelId: h.QuoteHotelId, QuoteId: h.QuoteId,
+      QuoteHotelId: h.QuoteHotelId, 
+      QuoteId: h.QuoteId,
       QuotePackageTypeId: this.toNumberId(h.QuotePackageTypeId),
-      NightNumber: h.NightNumber, StayDate: new Date(h.StayDate),
+      NightNumber: h.NightNumber, 
+      StayDate: new Date(h.StayDate),
       NightNumbers: nightNumbers,
-      HotelId: h.HotelId, HotelName: h.HotelName ?? '',
+      HotelId: h.HotelId, 
+      HotelName: h.HotelName ?? '',
       LocationName: h.LocationName ?? '',
       HotelCategoryName: h.HotelCategoryName ?? '',
-      RoomTypeId: h.RoomTypeId, RoomTypeName: h.RoomTypeName ?? '',
+      RoomTypeId: h.RoomTypeId, 
+      RoomTypeName: h.RoomTypeName ?? '',
       MealPlan: h.MealPlan ?? 'MAP',
-      NoOfRooms: h.NoOfRooms ?? 1, PaxPerRoom: h.PaxPerRoom ?? 2,
-      AWEB: h.AWEB ?? 0, CWEB: h.CWEB ?? 0, CNB: h.CNB ?? 0,
-      CostPrice: h.CostPrice ?? 0, SellingPrice: h.SellingPrice ?? 0,
-      BaseRate: h.BaseRate ?? 0, AwebRate: h.AwebRate ?? 0,
-      CwebRate: h.CwebRate ?? 0, CnbRate: h.CnbRate ?? 0,
+      NoOfRooms: h.NoOfRooms ?? 1, 
+      PaxPerRoom: h.PaxPerRoom ?? 2,
+      AWEB: h.AWEB ?? 0, 
+      CWEB: h.CWEB ?? 0, 
+      CNB: h.CNB ?? 0,
+      CostPrice: h.CostPrice ?? 0, 
+      SellingPrice: h.SellingPrice ?? 0,
+      BaseRate: h.BaseRate ?? 0, 
+      AwebRate: h.AwebRate ?? 0,
+      CwebRate: h.CwebRate ?? 0, 
+      CnbRate: h.CnbRate ?? 0,
       TotalPrice: h.TotalPrice ?? sellingPrice,
-      RoomTypes: [], IsSaving: false, SpecialInclusions: [], HotelSearch: h.HotelName ?? '',
+      RoomTypes: [], 
+      IsSaving: false, 
+      SpecialInclusions: [], 
+      HotelSearch: h.HotelName ?? '',
       FilteredHotels: [],
       ShowDropdown: false,
       ShowNightDropdown: false,
@@ -1012,23 +1064,49 @@ private mapHotelRow(h: any): QuoteHotelRow {
       IsDatabasePrice: true,
       FinalPrice: h.FinalPrice ?? (sellingPrice * nights * rooms),
       SimilarHotelParentId: h.SimilarHotelParentId,
-      NightPrices: (h.NightPrices ?? []).map((np: any) => ({
-        NightNumber: np.NightNumber,
-        StayDate: np.StayDate,
-        DateLabel: '',
-        BaseRate: np.BaseRate ?? 0,
-        Rooms: np.Rooms ?? rooms,
-        RoomTotal: np.RoomTotal ?? 0,
-        AWEB: np.AWEB ?? 0, AwebRate: np.AwebRate ?? 0, AwebTotal: np.AwebTotal ?? 0,
-        CWEB: np.CWEB ?? 0, CwebRate: np.CwebRate ?? 0, CwebTotal: np.CwebTotal ?? 0,
-        CNB: np.CNB ?? 0, CnbRate: np.CnbRate ?? 0, CnbTotal: np.CnbTotal ?? 0,
-        Total: np.Total ?? 0,
-      })),
+      // ✅ FIX: Use the properly mapped nightPrices
+      NightPrices: nightPrices,
+      // ✅ NEW: Flag to indicate this is a loaded quote (prevents recalculation)
+      IsLoadedFromAPI: true,
     };
 
+    // ✅ If we have NightPrices, use them to set the base values
+    if (nightPrices.length > 0) {
+      // Use the first night's values for the main row fields
+      const firstNight = nightPrices[0];
+      row.BaseRate = firstNight.BaseRate ?? 0;
+      row.AwebRate = firstNight.AwebRate ?? 0;
+      row.CwebRate = firstNight.CwebRate ?? 0;
+      row.CnbRate = firstNight.CnbRate ?? 0;
+      // ✅ FIX: Add explicit type annotations for reduce callback
+      row.TotalPrice = nightPrices.reduce((sum: number, np: HotelNightPriceBreakdown) => sum + (np.Total || 0), 0);
+      row.CostPrice = row.TotalPrice;
+      
+      // If there's a FinalPrice, use it; otherwise use TotalPrice
+      if (h.FinalPrice) {
+        row.FinalPrice = h.FinalPrice;
+      } else {
+        row.FinalPrice = row.TotalPrice;
+      }
+      
+      // If SellingPrice is not set, use TotalPrice
+      if (!row.SellingPrice || row.SellingPrice === 0) {
+        row.SellingPrice = row.TotalPrice;
+      }
+    }
+
     this.updateHotelNightsDisplay(row);
+    
+    // ✅ LOG: Verify final row state
+    console.log('Mapped Hotel Row', {
+      HotelName: row.HotelName,
+      NightPricesCount: row.NightPrices?.length,
+      TotalPrice: row.TotalPrice,
+      BaseRate: row.BaseRate,
+    });
+    
     return row;
-  }
+}
   private loadRoomTypesForRow(row: QuoteHotelRow): void {
     if (!(row.HotelId > 0)) return;
     const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
@@ -1448,11 +1526,24 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
 
   this.updateHotelNightsDisplay(row);
   
-  // ✅ FIX: Only lookup rate if price is NOT manually entered
+  // ✅ FIX: If loaded from API, update NightPrices based on existing data
+  if (row.IsLoadedFromAPI && row.NightPrices && row.NightPrices.length > 0) {
+    // Filter NightPrices to match selected nights
+    row.NightPrices = row.NightPrices.filter(np => 
+      row.NightNumbers.includes(np.NightNumber)
+    );
+    // Recalculate total
+    row.TotalPrice = row.NightPrices.reduce((sum, np) => sum + (np.Total || 0), 0);
+    row.CostPrice = row.TotalPrice;
+    this.hotelRows.update(rows => [...rows]);
+    this.markDirty();
+    return;
+  }
+  
+  // Only lookup rate if price is NOT manually entered
   if (row.HotelId > 0 && row.RoomTypeId > 0 && !row.IsManualPrice) {
     this.lookupHotelRate(row);
   } else if (row.HotelId > 0 && row.RoomTypeId > 0 && row.IsManualPrice) {
-    // ✅ Recalculate with existing manual price
     this.recalculatePrice(row);
   }
   
@@ -1530,7 +1621,7 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
       this.hotelRows.update(rows => [...rows]);
     }, 200);
   }
-  onHotelSelected(row: QuoteHotelRow): void {
+onHotelSelected(row: QuoteHotelRow): void {
     this.markDirty();
     let hotel = this.hotelList().find(h => h.HotelId === row.HotelId);
 
@@ -1544,29 +1635,35 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
       const enc = (d: object): RequestModel => ({
         request: this.local.encrypt(JSON.stringify(d)).toString()
       });
+      
       this.service.getRoomTypeList(enc({ HotelId: row.HotelId })).subscribe({
         next: (r: any) => {
           if (r.Message === ConstantData.SuccessMessage) {
-
             row.RoomTypes = r.RoomTypeList ?? [];
 
-            // No room type found
             if (row.RoomTypes.length === 0) {
               this.toastr.warning(
                 `No room types configured for ${row.HotelName}`
               );
             }
 
-            row.RoomTypeId =
-              row.RoomTypes.length > 0
-                ? row.RoomTypes[0].RoomTypeId
-                : 0;
+            // ✅ FIX: Only set RoomTypeId if not already set
+            if (!row.RoomTypeId || row.RoomTypeId === 0) {
+              row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
+            }
 
             this.hotelRows.update(rows => [...rows]);
 
-            // Only lookup price if room type exists
-            if (row.RoomTypeId > 0) {
+            // ✅ FIX: Only lookup price if row is NOT loaded from API with NightPrices
+            if (row.RoomTypeId > 0 && !row.IsLoadedFromAPI) {
               this.lookupHotelRate(row);
+            } else if (row.RoomTypeId > 0 && row.IsLoadedFromAPI && row.NightPrices?.length === 0) {
+              // If loaded but has no NightPrices (legacy data), lookup rates
+              this.lookupHotelRate(row);
+            } else if (row.IsLoadedFromAPI && row.NightPrices && row.NightPrices.length > 0) {
+              // ✅ RESTORE: Use the loaded NightPrices
+              console.log('Using loaded NightPrices for', row.HotelName, row.NightPrices);
+              this.restoreNightPrices(row);
             }
           } else {
             this.toastr.error('Failed to load room types: ' + r.Message);
@@ -1574,18 +1671,68 @@ onHotelNightToggle(row: QuoteHotelRow, nightNumber: number): void {
         },
         error: () => this.toastr.error('Error loading room types')
       });
-      // Add to onHotelSelected after getRoomTypeList success
+      
+      // Load special inclusions
       this.service.getSpecialInclusionList(enc({ HotelId: row.HotelId }))
         .subscribe({
           next: (r: any) => {
             if (r.Message === ConstantData.SuccessMessage) {
-              row.SpecialInclusions = r.SpecialInclusionList ?? [];  // ← correct key
+              row.SpecialInclusions = r.SpecialInclusionList ?? [];
               this.hotelRows.update(rows => [...rows]);
             }
           }
         });
     }
-  }
+}
+
+// ✅ NEW METHOD: Restore NightPrices from loaded data
+// ✅ NEW METHOD: Restore NightPrices from loaded data
+restoreNightPrices(row: QuoteHotelRow): void {
+    if (!row.NightPrices || row.NightPrices.length === 0) {
+      console.warn('No NightPrices to restore for', row.HotelName);
+      return;
+    }
+
+    console.log('Restoring NightPrices for', row.HotelName, row.NightPrices);
+
+    // Use the first night's values for the main row fields
+    const firstNight = row.NightPrices[0];
+    row.BaseRate = firstNight.BaseRate ?? 0;
+    row.AwebRate = firstNight.AwebRate ?? 0;
+    row.CwebRate = firstNight.CwebRate ?? 0;
+    row.CnbRate = firstNight.CnbRate ?? 0;
+    
+    // ✅ FIX: Add explicit type annotations for reduce callback
+    row.TotalPrice = row.NightPrices.reduce((sum: number, np: HotelNightPriceBreakdown) => sum + (np.Total || 0), 0);
+    row.CostPrice = row.TotalPrice;
+    
+    // If SellingPrice is not set, use TotalPrice
+    if (!row.SellingPrice || row.SellingPrice === 0) {
+      row.SellingPrice = row.TotalPrice;
+    }
+    
+    // If FinalPrice is not set, use TotalPrice
+    if (!row.FinalPrice || row.FinalPrice === 0) {
+      row.FinalPrice = row.TotalPrice;
+    }
+
+    // ✅ Update NightPrices with DateLabel from nightSlots
+    row.NightPrices = row.NightPrices.map((np: HotelNightPriceBreakdown) => {
+      const slot = this.nightSlots().find(n => n.NightNumber === np.NightNumber);
+      return {
+        ...np,
+        DateLabel: slot?.DateLabel ?? np.DateLabel ?? '',
+      };
+    });
+
+    // ✅ LOG: Verify restored values
+    console.log('Restored NightPrices for', row.HotelName, row.NightPrices);
+    console.log('Restored TotalPrice:', row.TotalPrice);
+    console.log('Restored BaseRate:', row.BaseRate);
+
+    this.hotelRows.update(rows => [...rows]);
+    this.markClean(); // ✅ Important: Don't mark as dirty on load
+}
   // getSpecialInclusionRowsForNight(nightNumber: number): QuoteSpecialInclusionRow[] {
   //   return this.specialInclusionRows().filter(
   //     r => r.QuotePackageTypeId === this.activePackageTypeId()
@@ -2493,6 +2640,13 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
   }
 lookupHotelRate(row: QuoteHotelRow): void {
+  // ✅ FIX: If this is a loaded quote with NightPrices, don't recalculate
+  if (row.IsLoadedFromAPI && row.NightPrices && row.NightPrices.length > 0) {
+    console.log('Skipping rate lookup for loaded hotel:', row.HotelName);
+    this.restoreNightPrices(row);
+    return;
+  }
+
   // ✅ If manual price, just recalculate
   if (row.IsManualPrice) {
     this.recalculatePrice(row);
@@ -2547,6 +2701,7 @@ lookupHotelRate(row: QuoteHotelRow): void {
 
       // ✅ Mark as database price before recalculating
       row.IsDatabasePrice = true;
+      row.IsLoadedFromAPI = false; // Now it's been recalculated
       this.recalculatePrice(row);
       this.hotelRows.update(rows => [...rows]);
     }
@@ -2629,13 +2784,46 @@ recalculatePrice(row: QuoteHotelRow): void {
   const cnbCost = (row.CnbRate || 0) * (row.CNB || 0) * nights;
   row.CostPrice = roomCost + awebCost + cwebCost + cnbCost;
   
+  // ✅ FIX: Only recalculate NightPrices if NOT loaded from API
+  // or if the user has made changes
+  if (!row.IsLoadedFromAPI || row.IsManualPrice) {
+    // Recalculate NightPrices based on current rates
+    row.NightPrices = row.NightNumbers.map(nightNumber => {
+      const slot = this.nightSlots().find(n => n.NightNumber === nightNumber);
+      const roomTotal = (row.BaseRate || 0) * (row.NoOfRooms || 1);
+      const awebTotal = (row.AwebRate || 0) * (row.AWEB || 0);
+      const cwebTotal = (row.CwebRate || 0) * (row.CWEB || 0);
+      const cnbTotal = (row.CnbRate || 0) * (row.CNB || 0);
+      return {
+        NightNumber: nightNumber,
+        StayDate: slot?.StayDate ?? row.StayDate,
+        DateLabel: slot?.DateLabel ?? '',
+        BaseRate: row.BaseRate || 0,
+        Rooms: row.NoOfRooms || 0,
+        RoomTotal: roomTotal,
+        AWEB: row.AWEB || 0,
+        AwebRate: row.AwebRate || 0,
+        AwebTotal: awebTotal,
+        CWEB: row.CWEB || 0,
+        CwebRate: row.CwebRate || 0,
+        CwebTotal: cwebTotal,
+        CNB: row.CNB || 0,
+        CnbRate: row.CnbRate || 0,
+        CnbTotal: cnbTotal,
+        Total: roomTotal + awebTotal + cwebTotal + cnbTotal,
+      };
+    });
+  }
+  
   // ✅ Handle database-loaded prices differently
-  if (row.IsDatabasePrice && !row.IsManualPrice) {
-    // For database-loaded prices: TotalPrice and FinalPrice are already the total
-    // Don't recalculate them from SellingPrice
-    row.TotalPrice = row.CostPrice;
-    row.FinalPrice = row.CostPrice;
-    row.SellingPrice = row.CostPrice; // Update SellingPrice to match CostPrice
+  if (row.IsDatabasePrice && !row.IsManualPrice && row.IsLoadedFromAPI) {
+    // For loaded prices: keep the existing NightPrices
+    // Only update TotalPrice if it's zero
+    if (row.TotalPrice === 0) {
+      row.TotalPrice = row.CostPrice;
+      row.FinalPrice = row.CostPrice;
+      row.SellingPrice = row.CostPrice;
+    }
   } else if (!row.IsManualPrice || row.SellingPrice === 0) {
     // For new hotels or when SellingPrice is zero
     row.SellingPrice = row.CostPrice;
@@ -2648,6 +2836,9 @@ recalculatePrice(row: QuoteHotelRow): void {
     row.FinalPrice = (row.SellingPrice || 0) * nights2 * rooms;
     row.TotalPrice = row.FinalPrice;
   }
+  
+  // ✅ LOG: Verify NightPrices after recalculation
+  console.log('Recalculated NightPrices for', row.HotelName, row.NightPrices);
   
   this.hotelRows.update(rows => [...rows]);
 }
@@ -4132,43 +4323,43 @@ private logPackageSummaryDebug(
   transportTotal: number,
   activityTotal: number
 ): void {
-  console.log('[Quote Summary Debug] package totals', {
-    activePackageTypeId: this.activePackageTypeId(),
-    packageTypeId: pkgId,
-    transportRowCount: transportRows.length,
-    activityRowCount: activityRows.length,
-    serviceTransportRowCount: serviceTransportRows.length,
-    serviceActivityRowCount: serviceActivityRows.length,
-    transportRows: transportRows.map(row => ({
-      QuotePackageTypeId: row.QuotePackageTypeId,
-      SellingPrice: row.SellingPrice,
-      TotalPrice: row.TotalPrice,
-      Qty: row.Qty,
-      DayNumbers: row.DayNumbers,
-    })),
-    activityRows: activityRows.map(row => ({
-      QuotePackageTypeId: row.QuotePackageTypeId,
-      TotalPrice: this.getActivityRowTotal(row),
-      TypeGroups: row.TypeGroups.map(group => ({
-        Qty: group.Qty,
-        Entries: group.Entries.map(entry => ({
-          DayNumber: entry.DayNumber,
-          SellingPrice: entry.GivenPrice,
-          TotalPrice: entry.GivenPrice * (group.Qty || 1),
-        })),
-      })),
-    })),
-    serviceRows: [...serviceTransportRows, ...serviceActivityRows].map(row => ({
-      QuotePackageTypeId: row.QuotePackageTypeId,
-      ServiceType: row.ServiceType,
-      SellingPrice: row.SellingPrice,
-      TotalPrice: row.TotalPrice,
-      Qty: row.Qty,
-      DayNumbers: [row.DayNumber],
-    })),
-    transportTotal,
-    activityTotal,
-  });
+  // console.log('[Quote Summary Debug] package totals', {
+  //   activePackageTypeId: this.activePackageTypeId(),
+  //   packageTypeId: pkgId,
+  //   transportRowCount: transportRows.length,
+  //   activityRowCount: activityRows.length,
+  //   serviceTransportRowCount: serviceTransportRows.length,
+  //   serviceActivityRowCount: serviceActivityRows.length,
+  //   transportRows: transportRows.map(row => ({
+  //     QuotePackageTypeId: row.QuotePackageTypeId,
+  //     SellingPrice: row.SellingPrice,
+  //     TotalPrice: row.TotalPrice,
+  //     Qty: row.Qty,
+  //     DayNumbers: row.DayNumbers,
+  //   })),
+  //   activityRows: activityRows.map(row => ({
+  //     QuotePackageTypeId: row.QuotePackageTypeId,
+  //     TotalPrice: this.getActivityRowTotal(row),
+  //     TypeGroups: row.TypeGroups.map(group => ({
+  //       Qty: group.Qty,
+  //       Entries: group.Entries.map(entry => ({
+  //         DayNumber: entry.DayNumber,
+  //         SellingPrice: entry.GivenPrice,
+  //         TotalPrice: entry.GivenPrice * (group.Qty || 1),
+  //       })),
+  //     })),
+  //   })),
+  //   serviceRows: [...serviceTransportRows, ...serviceActivityRows].map(row => ({
+  //     QuotePackageTypeId: row.QuotePackageTypeId,
+  //     ServiceType: row.ServiceType,
+  //     SellingPrice: row.SellingPrice,
+  //     TotalPrice: row.TotalPrice,
+  //     Qty: row.Qty,
+  //     DayNumbers: [row.DayNumber],
+  //   })),
+  //   transportTotal,
+  //   activityTotal,
+  // });
 }
 
 private getSharedTransportRows(): {
