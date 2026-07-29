@@ -1,3 +1,21 @@
 .hotel-option:hover {
   background: #f0f4ff;
 }
+
+.query-stepthree-page {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.query-stepthree-page .small,
+.query-stepthree-page .text-muted,
+.query-stepthree-page .form-label,
+.query-stepthree-page .text-uppercase {
+  font-size: 13px !important;
+}
+
+.query-stepthree-page .fw-bold,
+.query-stepthree-page .fw-semibold,
+.query-stepthree-page .fw-medium {
+  line-height: 1.4;
+}
