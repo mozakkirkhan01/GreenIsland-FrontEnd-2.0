@@ -1,5 +1,5 @@
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideToastr, ToastrModule } from 'ngx-toastr';
@@ -24,7 +24,9 @@ import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes),
+    provideRouter(routes, withInMemoryScrolling({
+      scrollPositionRestoration: 'top'
+    })),
     provideHttpClient(),
     provideAnimationsAsync(),
 provideToastr({

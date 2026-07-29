@@ -144,6 +144,7 @@ export class QuerySteptwo implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
+    window.scrollTo(0, 0);
     this.staffLogin = this.local.getEmployeeDetail();
     this.QueryStepOneId = Number(this.route.snapshot.paramMap.get('id')) || 0;
     this.validateMenu();
