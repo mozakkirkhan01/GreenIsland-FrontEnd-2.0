@@ -6,8 +6,8 @@ import { SecurityContext } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-import { PdfImageLoader } from './pdf/pdf-image-loader'
-import { QuotationPdfBuilder } from './pdf/quotation-pdf-builder';
+import { PdfImageLoader } from './pdf/helpers/image-loader';
+import { QuotationPdfEngine } from './pdf/quotation-pdf-engine';
 
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
@@ -932,7 +932,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // ══════════════════════════════════════════════════════════════
 
   private readonly pdfImages = new PdfImageLoader();
-  private readonly pdfBuilder = new QuotationPdfBuilder();
+  private readonly pdfBuilder = new QuotationPdfEngine();
 
   async downloadPdf(): Promise<void> {
     this.pdfLoading.set(true);
