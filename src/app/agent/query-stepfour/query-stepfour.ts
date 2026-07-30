@@ -594,6 +594,20 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return { title: svc.IteneraryServiceName || '', ...this.parseDaySchedule(svc.DaySchedule) };
   }
 
+  rawDaySchedule(dayNumber: number): SafeHtml | null {
+    const svc = this.scheduleServiceForDay(dayNumber);
+    return svc?.DaySchedule ? this.sanitizeHtml(svc.DaySchedule) : null;
+  }
+
+  rawDayScheduleHtml(dayNumber: number): string {
+    const svc = this.scheduleServiceForDay(dayNumber);
+    return svc?.DaySchedule ? this.sanitizer.sanitize(SecurityContext.HTML, svc.DaySchedule) || '' : '';
+  }
+
+  sanitizeHtml(html: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
   private parseDaySchedule(raw: string): { intro: string; sections: { heading: string; body: string }[] } {
     const blocks = (raw || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
     const sections: { heading: string; body: string }[] = [];
@@ -955,6 +969,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         serviceSubtitle: (s: any) => this.serviceSubtitle(s),
         serviceBreakdown: (s: any) => this.serviceBreakdown(s),
         daySchedule: (d: number) => this.daySchedule(d),
+        rawDaySchedule: (d: number) => this.rawDayScheduleHtml(d),
         inclusions: this.inclusions(),
         exclusions: this.exclusions(),
         inclusionText: (i: any) => this.inclusionText(i),

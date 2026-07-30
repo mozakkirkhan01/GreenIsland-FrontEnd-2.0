@@ -499,10 +499,8 @@
         </div>
         <div class="schedule-copy">
           <h5>{{ sched.title }}</h5>
-          @if (sched.intro) { <div [innerHTML]="sched.intro"></div> }
-          @for (section of sched.sections; track section.heading) {
-          <h6>{{ section.heading }}</h6>
-          <div [innerHTML]="section.body"></div>
+          @if (rawDaySchedule(day.dayNumber); as rawHtml) {
+          <div [innerHTML]="rawHtml"></div>
           }
           @for (group of activityGroupsForDay(day.dayNumber); track group.LocationId + '-' + group.ActivityServiceId) {
           <h6>{{ activityGroupTitle(group) }}</h6>
