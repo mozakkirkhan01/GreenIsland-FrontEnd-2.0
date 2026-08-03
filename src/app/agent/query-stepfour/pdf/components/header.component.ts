@@ -1,33 +1,79 @@
 import { COLORS } from '../theme/colors';
 import { PAGE_MARGINS } from '../theme/spacing';
+import { THEME_CONFIG } from '../theme/theme.config';
 
 export interface HeaderData {
   agencyName: string;
   logoImage: string | null;
   quotationLabel: string; // "Trip# 4001393"
   destinationName?: string;
+  website?: string;
 }
 
-/** Slim branded header: logo + agency name on the left, quote/destination on the right, hairline rule beneath. */
+/**
+ * Renders the top header bar matching Pages 2-11 of the reference brochure:
+ * - Logo + Agency Title on the left
+ * - Sky blue web badge pill on the top right
+ * - Angled top green banner styling & crisp divider line
+ */
 export function buildHeader(data: HeaderData, currentPage: number): any {
-  if (currentPage === 1) return null;
-  const [left, top, right] = PAGE_MARGINS;
+  if (currentPage === 1) return null; // Cover page has custom hero layout
+  const [left, , right] = PAGE_MARGINS;
+  const webUrl = data.website || THEME_CONFIG.agency.website;
+
   return {
     stack: [
       {
         columns: [
-          data.logoImage
-            ? { image: data.logoImage, width: 22, margin: [left, 10, 0, 0] }
-            : { text: '', width: 22, margin: [left, 10, 0, 0] },
-          { text: data.agencyName, bold: true, color: COLORS.primary, fontSize: 10, margin: [8, 12, 0, 0] },
+          // Logo & Agency Name
           {
-            text: [data.destinationName, data.quotationLabel].filter(Boolean).join('  \u2022  '),
-            alignment: 'right', style: 'label', margin: [0, 13, right, 0],
+            width: '*',
+            columns: [
+              data.logoImage
+                ? { image: data.logoImage, width: 26, margin: [left, 8, 6, 0] }
+                : { text: '', width: 0 },
+              {
+                text: THEME_CONFIG.agency.shortName,
+                fontSize: 16,
+                bold: true,
+                color: COLORS.primaryDark,
+                margin: [data.logoImage ? 0 : left, 10, 0, 0],
+              },
+            ],
+          },
+          // Website Pill Badge Top Right
+          {
+            width: 'auto',
+            table: {
+              body: [
+                [
+                  {
+                    text: `🌐  ${webUrl}`,
+                    fontSize: 8.5,
+                    bold: true,
+                    color: COLORS.textOnDark,
+                    fillColor: '#0284C7',
+                    alignment: 'center',
+                  },
+                ],
+              ],
+            },
+            layout: {
+              defaultBorder: false,
+              paddingLeft: () => 10,
+              paddingRight: () => 10,
+              paddingTop: () => 3,
+              paddingBottom: () => 3,
+            },
+            margin: [0, 8, right, 0],
           },
         ],
       },
+      // Green angled accent line below top header
       {
-        canvas: [{ type: 'line', x1: left, y1: 4, x2: 555 - right, y2: 4, lineWidth: 0.75, lineColor: COLORS.border }],
+        canvas: [
+          { type: 'line', x1: left, y1: 6, x2: 555 - right, y2: 6, lineWidth: 1.5, lineColor: COLORS.primary },
+        ],
       },
     ],
   };

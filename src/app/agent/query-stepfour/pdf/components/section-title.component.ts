@@ -1,31 +1,73 @@
 import { COLORS } from '../theme/colors';
-import { TYPE } from '../theme/typography';
-import { SPACING } from '../theme/spacing';
 
-/** Large section banner: colored left bar + light tinted background + title text. */
-export function buildSectionTitle(title: string, subtitle?: string): any {
-  return {
-    table: {
-      widths: [4, '*'],
-      body: [[
-        { text: '', fillColor: COLORS.accent, border: [false, false, false, false] },
-        {
-          stack: [
-            { text: title, fontSize: TYPE.h3, bold: true, color: COLORS.primary },
-            ...(subtitle ? [{ text: subtitle, fontSize: TYPE.caption, color: COLORS.textSecondary, margin: [0, 2, 0, 0] }] : []),
+export interface SectionTitleData {
+  title: string;
+  subtitle?: string;
+}
+
+/**
+ * Renders a luxury rounded section banner pill with a solid accent bar on the left edge,
+ * matching the design in the Green Island luxury brochure.
+ * Supports both object signature `{ title, subtitle }` and string signature `(title, subtitle)`.
+ */
+export function buildSectionBanner(titleOrData: string | SectionTitleData, subtitle?: string): any {
+  const data: SectionTitleData = typeof titleOrData === 'string'
+    ? { title: titleOrData, subtitle }
+    : titleOrData;
+
+  const contentStack: any[] = [
+    {
+      table: {
+        widths: [4, '*'],
+        body: [
+          [
+            {
+              canvas: [
+                {
+                  type: 'rect',
+                  x: 0,
+                  y: 0,
+                  w: 4,
+                  h: 24,
+                  color: COLORS.bannerAccentBar,
+                  r: 2,
+                },
+              ],
+            },
+            {
+              text: data.title,
+              fontSize: 13,
+              bold: true,
+              color: COLORS.bannerAccentBar,
+              margin: [8, 4, 8, 4],
+            },
           ],
-          fillColor: COLORS.primaryLight,
-          margin: [SPACING.md, SPACING.sm, SPACING.md, SPACING.sm],
-          border: [false, false, false, false],
-        },
-      ]],
+        ],
+      },
+      layout: {
+        defaultBorder: false,
+        fillColor: () => COLORS.bannerFill,
+        paddingLeft: () => 0,
+        paddingRight: () => 12,
+        paddingTop: () => 4,
+        paddingBottom: () => 4,
+      },
+      margin: [0, 10, 0, data.subtitle ? 4 : 12],
     },
-    layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
-    margin: [0, SPACING.xl, 0, SPACING.md],
-  };
+  ];
+
+  if (data.subtitle) {
+    contentStack.push({
+      text: data.subtitle,
+      fontSize: 10.5,
+      bold: true,
+      color: COLORS.primary,
+      margin: [6, 0, 0, 12],
+    });
+  }
+
+  return { stack: contentStack };
 }
 
-/** Smaller sub-heading used inside a section (e.g. "Option: Deluxe Package"). */
-export function buildSubTitle(title: string): any {
-  return { text: title, fontSize: TYPE.h4, bold: true, color: COLORS.primary, margin: [0, 0, 0, SPACING.sm] };
-}
+/** Alias for section builder backward compatibility */
+export { buildSectionBanner as buildSectionTitle };

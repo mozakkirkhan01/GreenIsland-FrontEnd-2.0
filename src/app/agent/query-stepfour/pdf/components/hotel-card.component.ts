@@ -1,74 +1,111 @@
 import { COLORS } from '../theme/colors';
-import { TYPE } from '../theme/typography';
+import { EMOJI } from '../theme/icons';
 import { SPACING } from '../theme/spacing';
-import { cardLayout } from '../helpers/layout';
+import { elevatedCardLayout, inset } from '../helpers/layout';
 import { buildChipRow } from './chip.component';
-import { starRating } from '../theme/icons';
 
 export interface HotelCardData {
-  nightLabel: string;         // e.g. "1st Night"
-  locationName: string;
-  checkInLabel: string;       // e.g. "Check-in on 11th July"
+  nightLabel: string;        // e.g. "1st Night at Port Blair" or "2nd 3rd Nights at Havelock"
+  checkInDate: string;       // e.g. "Check-in on 11th July"
+  checkOutDate?: string;     // e.g. "Check-out on 12th July"
   hotelName: string;
-  category?: string;          // e.g. "3* Deluxe"
-  starCount?: number;
-  roomType: string;
-  roomCount: number;
-  paxCount: number;
-  mealPlan: string;
-  similarHotelNames?: string[];
+  locationName?: string;
+  categoryName?: string;
+  starRating?: number;
+  roomsText: string;         // e.g. "20 Deluxe Room"
+  paxText: string;           // e.g. "40 Pax"
+  mealPlanText: string;      // e.g. "Dinner + Breakfast + Lunch"
+  specialInclusion?: string;
+  similarHotels?: string[];
+}
+
+/** A single labeled field in the hotel card's detail grid (Check In / Check
+ *  Out / Meal / Room / Guests) — icon + label stacked over the value. */
+function detailField(icon: string, label: string, value: string): any {
+  return {
+    stack: [
+      { text: `${icon}  ${label.toUpperCase()}`, fontSize: 7.5, bold: true, color: COLORS.textMuted, margin: [0, 0, 0, 2] },
+      { text: value || '\u2014', fontSize: 9.5, bold: true, color: COLORS.textPrimary },
+    ],
+  };
+}
+
+function hairline(): any {
+  return {
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 475, y2: 0, lineWidth: 0.5, lineColor: COLORS.border }],
+    margin: [0, 8, 0, 8],
+  };
 }
 
 /**
- * A single accommodation card: colored header strip (night + location),
- * hotel name with star rating, and a two-column room/meal grid — this is
- * the visual unit repeated once per stay across the whole trip.
+ * Renders a hotel as a self-contained "brochure" card rather than a table
+ * row: a tinted header strip (icon, night badge, name, stars, location),
+ * a divider, a detail grid, and optional special-inclusion / similar-hotel
+ * callouts — matching the card mock-up in the design review rather than
+ * the previous plain stacked-rows layout.
  */
 export function buildHotelCard(data: HotelCardData): any {
-  const header = {
-    columns: [
-      { width: '*', text: `${data.nightLabel} at ${data.locationName}`, fontSize: TYPE.h4, bold: true, color: COLORS.textOnDark },
-      { width: 'auto', text: data.checkInLabel, style: 'small', color: COLORS.textOnDark, alignment: 'right' },
-    ],
-    fillColor: COLORS.primary,
-    margin: [SPACING.md, SPACING.sm, SPACING.md, SPACING.sm],
-  };
+  const starsStr = data.starRating
+    ? '\u2605'.repeat(data.starRating) + '\u2606'.repeat(Math.max(0, 5 - data.starRating))
+    : (data.categoryName || '');
 
-  const body: any[] = [
+  const headerStack: any[] = [
     {
       columns: [
         {
           width: '*',
-          stack: [
-            { text: data.hotelName, fontSize: 12.5, bold: true, color: COLORS.textPrimary },
-            ...(data.category || data.starCount
-              ? [{ text: [data.starCount ? starRating(data.starCount) + '  ' : '', data.category || ''].join(''), style: 'small', color: COLORS.accent, margin: [0, 2, 0, 0] }]
-              : []),
+          text: [
+            { text: `${EMOJI.hotel}  `, fontSize: 13 },
+            { text: data.hotelName.toUpperCase(), fontSize: 13, bold: true, color: COLORS.primaryDark },
           ],
         },
-      ],
-      margin: [0, SPACING.sm, 0, SPACING.sm],
-    },
-    {
-      columns: [
-        { width: '50%', stack: [{ text: 'ROOMS', style: 'label' }, { text: `${data.roomCount} ${data.roomType || ''}`, bold: true, margin: [0, 2, 0, 0] }, { text: `${data.paxCount} Pax`, style: 'small' }] },
-        { width: '50%', stack: [{ text: 'MEAL PLAN', style: 'label' }, { text: data.mealPlan || '-', bold: true, margin: [0, 2, 0, 0] }] },
+        {
+          width: 'auto',
+          table: { widths: ['auto'], body: [[{ text: data.nightLabel, fontSize: 8, bold: true, color: COLORS.badgeText, fillColor: COLORS.badgeBg }]] },
+          layout: { defaultBorder: false, paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 3, paddingBottom: () => 3 },
+        },
       ],
     },
   ];
 
-  if (data.similarHotelNames?.length) {
-    const chips = buildChipRow(data.similarHotelNames);
-    body.push({ text: 'Similar Alternatives', style: 'label', margin: [0, SPACING.sm, 0, 4] });
-    if (chips) body.push(chips);
+  if (starsStr) headerStack.push({ text: starsStr, fontSize: 9, color: COLORS.starColor, margin: [0, 3, 0, 0] });
+  if (data.locationName) {
+    headerStack.push({ text: `${EMOJI.pin}  ${data.locationName}`, fontSize: 8.5, color: COLORS.textSecondary, margin: [0, 3, 0, 0] });
   }
 
-  return {
-    stack: [
-      { table: { widths: ['*'], body: [[header]] }, layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 } },
-      { table: { widths: ['*'], body: [[{ stack: body, margin: [SPACING.md, SPACING.sm, SPACING.md, SPACING.md] }]] }, layout: { ...cardLayout, hLineWidth: (i: number) => (i === 0 ? 0 : 0.75) } },
+  const detailGrid = {
+    columns: [
+      detailField(EMOJI.calendar, 'Check In', data.checkInDate),
+      ...(data.checkOutDate ? [detailField(EMOJI.calendar, 'Check Out', data.checkOutDate)] : []),
+      detailField(EMOJI.meal, 'Meal', data.mealPlanText),
+      detailField(EMOJI.bed, 'Room', data.roomsText),
+      detailField(EMOJI.guests, 'Guests', data.paxText),
     ],
-    unbreakable: true,
-    margin: [0, 0, 0, SPACING.md],
+    columnGap: SPACING.sm,
   };
+
+  const body: any[] = [...headerStack, hairline(), detailGrid];
+
+  if (data.specialInclusion) {
+    body.push(hairline(), {
+      text: [
+        { text: `${EMOJI.sparkle}  `, fontSize: 9 },
+        { text: 'SPECIAL INCLUSION  ', fontSize: 7.5, bold: true, color: COLORS.accent },
+        { text: data.specialInclusion, fontSize: 9, color: COLORS.textPrimary },
+      ],
+    });
+  }
+
+  if (data.similarHotels?.length) {
+    body.push(hairline(), { text: 'SIMILAR HOTELS', fontSize: 7.5, bold: true, color: COLORS.textMuted, margin: [0, 0, 0, 4] }, buildChipRow(data.similarHotels));
+  }
+
+  const card = {
+    table: { widths: ['*'], body: [[{ stack: body, margin: [SPACING.lg, SPACING.md, SPACING.lg, SPACING.md] }]] },
+    layout: elevatedCardLayout,
+    unbreakable: true,
+    margin: [0, 0, 0, SPACING.lg],
+  };
+
+  return inset(card, 96);
 }

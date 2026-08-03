@@ -1,7 +1,8 @@
 import { COLORS } from '../theme/colors';
 import { TYPE } from '../theme/typography';
 import { SPACING } from '../theme/spacing';
-import { elevatedCardLayout } from '../helpers/layout';
+import { EMOJI } from '../theme/icons';
+import { elevatedCardLayout, inset } from '../helpers/layout';
 import { buildBadge } from './badge.component';
 
 export interface PriceCardData {
@@ -12,22 +13,45 @@ export interface PriceCardData {
   perPersonLabel?: string;
   highlights?: string[];
   isRecommended?: boolean;
+  starRating?: number;
 }
 
-/** A single package price card — used in a row, one per package option. */
+/**
+ * A single package price card: stars + RECOMMENDED badge up top, the
+ * package name, a large per-person headline price with the full total as
+ * a secondary line, and a short confidence checklist (GST included,
+ * instant confirmation) — replacing the old plain white price rectangle.
+ */
 export function buildPriceCard(data: PriceCardData): any {
-  const content: any[] = [
-    {
-      columns: [
-        { width: '*', text: data.optionLabel, style: 'label' },
-        ...(data.isRecommended ? [{ width: 'auto', ...buildBadge('Recommended', 'accent') }] : []),
-      ],
-    },
-    { text: data.packageName, fontSize: TYPE.h4, bold: true, color: COLORS.primary, margin: [0, 3, 0, SPACING.sm] },
-    { text: `\u20B9${data.totalLabel}`, style: 'priceLarge' },
-    { text: data.gstNote, style: 'priceLabel', margin: [0, 1, 0, 0] },
-    ...(data.perPersonLabel ? [{ text: data.perPersonLabel, style: 'small', margin: [0, 2, 0, 0] }] : []),
-  ];
+  const content: any[] = [];
+
+  if (data.starRating) {
+    content.push({ text: '\u2605'.repeat(data.starRating), fontSize: 10, color: COLORS.starColor, margin: [0, 0, 0, 4] });
+  }
+
+  content.push({
+    columns: [
+      { width: '*', text: data.optionLabel.toUpperCase(), style: 'label' },
+      ...(data.isRecommended ? [{ width: 'auto', ...buildBadge('Recommended', 'accent') }] : []),
+    ],
+  });
+
+  content.push({ text: data.packageName, fontSize: TYPE.h4, bold: true, color: COLORS.primary, margin: [0, 3, 0, SPACING.sm] });
+
+  if (data.perPersonLabel) {
+    content.push({ text: data.perPersonLabel, fontSize: 20, bold: true, color: COLORS.primaryDark, margin: [0, 0, 0, 1] });
+    content.push({ text: 'PER PERSON', fontSize: 7, bold: true, color: COLORS.textMuted, margin: [0, 0, 0, 6] });
+  }
+
+  content.push({ text: `\u20B9${data.totalLabel} total`, fontSize: 11, bold: true, color: COLORS.textPrimary });
+  content.push({ text: data.gstNote, style: 'priceLabel', margin: [0, 1, 0, SPACING.sm] });
+
+  content.push({
+    stack: [
+      { text: [{ text: `${EMOJI.check}  `, color: COLORS.success, bold: true }, { text: 'GST Included', fontSize: TYPE.small, color: COLORS.textSecondary }], margin: [0, 1, 0, 1] },
+      { text: [{ text: `${EMOJI.check}  `, color: COLORS.success, bold: true }, { text: 'Instant Confirmation', fontSize: TYPE.small, color: COLORS.textSecondary }], margin: [0, 1, 0, 1] },
+    ],
+  });
 
   if (data.highlights?.length) {
     content.push({
@@ -45,12 +69,13 @@ export function buildPriceCard(data: PriceCardData): any {
   };
 }
 
-/** Row of price cards, one per package option, evenly split. */
+/** Row of price cards, one per package option, evenly split, inset with a
+ *  side gutter so the row of cards doesn't touch the page's text margins. */
 export function buildPriceCardRow(cards: PriceCardData[]): any {
   const width = `${Math.floor(100 / cards.length)}%`;
-  return {
+  return inset({
     columns: cards.map(c => ({ width, ...buildPriceCard(c) })),
     columnGap: SPACING.md,
     margin: [0, 0, 0, SPACING.lg],
-  };
+  }, 96);
 }
