@@ -9,6 +9,12 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
+/* Reduce table header height */
+:host ::ng-deep th.mat-header-cell {
+  padding-top: 0.55rem !important;
+  padding-bottom: 0.55rem !important;
+}
+
 /* Remove mat-paginator extra margin */
 .mat-mdc-paginator {
   background: transparent !important;

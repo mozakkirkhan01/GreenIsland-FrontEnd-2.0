@@ -1,78 +1,69 @@
-// trips.component.ts - Update the loadTrips() method and data mapping
+// trips.component.ts - Updated with proper TripStatus enum support
 
 import {
   Component, OnInit, ViewChild, AfterViewInit, inject, signal, computed
 } from '@angular/core';
-import { CommonModule }   from '@angular/common';
-import { FormsModule }    from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
 // Angular Material
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatSortModule, MatSort, Sort }        from '@angular/material/sort';
-import { MatPaginatorModule, MatPaginator }    from '@angular/material/paginator';
-import { MatFormFieldModule }                  from '@angular/material/form-field';
-import { MatInputModule }                      from '@angular/material/input';
-import { MatSelectModule }                     from '@angular/material/select';
-import { MatButtonModule }                     from '@angular/material/button';
-import { MatIconModule }                       from '@angular/material/icon';
-import { MatMenuModule }                       from '@angular/material/menu';
-import { MatChipsModule }                      from '@angular/material/chips';
-import { MatProgressBarModule }                from '@angular/material/progress-bar';
-import { MatTooltipModule }                    from '@angular/material/tooltip';
-import { MatDividerModule }                    from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule }      from '@angular/material/snack-bar';
+import { MatSortModule, MatSort, Sort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { ToastrService }   from 'ngx-toastr';
-import { AppService }      from '../../utils/app.service';
-import { LocalService }    from '../../utils/local.service';
+import { ToastrService } from 'ngx-toastr';
+import { AppService } from '../../utils/app.service';
+import { LocalService } from '../../utils/local.service';
 import { LoadDataService } from '../../utils/load-data.service';
-import { ConstantData }    from '../../utils/constant-data';
+import { ConstantData } from '../../utils/constant-data';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
-
+import { TripStatus, TripStatusMap } from '../../utils/enum';
 
 // ── Interfaces ────────────────────────────────────────────
 export interface Trip {
-  id:           number;
-  agencyName:   string;
-  contactName:  string;
-  phone:        string;
-  email:        string;
-  destination:  string;
-  date:         string;
-  nights:       number;
-  rooms:        string;      // Adults + Children info
-  assignee:     string;
+  id: number;
+  agencyName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  destination: string;
+  date: string;
+  nights: number;
+  rooms: string;
+  assignee: string;
   lastActivity: string;
-  tags:         string[];
-  status:       string;      // Will map TripStatus to status key
-  unread?:      boolean;
-  rawData?:     any;         // Store original data for editing
+  tags: string[];
+  status: string;        // Status key: 'new', 'progress', 'hold', etc.
+  statusDisplay: string; // Display name: 'New Query', 'In Progress', etc.
+  statusClass: string;   // CSS class: 'bg-primary', 'bg-info', etc.
+  statusId: number;      // Numeric status ID from database
+  unread?: boolean;
+  rawData?: any;
 }
 
-// Status mapping for display (TripStatus numeric → status key)
+// ── Status Mapping ──────────────────────────────────────
 const TRIP_STATUS_TO_KEY: Record<number, string> = {
-  1: 'new',        // In Progress / New Query
-  2: 'hold',       // On Hold
-  3: 'converted',  // Converted
-  4: 'ontrip',     // On Trip
-  5: 'past',       // Past Trips
-  6: 'canceled',   // Canceled
-  7: 'dropped',    // Dropped
-};
-
-// Display labels for UI
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  all:       { label: 'All',         cls: 'bg-secondary' },
-  new:       { label: 'New Query',   cls: 'bg-primary'   },
-  progress:  { label: 'In Progress', cls: 'bg-info text-dark' },
-  hold:      { label: 'On Hold',     cls: 'bg-warning text-dark' },
-  converted: { label: 'Converted',   cls: 'bg-success'   },
-  ontrip:    { label: 'On Trip',     cls: 'bg-success'   },
-  past:      { label: 'Past Trip',   cls: 'bg-secondary' },
-  canceled:  { label: 'Canceled',    cls: 'bg-danger'    },
-  dropped:   { label: 'Dropped',     cls: 'bg-dark'      },
+  [TripStatus.NewQuery]: 'new',
+  [TripStatus.InProgress]: 'progress',
+  [TripStatus.OnHold]: 'hold',
+  [TripStatus.Converted]: 'converted',
+  [TripStatus.OnTrip]: 'ontrip',
+  [TripStatus.PastTrip]: 'past',
+  [TripStatus.Canceled]: 'canceled',
+  [TripStatus.Dropped]: 'dropped',
 };
 
 // ── Component ─────────────────────────────────────────────
@@ -90,47 +81,49 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
     Progress,
   ],
   templateUrl: './trips.html',
-  styleUrl:    './trips.css',
+  styleUrl: './trips.css',
 })
 export class Trips implements OnInit, AfterViewInit {
 
-  @ViewChild(MatSort)      sort!:      MatSort;
+  @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  private snackBar  = inject(MatSnackBar);
-  private loadData  = inject(LoadDataService);
+  private snackBar = inject(MatSnackBar);
+  private loadData = inject(LoadDataService);
 
   // ── Signals ────────────────────────────────────────────
-  loading    = signal(false);
-  allTrips   = signal<Trip[]>([]);
-action = signal<ActionModel>({
-  CanCreate: false, CanEdit: false, CanDelete: false,
-  MenuTitle: 'Trips',        // ← set actual default
-  ParentMenuTitle: 'Trips'   // ← set actual default
-} as ActionModel);
+  loading = signal(false);
+  allTrips = signal<Trip[]>([]);
+  action = signal<ActionModel>({
+    CanCreate: false,
+    CanEdit: false,
+    CanDelete: false,
+    MenuTitle: 'Trips',
+    ParentMenuTitle: 'Trips'
+  } as ActionModel);
 
   staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
   // ── Filters ───────────────────────────────────────────
-  searchQuery       = '';
+  searchQuery = '';
   filterDestination = '';
-  activeTab         = 'all';
+  activeTab = 'all';
 
   // ── Table ─────────────────────────────────────────────
   displayedColumns = ['id', 'contact', 'details', 'team', 'tags', 'status', 'actions'];
-  dataSource       = new MatTableDataSource<Trip>([]);
+  dataSource = new MatTableDataSource<Trip>([]);
 
   // ── Tabs ──────────────────────────────────────────────
   tabs = [
-    { key: 'all',       label: 'All',         statusValue: 0 },
-    { key: 'new',       label: 'New Query',   statusValue: 1 },
-    { key: 'progress',  label: 'In Progress', statusValue: 1 },
-    { key: 'hold',      label: 'On Hold',     statusValue: 2 },
-    { key: 'converted', label: 'Converted',   statusValue: 3 },
-    { key: 'ontrip',    label: 'On Trip',     statusValue: 4 },
-    { key: 'past',      label: 'Past Trips',  statusValue: 5 },
-    { key: 'canceled',  label: 'Canceled',    statusValue: 6 },
-    { key: 'dropped',   label: 'Dropped',     statusValue: 7 },
+    { key: 'all', label: 'All', statusValue: 0 },
+    { key: 'new', label: 'New Query', statusValue: TripStatus.NewQuery },
+    { key: 'progress', label: 'In Progress', statusValue: TripStatus.InProgress },
+    { key: 'hold', label: 'On Hold', statusValue: TripStatus.OnHold },
+    { key: 'converted', label: 'Converted', statusValue: TripStatus.Converted },
+    { key: 'ontrip', label: 'On Trip', statusValue: TripStatus.OnTrip },
+    { key: 'past', label: 'Past Trips', statusValue: TripStatus.PastTrip },
+    { key: 'canceled', label: 'Canceled', statusValue: TripStatus.Canceled },
+    { key: 'dropped', label: 'Dropped', statusValue: TripStatus.Dropped },
   ];
 
   // ── Derived ───────────────────────────────────────────
@@ -139,11 +132,11 @@ action = signal<ActionModel>({
   );
 
   constructor(
-    private service:      AppService,
-    private toastr:       ToastrService,
+    private service: AppService,
+    private toastr: ToastrService,
     private localService: LocalService,
-    private router:       Router,
-  ) {}
+    private router: Router,
+  ) { }
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
@@ -152,16 +145,16 @@ action = signal<ActionModel>({
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.sort      = this.sort;
+    this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
 
     // Custom filter: tab + destination + text search
     this.dataSource.filterPredicate = (row: Trip, filter: string) => {
-      const f        = JSON.parse(filter);
+      const f = JSON.parse(filter);
       const matchTab = f.tab === 'all' || row.status === f.tab;
       const matchDest = !f.dest || row.destination === f.dest;
-      const q        = f.q.toLowerCase();
-      const matchQ   = !q
+      const q = f.q.toLowerCase();
+      const matchQ = !q
         || row.id.toString().includes(q)
         || row.agencyName.toLowerCase().includes(q)
         || row.contactName.toLowerCase().includes(q)
@@ -199,20 +192,18 @@ action = signal<ActionModel>({
   // ── MAIN: Load QueryStepOne Data ───────────────────────
   loadTrips(): void {
     this.loading.set(true);
-    
+
     const obj: RequestModel = {
       request: this.localService.encrypt(JSON.stringify({})).toString()
     };
-    
-    // Use your existing API
+
     this.service.getQueryStepOneList(obj).subscribe({
       next: (response: any) => {
         if (response.Message === ConstantData.SuccessMessage) {
-          // Transform API data to Trip interface
-          const trips: Trip[] = response.QueryStepOneList.map((item: any) => 
+          const trips: Trip[] = response.QueryStepOneList.map((item: any) =>
             this.transformQueryToTrip(item)
           );
-          
+
           this.allTrips.set(trips);
           this.dataSource.data = trips;
           this.applyFilter();
@@ -245,7 +236,7 @@ action = signal<ActionModel>({
 
     // Format rooms/occupancy string
     const rooms = `${query.NoOfAdults} Adult${query.NoOfAdults !== 1 ? 's' : ''}${childrenCount > 0 ? `, ${childrenCount} Child${childrenCount !== 1 ? 'ren' : ''}` : ''}`;
-    
+
     // Format date
     const date = query.StartDate ? new Date(query.StartDate).toLocaleDateString('en-US', {
       day: '2-digit',
@@ -255,9 +246,11 @@ action = signal<ActionModel>({
 
     // Calculate last activity (time ago)
     const lastActivity = this.getTimeAgo(query.CreatedOn);
-    
-    // Map TripStatus to status key
-    const statusKey = TRIP_STATUS_TO_KEY[query.TripStatus] || 'new';
+
+    // Get status info from map or use defaults
+    const tripStatus = query.TripStatus as TripStatus;
+    const statusKey = TRIP_STATUS_TO_KEY[tripStatus] || 'new';
+    const statusInfo = TripStatusMap[tripStatus] || { label: 'Unknown', class: 'bg-secondary' };
 
     return {
       id: query.QueryStepOneId,
@@ -273,22 +266,25 @@ action = signal<ActionModel>({
       lastActivity: lastActivity,
       tags: query.Tags || [],
       status: statusKey,
-      unread: false, // You can implement based on your logic
-      rawData: query // Store original for editing
+      statusDisplay: query.StatusDisplayName || statusInfo.label,
+      statusClass: query.StatusClass || statusInfo.class,
+      statusId: query.TripStatus,
+      unread: false,
+      rawData: query
     };
   }
 
   // ── Helper: Get time ago string ────────────────────────
   getTimeAgo(dateString: string): string {
     if (!dateString) return 'Recently';
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
@@ -300,9 +296,9 @@ action = signal<ActionModel>({
   // ── Filters ───────────────────────────────────────────
   applyFilter(): void {
     this.dataSource.filter = JSON.stringify({
-      tab:  this.activeTab,
+      tab: this.activeTab,
       dest: this.filterDestination,
-      q:    this.searchQuery.trim(),
+      q: this.searchQuery.trim(),
     });
     if (this.paginator) this.paginator.firstPage();
   }
@@ -321,11 +317,31 @@ action = signal<ActionModel>({
 
   // ── Status helpers ────────────────────────────────────
   getStatusLabel(status: string): string {
-    return STATUS_MAP[status]?.label ?? status;
+    const map: Record<string, string> = {
+      'new': 'New Query',
+      'progress': 'In Progress',
+      'hold': 'On Hold',
+      'converted': 'Converted',
+      'ontrip': 'On Trip',
+      'past': 'Past Trip',
+      'canceled': 'Canceled',
+      'dropped': 'Dropped',
+    };
+    return map[status] ?? status;
   }
 
   getStatusClass(status: string): string {
-    return STATUS_MAP[status]?.cls ?? 'bg-secondary';
+    const map: Record<string, string> = {
+      'new': 'bg-primary',
+      'progress': 'bg-info text-dark',
+      'hold': 'bg-warning text-dark',
+      'converted': 'bg-success',
+      'ontrip': 'bg-success',
+      'past': 'bg-secondary',
+      'canceled': 'bg-danger',
+      'dropped': 'bg-dark',
+    };
+    return map[status] ?? 'bg-secondary';
   }
 
   // ── Row actions ───────────────────────────────────────
@@ -337,21 +353,24 @@ action = signal<ActionModel>({
     this.router.navigate(['/agent/query-stepone', row.id]);
   }
 
+  createQuote(row: Trip): void {
+    this.router.navigate(['/agent/query-steptwo', row.id]);
+  }
+
   deleteTrip(row: Trip): void {
     if (!confirm(`Are you sure you want to delete trip #${row.id}?`)) return;
-    
+
     const obj: RequestModel = {
       request: this.localService.encrypt(
         JSON.stringify({ QueryStepOneId: row.id })
       ).toString()
     };
-    
+
     this.loading.set(true);
     this.service.deleteQueryStepOne(obj).subscribe({
       next: (response: any) => {
         if (response.Message === ConstantData.SuccessMessage) {
           this.toastr.success('Trip deleted successfully');
-          // Remove from local list
           this.allTrips.update(list => list.filter(t => t.id !== row.id));
           this.dataSource.data = this.allTrips();
           this.applyFilter();
@@ -367,17 +386,17 @@ action = signal<ActionModel>({
     });
   }
 
-  // Update trip status (for drag-drop or dropdown)
+  // ── Update trip status ──────────────────────────────────
   updateTripStatus(tripId: number, newStatus: number): void {
     const obj: RequestModel = {
       request: this.localService.encrypt(
-        JSON.stringify({ 
-          QueryStepOneId: tripId, 
-          TripStatus: newStatus 
+        JSON.stringify({
+          QueryStepOneId: tripId,
+          TripStatus: newStatus
         })
       ).toString()
     };
-    
+
     this.service.updateTripStatus(obj).subscribe({
       next: (response: any) => {
         if (response.Message === ConstantData.SuccessMessage) {
@@ -392,18 +411,20 @@ action = signal<ActionModel>({
       }
     });
   }
-  // ── Missing methods referenced in HTML ────────────────
-createQuote(row: Trip): void {
-  this.router.navigate(['/agent/query-steptwo', row.id]);
-}
 
-updateStatus(row: Trip, statusKey: string): void {
-  const statusKeyToValue: Record<string, number> = {
-    'new': 1, 'progress': 1, 'hold': 2,
-    'converted': 3, 'ontrip': 4, 'past': 5,
-    'canceled': 6, 'dropped': 7,
-  };
-  const numericStatus = statusKeyToValue[statusKey] ?? 1;
-  this.updateTripStatus(row.id, numericStatus);
-}
+  // ── Update status from context menu ─────────────────────
+  updateStatus(row: Trip, statusKey: string): void {
+    const statusKeyToValue: Record<string, number> = {
+      'new': TripStatus.NewQuery,
+      'progress': TripStatus.InProgress,
+      'hold': TripStatus.OnHold,
+      'converted': TripStatus.Converted,
+      'ontrip': TripStatus.OnTrip,
+      'past': TripStatus.PastTrip,
+      'canceled': TripStatus.Canceled,
+      'dropped': TripStatus.Dropped,
+    };
+    const numericStatus = statusKeyToValue[statusKey] ?? TripStatus.NewQuery;
+    this.updateTripStatus(row.id, numericStatus);
+  }
 }
