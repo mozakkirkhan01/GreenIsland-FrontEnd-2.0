@@ -1650,6 +1650,7 @@ onHotelSelected(row: QuoteHotelRow): void {
             // ✅ FIX: Only set RoomTypeId if not already set
             if (!row.RoomTypeId || row.RoomTypeId === 0) {
               row.RoomTypeId = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeId : 0;
+              row.RoomTypeName = row.RoomTypes.length > 0 ? row.RoomTypes[0].RoomTypeName : '';
             }
 
             this.hotelRows.update(rows => [...rows]);
@@ -2250,6 +2251,7 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
 
             row.RoomTypes = r.RoomTypeList ?? [];
             row.RoomTypeId = row.RoomTypes[0]?.RoomTypeId ?? 0;
+            row.RoomTypeName = row.RoomTypes[0]?.RoomTypeName ?? '';
 
             // Force refresh again
             this.similarHotelRows = [...this.similarHotelRows];
@@ -2640,14 +2642,14 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
     this.specialInclusionRows.update(rows => rows.filter(r => r !== row));
   }
 lookupHotelRate(row: QuoteHotelRow): void {
-  // ✅ FIX: If this is a loaded quote with NightPrices, don't recalculate
+  // If this is a loaded quote with NightPrices, don't recalculate
   if (row.IsLoadedFromAPI && row.NightPrices && row.NightPrices.length > 0) {
     console.log('Skipping rate lookup for loaded hotel:', row.HotelName);
     this.restoreNightPrices(row);
     return;
   }
 
-  // ✅ If manual price, just recalculate
+  // If manual price, just recalculate
   if (row.IsManualPrice) {
     this.recalculatePrice(row);
     this.hotelRows.update(rows => [...rows]);
@@ -2673,7 +2675,20 @@ lookupHotelRate(row: QuoteHotelRow): void {
     }))
   }).subscribe({
     next: ({ rate, charges }: any) => {
-      if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
+      // ✅ CHECK FOR NO RATE CONFIGURED
+      if (rate.Message === "No rate configured for this date") {
+        const stayDate = new Date(row.StayDate).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        this.toastr.warning(
+          `No rate configured for "${row.HotelName}" (${row.RoomTypeName}) on ${stayDate}`,
+          'Rate Not Found',
+          { timeOut: 5000 }
+        );
+        row.BaseRate = 0;
+      } else if (rate.Message === ConstantData.SuccessMessage && rate.Rate) {
         const r = rate.Rate;
         row.BaseRate = row.MealPlan === 'CP'
           ? (r.CpRate ?? 0)
@@ -2681,10 +2696,12 @@ lookupHotelRate(row: QuoteHotelRow): void {
             ? (r.MapRate ?? 0)
             : (r.ApRate ?? 0);
       } else {
+        // Existing fallback for any other error
         this.toastr.warning(`No price configured for ${row.HotelName}`);
         row.BaseRate = 0;
       }
 
+      // Get Extra Charges (AWEB, CWEB, CNB)
       if (charges.Message === ConstantData.SuccessMessage) {
         const ch = charges.Charges ?? [];
         const aweb = ch.find((c: any) => c.ChargeType === 1);
@@ -2699,11 +2716,15 @@ lookupHotelRate(row: QuoteHotelRow): void {
           : row.MealPlan === 'MAP' ? cnb.MapRate : cnb.ApRate) ?? 0 : 0;
       }
 
-      // ✅ Mark as database price before recalculating
+      // Mark as database price before recalculating
       row.IsDatabasePrice = true;
-      row.IsLoadedFromAPI = false; // Now it's been recalculated
+      row.IsLoadedFromAPI = false;
       this.recalculatePrice(row);
       this.hotelRows.update(rows => [...rows]);
+    },
+    error: (err) => {
+      console.error('Error fetching hotel rate:', err);
+      this.toastr.error('Failed to fetch hotel rate. Please try again.');
     }
   });
 }
@@ -2735,8 +2756,20 @@ lookupSimilarHotelRate(row: QuoteHotelRow): void {
     }))
   }).subscribe({
     next: ({ rate, charges }: any) => {
-      // Get Base Rate
-      if (rate?.Message === ConstantData.SuccessMessage && rate?.Rate) {
+      // ✅ CHECK FOR NO RATE CONFIGURED
+      if (rate.Message === "No rate configured for this date") {
+        const stayDate = new Date(row.StayDate).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        this.toastr.warning(
+          `No rate configured for "${row.HotelName}" on ${stayDate}`,
+          'Rate Not Found',
+          { timeOut: 5000 }
+        );
+        row.BaseRate = 0;
+      } else if (rate?.Message === ConstantData.SuccessMessage && rate?.Rate) {
         const r = rate.Rate;
         row.BaseRate = row.MealPlan === 'CP'
           ? (r.CpRate ?? 0)
@@ -2744,11 +2777,12 @@ lookupSimilarHotelRate(row: QuoteHotelRow): void {
             ? (r.MapRate ?? 0)
             : (r.ApRate ?? 0);
       } else {
+        // Existing fallback
         this.toastr.warning(`No price configured for ${row.HotelName}`);
         row.BaseRate = 0;
       }
 
-      // Get Extra Charges (AWEB, CWEB, CNB) ✅
+      // Get Extra Charges (AWEB, CWEB, CNB)
       if (charges?.Message === ConstantData.SuccessMessage && charges?.Charges) {
         const ch = charges.Charges ?? [];
         const aweb = ch.find((c: any) => c.ChargeType === 1);
