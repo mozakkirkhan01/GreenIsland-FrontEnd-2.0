@@ -348,6 +348,31 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.packageSummaries().find(s => Number(s.QuotePackageTypeId) === Number(packageTypeId)) || null;
   }
 
+  // ── Dynamic GST inclusion flag ───────────────────────────────────
+  // Single source of truth for "was GST actually applied to this quote",
+  // used everywhere the UI/WhatsApp text/PDF previously hardcoded
+  // "(inc. GST)" (or, in the PDF builder, the contradictory hardcoded
+  // "(excluding GST)") regardless of what was actually saved in step three.
+  //
+  // Preference order:
+  //  1. The explicit toggle saved on QuotePricing.GstEnabled (pricing().GstEnabled)
+  //     — this is the real flag the user set via the GST checkbox in step three.
+  //  2. Fallback for quotes saved before GstEnabled existed on the pricing
+  //     row: check whether the saved package summary actually carries a
+  //     non-zero GST amount.
+  //  3. Last-resort fallback: whether a GST percent is even configured.
+  isGstIncluded(packageTypeId?: number): boolean {
+    const enabled = this.pricing()?.GstEnabled;
+    if (enabled !== undefined && enabled !== null) return !!enabled;
+
+    if (packageTypeId !== undefined) {
+      const summary = this.packageSummaryFor(packageTypeId);
+      if (summary) return (Number(summary.GSTAmount) || 0) > 0;
+    }
+
+    return Number(this.pricing()?.GstPercent ?? this.quoteHeader()?.GstPercent ?? 0) > 0;
+  }
+
   private childLabel(n: number, ages: number[]): string {
     return ages.length
       ? `${n} Child${n > 1 ? 'ren' : ''} (${ages.map(a => a + 'y').join(', ')})`
@@ -437,7 +462,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const sharedPerHead = totalGuests ? sharedPool / totalGuests : 0;
     const perPersonMarkup = Number(markup?.PerPersonMarkup) || 0;
     const gstPercent = Number(this.pricing()?.GstPercent ?? this.quoteHeader()?.GstPercent ?? 0);
-    const gstFactor = 1 + gstPercent / 100;
+    const gstFactor = this.isGstIncluded(packageTypeId) ? 1 + gstPercent / 100 : 1;
 
     const rows = [
       { key: 'double', label: 'Per Person (Double Sharing)', count: counts.double, base: totals.double, paxLabel: 'Pax' },
@@ -706,7 +731,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         for (const c of this.guestCategoryTotals(pkg.QuotePackageTypeId)) {
           lines.push(`• *${this.formatCurrency(c.amount)} /- ${c.label}* x ${c.count} ${c.paxLabel}`);
         }
-        lines.push(`*Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-* _(inc. GST)_`);
+        const gstNote = this.isGstIncluded(pkg.QuotePackageTypeId) ? '_(inc. GST)_' : '_(excl. GST)_';
+        lines.push(`*Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-* ${gstNote}`);
       }
 
       if (!this.removeItinerary()) {
@@ -1086,13 +1112,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       </div>
     `).join('');
 
+    const gstLabel = this.isGstIncluded(pkg.QuotePackageTypeId) ? '(including GST)' : '(excluding GST)';
+
     return `
       <div style="border:1px solid ${t.goldBorder};padding:12px 16px;margin-top:4px;">
         <div style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:2px 10px;margin-bottom:8px;">Prices (INR)</div>
         ${linesHtml}
         <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:6px;padding-top:6px;border-top:1px solid #e0e7f0;">
           Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-
-          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">(excluding GST)</span>
+          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">${gstLabel}</span>
         </div>
       </div>
     `;
@@ -1522,6 +1550,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         packageCostPrice: (id: number) => this.packageCostPrice(id),
         pricingSnapshots: this.pricingSnapshots(),
         packageSummaries: this.packageSummaries(),
+        pricing: this.pricing(),
+        isGstIncluded: (id: number) => this.isGstIncluded(id),
         durationLabel: this.durationLabel(),
         totalGuestCount: this.totalGuestCount(),
         formatCurrency: (n: number) => this.formatCurrency(n),
