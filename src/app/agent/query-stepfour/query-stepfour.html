@@ -177,7 +177,11 @@
         <div class="quote-total text-end">
           <div class="small text-muted">Package (INR)</div>
           <strong>{{ formatCurrency(packageQuotePrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }}</strong>
-          <div class="small text-muted">{{ quoteHeader()?.GstPercent || 5 }}% GST</div>
+          @if (isGstIncluded(packageTypes()[0]?.QuotePackageTypeId || 0)) {
+            <div class="small text-muted">Inc. {{ quoteHeader()?.GstPercent || 0 }}% GST</div>
+          } @else {
+            <div class="small text-muted">Excl. GST</div>
+          }
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" (click)="editDetail()">
           <i class="bx bx-edit-alt me-1"></i>Edit Quote
@@ -215,7 +219,11 @@
           <div>
             <span class="currency">INR</span>
             <strong>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
-            <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 5 }}% GST)</span>
+            @if (isGstIncluded(pkg.QuotePackageTypeId)) {
+              <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+            } @else {
+              <span class="small text-muted ms-1">(excl. GST)</span>
+            }
           </div>
           <div class="small text-muted">
             INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)
