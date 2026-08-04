@@ -4396,37 +4396,62 @@ private logPackageSummaryDebug(
   // });
 }
 
-private getSharedTransportRows(): {
+private getSharedTransportRows(pkgId: number): {
   serviceTransportRows: QuoteServiceRow[];
   standaloneTransportRows: QuoteTransportRow[];
   groupedTransportRows: QuoteTransportRow[];
 } {
   return {
-    serviceTransportRows: this.serviceRows().filter(r => r.ServiceType === 1),
-    standaloneTransportRows: this.transportRows(),
-    groupedTransportRows: this.dayGroups().flatMap(group => group.TransportRows),
+    // ROOT-CAUSE NOTE (do not add this back into any total below): on
+    // reload, rehydrateDayGroups() rebuilds dayGroups()[].TransportRows
+    // directly from this exact same serviceRows() data (see
+    // rebuildTransportRowsForGroup, sourced from r.Services). serviceRows()
+    // is never cleared afterward, so this filtered list and
+    // groupedTransportRows below represent the SAME saved transport rows
+    // once a quote has been loaded for edit. It is kept here only for the
+    // debug logger below (pre-existing behavior) — never sum it into a
+    // total, or every transport cost doubles the instant the page switches
+    // from the frozen snapshot to the live recompute (e.g. the moment GST%
+    // is touched). New quotes never showed this because transport there is
+    // only ever added directly into dayGroups()[].TransportRows
+    // (addTransportRowToGroup), leaving serviceRows() empty for transport.
+    serviceTransportRows: this.serviceRows().filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === pkgId),
+    standaloneTransportRows: this.transportRows().filter(r => r.QuotePackageTypeId === pkgId),
+    groupedTransportRows: this.dayGroups()
+      .filter(group => group.QuotePackageTypeId === pkgId)
+      .flatMap(group => group.TransportRows),
   };
 }
 
-private getSharedActivityRows(): {
+private getSharedActivityRows(pkgId: number): {
   serviceActivityRows: QuoteServiceRow[];
   standaloneActivityRows: ActivityTicketRow[];
   groupedActivityRows: ActivityTicketRow[];
 } {
   return {
-    serviceActivityRows: this.serviceRows().filter(r => r.ServiceType === 2),
-    standaloneActivityRows: this.activityTicketRows(),
-    groupedActivityRows: this.dayGroups().flatMap(group => group.ActivityRows),
+    // ServiceType 2 rows in QuoteServices are legacy/unused by the live UI
+    // (activities are rehydrated separately from r.Activities /
+    // QuoteActivityEntries — see rebuildActivityRowsForGroup). Kept for the
+    // debug logger only, same reasoning as serviceTransportRows above.
+    serviceActivityRows: this.serviceRows().filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === pkgId),
+    standaloneActivityRows: this.activityTicketRows().filter(r => r.QuotePackageTypeId === pkgId),
+    groupedActivityRows: this.dayGroups()
+      .filter(group => group.QuotePackageTypeId === pkgId)
+      .flatMap(group => group.ActivityRows),
   };
 }
 
 // In getPackageTransportTotal:
 getPackageTransportTotal(pkgId: number): number {
-  const { serviceTransportRows, standaloneTransportRows, groupedTransportRows } = this.getSharedTransportRows();
-  const { serviceActivityRows, standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows();
+  const { serviceTransportRows, standaloneTransportRows, groupedTransportRows } = this.getSharedTransportRows(pkgId);
+  const { serviceActivityRows, standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows(pkgId);
+
+  // Only standaloneTransportRows + groupedTransportRows are real, distinct
+  // cost sources. serviceTransportRows is excluded from the total on
+  // purpose (see comment in getSharedTransportRows) — it is a post-load
+  // mirror of groupedTransportRows, not additional cost.
   const total =
-    serviceTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
-    + standaloneTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
+    standaloneTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
     + groupedTransportRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0);
 
   this.logPackageSummaryDebug(
@@ -4442,11 +4467,11 @@ getPackageTransportTotal(pkgId: number): number {
   return total;
 }
 
-private getPackageActivityTotalValue(_pkgId: number): number {
-  const { serviceActivityRows, standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows();
+private getPackageActivityTotalValue(pkgId: number): number {
+  const { standaloneActivityRows, groupedActivityRows } = this.getSharedActivityRows(pkgId);
 
-  return serviceActivityRows.reduce((s, r) => s + this.moneyValue(r.TotalPrice, r.SellingPrice), 0)
-    + standaloneActivityRows.reduce((s, r) => s + this.getActivityRowTotal(r), 0)
+  // serviceActivityRows intentionally excluded — see getSharedActivityRows.
+  return standaloneActivityRows.reduce((s, r) => s + this.getActivityRowTotal(r), 0)
     + groupedActivityRows.reduce((s, r) => s + this.getActivityRowTotal(r), 0);
 }
 
@@ -4837,7 +4862,19 @@ getDisplayPricingRows(packageTypeId: number): GeneratedPricingRow[] {
       specialInclusionCost: s.SpecialInclusionAmount,
       extrasCost: s.ExtrasAmount,
       costPrice: s.CostPrice,
-      markupInput: 0,
+      // ROOT-CAUSE FIX: this used to be hardcoded to 0, which is why the
+      // row-level markup input box always showed 0 immediately after
+      // opening an existing quotation — even though the saved value was
+      // sitting correctly in `this.rowMarkups` (hydrated in loadAll() from
+      // r.RowMarkups) and every downstream figure on this exact row
+      // (markupAmount, taxableAmount, gstAmount, totalBeforeRounding,
+      // roundedTotal) was already being read correctly from the snapshot.
+      // getPricingRowMarkupInput() is the same accessor the live path
+      // (makePricingRow) uses, and the key format
+      // `${packageTypeId}-${RowKind}` matches exactly what loadAll() wrote
+      // into rowMarkups, so this now reflects the true saved value instead
+      // of silently resetting it to 0 on every page open.
+      markupInput: this.getPricingRowMarkupInput(`${packageTypeId}-${s.RowKind}`),
       markupAmount: s.MarkupAmount,
       taxableAmount: s.TaxableAmount,
       gstAmount: s.GSTAmount,
