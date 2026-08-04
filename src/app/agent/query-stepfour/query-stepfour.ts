@@ -681,7 +681,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   toggleRemoveTransportActivities(): void { this.removeTransportActivities.update(v => !v); }
 
   buildWhatsAppText(): string {
-    // ... keep existing WhatsApp text generation ...
     const trip = this.tripInfo();
     const nights = Number(trip?.NoOfNights) || 0;
     const days = nights + 1;
@@ -779,54 +778,30 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // EMAIL HTML GENERATION
-  // Table-based markup, every style attribute INLINE (no <style>
-  // block, no CSS classes) so a copy/paste into Gmail / Outlook /
-  // Apple Mail / Yahoo Mail keeps the exact same look. No borders,
-  // <hr>, or divider lines are used around the outer wrapper or
-  // under section headings, because Gmail's compose editor renders
-  // any such rule as a stray horizontal bar above the pasted
-  // content — everything below is spacing-only, matching the plain,
-  // border-free page layout of the reference quotation PDF.
+  // EMAIL HTML GENERATION - WITH STYLED HEADERS
   // ══════════════════════════════════════════════════════════════
 
-  /** Design tokens reused across every inline style so the palette stays consistent with the reference PDF. */
   private readonly emailTheme = {
-    brand: '#1155cc',      // reference "Package Overview" / heading blue
-    brandDark: '#0b3d91',
+    brand: '#1155cc',
     text: '#202124',
     muted: '#5f6368',
-    border: '#c9ccd1',     // reference table grid-line grey
-    panelBg: '#ffffff',
+    border: '#c9ccd1',
+    headerBg: '#fbeefa',
     zebraBg: '#f7f8fa',
-    headerBg: '#eef3fb',   // reference table header tint
     green: '#188038',
     red: '#c5221f',
     gold: '#b98a00',
     goldBorder: '#e7b400',
-    white: '#ffffff',
-    font: "Arial, Helvetica, sans-serif",
+    font: 'Arial, Helvetica, sans-serif',
   };
 
-  /**
-   * Builds a complete HTML email with inline styles for Gmail/Outlook compatibility.
-   * Used to render the on-screen preview via [innerHTML].
-   */
   buildEmailHtml(): SafeHtml {
     const html = this.generateEmailHTML();
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
-  /**
-   * Generates the complete, standalone HTML email document.
-   * Table-based layout, all styling inline -> safe to paste into any
-   * email client compose window. The outer wrapper has NO border,
-   * radius or shadow (matches the plain page look of the reference
-   * PDF and avoids Gmail rendering a stray top/bottom rule on paste).
-   */
   private generateEmailHTML(): string {
     const trip = this.tripInfo();
-    const t = this.emailTheme;
 
     return `<!DOCTYPE html>
 <html>
@@ -835,11 +810,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quotation - ${this.formatQuotationNo(trip?.QuotationNo)}</title>
 </head>
-<body style="margin:0;padding:0;background-color:${t.white};font-family:${t.font};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${t.white};">
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
   <tr>
     <td align="center" style="padding:16px 0;">
-      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:${t.white};font-family:${t.font};color:${t.text};">
+      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#202124;">
         ${this.buildEmailBody()}
       </table>
     </td>
@@ -849,26 +824,35 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 </html>`;
   }
 
-  /**
-   * Builds the email body as a sequence of <tr> rows to be placed inside
-   * the outer 700px wrapper table.
-   */
   private buildEmailBody(): string {
-    const trip = this.tripInfo();
     const t = this.emailTheme;
+    const trip = this.tripInfo();
     let html = '';
 
-    // ── Company name + greeting (plain text block, no colored band, matches the reference) ──
+    // ── Header ──
     html += `
       <tr>
-        <td style="padding:6px 12px 14px 12px;font-family:${t.font};font-size:13px;color:${t.text};line-height:1.6;">
-          <p style="margin:0 0 14px 0;font-size:15px;font-weight:bold;">Greetings from ${this.companyName()}!</p>
+        <td style="padding:0 12px 14px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-family:${t.font};font-size:22px;font-weight:bold;color:${t.brand};letter-spacing:-0.5px;">Green Island Tours &amp; Travels</td>
+              <td style="text-align:right;font-family:${t.font};">
+                <div style="font-size:14px;font-weight:bold;color:${t.brand};">Quotation #${this.formatQuotationNo(trip?.QuotationNo)}</div>
+                <div style="font-size:12px;color:${t.muted};">${trip?.DestinationName || ''}</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `;
+
+    // ── Greeting ──
+    html += `
+      <tr>
+        <td style="padding:0 12px 12px 12px;font-family:${t.font};font-size:14px;color:${t.text};line-height:1.7;">
+          <p style="margin:0 0 14px 0;font-size:15px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
           <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
-          <p style="margin:0;">
-            Thank you for reaching out to us with your travel requirements. As your trusted
-            Destination Management Company (DMC)${this.companyRegion() ? ` for <strong>${this.companyRegion()}</strong>` : ''},
-            we are pleased to share with you the proposed quotation for your upcoming travel plans.
-          </p>
+          <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
         </td>
       </tr>
     `;
@@ -877,13 +861,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     html += `
       <tr>
         <td style="padding:6px 12px 0 12px;">
-          ${this.sectionTitle('Package Overview')}
+          ${this.buildStyledHeader('Package Overview')}
           ${this.buildOverviewTable()}
         </td>
       </tr>
     `;
 
-    // ── Price line (small bordered "Prices (INR)" tag + plain bold lines, exactly like the reference) ──
+    // ── Price Highlight Box ──
     if (!this.hideTotalPrice() && this.packageTypes().length) {
       html += `
         <tr>
@@ -899,7 +883,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       html += `
         <tr>
           <td style="padding:6px 12px 0 12px;">
-            ${this.sectionTitle('Day Wise Itinerary')}
+            ${this.buildStyledHeader('Day Wise Itinerary')}
             ${this.buildItineraryBlocks()}
           </td>
         </tr>
@@ -912,7 +896,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         html += `
           <tr>
             <td style="padding:6px 12px 0 12px;">
-              ${this.sectionTitle(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
+              ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
               ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
             </td>
           </tr>
@@ -925,7 +909,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       html += `
         <tr>
           <td style="padding:6px 12px 0 12px;">
-            ${this.sectionTitle('Transportation and Activities')}
+            ${this.buildStyledHeader('Transportation and Activities')}
             ${this.buildTransportActivitiesHTML()}
           </td>
         </tr>
@@ -943,38 +927,46 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    // ── Optional / paid activities (e.g. water sports) — plain bullet list, as in the reference ──
-    if (this.activities().length) {
-      html += `
-        <tr>
-          <td style="padding:6px 12px 0 12px;">
-            ${this.sectionTitle('Optional Activities')}
-            ${this.buildOptionalActivitiesList()}
-          </td>
-        </tr>
-      `;
-    }
-
     // ── Terms & Conditions ──
     if (!this.removeTerms() && this.hasTerms()) {
       html += `
         <tr>
           <td style="padding:6px 12px 0 12px;">
-            ${this.sectionTitle('Terms and Conditions')}
+            ${this.buildStyledHeader('Terms and Conditions')}
             ${this.buildTermsList()}
           </td>
         </tr>
       `;
     }
 
-    // ── Footer (spacing only — no top border/rule) ──
+    // ── Water Sports Activities ──
+    if (this.hasWaterSportsTerms()) {
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.buildStyledHeader('Water Sports Activities (if pre-booked)')}
+            ${this.buildWaterSportsBox()}
+          </td>
+        </tr>
+      `;
+    }
+
+    // ── Notes ──
+    html += `
+      <tr>
+        <td style="padding:6px 12px 0 12px;">
+          ${this.buildNotesBox()}
+        </td>
+      </tr>
+    `;
+
+    // ── Footer ──
     html += `
       <tr>
         <td style="padding:22px 12px 10px 12px;text-align:center;font-family:${t.font};font-size:11px;color:${t.muted};line-height:1.7;">
-          <strong style="color:${t.text};font-size:12px;">${this.companyName()}</strong><br>
-          ${this.footerContactLine()}
+          <strong style="color:${t.text};font-size:12px;">Green Island Tours and Travels Private Limited</strong><br>
           <em>This is a system-generated quotation. Please verify all details before confirmation.</em><br>
-          <span>&copy; ${new Date().getFullYear()} ${this.companyName()}. All rights reserved.</span>
+          <span>&copy; ${new Date().getFullYear()} Green Island Tours and Travels. All rights reserved.</span>
         </td>
       </tr>
     `;
@@ -982,33 +974,18 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return html;
   }
 
-  // ── Small reusable inline-styled building blocks ──────────────────
-
-  private companyName(): string {
-    return this.tripInfo()?.CompanyName || this.quoteHeader()?.CompanyName || 'Green Island Tours and Travels Private Limited';
-  }
-
-  private companyRegion(): string {
-    return this.tripInfo()?.CompanyRegion || this.quoteHeader()?.CompanyRegion || this.tripInfo()?.DestinationName || '';
-  }
-
-  private footerContactLine(): string {
-    const parts = [this.tripInfo()?.CompanyEmail, this.tripInfo()?.CompanyPhone, this.tripInfo()?.CompanyWebsite].filter(Boolean);
-    return parts.length ? `${parts.join(' &nbsp;|&nbsp; ')}<br>` : '';
-  }
+  // ── HEADER BUILDERS ──
 
   /**
-   * Centered, bold, blue section heading — no border/underline of any
-   * kind, so nothing renders as a horizontal rule once pasted into Gmail.
-   * Matches the reference PDF's "Package Overview" / "Day Wise Itinerary"
-   * / "Transportation and Activities" style exactly.
+   * Builds a styled section header - full width light lavender/blue background
+   * with centered bold dark blue text, matching the reference
    */
-  private sectionTitle(label: string): string {
+  private buildStyledHeader(label: string): string {
     const t = this.emailTheme;
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
         <tr>
-          <td align="center" style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.brand};padding:10px 0 10px 0;">
+          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.brand};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -1016,26 +993,73 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  private hasAnyTransportOrActivity(): boolean {
-    return this.daySlots().some(d => this.dayHasServices(d.dayNumber));
+  /**
+   * Builds a styled subheader - light gray background with bold day title
+   * and normal date text, matching the reference
+   */
+  private buildSubHeader(dayNumber: number, dateStr: string, title: string): string {
+    const t = this.emailTheme;
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e6dff0;border-radius:4px;margin:6px 0 8px 0;">
+        <tr>
+          <td style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.brand};padding:8px 14px;">
+            ${dayNumber}${this.ordinal(dayNumber)} Day (${dateStr}) : ${title}
+          </td>
+        </tr>
+      </table>
+    `;
   }
 
-  /** Bordered key/value table for Trip ID / Destination / Dates / Pax, styled after the PDF's "Package Overview" box. */
+  /**
+   * Builds a styled header for Inclusions (green accent)
+   */
+  private buildInclusionHeader(label: string): string {
+    const t = this.emailTheme;
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e8f5e9;border-radius:4px;margin-bottom:6px;">
+        <tr>
+          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.green};padding:12px 16px;">
+            ${label}
+          </td>
+        </tr>
+      </table>
+    `;
+  }
+
+  /**
+   * Builds a styled header for Exclusions (red accent)
+   */
+  private buildExclusionHeader(label: string): string {
+    const t = this.emailTheme;
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffebee;border-radius:4px;margin-bottom:6px;">
+        <tr>
+          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.red};padding:12px 16px;">
+            ${label}
+          </td>
+        </tr>
+      </table>
+    `;
+  }
+
+  // ── OVERVIEW TABLE ──
+
   private buildOverviewTable(): string {
     const t = this.emailTheme;
     const trip = this.tripInfo();
-    const rows: [string, string][] = ([
+
+    const rows: [string, string][] = [
       ['Trip ID', this.formatQuotationNo(trip?.QuotationNo)],
       ['Destination', trip?.DestinationName || '-'],
       ['Start Date', this.formatDateLong(trip?.StartDate) || '-'],
       ['Trip Duration', this.durationLabel()],
       ['Pax', this.paxOverviewLabel()],
-    ] as [string, string][]).filter(([, v]) => !!v);
+    ];
 
     const rowsHtml = rows.map(([label, value]) => `
       <tr>
-        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;border:1px solid ${t.border};width:160px;">${label}</td>
-        <td style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;border:1px solid ${t.border};">${value}</td>
+        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 12px 6px 0;border-bottom:1px solid #f0f2f5;width:140px;font-weight:bold;">${label}</td>
+        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 0;border-bottom:1px solid #f0f2f5;">${value}</td>
       </tr>
     `).join('');
 
@@ -1046,115 +1070,90 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  /**
-   * Small bordered "Prices (INR)" tag followed by plain bold price lines
-   * and a bold Total — matches the reference exactly (only the label is
-   * boxed, the price lines themselves sit on a plain white background).
-   */
+  // ── PRICE HIGHLIGHT BOX ──
+
   private buildPriceHighlightBox(): string {
     const t = this.emailTheme;
     const pkg = this.packageTypes()[0];
     if (!pkg) return '';
+
     const categories = this.guestCategoryTotals(pkg.QuotePackageTypeId);
     if (!categories.length) return '';
 
     const linesHtml = categories.map(c => `
-      <tr>
-        <td style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:2px 0;">
-          ${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}
-        </td>
-      </tr>
+      <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;">
+        <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
+      </div>
     `).join('');
 
     return `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
-        <tr>
-          <td style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:3px 10px;">Prices (INR)</td>
-        </tr>
-      </table>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0">${linesHtml}</table>
-      <div style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.text};margin-top:6px;">
-        Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-
-        <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">(excluding GST unless stated)</span>
+      <div style="border:1px solid ${t.goldBorder};padding:12px 16px;margin-top:4px;">
+        <div style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:2px 10px;margin-bottom:8px;">Prices (INR)</div>
+        ${linesHtml}
+        <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:6px;padding-top:6px;border-top:1px solid #e0e7f0;">
+          Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-
+          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">(excluding GST)</span>
+        </div>
       </div>
     `;
   }
 
-  /**
-   * Day-wise itinerary, one block per day — matches the reference's
-   * "1st Day (Thu 10th December) : Title" style. When the day's
-   * schedule was authored in the Quill editor, its sanitized HTML is
-   * embedded directly so headings, bold/italic text, lists and links
-   * from the editor are preserved natively (Gmail renders plain
-   * semantic tags like <strong>/<ul>/<a> correctly with no inline
-   * styles required).
-   */
+  // ── ITINERARY BLOCKS ──
+
   private buildItineraryBlocks(): string {
     const t = this.emailTheme;
     let html = '';
 
     for (const day of this.daySlots()) {
-      const svc = this.scheduleServiceForDay(day.dayNumber);
-      const dayTitle = svc?.LocationName || svc?.IteneraryServiceName || '';
-      const rawHtml = svc?.DaySchedule ? this.rawDayScheduleHtml(day.dayNumber) : '';
-      if (!rawHtml && !this.dayHasServices(day.dayNumber) && !dayTitle) continue;
+      const sched = this.daySchedule(day.dayNumber);
+      if (!sched) continue;
 
+      const dateStr = day.date.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      // ── Subheader ──
+      html += this.buildSubHeader(day.dayNumber, dateStr, sched.title);
+
+      // ── Content ──
       html += `
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
-          <tr>
-            <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.brand};padding-bottom:4px;">
-              ${day.dayNumber}${this.ordinal(day.dayNumber)} Day (${this.dayHeaderDate(day.date)})${dayTitle ? ` : ${dayTitle}` : ''}
-            </td>
-          </tr>
-          ${rawHtml ? `
-          <tr>
-            <td style="font-family:${t.font};font-size:13px;color:${t.text};line-height:1.6;">${rawHtml}</td>
-          </tr>` : ''}
-          ${this.buildDayHighlightsList(day.dayNumber)}
-        </table>
+        <div style="padding:0 4px 14px 4px;">
       `;
+
+      if (sched.intro) {
+        html += `
+          <div style="font-family:${t.font};font-size:13px;color:#444;margin:8px 0 6px 0;line-height:1.7;">${sched.intro}</div>
+        `;
+      }
+
+      for (const section of sched.sections) {
+        html += `
+          <div style="margin:8px 0 6px 0;padding-left:12px;border-left:3px solid ${t.brand};">
+            <div style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.brand};">${section.heading}</div>
+            <p style="font-family:${t.font};font-size:13px;color:#444;margin:2px 0 0 0;line-height:1.6;">${section.body}</p>
+          </div>
+        `;
+      }
+
+      for (const group of this.activityGroupsForDay(day.dayNumber)) {
+        html += `
+          <div style="margin:4px 0 4px 12px;font-family:${t.font};font-size:13px;color:#333;">
+            <strong>${this.activityGroupTitle(group)}</strong>
+          </div>
+        `;
+      }
+
+      html += `</div>`;
     }
 
     return html || `<p style="font-family:${t.font};font-size:13px;color:${t.muted};">Itinerary details will be shared shortly.</p>`;
   }
 
-  /** Compact bullet list of that day's services/activities/entry tickets, for the itinerary block. */
-  private buildDayHighlightsList(dayNumber: number): string {
-    const t = this.emailTheme;
-    const items: string[] = [];
+  // ── PACKAGE HTML ──
 
-    for (const svc of this.servicesForDay(dayNumber)) {
-      if (Number(svc.ServiceType) === 1) {
-        items.push(`${this.serviceTitle(svc)}${svc.VehicleTypeName ? ` (${svc.VehicleTypeName})` : ''}`);
-      } else {
-        items.push(`${this.serviceTitle(svc)}${svc.ActivityServiceName ? ` - ${svc.ActivityServiceName}` : ''}`);
-      }
-    }
-    for (const group of this.activityGroupsForDay(dayNumber)) {
-      items.push(this.activityGroupTitle(group));
-    }
-
-    if (!items.length) return '';
-
-    return `
-      <tr>
-        <td style="padding-top:2px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-            ${items.map(i => `
-              <tr>
-                <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:1px 0;">: ${i}</td>
-              </tr>
-            `).join('')}
-          </table>
-        </td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Builds HTML for a single package option: hotel table, special
-   * inclusions and the guest-category price breakdown.
-   */
   private buildPackageHTML(packageTypeId: number): string {
     const t = this.emailTheme;
     let html = '';
@@ -1236,12 +1235,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     const roomsCell = `${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br><span style="font-size:11px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
 
-    let totalPrice = 0;
-    for (const night of stay.nights) {
-      const winner = this.winningRowForNight(stay.main, stay.similar, night);
-      totalPrice += this.priceForNight(winner, night);
-    }
-
     return `
       <tr>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
@@ -1252,18 +1245,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  /**
-   * Builds HTML for transportation and activities, grouped day-by-day
-   * with a running total, mirroring the PDF's "Transportation and
-   * Activities" table.
-   */
+  // ── TRANSPORT & ACTIVITIES ──
+
   private buildTransportActivitiesHTML(): string {
     const t = this.emailTheme;
     let html = `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${t.font};">
         <tr>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:130px;">Day</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Service</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:12px;font-weight:bold;padding:7px 10px;width:30%;">Day</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:12px;font-weight:bold;padding:7px 10px;width:70%;">Service</td>
         </tr>
     `;
 
@@ -1273,24 +1263,49 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       const zebra = rowIndex % 2 ? `background-color:${t.zebraBg};` : '';
       rowIndex++;
 
-      const items: string[] = [];
-      for (const svc of this.servicesForDay(day.dayNumber)) {
+      const services = this.servicesForDay(day.dayNumber);
+      const groups = this.activityGroupsForDay(day.dayNumber);
+
+      if (!services.length && !groups.length) continue;
+
+      const dateStr = day.date.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
+
+      let serviceHtml = '';
+      for (const svc of services) {
         if (Number(svc.ServiceType) === 1) {
-          items.push(`<div style="margin:2px 0;"><strong>${this.serviceTitle(svc)}</strong> <span style="color:${t.muted};font-size:11px;">(${this.serviceQualifier(svc)})</span>${svc.VehicleTypeName ? `<br><span style="font-size:11px;color:${t.muted};">${svc.VehicleTypeName}</span>` : ''}</div>`);
+          serviceHtml += `
+            <div style="margin:2px 0;">
+              <strong>${this.serviceTitle(svc)}</strong>
+              ${svc.VehicleTypeName ? `<br><span style="font-size:11px;color:${t.muted};">${svc.VehicleTypeName}</span>` : ''}
+            </div>
+          `;
+        } else {
+          serviceHtml += `
+            <div style="margin:2px 0;">
+              <strong>${this.serviceTitle(svc)}</strong>
+              <span style="font-size:11px;color:${t.muted};">(${this.serviceDetail(svc)})</span>
+            </div>
+          `;
         }
       }
-      for (const group of this.activityGroupsForDay(day.dayNumber)) {
+
+      for (const group of groups) {
         const paxLabel = group.entries.map((e: any) => `${e.Qty} ${e.PaxTypeLabel || e.PaxType || 'Pax'}`).join(' + ');
-        items.push(`<div style="margin:2px 0;"><strong>${this.activityGroupTitle(group)}</strong> <span style="color:${t.muted};font-size:11px;">(${paxLabel})</span></div>`);
+        serviceHtml += `
+          <div style="margin:2px 0;font-size:13px;">
+            <strong>${this.activityGroupTitle(group)}</strong>
+            <span style="font-size:11px;color:${t.muted};">(${paxLabel})</span>
+          </div>
+        `;
       }
 
       html += `
         <tr>
-          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">
+          <td style="border:1px solid ${t.border};padding:7px 10px;vertical-align:top;${zebra}">
             <strong>${day.dayNumber}${this.ordinal(day.dayNumber)} Day</strong><br>
-            <span style="font-size:11px;color:${t.muted};">${this.dayHeaderDate(day.date)}</span>
+            <span style="font-size:11px;color:${t.muted};">${dateStr}</span>
           </td>
-          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${items.join('')}</td>
+          <td style="border:1px solid ${t.border};padding:7px 10px;vertical-align:top;${zebra}">${serviceHtml}</td>
         </tr>
       `;
     }
@@ -1298,136 +1313,124 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     html += `</table>`;
 
     html += `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">
-        <tr>
-          <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:4px;">
-            Total: ${this.formatCurrency(this.transportActivityTotal())} /-
-          </td>
-        </tr>
-        <tr>
-          <td style="font-family:${t.font};font-size:11px;color:${t.muted};">
-            Transports: ${this.formatCurrency(this.transportTotal())} &nbsp;|&nbsp; Activities/Tickets: ${this.formatCurrency(this.activityTotal())}
-          </td>
-        </tr>
-      </table>
+      <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:10px;padding-top:10px;border-top:1px solid #e9ecef;">
+        Total: ${this.formatCurrency(this.transportActivityTotal())} /-
+      </div>
+      <div style="font-family:${t.font};font-size:11px;color:${t.muted};">
+        Transports: ${this.formatCurrency(this.transportTotal())} &nbsp;|&nbsp; Activities/Tickets: ${this.formatCurrency(this.activityTotal())}
+      </div>
     `;
 
     return html;
   }
 
-  /**
-   * Inclusions / Exclusions as a single two-column table with plain
-   * bold black centered headers (same grid style as the other tables
-   * in the reference — no colored underline bar).
-   */
+  // ── INCLUSIONS / EXCLUSIONS ──
+
   private buildInclusionExclusionTable(): string {
     const t = this.emailTheme;
     const incItems = this.inclusions().map(i => this.inclusionText(i)).filter(Boolean);
     const excItems = this.exclusions().map(e => this.exclusionText(e)).filter(Boolean);
 
-    const list = (items: string[], mark: string, color: string): string =>
+    const list = (items: string[], color: string): string =>
       items.length
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${items.map(i => `
-            <tr><td style="font-family:${t.font};font-size:12px;color:${t.text};padding:2px 0;vertical-align:top;">
-              <span style="color:${color};font-weight:bold;">${mark}&nbsp;</span>${i}
-            </td></tr>`).join('')}</table>`
-        : `<span style="font-family:${t.font};font-size:12px;color:${t.muted};font-style:italic;">None added.</span>`;
+        ? items.map(i => `
+            <div style="font-family:${t.font};font-size:13px;color:${t.text};padding:3px 0 3px 22px;position:relative;">
+              <span style="position:absolute;left:0;color:${color};font-weight:bold;">${color === t.green ? '✓' : '✗'}</span>
+              ${i}
+            </div>
+          `).join('')
+        : `<div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;">No ${color === t.green ? 'inclusions' : 'exclusions'} added.</div>`;
 
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
         <tr>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;width:50%;text-align:center;">Inclusions</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;width:50%;text-align:center;">Exclusions</td>
-        </tr>
-        <tr>
-          <td style="border:1px solid ${t.border};padding:10px 12px;vertical-align:top;">${list(incItems, '&#10003;', t.green)}</td>
-          <td style="border:1px solid ${t.border};padding:10px 12px;vertical-align:top;">
-            ${list(excItems, '&#10007;', t.red)}
-            <div style="font-family:${t.font};font-size:11px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
+          <td style="width:50%;padding:0 6px 0 0;vertical-align:top;">
+            ${this.buildInclusionHeader('Inclusions')}
+            <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
+              ${list(incItems, t.green)}
+            </div>
+          </td>
+          <td style="width:50%;padding:0 0 0 6px;vertical-align:top;">
+            ${this.buildExclusionHeader('Exclusions')}
+            <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
+              ${list(excItems, t.red)}
+              <div style="font-family:${t.font};font-size:11px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
+            </div>
           </td>
         </tr>
       </table>
     `;
   }
 
-  /**
-   * Optional / paid activities (e.g. water sports) rendered as a plain
-   * "Name : Rs.X /- per head" bullet list, matching the reference's
-   * "Water Sports Activities" note style — no table/box.
-   */
-  private buildOptionalActivitiesList(): string {
-    const t = this.emailTheme;
-    const rows = this.activities();
-    if (!rows.length) return '';
+  // ── TERMS ──
 
-    return `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-        ${rows.map(row => `
-          <tr>
-            <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">
-              ${row.ActivityServiceName || row.ActivityName || '-'}${row.LocationName ? ` @ ${row.LocationName}` : ''} :
-              <strong>${this.formatCurrency(Number(row.SellingPrice) || Number(row.GivenPrice) || 0)} /- per head</strong>
-            </td>
-          </tr>
-        `).join('')}
-      </table>
-    `;
-  }
-
-  /**
-   * Boxed Terms & Conditions list, matching the PDF's shaded "Terms and
-   * Conditions" panel. Term text may itself contain sanitized Quill
-   * HTML (bold/italic/links) — it is embedded as-is.
-   */
   private buildTermsList(): string {
     const t = this.emailTheme;
     const items = this.terms().map(term => this.termHtml(term)).filter(Boolean);
     if (!items.length) return '';
 
     return `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <div style="background-color:#f8f9fa;border:1px solid #e8edf5;padding:14px 18px;margin:4px 0 14px 0;">
         ${items.map(term => `
-          <tr>
-            <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:3px 0;vertical-align:top;">&#8226;&nbsp; ${term}</td>
-          </tr>
+          <div style="font-family:${t.font};font-size:13px;color:${t.text};padding:3px 0;line-height:1.5;">${term}</div>
         `).join('')}
-      </table>
+      </div>
     `;
   }
 
-  /**
-   * Copies the fully-inlined HTML email to the clipboard using the modern
-   * Clipboard API (text/html + text/plain), so pasting into Gmail (or any
-   * rich-text compose window) reproduces the preview almost pixel-for-pixel.
-   */
-  async copyEmailHtml(): Promise<void> {
-    const htmlContent = this.generateEmailHTML();
-    const plainText = this.buildWhatsAppText(); // Readable plain-text fallback
+  // ── WATER SPORTS ──
 
-    try {
-      if (navigator.clipboard && typeof (window as any).ClipboardItem !== 'undefined') {
-        const clipboardItem = new ClipboardItem({
-          'text/html': new Blob([htmlContent], { type: 'text/html' }),
-          'text/plain': new Blob([plainText], { type: 'text/plain' }),
-        });
-        await navigator.clipboard.write([clipboardItem]);
-        this.toastr.success('Email copied! Paste it directly into Gmail (Ctrl+V / Cmd+V).');
-        return;
-      }
-    } catch (error) {
-      console.error('Rich clipboard copy failed, falling back:', error);
-    }
+  private buildWaterSportsBox(): string {
+    const t = this.emailTheme;
+    const waterSportsTerms = this.terms().filter(t =>
+      this.termHtml(t).includes('Scuba') ||
+      this.termHtml(t).includes('Diving') ||
+      this.termHtml(t).includes('Snorkeling')
+    );
 
-    // Fallback path for browsers without full Clipboard API / ClipboardItem support.
-    try {
-      await navigator.clipboard.writeText(plainText);
-      this.toastr.success('Copied as plain text (this browser does not support rich HTML copy).');
-    } catch (err) {
-      console.error('Plain-text clipboard copy failed:', err);
-      this.toastr.error('Could not copy to clipboard. Please try again.');
-    }
+    if (!waterSportsTerms.length) return '';
+
+    return `
+      <div style="background-color:#f8faff;border:1px solid #e8edf5;padding:14px 18px;margin:4px 0 14px 0;">
+        <div style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.brand};margin:0 0 8px 0;">Water Sports Activities (if pre-booked)</div>
+        ${waterSportsTerms.map(term => `
+          <div style="font-family:${t.font};font-size:12px;color:${t.text};padding:2px 0;line-height:1.5;">${this.termHtml(term)}</div>
+        `).join('')}
+        <div style="font-family:${t.font};font-size:12px;color:${t.muted};margin-top:8px;padding-top:8px;border-top:1px solid #e0e7f0;">
+          <strong>Note:</strong> Above is just a quote, no rooms have been blocked. Rooms are subject to availability at the time of confirmation.
+        </div>
+      </div>
+    `;
   }
 
+  // ── NOTES ──
+
+  private buildNotesBox(): string {
+    const t = this.emailTheme;
+    return `
+      <div style="background-color:#f8f9fa;border-left:4px solid ${t.brand};padding:12px 16px;margin:4px 0 14px 0;font-family:${t.font};font-size:12px;color:${t.muted};line-height:1.7;">
+        <strong style="color:${t.text};">Note:</strong><br>
+        • Since Union Territory of Andaman and Nicobar is under the restricted area category, please carry a valid photo identity proof for all the travelers issued from competent authorities.<br>
+        • Our representative will hold the placard outside the exit gate of the Airport.<br>
+        • Check out time at most of the hotels is 0900 hrs. Late check out as per availability only, although guaranteed check out is possible paying 50% of the room charges.<br>
+        • Issues regarding child age to be settled with hotels directly.
+      </div>
+    `;
+  }
+
+  // ── HELPERS ──
+
+  private hasWaterSportsTerms(): boolean {
+    return this.terms().some(t =>
+      this.termHtml(t).includes('Scuba') ||
+      this.termHtml(t).includes('Diving') ||
+      this.termHtml(t).includes('Snorkeling')
+    );
+  }
+
+  private hasAnyTransportOrActivity(): boolean {
+    return this.daySlots().some(d => this.dayHasServices(d.dayNumber));
+  }
 
   private paxOverviewLabel(): string {
     const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
@@ -1436,6 +1439,38 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `${adults} Adults${childLabel}`;
   }
 
+  /**
+   * Copies HTML email to clipboard with full formatting
+   */
+  async copyEmailHtml(): Promise<void> {
+    try {
+      const htmlContent = this.generateEmailHTML();
+      const plainText = this.buildWhatsAppText();
+
+      const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+      const plainBlob = new Blob([plainText], { type: 'text/plain' });
+
+      if (navigator.clipboard && typeof (window as any).ClipboardItem !== 'undefined') {
+        const clipboardItem = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': plainBlob,
+        });
+        await navigator.clipboard.write([clipboardItem]);
+        this.toastr.success('Email copied! Paste directly into Gmail (Ctrl+V / Cmd+V).');
+        return;
+      }
+    } catch (error) {
+      console.error('Rich clipboard copy failed, falling back:', error);
+    }
+
+    try {
+      await navigator.clipboard.writeText(this.buildWhatsAppText());
+      this.toastr.success('Copied as plain text (rich HTML copy not supported in this browser).');
+    } catch (err) {
+      console.error('Plain-text clipboard copy failed:', err);
+      this.toastr.error('Could not copy to clipboard. Please try again.');
+    }
+  }
 
   private formatDateShort(value: any): string {
     if (!value) return '';
