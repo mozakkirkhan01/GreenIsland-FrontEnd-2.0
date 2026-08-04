@@ -18,6 +18,8 @@ import { buildBackCoverSection } from './sections/back-cover/back-cover.section'
 export interface PdfBuildContext {
   tripInfo: any;
   quoteHeader: any;
+  // Optional pricing object passed from the caller (keeps GST settings, totals, etc.)
+  pricing?: any;
   packageTypes: any[];
   hotelsByPackage: (pkgId: number) => any[];
   similarHotels: any[];
@@ -43,6 +45,8 @@ export interface PdfBuildContext {
   packageCostPrice: (pkgId: number) => number;
   pricingSnapshots: any[];
   packageSummaries: any[];
+  // Optional helper: returns true when GST is included for a given package id
+  isGstIncluded?: (pkgId: number) => boolean;
   durationLabel: string;
   totalGuestCount: number;
   formatCurrency: (n: number) => string;
