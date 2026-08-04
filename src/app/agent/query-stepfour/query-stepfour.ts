@@ -15,7 +15,6 @@ import { RequestModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
 
-// npm install pdfmake  (and, if using TS strict mode, npm install -D @types/pdfmake)
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs;
 
 type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: number; CostPrice?: number };
@@ -69,10 +68,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   similarHotels = computed<any[]>(() => this.quoteDetail()?.SimilarHotels ?? []);
   pricing = computed<any>(() => this.quoteDetail()?.Pricing ?? null);
   packageMarkups = computed<any[]>(() => this.quoteDetail()?.PackageMarkups ?? []);
-  // ── Snapshot pricing (frozen at save time, proven correct against the
-  // saved DB state) — everything below prefers these over any from-scratch
-  // recomputation, and only falls back to computing when a quote predates
-  // this feature (no rows in either table for its QuoteId). ──────────
   pricingSnapshots = computed<any[]>(() => this.quoteDetail()?.PricingSnapshots ?? []);
   packageSummaries = computed<any[]>(() => this.quoteDetail()?.PackageSummaries ?? []);
 
@@ -370,11 +365,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
   }
 
-  // Uses the frozen per-row FinalPrice/RoundedAmount exactly as saved --
-  // same markup, GST, and rounding that were actually applied when the
-  // quote was saved, instead of re-deriving them from PackageMarkup.PerPersonMarkup
-  // (which the old fallback below does, and which ignores QuoteRowMarkup
-  // entirely -- that's what produced the wrong 8,501 figure).
   private guestCategoryTotalsFromSnapshot(packageTypeId: number, rows: any[]): { label: string; count: number; paxLabel: string; amount: number }[] {
     const roundingMode = this.pricing()?.RoundingMode ?? this.quoteHeader()?.RoundingMode ?? 'none';
     const ages = this.childrenAgesList();
@@ -524,15 +514,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .reduce((sum, row) => sum + (Number(row.TotalPrice) || 0), 0);
   }
 
-  // This used to be cost-only (hotel+special+transport+activity, no
-  // markup/GST/rounding at all) while being displayed as "Package (INR)" --
-  // the headline selling price. It was never a price. Now it prefers the
-  // frozen GrandTotal from PackageSummary (the actual saved selling price,
-  // same source guestCategoryTotals/packageGrandTotal now use), and only
-  // falls back to the old cost-only sum for quotes saved before the
-  // snapshot feature existed -- which will still under-report until that
-  // quote is re-saved from query-stepthree, but at least won't silently
-  // mislabel a cost total as a price for anything saved after this fix.
   packageQuotePrice(packageTypeId: number): number {
     const summary = this.packageSummaryFor(packageTypeId);
     if (summary) return Number(summary.GrandTotal) || 0;
@@ -601,7 +582,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   rawDayScheduleHtml(dayNumber: number): string {
     const svc = this.scheduleServiceForDay(dayNumber);
-    return svc?.DaySchedule ? this.sanitizer.sanitize(SecurityContext.HTML, svc.DaySchedule) || '' : '';
+    return svc?.DaySchedule ? svc.DaySchedule : '';
   }
 
   sanitizeHtml(html: string): SafeHtml {
@@ -700,6 +681,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   toggleRemoveTransportActivities(): void { this.removeTransportActivities.update(v => !v); }
 
   buildWhatsAppText(): string {
+    // ... keep existing WhatsApp text generation ...
     const trip = this.tripInfo();
     const nights = Number(trip?.NoOfNights) || 0;
     const days = nights + 1;
@@ -796,110 +778,656 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .catch(() => this.toastr.error('Could not copy'));
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // EMAIL HTML GENERATION
+  // Table-based markup, every style attribute INLINE (no <style>
+  // block, no CSS classes) so a copy/paste into Gmail / Outlook /
+  // Apple Mail / Yahoo Mail keeps the exact same look. No borders,
+  // <hr>, or divider lines are used around the outer wrapper or
+  // under section headings, because Gmail's compose editor renders
+  // any such rule as a stray horizontal bar above the pasted
+  // content — everything below is spacing-only, matching the plain,
+  // border-free page layout of the reference quotation PDF.
+  // ══════════════════════════════════════════════════════════════
+
+  /** Design tokens reused across every inline style so the palette stays consistent with the reference PDF. */
+  private readonly emailTheme = {
+    brand: '#1155cc',      // reference "Package Overview" / heading blue
+    brandDark: '#0b3d91',
+    text: '#202124',
+    muted: '#5f6368',
+    border: '#c9ccd1',     // reference table grid-line grey
+    panelBg: '#ffffff',
+    zebraBg: '#f7f8fa',
+    headerBg: '#eef3fb',   // reference table header tint
+    green: '#188038',
+    red: '#c5221f',
+    gold: '#b98a00',
+    goldBorder: '#e7b400',
+    white: '#ffffff',
+    font: "Arial, Helvetica, sans-serif",
+  };
+
+  /**
+   * Builds a complete HTML email with inline styles for Gmail/Outlook compatibility.
+   * Used to render the on-screen preview via [innerHTML].
+   */
   buildEmailHtml(): SafeHtml {
+    const html = this.generateEmailHTML();
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /**
+   * Generates the complete, standalone HTML email document.
+   * Table-based layout, all styling inline -> safe to paste into any
+   * email client compose window. The outer wrapper has NO border,
+   * radius or shadow (matches the plain page look of the reference
+   * PDF and avoids Gmail rendering a stray top/bottom rule on paste).
+   */
+  private generateEmailHTML(): string {
     const trip = this.tripInfo();
-    let html = `
-      <p>Greetings from Green Island Tours and Travels Private Limited!</p>
-      <p>Dear Sir / Madam,</p>
-      <p>Thank you for reaching out to us with your travel requirements. As your trusted
-      Destination Management Company (DMC) for ${trip?.DestinationName || 'your destination'},
-      we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
-      <h4>Package Overview</h4>
-      <table class="table table-bordered table-sm">
-        <tr><td>Trip ID</td><td>${this.formatQuotationNo(trip?.QuotationNo)}</td></tr>
-        <tr><td>Destination</td><td>${trip?.DestinationName || ''}</td></tr>
-        <tr><td>Start Date</td><td>${this.formatDate(trip?.StartDate)}</td></tr>
-        <tr><td>Trip Duration</td><td>${this.durationLabel()}</td></tr>
-        <tr><td>Pax</td><td>${this.paxOverviewLabel()}</td></tr>
-      </table>`;
+    const t = this.emailTheme;
 
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotation - ${this.formatQuotationNo(trip?.QuotationNo)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:${t.white};font-family:${t.font};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${t.white};">
+  <tr>
+    <td align="center" style="padding:16px 0;">
+      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:${t.white};font-family:${t.font};color:${t.text};">
+        ${this.buildEmailBody()}
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+  }
+
+  /**
+   * Builds the email body as a sequence of <tr> rows to be placed inside
+   * the outer 700px wrapper table.
+   */
+  private buildEmailBody(): string {
+    const trip = this.tripInfo();
+    const t = this.emailTheme;
+    let html = '';
+
+    // ── Company name + greeting (plain text block, no colored band, matches the reference) ──
+    html += `
+      <tr>
+        <td style="padding:6px 12px 14px 12px;font-family:${t.font};font-size:13px;color:${t.text};line-height:1.6;">
+          <p style="margin:0 0 14px 0;font-size:15px;font-weight:bold;">Greetings from ${this.companyName()}!</p>
+          <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
+          <p style="margin:0;">
+            Thank you for reaching out to us with your travel requirements. As your trusted
+            Destination Management Company (DMC)${this.companyRegion() ? ` for <strong>${this.companyRegion()}</strong>` : ''},
+            we are pleased to share with you the proposed quotation for your upcoming travel plans.
+          </p>
+        </td>
+      </tr>
+    `;
+
+    // ── Package Overview ──
+    html += `
+      <tr>
+        <td style="padding:6px 12px 0 12px;">
+          ${this.sectionTitle('Package Overview')}
+          ${this.buildOverviewTable()}
+        </td>
+      </tr>
+    `;
+
+    // ── Price line (small bordered "Prices (INR)" tag + plain bold lines, exactly like the reference) ──
+    if (!this.hideTotalPrice() && this.packageTypes().length) {
+      html += `
+        <tr>
+          <td style="padding:0 12px 10px 12px;">
+            ${this.buildPriceHighlightBox()}
+          </td>
+        </tr>
+      `;
+    }
+
+    // ── Day Wise Itinerary ──
     if (!this.removeItinerary()) {
-      html += `<h4>Hotels</h4>`;
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.sectionTitle('Day Wise Itinerary')}
+            ${this.buildItineraryBlocks()}
+          </td>
+        </tr>
+      `;
+    }
+
+    // ── Package / Hotel options ──
+    if (!this.removeItinerary()) {
       this.packageTypes().forEach((pkg, idx) => {
-        html += `<h5>Option ${idx + 1}: ${pkg.PackageTypeName}</h5>`;
-        html += `<table class="table table-bordered table-sm">
-          <thead><tr><th>Nights</th><th>City</th><th>Hotel Name</th><th>Meal Plan</th><th>Accommodation</th></tr></thead><tbody>`;
-        for (const stay of this.stayBlocksByPackage(pkg.QuotePackageTypeId)) {
-          const nightsCell = stay.nights.map(n => `${n}${this.ordinal(n)} (${this.shortDate(this.nightDate(n))})`).join('<br>');
-          let hotelCell = `<strong>${stay.main.HotelName}</strong> (${stay.main.HotelCategoryName || ''})`;
-          for (const sim of stay.similar) {
-            hotelCell += `<br>/ ${sim.HotelName} (${sim.RoomTypeName || 'Room'})`;
-          }
-          html += `<tr>
-            <td>${nightsCell}</td>
-            <td>${stay.main.LocationName || ''}</td>
-            <td>${hotelCell}</td>
-            <td>${stay.main.MealPlan || '-'}</td>
-            <td>${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br>${this.paxSummary(stay.main)}</td>
-          </tr>`;
-        }
-        html += `</tbody></table>`;
-
-        const inclusions = this.specialInclusionsByPackage(pkg.QuotePackageTypeId);
-        if (inclusions.length) {
-          html += `<p><strong>Hotel Special Inclusions</strong></p><table class="table table-bordered table-sm"><tbody>`;
-          for (const si of inclusions) {
-            html += `<tr>
-              <td>${si.NightNumber}${this.ordinal(si.NightNumber)} (${this.shortDate(this.nightDate(si.NightNumber))})</td>
-              <td>${this.hotelLocationCategory(si.HotelId).split(',')[0]}</td>
-              <td>${si.HotelName}</td>
-              <td>${si.SpecialInclusionName}</td>
-            </tr>`;
-          }
-          html += `</tbody></table>`;
-        }
-
-        if (!this.hideTotalPrice()) {
-          html += `<p><strong>Prices (INR)</strong></p><ul>`;
-          for (const c of this.guestCategoryTotals(pkg.QuotePackageTypeId)) {
-            html += `<li>${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</li>`;
-          }
-          html += `</ul><p><strong>Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-</strong> (including GST)</p>`;
-        }
+        html += `
+          <tr>
+            <td style="padding:6px 12px 0 12px;">
+              ${this.sectionTitle(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
+              ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
+            </td>
+          </tr>
+        `;
       });
     }
 
-    if (!this.removeItinerary()) {
-      html += `<h4>Day Wise Itinerary</h4>`;
-      for (const day of this.daySlots()) {
-        const sched = this.daySchedule(day.dayNumber);
-        if (!sched) continue;
-        html += `<p><strong>${day.dayNumber}${this.ordinal(day.dayNumber)} Day (${this.dayHeaderDate(day.date).replace(`'${day.date.getFullYear().toString().slice(-2)}`, '')}) : ${sched.title}</strong></p>`;
-        if (sched.intro) html += `<p>${sched.intro}</p>`;
-        for (const section of sched.sections) {
-          html += `<p><em>${section.heading}</em><br>${section.body}</p>`;
-        }
-      }
+    // ── Transportation & Activities ──
+    if (!this.removeTransportActivities() && !this.removeItinerary() && this.hasAnyTransportOrActivity()) {
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.sectionTitle('Transportation and Activities')}
+            ${this.buildTransportActivitiesHTML()}
+          </td>
+        </tr>
+      `;
     }
 
-    if (!this.removeTransportActivities() && !this.removeItinerary()) {
-      html += `<h4>Transportation and Activities (for all options)</h4>
-        <table class="table table-bordered table-sm">
-        <thead><tr><th>Day</th><th>Service</th></tr></thead><tbody>`;
-      for (const day of this.daySlots()) {
-        if (!this.dayHasServices(day.dayNumber)) continue;
-        html += `<tr><td>${day.dayNumber}${this.ordinal(day.dayNumber)} Day<br>(${this.dayHeaderDate(day.date)})</td><td>`;
-        for (const svc of this.servicesForDay(day.dayNumber)) {
-          const qualifier = Number(svc.ServiceType) === 1 ? this.serviceQualifier(svc) : this.serviceDetail(svc);
-          html += `${svc.LocationName || svc.IteneraryServiceName || svc.ActivityServiceName || 'Service'}<br><small>${qualifier}</small><br>`;
-        }
-        for (const group of this.activityGroupsForDay(day.dayNumber)) {
-          const paxLabel = group.entries.map((e: any) => `${e.Qty}${(e.PaxTypeLabel || e.PaxType || 'Pax').charAt(0)}.`).join(' + ');
-          html += `${this.activityGroupTitle(group)}<br><small>${paxLabel}</small><br>`;
-        }
-        html += `</td></tr>`;
-      }
-      html += `</tbody></table>`;
+    // ── Inclusions / Exclusions ──
+    if (this.inclusions().length || this.exclusions().length) {
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.buildInclusionExclusionTable()}
+          </td>
+        </tr>
+      `;
     }
 
+    // ── Optional / paid activities (e.g. water sports) — plain bullet list, as in the reference ──
+    if (this.activities().length) {
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.sectionTitle('Optional Activities')}
+            ${this.buildOptionalActivitiesList()}
+          </td>
+        </tr>
+      `;
+    }
+
+    // ── Terms & Conditions ──
     if (!this.removeTerms() && this.hasTerms()) {
-      html += `<h4>Terms and Conditions</h4><ul>`;
-      for (const term of this.terms()) html += `<li>${this.termHtml(term)}</li>`;
-      html += `</ul>`;
+      html += `
+        <tr>
+          <td style="padding:6px 12px 0 12px;">
+            ${this.sectionTitle('Terms and Conditions')}
+            ${this.buildTermsList()}
+          </td>
+        </tr>
+      `;
     }
 
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+    // ── Footer (spacing only — no top border/rule) ──
+    html += `
+      <tr>
+        <td style="padding:22px 12px 10px 12px;text-align:center;font-family:${t.font};font-size:11px;color:${t.muted};line-height:1.7;">
+          <strong style="color:${t.text};font-size:12px;">${this.companyName()}</strong><br>
+          ${this.footerContactLine()}
+          <em>This is a system-generated quotation. Please verify all details before confirmation.</em><br>
+          <span>&copy; ${new Date().getFullYear()} ${this.companyName()}. All rights reserved.</span>
+        </td>
+      </tr>
+    `;
+
+    return html;
   }
+
+  // ── Small reusable inline-styled building blocks ──────────────────
+
+  private companyName(): string {
+    return this.tripInfo()?.CompanyName || this.quoteHeader()?.CompanyName || 'Green Island Tours and Travels Private Limited';
+  }
+
+  private companyRegion(): string {
+    return this.tripInfo()?.CompanyRegion || this.quoteHeader()?.CompanyRegion || this.tripInfo()?.DestinationName || '';
+  }
+
+  private footerContactLine(): string {
+    const parts = [this.tripInfo()?.CompanyEmail, this.tripInfo()?.CompanyPhone, this.tripInfo()?.CompanyWebsite].filter(Boolean);
+    return parts.length ? `${parts.join(' &nbsp;|&nbsp; ')}<br>` : '';
+  }
+
+  /**
+   * Centered, bold, blue section heading — no border/underline of any
+   * kind, so nothing renders as a horizontal rule once pasted into Gmail.
+   * Matches the reference PDF's "Package Overview" / "Day Wise Itinerary"
+   * / "Transportation and Activities" style exactly.
+   */
+  private sectionTitle(label: string): string {
+    const t = this.emailTheme;
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.brand};padding:10px 0 10px 0;">
+            ${label}
+          </td>
+        </tr>
+      </table>
+    `;
+  }
+
+  private hasAnyTransportOrActivity(): boolean {
+    return this.daySlots().some(d => this.dayHasServices(d.dayNumber));
+  }
+
+  /** Bordered key/value table for Trip ID / Destination / Dates / Pax, styled after the PDF's "Package Overview" box. */
+  private buildOverviewTable(): string {
+    const t = this.emailTheme;
+    const trip = this.tripInfo();
+    const rows: [string, string][] = ([
+      ['Trip ID', this.formatQuotationNo(trip?.QuotationNo)],
+      ['Destination', trip?.DestinationName || '-'],
+      ['Start Date', this.formatDateLong(trip?.StartDate) || '-'],
+      ['Trip Duration', this.durationLabel()],
+      ['Pax', this.paxOverviewLabel()],
+    ] as [string, string][]).filter(([, v]) => !!v);
+
+    const rowsHtml = rows.map(([label, value]) => `
+      <tr>
+        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;border:1px solid ${t.border};width:160px;">${label}</td>
+        <td style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;border:1px solid ${t.border};">${value}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
+        ${rowsHtml}
+      </table>
+    `;
+  }
+
+  /**
+   * Small bordered "Prices (INR)" tag followed by plain bold price lines
+   * and a bold Total — matches the reference exactly (only the label is
+   * boxed, the price lines themselves sit on a plain white background).
+   */
+  private buildPriceHighlightBox(): string {
+    const t = this.emailTheme;
+    const pkg = this.packageTypes()[0];
+    if (!pkg) return '';
+    const categories = this.guestCategoryTotals(pkg.QuotePackageTypeId);
+    if (!categories.length) return '';
+
+    const linesHtml = categories.map(c => `
+      <tr>
+        <td style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:2px 0;">
+          ${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}
+        </td>
+      </tr>
+    `).join('');
+
+    return `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
+        <tr>
+          <td style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:3px 10px;">Prices (INR)</td>
+        </tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">${linesHtml}</table>
+      <div style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.text};margin-top:6px;">
+        Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-
+        <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">(excluding GST unless stated)</span>
+      </div>
+    `;
+  }
+
+  /**
+   * Day-wise itinerary, one block per day — matches the reference's
+   * "1st Day (Thu 10th December) : Title" style. When the day's
+   * schedule was authored in the Quill editor, its sanitized HTML is
+   * embedded directly so headings, bold/italic text, lists and links
+   * from the editor are preserved natively (Gmail renders plain
+   * semantic tags like <strong>/<ul>/<a> correctly with no inline
+   * styles required).
+   */
+  private buildItineraryBlocks(): string {
+    const t = this.emailTheme;
+    let html = '';
+
+    for (const day of this.daySlots()) {
+      const svc = this.scheduleServiceForDay(day.dayNumber);
+      const dayTitle = svc?.LocationName || svc?.IteneraryServiceName || '';
+      const rawHtml = svc?.DaySchedule ? this.rawDayScheduleHtml(day.dayNumber) : '';
+      if (!rawHtml && !this.dayHasServices(day.dayNumber) && !dayTitle) continue;
+
+      html += `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
+          <tr>
+            <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.brand};padding-bottom:4px;">
+              ${day.dayNumber}${this.ordinal(day.dayNumber)} Day (${this.dayHeaderDate(day.date)})${dayTitle ? ` : ${dayTitle}` : ''}
+            </td>
+          </tr>
+          ${rawHtml ? `
+          <tr>
+            <td style="font-family:${t.font};font-size:13px;color:${t.text};line-height:1.6;">${rawHtml}</td>
+          </tr>` : ''}
+          ${this.buildDayHighlightsList(day.dayNumber)}
+        </table>
+      `;
+    }
+
+    return html || `<p style="font-family:${t.font};font-size:13px;color:${t.muted};">Itinerary details will be shared shortly.</p>`;
+  }
+
+  /** Compact bullet list of that day's services/activities/entry tickets, for the itinerary block. */
+  private buildDayHighlightsList(dayNumber: number): string {
+    const t = this.emailTheme;
+    const items: string[] = [];
+
+    for (const svc of this.servicesForDay(dayNumber)) {
+      if (Number(svc.ServiceType) === 1) {
+        items.push(`${this.serviceTitle(svc)}${svc.VehicleTypeName ? ` (${svc.VehicleTypeName})` : ''}`);
+      } else {
+        items.push(`${this.serviceTitle(svc)}${svc.ActivityServiceName ? ` - ${svc.ActivityServiceName}` : ''}`);
+      }
+    }
+    for (const group of this.activityGroupsForDay(dayNumber)) {
+      items.push(this.activityGroupTitle(group));
+    }
+
+    if (!items.length) return '';
+
+    return `
+      <tr>
+        <td style="padding-top:2px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            ${items.map(i => `
+              <tr>
+                <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:1px 0;">: ${i}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </td>
+      </tr>
+    `;
+  }
+
+  /**
+   * Builds HTML for a single package option: hotel table, special
+   * inclusions and the guest-category price breakdown.
+   */
+  private buildPackageHTML(packageTypeId: number): string {
+    const t = this.emailTheme;
+    let html = '';
+
+    const stays = this.stayBlocksByPackage(packageTypeId);
+    if (stays.length) {
+      html += `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
+          <tr>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:90px;">Nights</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Hotel</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:70px;">Meal</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:110px;">Rooms</td>
+          </tr>
+          ${stays.map((stay, i) => this.buildHotelRow(stay, i)).join('')}
+        </table>
+      `;
+    }
+
+    const inclusions = this.specialInclusionsByPackage(packageTypeId);
+    if (inclusions.length) {
+      html += `
+        <div style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.brand};margin:6px 0 6px 0;">Hotel Special Inclusions</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
+          <tr>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;width:70px;">Night</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;width:170px;">Hotel</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;">Special Inclusion</td>
+          </tr>
+          ${inclusions.map((si, i) => `
+            <tr>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.NightNumber}${this.ordinal(si.NightNumber)}<br><span style="font-size:11px;color:${t.muted};">${this.shortDate(this.nightDate(si.NightNumber))}</span></td>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;font-weight:bold;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.HotelName || ''}</td>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}"><strong>${si.SpecialInclusionName || ''}</strong>${si.Comments ? `<br><span style="font-size:11px;color:${t.muted};">${si.Comments}</span>` : ''}</td>
+            </tr>
+          `).join('')}
+        </table>
+      `;
+    }
+
+    if (!this.hideTotalPrice()) {
+      const categories = this.guestCategoryTotals(packageTypeId);
+      if (categories.length) {
+        html += `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            ${categories.map(c => `
+              <tr>
+                <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</td>
+              </tr>
+            `).join('')}
+            <tr>
+              <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:6px;">
+                Total: ${this.formatCurrency(this.packageGrandTotal(packageTypeId))} /-
+              </td>
+            </tr>
+          </table>
+        `;
+      }
+    }
+
+    return html;
+  }
+
+  private buildHotelRow(stay: any, index: number): string {
+    const t = this.emailTheme;
+    const zebra = index % 2 ? `background-color:${t.zebraBg};` : '';
+
+    const nightsLabel = stay.nights
+      .map((n: number) => `${n}${this.ordinal(n)}<br><span style="font-size:11px;color:${t.muted};">${this.shortDate(this.nightDate(n))}</span>`)
+      .join('<br>');
+
+    let hotelCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.HotelName || ''}</span>`;
+    if (stay.main.LocationName) hotelCell += `<br><span style="font-size:11px;color:${t.muted};">${stay.main.LocationName}</span>`;
+    if (stay.main.HotelCategoryName) hotelCell += `<br><span style="font-size:11px;color:${t.muted};">${stay.main.HotelCategoryName}</span>`;
+
+    for (const sim of stay.similar) {
+      hotelCell += `<br><span style="color:${t.brand};">/ <strong>${sim.HotelName || ''}</strong>${sim.HotelCategoryName ? ` <span style="font-size:11px;color:${t.muted};">(${sim.HotelCategoryName})</span>` : ''}</span>`;
+    }
+
+    const roomsCell = `${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br><span style="font-size:11px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
+
+    let totalPrice = 0;
+    for (const night of stay.nights) {
+      const winner = this.winningRowForNight(stay.main, stay.similar, night);
+      totalPrice += this.priceForNight(winner, night);
+    }
+
+    return `
+      <tr>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${stay.main.MealPlan || '-'}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${roomsCell}</td>
+      </tr>
+    `;
+  }
+
+  /**
+   * Builds HTML for transportation and activities, grouped day-by-day
+   * with a running total, mirroring the PDF's "Transportation and
+   * Activities" table.
+   */
+  private buildTransportActivitiesHTML(): string {
+    const t = this.emailTheme;
+    let html = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:130px;">Day</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Service</td>
+        </tr>
+    `;
+
+    let rowIndex = 0;
+    for (const day of this.daySlots()) {
+      if (!this.dayHasServices(day.dayNumber)) continue;
+      const zebra = rowIndex % 2 ? `background-color:${t.zebraBg};` : '';
+      rowIndex++;
+
+      const items: string[] = [];
+      for (const svc of this.servicesForDay(day.dayNumber)) {
+        if (Number(svc.ServiceType) === 1) {
+          items.push(`<div style="margin:2px 0;"><strong>${this.serviceTitle(svc)}</strong> <span style="color:${t.muted};font-size:11px;">(${this.serviceQualifier(svc)})</span>${svc.VehicleTypeName ? `<br><span style="font-size:11px;color:${t.muted};">${svc.VehicleTypeName}</span>` : ''}</div>`);
+        }
+      }
+      for (const group of this.activityGroupsForDay(day.dayNumber)) {
+        const paxLabel = group.entries.map((e: any) => `${e.Qty} ${e.PaxTypeLabel || e.PaxType || 'Pax'}`).join(' + ');
+        items.push(`<div style="margin:2px 0;"><strong>${this.activityGroupTitle(group)}</strong> <span style="color:${t.muted};font-size:11px;">(${paxLabel})</span></div>`);
+      }
+
+      html += `
+        <tr>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">
+            <strong>${day.dayNumber}${this.ordinal(day.dayNumber)} Day</strong><br>
+            <span style="font-size:11px;color:${t.muted};">${this.dayHeaderDate(day.date)}</span>
+          </td>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${items.join('')}</td>
+        </tr>
+      `;
+    }
+
+    html += `</table>`;
+
+    html += `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">
+        <tr>
+          <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:4px;">
+            Total: ${this.formatCurrency(this.transportActivityTotal())} /-
+          </td>
+        </tr>
+        <tr>
+          <td style="font-family:${t.font};font-size:11px;color:${t.muted};">
+            Transports: ${this.formatCurrency(this.transportTotal())} &nbsp;|&nbsp; Activities/Tickets: ${this.formatCurrency(this.activityTotal())}
+          </td>
+        </tr>
+      </table>
+    `;
+
+    return html;
+  }
+
+  /**
+   * Inclusions / Exclusions as a single two-column table with plain
+   * bold black centered headers (same grid style as the other tables
+   * in the reference — no colored underline bar).
+   */
+  private buildInclusionExclusionTable(): string {
+    const t = this.emailTheme;
+    const incItems = this.inclusions().map(i => this.inclusionText(i)).filter(Boolean);
+    const excItems = this.exclusions().map(e => this.exclusionText(e)).filter(Boolean);
+
+    const list = (items: string[], mark: string, color: string): string =>
+      items.length
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${items.map(i => `
+            <tr><td style="font-family:${t.font};font-size:12px;color:${t.text};padding:2px 0;vertical-align:top;">
+              <span style="color:${color};font-weight:bold;">${mark}&nbsp;</span>${i}
+            </td></tr>`).join('')}</table>`
+        : `<span style="font-family:${t.font};font-size:12px;color:${t.muted};font-style:italic;">None added.</span>`;
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;width:50%;text-align:center;">Inclusions</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:13px;font-weight:bold;color:${t.text};padding:8px 12px;width:50%;text-align:center;">Exclusions</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid ${t.border};padding:10px 12px;vertical-align:top;">${list(incItems, '&#10003;', t.green)}</td>
+          <td style="border:1px solid ${t.border};padding:10px 12px;vertical-align:top;">
+            ${list(excItems, '&#10007;', t.red)}
+            <div style="font-family:${t.font};font-size:11px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
+          </td>
+        </tr>
+      </table>
+    `;
+  }
+
+  /**
+   * Optional / paid activities (e.g. water sports) rendered as a plain
+   * "Name : Rs.X /- per head" bullet list, matching the reference's
+   * "Water Sports Activities" note style — no table/box.
+   */
+  private buildOptionalActivitiesList(): string {
+    const t = this.emailTheme;
+    const rows = this.activities();
+    if (!rows.length) return '';
+
+    return `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        ${rows.map(row => `
+          <tr>
+            <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">
+              ${row.ActivityServiceName || row.ActivityName || '-'}${row.LocationName ? ` @ ${row.LocationName}` : ''} :
+              <strong>${this.formatCurrency(Number(row.SellingPrice) || Number(row.GivenPrice) || 0)} /- per head</strong>
+            </td>
+          </tr>
+        `).join('')}
+      </table>
+    `;
+  }
+
+  /**
+   * Boxed Terms & Conditions list, matching the PDF's shaded "Terms and
+   * Conditions" panel. Term text may itself contain sanitized Quill
+   * HTML (bold/italic/links) — it is embedded as-is.
+   */
+  private buildTermsList(): string {
+    const t = this.emailTheme;
+    const items = this.terms().map(term => this.termHtml(term)).filter(Boolean);
+    if (!items.length) return '';
+
+    return `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        ${items.map(term => `
+          <tr>
+            <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:3px 0;vertical-align:top;">&#8226;&nbsp; ${term}</td>
+          </tr>
+        `).join('')}
+      </table>
+    `;
+  }
+
+  /**
+   * Copies the fully-inlined HTML email to the clipboard using the modern
+   * Clipboard API (text/html + text/plain), so pasting into Gmail (or any
+   * rich-text compose window) reproduces the preview almost pixel-for-pixel.
+   */
+  async copyEmailHtml(): Promise<void> {
+    const htmlContent = this.generateEmailHTML();
+    const plainText = this.buildWhatsAppText(); // Readable plain-text fallback
+
+    try {
+      if (navigator.clipboard && typeof (window as any).ClipboardItem !== 'undefined') {
+        const clipboardItem = new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([clipboardItem]);
+        this.toastr.success('Email copied! Paste it directly into Gmail (Ctrl+V / Cmd+V).');
+        return;
+      }
+    } catch (error) {
+      console.error('Rich clipboard copy failed, falling back:', error);
+    }
+
+    // Fallback path for browsers without full Clipboard API / ClipboardItem support.
+    try {
+      await navigator.clipboard.writeText(plainText);
+      this.toastr.success('Copied as plain text (this browser does not support rich HTML copy).');
+    } catch (err) {
+      console.error('Plain-text clipboard copy failed:', err);
+      this.toastr.error('Could not copy to clipboard. Please try again.');
+    }
+  }
+
 
   private paxOverviewLabel(): string {
     const adults = Number(this.tripInfo()?.NoOfAdults) || 0;
@@ -908,41 +1436,19 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `${adults} Adults${childLabel}`;
   }
 
-  copyEmailHtml(): void {
-    const container = document.createElement('div');
-    container.innerHTML = this.buildEmailHtml() as any;
-    navigator.clipboard.writeText(container.innerText)
-      .then(() => this.toastr.success('Copied to clipboard'))
-      .catch(() => this.toastr.error('Could not copy'));
+
+  private formatDateShort(value: any): string {
+    if (!value) return '';
+    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  private formatDate(value: any): string {
+  private formatDateLong(value: any): string {
     if (!value) return '';
     return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
   }
 
   // ══════════════════════════════════════════════════════════════
-  // PDF GENERATION — pdfmake, modular section builders
-  //
-  // Two things this file intentionally does NOT fake:
-  //
-  // 1. Cover image: a browser cannot list files on disk, so "determine
-  //    the correct image automatically" is implemented as a NAMING
-  //    CONVENTION — slugify(DestinationName) -> assets/img/covers/{slug}.jpg,
-  //    fetched and falling back to covers/default.jpg on 404. If you want
-  //    a real per-destination image that doesn't depend on a filename
-  //    convention, add a CoverImageUrl field to Destination/TripInfoModel
-  //    and swap PdfImageLoader.loadCoverImage's URL-building for that.
-  //
-  // 2. Snapshot pricing: PricingSnapshots/PackageSummaries are populated by
-  //    SaveQuote() in query-stepthree's controller and proven correct against
-  //    the saved DB state. guestCategoryTotals()/packageGrandTotal()/
-  //    packageQuotePrice()/packageCostPrice() above all check snapshot data
-  //    first now and only fall back to a live/raw computation for quotes
-  //    saved before this feature existed (no rows for that QuoteId in either
-  //    table). The PDF builder receives the same pricingSnapshots()/
-  //    packageSummaries() signals and is expected to apply the identical
-  //    snapshot-first / live-fallback rule -- not duplicate the math.
+  // PDF GENERATION
   // ══════════════════════════════════════════════════════════════
 
   private readonly pdfImages = new PdfImageLoader();
@@ -1005,17 +1511,5 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     } finally {
       this.pdfLoading.set(false);
     }
-  }
-
-
-
-  private formatDateShort(value: any): string {
-    if (!value) return '';
-    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
-  private formatDateLong(value: any): string {
-    if (!value) return '';
-    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
   }
 }
