@@ -4401,6 +4401,13 @@ private getSharedTransportRows(pkgId: number): {
   standaloneTransportRows: QuoteTransportRow[];
   groupedTransportRows: QuoteTransportRow[];
 } {
+  // NOTE: Transport is shared across package types (only hotels differ per
+  // package), so these are intentionally NOT filtered by QuotePackageTypeId.
+  // Previously this filtered by `pkgId`, which meant transport added while
+  // "Deluxe" was active (rows stamped with Deluxe's QuotePackageTypeId)
+  // disappeared the moment "Premium" became the active package, because no
+  // rows matched Premium's id. `pkgId` stays in the signature for
+  // callers/logging but no longer filters anything.
   return {
     // ROOT-CAUSE NOTE (do not add this back into any total below): on
     // reload, rehydrateDayGroups() rebuilds dayGroups()[].TransportRows
@@ -4415,10 +4422,9 @@ private getSharedTransportRows(pkgId: number): {
     // is touched). New quotes never showed this because transport there is
     // only ever added directly into dayGroups()[].TransportRows
     // (addTransportRowToGroup), leaving serviceRows() empty for transport.
-    serviceTransportRows: this.serviceRows().filter(r => r.ServiceType === 1 && r.QuotePackageTypeId === pkgId),
-    standaloneTransportRows: this.transportRows().filter(r => r.QuotePackageTypeId === pkgId),
+    serviceTransportRows: this.serviceRows().filter(r => r.ServiceType === 1),
+    standaloneTransportRows: this.transportRows(),
     groupedTransportRows: this.dayGroups()
-      .filter(group => group.QuotePackageTypeId === pkgId)
       .flatMap(group => group.TransportRows),
   };
 }
@@ -4428,15 +4434,16 @@ private getSharedActivityRows(pkgId: number): {
   standaloneActivityRows: ActivityTicketRow[];
   groupedActivityRows: ActivityTicketRow[];
 } {
+  // NOTE: Activities are shared across package types too — not filtered by
+  // QuotePackageTypeId, same reasoning as getSharedTransportRows above.
   return {
     // ServiceType 2 rows in QuoteServices are legacy/unused by the live UI
     // (activities are rehydrated separately from r.Activities /
     // QuoteActivityEntries — see rebuildActivityRowsForGroup). Kept for the
     // debug logger only, same reasoning as serviceTransportRows above.
-    serviceActivityRows: this.serviceRows().filter(r => r.ServiceType === 2 && r.QuotePackageTypeId === pkgId),
-    standaloneActivityRows: this.activityTicketRows().filter(r => r.QuotePackageTypeId === pkgId),
+    serviceActivityRows: this.serviceRows().filter(r => r.ServiceType === 2),
+    standaloneActivityRows: this.activityTicketRows(),
     groupedActivityRows: this.dayGroups()
-      .filter(group => group.QuotePackageTypeId === pkgId)
       .flatMap(group => group.ActivityRows),
   };
 }
