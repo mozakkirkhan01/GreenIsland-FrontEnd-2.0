@@ -5346,11 +5346,11 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
     const locations = this.locationList();
 
     if (!query) {
-      row.FilteredLocations = locations.slice(0, 4);
+      row.FilteredLocations = locations.slice(0, 6);
     } else {
       row.FilteredLocations = locations
         .filter(l => l.LocationName.toLowerCase().includes(query))
-        .slice(0, 4);
+        .slice(0, 6);
     }
     row.ShowLocationDropdown = true;
     this.transportRows.update(rows => [...rows]);
