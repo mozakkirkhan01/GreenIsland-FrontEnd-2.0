@@ -222,7 +222,7 @@
                   <div class="col-sm-2">
                     <label class="form-label small text-muted mb-1">Meal Plan</label>
                     <select class="form-select form-select-sm" [(ngModel)]="row.MealPlan"
-                      (ngModelChange)="markDirty(); lookupHotelRate(row)">
+                      (ngModelChange)="markDirty(); row.IsManualPrice = false; lookupHotelRate(row)">
                       <option value="CP">CP</option>
                       <option value="MAP">MAP</option>
                       <option value="AP">AP</option>
@@ -231,7 +231,7 @@
                   <div class="col-sm-3">
                     <label class="form-label small text-muted mb-1">Room Type</label>
                     <select class="form-select form-select-sm" [(ngModel)]="row.RoomTypeId"
-                      (ngModelChange)="markDirty(); lookupHotelRate(row)">
+                      (ngModelChange)="markDirty(); row.IsManualPrice = false; lookupHotelRate(row)">
                       <option [value]="0">Select room…</option>
                       @for (rt of row.RoomTypes; track rt.RoomTypeId) {
                       <option [value]="rt.RoomTypeId">{{ rt.RoomTypeName }}</option>

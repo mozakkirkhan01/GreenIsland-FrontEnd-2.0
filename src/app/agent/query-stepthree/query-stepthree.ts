@@ -168,7 +168,12 @@ export interface QuoteHotelRow {
   IsMainHotel: boolean;
   IsManualPrice: boolean;
   IsDatabasePrice: boolean;
-  FinalPrice: number;  
+  FinalPrice: number;
+  // ✅ NEW: true only when the user typed directly into the Final Price box
+  // (onFinalPriceChange) — a fixed lump-sum override that should NOT rescale
+  // when nights/rooms/qty change. false (or unset) for rates edited via the
+  // Edit Prices modal, which SHOULD rescale since they're per-night rates.
+  IsFinalPriceLocked?: boolean;
   SimilarHotelParentId?: number;
   NightPrices?: HotelNightPriceBreakdown[];
   PriceBreakdown?: HotelPriceBreakdown;
@@ -994,7 +999,6 @@ private mapHotelRow(h: any): QuoteHotelRow {
     } else {
       nightNumbers = [h.NightNumber];
     }
-    const nights = nightNumbers.length || 1;
 
     // ✅ FIX: Properly map NightPrices with all fields including DateLabel
     const nightPrices: HotelNightPriceBreakdown[] = (h.NightPrices ?? []).map((np: any) => {
@@ -1062,7 +1066,9 @@ private mapHotelRow(h: any): QuoteHotelRow {
       IsMainHotel: h.IsMainHotel === true || h.IsMainHotel === undefined ? true : !!h.IsMainHotel,
       IsManualPrice: false,
       IsDatabasePrice: true,
-      FinalPrice: h.FinalPrice ?? (sellingPrice * nights * rooms),
+      // h.SellingPrice is saved/loaded as the whole-stay total (see
+      // saveQuoteHotel's payload) — do not re-multiply by nights/rooms.
+      FinalPrice: h.FinalPrice ?? sellingPrice,
       SimilarHotelParentId: h.SimilarHotelParentId,
       // ✅ FIX: Use the properly mapped nightPrices
       NightPrices: nightPrices,
@@ -2863,12 +2869,22 @@ recalculatePrice(row: QuoteHotelRow): void {
     row.SellingPrice = row.CostPrice;
     row.TotalPrice = row.CostPrice;
     row.FinalPrice = row.CostPrice;
-  } else {
-    // For manual prices: Calculate FinalPrice from SellingPrice (per-night)
-    const nights2 = row.NightNumbers.length || 1;
-    const rooms = row.NoOfRooms || 1;
-    row.FinalPrice = (row.SellingPrice || 0) * nights2 * rooms;
+  } else if (row.IsFinalPriceLocked) {
+    // True fixed override — the user typed a lump-sum Final Price directly
+    // (onFinalPriceChange), not tied to per-night rates, so it must NOT be
+    // rescaled when nights/rooms/qty change. SellingPrice is already a
+    // whole-stay total — map it straight across, don't multiply again.
+    row.FinalPrice = row.SellingPrice || 0;
     row.TotalPrice = row.FinalPrice;
+  } else {
+    // Manual RATES edited via the Edit Prices modal (BaseRate/AwebRate/
+    // CwebRate/CnbRate). These are per-night rates, so when nights/rooms/
+    // qty change, CostPrice above has already been correctly recalculated
+    // from them — keep SellingPrice/TotalPrice/FinalPrice in sync with it
+    // instead of freezing the stale total from the last edit.
+    row.SellingPrice = row.CostPrice;
+    row.TotalPrice = row.CostPrice;
+    row.FinalPrice = row.CostPrice;
   }
   
   // ✅ LOG: Verify NightPrices after recalculation
@@ -2979,11 +2995,15 @@ EditPrices(row: QuoteHotelRow): void {
   recalculateEditPrice(): void {
     if (!this.editingHotelRow) return;
     const row = this.editingHotelRow;
-    this.editPrices.ComputedTotal =
+    const nights = row.NightNumbers?.length || 1;
+    // Rates are per night — the whole-stay total must be multiplied by
+    // nights (was missing here, so ComputedTotal only reflected one night).
+    this.editPrices.ComputedTotal = (
       (this.editPrices.RoomRate * (row.NoOfRooms || 0)) +
       (this.editPrices.AwebRate * (row.AWEB || 0)) +
       (this.editPrices.CwebRate * (row.CWEB || 0)) +
-      (this.editPrices.CnbRate * (row.CNB || 0));
+      (this.editPrices.CnbRate * (row.CNB || 0))
+    ) * nights;
   }
 
 applyEditPrices(): void {
@@ -2996,14 +3016,24 @@ applyEditPrices(): void {
   row.CnbRate = this.editPrices.CnbRate;
   row.CostPrice = this.editPrices.ComputedTotal;
   row.TotalPrice = this.editPrices.ComputedTotal;
-  row.SellingPrice = this.editPrices.SellingPrice;
+  // SellingPrice must reflect the rates/qty actually applied in this
+  // modal, so source it from the just-recalculated ComputedTotal (which
+  // already includes the manually entered AWEB rate) — not the stale,
+  // never-updated editPrices.SellingPrice snapshot taken when the modal
+  // was opened.
+  row.SellingPrice = this.editPrices.ComputedTotal;
   row.IsManualPrice = true;
   row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
+  // These are per-night rates, not a fixed lump sum — keep totals rescaling
+  // with future nights/rooms/qty changes rather than freezing this total.
+  row.IsFinalPriceLocked = false;
   
-  // ✅ Update FinalPrice
-  const nights = row.NightNumbers?.length || 1;
-  const rooms = row.NoOfRooms || 1;
-  row.FinalPrice = (row.SellingPrice || 0) * nights * rooms;
+  // ✅ Update FinalPrice — SellingPrice/CostPrice/TotalPrice/FinalPrice
+  // are all whole-stay totals by convention, so FinalPrice maps straight
+  // across. (Previously multiplied by nights*rooms again here, double-
+  // counting the stay length on top of the nights multiplier already
+  // applied inside ComputedTotal.)
+  row.FinalPrice = row.SellingPrice || 0;
 
   this.hotelRows.update(rows => [...rows]);
   this.markDirty();
@@ -3014,11 +3044,11 @@ applyEditPrices(): void {
 onManualPriceChange(row: QuoteHotelRow): void {
   row.IsManualPrice = true;
   row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
-  
-  const nights = row.NightNumbers?.length || 1;
-  const rooms = row.NoOfRooms || 1;
-  // Calculate FinalPrice from SellingPrice (per-night)
-  row.FinalPrice = (row.SellingPrice || 0) * nights * rooms;
+
+  // SellingPrice is already a whole-stay total — map it straight across,
+  // don't re-multiply by nights/rooms (recalculatePrice() below is what
+  // recomputes CostPrice/NightPrices correctly from the current rates).
+  row.FinalPrice = row.SellingPrice || 0;
   row.TotalPrice = row.FinalPrice;
   
   this.recalculatePrice(row);
@@ -3028,11 +3058,13 @@ onManualPriceChange(row: QuoteHotelRow): void {
 onFinalPriceChange(row: QuoteHotelRow): void {
   row.IsManualPrice = true;
   row.IsDatabasePrice = false;  // ← Once user edits, it's no longer a pure database price
-  
-  const nights = row.NightNumbers?.length || 1;
-  const rooms = row.NoOfRooms || 1;
-  // Calculate SellingPrice (per-night) from FinalPrice
-  row.SellingPrice = Math.round(row.FinalPrice / (nights * rooms));
+  // A direct Final Price entry is a fixed lump-sum override — lock it so
+  // recalculatePrice() doesn't rescale it when nights/rooms/qty change.
+  row.IsFinalPriceLocked = true;
+
+  // SellingPrice mirrors FinalPrice directly — both are whole-stay
+  // totals by convention, so no dividing by nights/rooms here.
+  row.SellingPrice = row.FinalPrice || 0;
   row.TotalPrice = row.FinalPrice;
   
   this.recalculatePrice(row);
