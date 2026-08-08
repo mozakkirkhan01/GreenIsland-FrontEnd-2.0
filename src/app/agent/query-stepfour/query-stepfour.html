@@ -610,7 +610,7 @@
         </div>
 
         @if (shareChannel() === 'whatsapp') {
-        <pre class="border rounded p-3 bg-light small" style="white-space: pre-wrap;">{{ buildWhatsAppText() }}</pre>
+        <pre class="border rounded p-3 bg-light small" style="white-space: pre-wrap; font-family: 'Bookman Old Style', 'URW Bookman', Georgia, serif;">{{ buildWhatsAppText() }}</pre>
         } @else {
         <div class="border rounded p-3" [innerHTML]="buildEmailHtml()"></div>
         }
