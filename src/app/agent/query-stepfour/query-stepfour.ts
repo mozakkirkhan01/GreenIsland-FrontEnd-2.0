@@ -390,6 +390,32 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
   }
 
+  // ── Pricing strategy (Overall vs Per Person) ─────────────────────
+  // Single source of truth for "was this package priced as one lump
+  // Overall total, or split Per Person by guest category". Read
+  // directly from the persisted data saved in Step Three — never
+  // re-derived from hotel/guest math — checked in order of
+  // specificity:
+  //   1. PackageSummary.PricingStrategy for this package (per-package
+  //      override, if the summary row carries one)
+  //   2. QuotePricing.PricingStrategy (the value saved from Step
+  //      Three's pricing-strategy toggle)
+  //   3. Quote header PricingStrategy (older/alternate save location)
+  // An unrecognised or missing value falls back to Per Person — the
+  // only behavior that existed before this toggle — so quotes saved
+  // before the Overall/Per Person option existed are unaffected.
+  isOverallPricing(packageTypeId?: number): boolean {
+    const raw =
+      (packageTypeId !== undefined ? this.packageSummaryFor(packageTypeId)?.PricingStrategy : undefined) ??
+      this.pricing()?.PricingStrategy ??
+      this.quoteHeader()?.PricingStrategy;
+
+    if (raw === undefined || raw === null || raw === '') return false;
+
+    const normalized = String(raw).trim().toLowerCase().replace(/[\s_-]/g, '');
+    return normalized === 'overall' || normalized === 'total' || normalized === 'package' || normalized === 'lumpsum';
+  }
+
   private guestCategoryTotalsFromSnapshot(packageTypeId: number, rows: any[]): { label: string; count: number; paxLabel: string; amount: number }[] {
     const roundingMode = this.pricing()?.RoundingMode ?? this.quoteHeader()?.RoundingMode ?? 'none';
     const ages = this.childrenAgesList();
@@ -409,6 +435,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   guestCategoryTotals(packageTypeId: number): { label: string; count: number; paxLabel: string; amount: number }[] {
+    // Overall pricing strategy: the saved GrandTotal (see packageGrandTotal())
+    // IS the whole package price — there is no per-guest-category split to
+    // show. Returning no rows here means every caller (Step Four UI,
+    // WhatsApp, Email, PDF) automatically stops printing "X /- Per Person
+    // ... x N Pax" bullet lines and falls through to just the Total line.
+    if (this.isOverallPricing(packageTypeId)) return [];
+
     const snapshotRows = this.packagePricingSnapshotsFor(packageTypeId);
     if (snapshotRows.length) {
       return this.guestCategoryTotalsFromSnapshot(packageTypeId, snapshotRows);
@@ -484,6 +517,22 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   packageGrandTotal(packageTypeId: number): number {
     const summary = this.packageSummaryFor(packageTypeId);
     if (summary) return Number(summary.GrandTotal) || 0;
+
+    if (this.isOverallPricing(packageTypeId)) {
+      // No saved PackageSummary for this package (older/edge-case quote).
+      // Sum the pricing snapshot rows directly instead of falling through
+      // to the guest-category reducer below, since that reducer divides by
+      // guest count and would reintroduce the exact "Per Person" bug this
+      // fix removes. Snapshot rows -> full component totals -> the
+      // strategy-agnostic component sum, in that preference order.
+      const snapshotRows = this.packagePricingSnapshotsFor(packageTypeId);
+      if (snapshotRows.length) {
+        const roundingMode = this.pricing()?.RoundingMode ?? this.quoteHeader()?.RoundingMode ?? 'none';
+        return snapshotRows.reduce((sum, r) => sum + (roundingMode !== 'none' ? Number(r.RoundedAmount) || 0 : Number(r.FinalPrice) || 0), 0);
+      }
+      return this.packageQuotePrice(packageTypeId);
+    }
+
     return this.guestCategoryTotals(packageTypeId).reduce((sum, r) => sum + r.amount * r.count, 0);
   }
 
@@ -1090,7 +1139,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!pkg) return '';
 
     const categories = this.guestCategoryTotals(pkg.QuotePackageTypeId);
-    if (!categories.length) return '';
+    const total = this.packageGrandTotal(pkg.QuotePackageTypeId);
+    // Overall pricing has no per-category rows (guestCategoryTotals()
+    // returns [] for it) — only bail out here if there's truly nothing to
+    // show at all, not merely because the (Per-Person-only) breakdown is
+    // empty, otherwise the Total itself would incorrectly disappear too.
+    if (!categories.length && !total) return '';
 
     const linesHtml = categories.map(c => `
       <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;">
@@ -1209,23 +1263,25 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
 
     if (!this.hideTotalPrice()) {
+      // Overall pricing strategy -> categories is [] (see guestCategoryTotals()),
+      // so only the Total row renders below; Per Person keeps its existing
+      // per-category breakdown exactly as before. The Total row itself is no
+      // longer gated behind categories.length, so it can never disappear.
       const categories = this.guestCategoryTotals(packageTypeId);
-      if (categories.length) {
-        html += `
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            ${categories.map(c => `
-              <tr>
-                <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</td>
-              </tr>
-            `).join('')}
+      html += `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          ${categories.map(c => `
             <tr>
-              <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:6px;">
-                Total: ${this.formatCurrency(this.packageGrandTotal(packageTypeId))} /-
-              </td>
+              <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</td>
             </tr>
-          </table>
-        `;
-      }
+          `).join('')}
+          <tr>
+            <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:6px;">
+              Total: ${this.formatCurrency(this.packageGrandTotal(packageTypeId))} /-
+            </td>
+          </tr>
+        </table>
+      `;
     }
 
     return html;
@@ -1533,7 +1589,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         hasTerms: this.hasTerms(),
         termHtml: (t: any) => this.termHtml(t),
         packageQuotePrice: (id: number) => this.packageQuotePrice(id),
+        packageGrandTotal: (id: number) => this.packageGrandTotal(id),
         packageCostPrice: (id: number) => this.packageCostPrice(id),
+        guestCategoryTotals: (id: number) => this.guestCategoryTotals(id),
+        isOverallPricing: (id: number) => this.isOverallPricing(id),
         pricingSnapshots: this.pricingSnapshots(),
         packageSummaries: this.packageSummaries(),
         pricing: this.pricing(),

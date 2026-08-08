@@ -224,6 +224,9 @@
             } @else {
               <span class="small text-muted ms-1">(excl. GST)</span>
             }
+            @if (isOverallPricing(pkg.QuotePackageTypeId)) {
+              <span class="small text-muted ms-1">(Overall Package Price)</span>
+            }
           </div>
           <div class="small text-muted">
             INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)
