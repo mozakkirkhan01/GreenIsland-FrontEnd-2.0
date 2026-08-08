@@ -6343,71 +6343,56 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
       return;
     }
 
-    console.log('Creating default groups with rates:', row.DateRates);
+    // Pax rows are driven entirely by the QueryStepOne configuration —
+    // nothing here is hardcoded. Adult/Child(Above 2)/Child(Below 2) are
+    // only generated (and only shown) when their live count from
+    // QueryStepOne is greater than zero, and each group's Qty (plus every
+    // per-day entry's Qty, which is what actually feeds pricing) is seeded
+    // from that same count so the table always reflects the current
+    // passenger configuration.
+    const adultQty = Math.max(0, Number(this.tripInfo()?.NoOfAdults) || 0);
+    const childAges = this.getChildrenAges();
+    const childAboveTwoQty = childAges.filter(age => age >= 2).length;
+    const childBelowTwoQty = childAges.length - childAboveTwoQty;
 
-    // Group 1: Adult
-    const adultGroup: ActivityTypeGroup = {
+    const buildGroup = (
+      paxType: ActivityPaxType,
+      label: string,
+      qty: number,
+      rateOf: (dr: ActivityDateRate) => number
+    ): ActivityTypeGroup => ({
       GroupId: ++this.activityRowCounter,
-      PaxType: 'Adult',
-      PaxTypeLabel: 'Adult',
-      TypeSearch: 'Adult',
+      PaxType: paxType,
+      PaxTypeLabel: label,
+      TypeSearch: label,
       ShowTypeDropdown: false,
-      Qty: 1,
+      Qty: qty,
       Entries: row.DateRates.map(dr => ({
         QuoteServiceId: 0,
         DayNumber: dr.DayNumber,
         ServiceDate: dr.ServiceDate,
-        Qty: 1,
-        Rate: dr.AdultRate || 0,
-        GivenPrice: dr.AdultRate || 0,
+        Qty: qty,
+        Rate: rateOf(dr) || 0,
+        GivenPrice: rateOf(dr) || 0,
         IsSaving: false,
       })),
-    };
+    });
 
-    // Group 2: Child (Above 2 Yrs) - maps to ChildAboveTwoYear
-    const childAboveGroup: ActivityTypeGroup = {
-      GroupId: ++this.activityRowCounter,
-      PaxType: 'Child',
-      PaxTypeLabel: 'Child (Above 2 Yrs)',
-      TypeSearch: 'Child (Above 2 Yrs)',
-      ShowTypeDropdown: false,
-      Qty: 1,
-      Entries: row.DateRates.map(dr => ({
-        QuoteServiceId: 0,
-        DayNumber: dr.DayNumber,
-        ServiceDate: dr.ServiceDate,
-        Qty: 1,
-        Rate: dr.ChildAboveTwoYear || 0,
-        GivenPrice: dr.ChildAboveTwoYear || 0,
-        IsSaving: false,
-      })),
-    };
+    const groups: ActivityTypeGroup[] = [];
+    // Skip pax types with zero quantity — no unnecessary rows.
+    if (adultQty > 0) {
+      groups.push(buildGroup('Adult', 'Adult', adultQty, dr => dr.AdultRate));
+    }
+    if (childAboveTwoQty > 0) {
+      groups.push(buildGroup('Child', 'Child (Above 2 Yrs)', childAboveTwoQty, dr => dr.ChildAboveTwoYear));
+    }
+    if (childBelowTwoQty > 0) {
+      groups.push(buildGroup('ChildBelowTwoYear', 'Child (Below 2 Yrs)', childBelowTwoQty, dr => dr.ChildBelowTwoYear));
+    }
 
-    // Group 3: Child (Below 2 Yrs) - maps to ChildBelowTwoYear
-    const childBelowGroup: ActivityTypeGroup = {
-      GroupId: ++this.activityRowCounter,
-      PaxType: 'ChildBelowTwoYear',
-      PaxTypeLabel: 'Child (Below 2 Yrs)',
-      TypeSearch: 'Child (Below 2 Yrs)',
-      ShowTypeDropdown: false,
-      Qty: 1,
-      Entries: row.DateRates.map(dr => ({
-        QuoteServiceId: 0,
-        DayNumber: dr.DayNumber,
-        ServiceDate: dr.ServiceDate,
-        Qty: 1,
-        Rate: dr.ChildBelowTwoYear || 0,
-        GivenPrice: dr.ChildBelowTwoYear || 0,
-        IsSaving: false,
-      })),
-    };
-
-    // Set all three groups
-    row.TypeGroups = [adultGroup, childAboveGroup, childBelowGroup];
+    row.TypeGroups = groups;
     this.activityTicketRows.update(rows => [...rows]);
     this.markDirty();
-
-    console.log('Default groups created successfully');
   }
 
 
