@@ -230,7 +230,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   durationLabel(): string {
     const nights = Number(this.tripInfo()?.NoOfNights) || 0;
-    return `${nights + 1}D, ${nights}N`;
+    return `${nights}Nights, ${nights + 1}Days`;
   }
 
   // ── Package / accommodation grouping ─────────────────────────────
@@ -818,7 +818,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     red: '#c5221f',
     gold: '#b98a00',
     goldBorder: '#e7b400',
-    font: 'Arial, Helvetica, sans-serif',
+    font: "'Bookman Old Style', 'URW Bookman', 'Georgia', serif",
   };
 
   buildEmailHtml(): SafeHtml {
@@ -834,13 +834,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quotation - ${this.formatQuotationNo(trip?.QuotationNo)}</title>
+<title></title>
 </head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:${this.emailTheme.font};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
   <tr>
     <td align="center" style="padding:16px 0;">
-      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#202124;">
+      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:#ffffff;font-family:${this.emailTheme.font};color:#202124;">
         ${this.buildEmailBody()}
       </table>
     </td>
@@ -856,21 +856,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     let html = '';
 
     // ── Header ──
-    html += `
-      <tr>
-        <td style="padding:0 12px 14px 12px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="font-family:${t.font};font-size:22px;font-weight:bold;color:${t.brand};letter-spacing:-0.5px;">Green Island Tours &amp; Travels</td>
-              <td style="text-align:right;font-family:${t.font};">
-                <div style="font-size:14px;font-weight:bold;color:${t.brand};">Quotation #${this.formatQuotationNo(trip?.QuotationNo)}</div>
-                <div style="font-size:12px;color:${t.muted};">${trip?.DestinationName || ''}</div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    `;
+
 
     // ── Greeting ──
     html += `
@@ -1085,7 +1071,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const rowsHtml = rows.map(([label, value]) => `
       <tr>
         <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 12px 6px 0;border-bottom:1px solid #f0f2f5;width:140px;font-weight:bold;">${label}</td>
-        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 0;border-bottom:1px solid #f0f2f5;">${value}</td>
+        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 0;border-bottom:1px solid #f0f2f5;font-weight:bold;">${value}</td>
       </tr>
     `).join('');
 
