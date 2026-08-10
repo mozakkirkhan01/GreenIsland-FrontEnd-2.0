@@ -346,6 +346,10 @@ export class Trips implements OnInit, AfterViewInit {
 
   // ── Row actions ───────────────────────────────────────
   openTripDetail(row: Trip): void {
+    if (row.status === 'progress') {
+      this.router.navigate(['/agent/query-stepfour', row.id]);
+      return;
+    }
     this.router.navigate(['/agent/query-steptwo', row.id]);
   }
 
