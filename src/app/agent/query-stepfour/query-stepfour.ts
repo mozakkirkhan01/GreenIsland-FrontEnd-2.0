@@ -1290,23 +1290,41 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const total = this.packageGrandTotal(packageTypeId);
     if (!categories.length && !total) return '';
 
-    const linesHtml = categories.map(c => `
-      <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;">
-        <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
-      </div>
+    const categoryRows = categories.map(c => `
+      <tr>
+        <td style="font-family:${t.font};font-size:14px;color:${t.text};padding:8px 10px 8px 0;vertical-align:top;">
+          <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
+        </td>
+      </tr>
     `).join('');
 
     const gstLabel = this.isGstIncluded(packageTypeId) ? '(including GST)' : '(excluding GST)';
+    const hasPerPax = categories.length > 0;
+    const totalCellStyle = hasPerPax
+      ? `width:40%;border-right:1px solid ${t.goldBorder};padding:14px 12px;vertical-align:top;`
+      : `padding:14px 12px;vertical-align:top;`;
 
     return `
-      <div style="border:1px solid ${t.goldBorder};padding:12px 16px;margin:4px 0 14px 0;">
-        <div style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:2px 10px;margin-bottom:8px;">Prices (INR)</div>
-        ${linesHtml}
-        <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:6px;padding-top:6px;border-top:1px solid #e0e7f0;">
-          Total: ${this.formatCurrency(total)} /-
-          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">${gstLabel}</span>
-        </div>
-      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${t.goldBorder};border-collapse:collapse;margin:4px 0 14px 0;font-family:${t.font};">
+        <tr>
+          <td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;font-size:14px;font-weight:bold;color:${t.text};">Prices (INR)</td>
+          ${hasPerPax ? `<td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;"></td>` : ''}
+        </tr>
+        <tr>
+          <td style="${totalCellStyle}">
+            <div style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.text};line-height:1;">${this.formatCurrency(total)} /-</div>
+            <div style="font-family:${t.font};font-size:12px;color:${t.muted};margin-top:4px;">${gstLabel}</div>
+          </td>
+          ${hasPerPax ? `
+          <td style="width:60%;padding:14px 12px;vertical-align:top;">
+            <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-bottom:10px;">Per Pax (INR)</div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              ${categoryRows}
+            </table>
+          </td>
+          ` : ''}
+        </tr>
+      </table>
     `;
   }
 
