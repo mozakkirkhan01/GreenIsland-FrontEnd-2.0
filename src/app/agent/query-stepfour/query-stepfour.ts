@@ -43,6 +43,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   inclusions = signal<any[]>([]);
   exclusions = signal<any[]>([]);
   terms = signal<any[]>([]);
+  emailGreetingHtml = signal<string>('');
 
   activePackageTypeId = signal<number>(0);
 
@@ -125,6 +126,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.QueryStepOneId = Number(this.route.snapshot.paramMap.get('id')) || 0;
     this.QuoteId = Number(this.route.snapshot.queryParamMap.get('quoteId')) || 0;
     this.loadPreview();
+    this.loadEmailGreetingTemplate();
   }
 
   canDeactivate(): boolean {
@@ -157,6 +159,40 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         console.error('getQuoteDetail error:', err);
         this.loading.set(false);
         this.toastr.error('Error loading quotation preview');
+      },
+    });
+  }
+
+  /**
+   * Fetches the "Greetings" rich-text block from Master Entry > Template
+   * (Repository > Template in the nav — see the Update Template admin
+   * screen with the Status dropdown + Greetings editor) and stores it raw.
+   * On failure or an empty result, emailGreetingHtml() stays '' and
+   * buildEmailBody() falls back to the previous hardcoded paragraphs, so a
+   * template API outage can't blank out the greeting entirely.
+   *
+   * ASSUMPTIONS I could not verify against a live API/DTO — check these
+   * against your actual Template/TemplateList response before trusting this:
+   *   - Response shape follows the same convention as InclusionList/
+   *     ExclusionList/TermAndConditionList: { Message, TemplateList: [...] }
+   *   - Each row has a `Status` field where the active row is literally the
+   *     string 'Active' (matching the dropdown in your screenshot), and a
+   *     `Greetings` field holding the editor's HTML.
+   *   - The endpoint doesn't require a filter payload — sent as {} here.
+   * If any of those field names are wrong, only this method needs updating;
+   * nothing else in the file depends on the Template API shape.
+   */
+  private loadEmailGreetingTemplate(): void {
+    this.service.getTemplateList(this.enc({})).subscribe({
+      next: (res: any) => {
+        if (res?.Message !== ConstantData.SuccessMessage) return;
+        const list: any[] = res.TemplateList ?? [];
+        const active = list.find(row => row?.Status === 'Active') ?? list[0];
+        this.emailGreetingHtml.set(active?.Greetings || '');
+      },
+      error: (err: any) => {
+        console.error('getTemplateList error:', err);
+        // Leave emailGreetingHtml() as '' — buildEmailBody() has a fallback.
       },
     });
   }
@@ -920,12 +956,18 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
 
     // ── Greeting ──
+    // Sourced from Master Entry > Template (see loadEmailGreetingTemplate()).
+    // Falls back to the original hardcoded copy if the template is empty or
+    // failed to load, so the email is never missing a greeting outright.
+    const greetingHtml = this.emailGreetingHtml();
     html += `
       <tr>
         <td style="padding:0 15px 12px 15px;font-family:${t.font};font-size:16px;color:${t.text};line-height:1.7;">
-          <p style="margin:0 0 14px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
-          <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
-          <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
+          ${greetingHtml || `
+            <p style="margin:0 0 14px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
+            <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
+            <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
+          `}
         </td>
       </tr>
     `;
