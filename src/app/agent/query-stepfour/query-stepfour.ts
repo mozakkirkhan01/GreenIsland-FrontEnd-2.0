@@ -922,8 +922,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Greeting ──
     html += `
       <tr>
-        <td style="padding:0 15px 12px 15px;font-family:${t.font};font-size:14px;color:${t.text};line-height:1.7;">
-          <p style="margin:0 0 14px 0;font-size:15px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
+        <td style="padding:0 15px 12px 15px;font-family:${t.font};font-size:16px;color:${t.text};line-height:1.7;">
+          <p style="margin:0 0 14px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
           <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
           <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
         </td>
@@ -1040,7 +1040,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
         <tr>
-          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.brand};padding:12px 16px;">
+          <td align="center" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.brand};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -1057,7 +1057,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e6dff0;border-radius:4px;margin:6px 0 8px 0;">
         <tr>
-          <td style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.brand};padding:8px 14px;">
+          <td style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.brand};padding:8px 14px;">
             ${dayNumber}${this.ordinal(dayNumber)} Day (${dateStr}) : ${title}
           </td>
         </tr>
@@ -1073,7 +1073,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e8f5e9;border-radius:4px;margin-bottom:6px;">
         <tr>
-          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.green};padding:12px 16px;">
+          <td align="center" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.green};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -1089,7 +1089,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffebee;border-radius:4px;margin-bottom:6px;">
         <tr>
-          <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.red};padding:12px 16px;">
+          <td align="center" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.red};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -1126,8 +1126,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     const rowsHtml = rows.map(([label, value]) => `
       <tr>
-        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;font-weight:bold;vertical-align:top;">${label}</td>
-        <td width="${valueW}" style="width:${valueW}px;border:1px solid ${t.border};font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;font-weight:bold;">${value}</td>
+        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:15px;color:${t.text};padding:8px 12px;font-weight:bold;vertical-align:top;">${label}</td>
+        <td width="${valueW}" style="width:${valueW}px;border:1px solid ${t.border};font-family:${t.font};font-size:15px;color:${t.text};padding:8px 12px;font-weight:bold;">${value}</td>
       </tr>
     `).join('');
 
@@ -1192,22 +1192,22 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
       if (sched.intro) {
         html += `
-          <div style="font-family:${t.font};font-size:13px;color:#444;margin:8px 0 6px 0;line-height:1.7;">${sched.intro}</div>
+          <div style="font-family:${t.font};font-size:15px;color:#444;margin:8px 0 6px 0;line-height:1.7;">${sched.intro}</div>
         `;
       }
 
       for (const section of sched.sections) {
         html += `
           <div style="margin:8px 0 6px 0;padding-left:12px;border-left:3px solid ${t.brand};">
-            <div style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.brand};">${section.heading}</div>
-            <p style="font-family:${t.font};font-size:13px;color:#444;margin:2px 0 0 0;line-height:1.6;">${section.body}</p>
+            <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.brand};">${section.heading}</div>
+            <p style="font-family:${t.font};font-size:15px;color:#444;margin:2px 0 0 0;line-height:1.6;">${section.body}</p>
           </div>
         `;
       }
 
       for (const group of this.activityGroupsForDay(day.dayNumber)) {
         html += `
-          <div style="margin:4px 0 4px 12px;font-family:${t.font};font-size:13px;color:#333;">
+          <div style="margin:4px 0 4px 12px;font-family:${t.font};font-size:15px;color:#333;">
             <strong>${this.activityGroupTitle(group)}</strong>
           </div>
         `;
@@ -1216,7 +1216,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       html += `</div>`;
     }
 
-    return html || `<p style="font-family:${t.font};font-size:13px;color:${t.muted};">Itinerary details will be shared shortly.</p>`;
+    return html || `<p style="font-family:${t.font};font-size:15px;color:${t.muted};">Itinerary details will be shared shortly.</p>`;
   }
 
   // ── PACKAGE HTML ──
@@ -1235,11 +1235,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       html += `
         <table role="presentation" width="${this.CONTENT_W}" cellpadding="0" cellspacing="0" border="0" style="width:${this.CONTENT_W}px;border-collapse:collapse;margin-bottom:10px;">
           <tr>
-            <td width="${colW.nights}" style="width:${colW.nights}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Nights</td>
-            <td width="${colW.city}" style="width:${colW.city}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">City</td>
-            <td width="${colW.hotel}" style="width:${colW.hotel}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Hotel Name</td>
-            <td width="${colW.meal}" style="width:${colW.meal}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Meal Plan</td>
-            <td width="${colW.accommodation}" style="width:${colW.accommodation}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Accommodation</td>
+            <td width="${colW.nights}" style="width:${colW.nights}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nights</td>
+            <td width="${colW.city}" style="width:${colW.city}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">City</td>
+            <td width="${colW.hotel}" style="width:${colW.hotel}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Hotel Name</td>
+            <td width="${colW.meal}" style="width:${colW.meal}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Meal Plan</td>
+            <td width="${colW.accommodation}" style="width:${colW.accommodation}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Accommodation</td>
           </tr>
           ${stays.map((stay, i) => this.buildHotelRow(stay, i, colW)).join('')}
         </table>
@@ -1259,18 +1259,18 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const inclusions = this.specialInclusionsByPackage(packageTypeId);
     if (inclusions.length) {
       html += `
-        <div style="font-family:${t.font};font-size:13px;font-weight:bold;color:${t.brand};margin:6px 0 6px 0;">Hotel Special Inclusions</div>
+        <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.brand};margin:6px 0 6px 0;">Hotel Special Inclusions</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
           <tr>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;width:70px;">Night</td>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;width:170px;">Hotel</td>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:6px 10px;">Special Inclusion</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:6px 10px;width:70px;">Night</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:6px 10px;width:170px;">Hotel</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:6px 10px;">Special Inclusion</td>
           </tr>
           ${inclusions.map((si, i) => `
             <tr>
-              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.NightNumber}${this.ordinal(si.NightNumber)}<br><span style="font-size:11px;color:${t.muted};">${this.shortDate(this.nightDate(si.NightNumber))}</span></td>
-              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;font-weight:bold;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.HotelName || ''}</td>
-              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}"><strong>${si.SpecialInclusionName || ''}</strong>${si.Comments ? `<br><span style="font-size:11px;color:${t.muted};">${si.Comments}</span>` : ''}</td>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.NightNumber}${this.ordinal(si.NightNumber)}<br><span style="font-size:13px;color:${t.muted};">${this.shortDate(this.nightDate(si.NightNumber))}</span></td>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:6px 10px;font-weight:bold;${i % 2 ? `background-color:${t.zebraBg};` : ''}">${si.HotelName || ''}</td>
+              <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:6px 10px;${i % 2 ? `background-color:${t.zebraBg};` : ''}"><strong>${si.SpecialInclusionName || ''}</strong>${si.Comments ? `<br><span style="font-size:13px;color:${t.muted};">${si.Comments}</span>` : ''}</td>
             </tr>
           `).join('')}
         </table>
@@ -1292,7 +1292,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     const categoryRows = categories.map(c => `
       <tr>
-        <td style="font-family:${t.font};font-size:14px;color:${t.text};padding:8px 10px 8px 0;vertical-align:top;">
+        <td style="font-family:${t.font};font-size:16px;color:${t.text};padding:8px 10px 8px 0;vertical-align:top;">
           <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
         </td>
       </tr>
@@ -1307,17 +1307,17 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${t.goldBorder};border-collapse:collapse;margin:4px 0 14px 0;font-family:${t.font};">
         <tr>
-          <td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;font-size:14px;font-weight:bold;color:${t.text};">Prices (INR)</td>
+          <td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;font-size:16px;font-weight:bold;color:${t.text};">Prices (INR)</td>
           ${hasPerPax ? `<td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;"></td>` : ''}
         </tr>
         <tr>
           <td style="${totalCellStyle}">
-            <div style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.text};line-height:1;">${this.formatCurrency(total)} /-</div>
-            <div style="font-family:${t.font};font-size:12px;color:${t.muted};margin-top:4px;">${gstLabel}</div>
+            <div style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.text};line-height:1;">${this.formatCurrency(total)} /-</div>
+            <div style="font-family:${t.font};font-size:14px;color:${t.muted};margin-top:4px;">${gstLabel}</div>
           </td>
           ${hasPerPax ? `
           <td style="width:60%;padding:14px 12px;vertical-align:top;">
-            <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-bottom:10px;">Per Pax (INR)</div>
+            <div style="font-family:${t.font};font-size:17px;font-weight:bold;color:${t.text};margin-bottom:10px;">Per Pax (INR)</div>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
               ${categoryRows}
             </table>
@@ -1344,21 +1344,21 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     for (const sim of stay.similar) {
       hotelCell += ` <span style="color:${t.brand};">/ <strong>${sim.HotelName || ''}</strong></span>`;
     }
-    if (stay.main.HotelCategoryName) hotelCell += `<br><span style="font-size:11px;color:${t.muted};">${stay.main.HotelCategoryName}</span>`;
+    if (stay.main.HotelCategoryName) hotelCell += `<br><span style="font-size:13px;color:${t.muted};">${stay.main.HotelCategoryName}</span>`;
 
     const mealCell = stay.main.MealPlan
       ? `<span style="font-weight:bold;color:${t.text};">${stay.main.MealPlan}</span>`
       : '-';
 
-    const accommodationCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}</span><br><span style="font-size:11px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
+    const accommodationCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}</span><br><span style="font-size:13px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
 
     return `
       <tr>
-        <td width="${colW.nights}" style="width:${colW.nights}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
-        <td width="${colW.city}" style="width:${colW.city}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${cityCell}</td>
-        <td width="${colW.hotel}" style="width:${colW.hotel}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
-        <td width="${colW.meal}" style="width:${colW.meal}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${mealCell}</td>
-        <td width="${colW.accommodation}" style="width:${colW.accommodation}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${accommodationCell}</td>
+        <td width="${colW.nights}" style="width:${colW.nights}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
+        <td width="${colW.city}" style="width:${colW.city}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${cityCell}</td>
+        <td width="${colW.hotel}" style="width:${colW.hotel}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
+        <td width="${colW.meal}" style="width:${colW.meal}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${mealCell}</td>
+        <td width="${colW.accommodation}" style="width:${colW.accommodation}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${accommodationCell}</td>
       </tr>
     `;
   }
@@ -1370,8 +1370,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     let html = `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${t.font};">
         <tr>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:12px;font-weight:bold;padding:7px 10px;width:30%;">Day</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:12px;font-weight:bold;padding:7px 10px;width:70%;">Service</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:14px;font-weight:bold;padding:7px 10px;width:30%;">Day</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-size:14px;font-weight:bold;padding:7px 10px;width:70%;">Service</td>
         </tr>
     `;
 
@@ -1394,14 +1394,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           serviceHtml += `
             <div style="margin:2px 0;">
               <strong>${this.serviceTitle(svc)}</strong>
-              ${svc.VehicleTypeName ? `<br><span style="font-size:11px;color:${t.muted};">${svc.VehicleTypeName}</span>` : ''}
+              ${svc.VehicleTypeName ? `<br><span style="font-size:13px;color:${t.muted};">${svc.VehicleTypeName}</span>` : ''}
             </div>
           `;
         } else {
           serviceHtml += `
             <div style="margin:2px 0;">
               <strong>${this.serviceTitle(svc)}</strong>
-              <span style="font-size:11px;color:${t.muted};">(${this.serviceDetail(svc)})</span>
+              <span style="font-size:13px;color:${t.muted};">(${this.serviceDetail(svc)})</span>
             </div>
           `;
         }
@@ -1410,9 +1410,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       for (const group of groups) {
         const paxLabel = group.entries.map((e: any) => `${e.Qty} ${e.PaxTypeLabel || e.PaxType || 'Pax'}`).join(' + ');
         serviceHtml += `
-          <div style="margin:2px 0;font-size:13px;">
+          <div style="margin:2px 0;font-size:15px;">
             <strong>${this.activityGroupTitle(group)}</strong>
-            <span style="font-size:11px;color:${t.muted};">(${paxLabel})</span>
+            <span style="font-size:13px;color:${t.muted};">(${paxLabel})</span>
           </div>
         `;
       }
@@ -1421,7 +1421,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         <tr>
           <td style="border:1px solid ${t.border};padding:7px 10px;vertical-align:top;${zebra}">
             <strong>${day.dayNumber}${this.ordinal(day.dayNumber)} Day</strong><br>
-            <span style="font-size:11px;color:${t.muted};">${dateStr}</span>
+            <span style="font-size:13px;color:${t.muted};">${dateStr}</span>
           </td>
           <td style="border:1px solid ${t.border};padding:7px 10px;vertical-align:top;${zebra}">${serviceHtml}</td>
         </tr>
@@ -1445,12 +1445,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const list = (items: string[], color: string): string =>
       items.length
         ? items.map(i => `
-            <div style="font-family:${t.font};font-size:13px;color:${t.text};padding:3px 0 3px 22px;position:relative;">
+            <div style="font-family:${t.font};font-size:15px;color:${t.text};padding:3px 0 3px 22px;position:relative;">
               <span style="position:absolute;left:0;color:${color};font-weight:bold;">${color === t.green ? '✓' : '✗'}</span>
               ${i}
             </div>
           `).join('')
-        : `<div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;">No ${color === t.green ? 'inclusions' : 'exclusions'} added.</div>`;
+        : `<div style="font-family:${t.font};font-size:15px;color:${t.muted};font-style:italic;">No ${color === t.green ? 'inclusions' : 'exclusions'} added.</div>`;
 
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
@@ -1465,7 +1465,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
             ${this.buildExclusionHeader('Exclusions')}
             <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
               ${list(excItems, t.red)}
-              <div style="font-family:${t.font};font-size:11px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
+              <div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
             </div>
           </td>
         </tr>
@@ -1483,7 +1483,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <div style="background-color:#f8f9fa;border:1px solid #e8edf5;padding:14px 18px;margin:4px 0 14px 0;">
         ${items.map(term => `
-          <div style="font-family:${t.font};font-size:13px;color:${t.text};padding:3px 0;line-height:1.5;">${term}</div>
+          <div style="font-family:${t.font};font-size:15px;color:${t.text};padding:3px 0;line-height:1.5;">${term}</div>
         `).join('')}
       </div>
     `;
@@ -1503,11 +1503,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     return `
       <div style="background-color:#f8faff;border:1px solid #e8edf5;padding:14px 18px;margin:4px 0 14px 0;">
-        <div style="font-family:${t.font};font-size:14px;font-weight:bold;color:${t.brand};margin:0 0 8px 0;">Water Sports Activities (if pre-booked)</div>
+        <div style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.brand};margin:0 0 8px 0;">Water Sports Activities (if pre-booked)</div>
         ${waterSportsTerms.map(term => `
-          <div style="font-family:${t.font};font-size:12px;color:${t.text};padding:2px 0;line-height:1.5;">${this.termHtml(term)}</div>
+          <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;line-height:1.5;">${this.termHtml(term)}</div>
         `).join('')}
-        <div style="font-family:${t.font};font-size:12px;color:${t.muted};margin-top:8px;padding-top:8px;border-top:1px solid #e0e7f0;">
+        <div style="font-family:${t.font};font-size:14px;color:${t.muted};margin-top:8px;padding-top:8px;border-top:1px solid #e0e7f0;">
           <strong>Note:</strong> Above is just a quote, no rooms have been blocked. Rooms are subject to availability at the time of confirmation.
         </div>
       </div>
@@ -1519,7 +1519,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   private buildNotesBox(): string {
     const t = this.emailTheme;
     return `
-      <div style="background-color:#f8f9fa;border-left:4px solid ${t.brand};padding:12px 16px;margin:4px 0 14px 0;font-family:${t.font};font-size:12px;color:${t.muted};line-height:1.7;">
+      <div style="background-color:#f8f9fa;border-left:4px solid ${t.brand};padding:12px 16px;margin:4px 0 14px 0;font-family:${t.font};font-size:14px;color:${t.muted};line-height:1.7;">
         <strong style="color:${t.text};">Note:</strong><br>
         • Since Union Territory of Andaman and Nicobar is under the restricted area category, please carry a valid photo identity proof for all the travelers issued from competent authorities.<br>
         • Our representative will hold the placard outside the exit gate of the Airport.<br>
