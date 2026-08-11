@@ -264,6 +264,29 @@
                   }
                 </mat-form-field>
 
+
+                <!-- Hotel Contact Number -->
+                <mat-form-field appearance="outline" class="col-sm-4">
+                  <mat-label>Mobile No</mat-label>
+                  <input type="tel" matInput #MobileNo="ngModel" name="MobileNo" [(ngModel)]="Hotel.HotelContactNumber"
+                    maxlength="13" inputmode="numeric" placeholder="+91XXXXXXXXXX"
+                    (input)="onPhoneInput($event, 'HotelContactNumber')">
+                </mat-form-field>
+
+                 <!-- Hotel AlternateContactNumber -->
+                <mat-form-field appearance="outline" class="col-sm-4">
+                  <mat-label>Alternate No</mat-label>
+                  <input type="tel" matInput #AlternateNo="ngModel" name="AlternateNo"
+                    [(ngModel)]="Hotel.HotelAlternateContactNumber" maxlength="13" inputmode="numeric"
+                    placeholder="+91XXXXXXXXXX"
+                    (input)="onPhoneInput($event, 'HotelAlternateContactNumber')">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="col-sm-12">
+                  <mat-label>Full Address</mat-label>
+                  <textarea matInput #HotelAddress="ngModel" name="HotelAddress"
+                    [(ngModel)]="Hotel.HotelAddress"></textarea>
+                </mat-form-field>
+
                 <!-- Status -->
                 <mat-form-field appearance="outline" class="col-sm-3" style="height:15px;">
                   <mat-label>Status</mat-label>

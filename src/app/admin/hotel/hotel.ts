@@ -126,7 +126,7 @@ export class Hotel {
 
   // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
-    this.Hotel     = { Status: 1, DestinationId: null };
+    this.Hotel     = { Status: 1, DestinationId: null, HotelContactNumber: '+91', HotelAlternateContactNumber: '+91' };
     this.LogoPhoto = null;
     this.LocationList.set([]);
     this.noLocationFound.set(false);
@@ -135,6 +135,13 @@ export class Hotel {
       this.formHotel.control.markAsUntouched();
     }
     this.isSubmitted = false;
+  }
+
+  onPhoneInput(event: any, field: 'HotelContactNumber' | 'HotelAlternateContactNumber'): void {
+    const rawValue = event?.target?.value || '';
+    const digitsOnly = rawValue.replace(/\D/g, '');
+    const normalized = digitsOnly.startsWith('91') ? digitsOnly.slice(2) : digitsOnly;
+    this.Hotel[field] = '+91' + normalized.slice(0, 10);
   }
 
   openModal() {
@@ -195,6 +202,9 @@ export class Hotel {
 
             this.Hotel.HotelName = '';
             this.Hotel.HotelId = 0;
+            this.Hotel.HotelContactNumber = '';
+            this.Hotel.HotelAlternateContactNumber = '';
+            this.Hotel.HotelAddress = '';
 
           this. onFilterLocationChange() ;
         } else {
