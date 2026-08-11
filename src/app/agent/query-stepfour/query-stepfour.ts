@@ -659,10 +659,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return svc?.DaySchedule ? svc.DaySchedule : '';
   }
 
-  sanitizeHtml(html: string): SafeHtml {
+   sanitizeHtml(html: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
-
   private parseDaySchedule(raw: string): { intro: string; sections: { heading: string; body: string }[] } {
     const blocks = (raw || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
     const sections: { heading: string; body: string }[] = [];
@@ -1559,6 +1558,21 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   private readonly pdfImages = new PdfImageLoader();
   private readonly pdfBuilder = new QuotationPdfEngine();
 
+  /**
+   * Reads the agency's own contact details off TripInfo defensively — the
+   * backend DTO shape (`tripInfo()` is typed `any`) may expose these under
+   * any of a few likely key names depending on the API version. Returns
+   * `undefined` (never a hardcoded fallback) when nothing is present, so
+   * the PDF engine's own theme default is the only fallback in play.
+   */
+  private firstNonEmpty(source: any, keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = source?.[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return undefined;
+  }
+
   async downloadPdf(): Promise<void> {
     this.pdfLoading.set(true);
     try {
@@ -1611,6 +1625,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         coverImage,
         logoImage,
         sanitizeHtml: (html: string) => this.sanitizer.sanitize(SecurityContext.HTML, html) || '',
+        // Dynamic agency branding for the footer/back-cover — read from
+        // whatever TripInfo actually exposes, with no agency hardcoded here.
+        // Falls through to QuotationPdfEngine's theme default only when the
+        // API genuinely has nothing for that field.
+        agencyPhone: this.firstNonEmpty(this.tripInfo(), ['AgencyPhone', 'AgencyContactNumber', 'CompanyPhone']),
+        agencyEmail: this.firstNonEmpty(this.tripInfo(), ['AgencyEmail', 'CompanyEmail']),
+        agencyWebsite: this.firstNonEmpty(this.tripInfo(), ['AgencyWebsite', 'CompanyWebsite']),
+        agencyAddress: this.firstNonEmpty(this.tripInfo(), ['AgencyAddress', 'CompanyAddress', 'HeadOfficeAddress']),
       });
       pdfMake.createPdf(docDefinition).download(
         `Quotation-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.pdf`
