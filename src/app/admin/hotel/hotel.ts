@@ -126,7 +126,7 @@ export class Hotel {
 
   // ── Reset form ────────────────────────────────────────────────────────
   resetForm() {
-    this.Hotel     = { Status: 1, DestinationId: null, HotelContactNumber: '+91', HotelAlternateContactNumber: '+91' };
+    this.Hotel     = { Status: 1, DestinationId: null, HotelContactNumber: '+91-', HotelAlternateContactNumber: '+91-' };
     this.LogoPhoto = null;
     this.LocationList.set([]);
     this.noLocationFound.set(false);
@@ -141,7 +141,7 @@ export class Hotel {
     const rawValue = event?.target?.value || '';
     const digitsOnly = rawValue.replace(/\D/g, '');
     const normalized = digitsOnly.startsWith('91') ? digitsOnly.slice(2) : digitsOnly;
-    this.Hotel[field] = '+91' + normalized.slice(0, 10);
+    this.Hotel[field] = '+91-' + normalized.slice(0, 10);
   }
 
   openModal() {

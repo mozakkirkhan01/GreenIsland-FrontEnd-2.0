@@ -269,7 +269,7 @@
                 <mat-form-field appearance="outline" class="col-sm-4">
                   <mat-label>Mobile No</mat-label>
                   <input type="tel" matInput #MobileNo="ngModel" name="MobileNo" [(ngModel)]="Hotel.HotelContactNumber"
-                    maxlength="13" inputmode="numeric" placeholder="+91XXXXXXXXXX"
+                    maxlength="14" inputmode="numeric" placeholder="+91-XXXXXXXXXX"
                     (input)="onPhoneInput($event, 'HotelContactNumber')">
                 </mat-form-field>
 
@@ -277,8 +277,8 @@
                 <mat-form-field appearance="outline" class="col-sm-4">
                   <mat-label>Alternate No</mat-label>
                   <input type="tel" matInput #AlternateNo="ngModel" name="AlternateNo"
-                    [(ngModel)]="Hotel.HotelAlternateContactNumber" maxlength="13" inputmode="numeric"
-                    placeholder="+91XXXXXXXXXX"
+                    [(ngModel)]="Hotel.HotelAlternateContactNumber" maxlength="14" inputmode="numeric"
+                    placeholder="+91-XXXXXXXXXX"
                     (input)="onPhoneInput($event, 'HotelAlternateContactNumber')">
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="col-sm-12">
