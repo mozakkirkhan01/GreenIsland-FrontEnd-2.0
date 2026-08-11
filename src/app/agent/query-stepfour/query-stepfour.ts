@@ -877,6 +877,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   private generateEmailHTML(): string {
     const trip = this.tripInfo();
 
+    const W = this.EMAIL_W;
+
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -887,8 +889,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 <body style="margin:0;padding:0;background-color:#ffffff;font-family:${this.emailTheme.font};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
   <tr>
-    <td align="center" style="padding:16px 0;">
-      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;max-width:700px;background-color:#ffffff;font-family:${this.emailTheme.font};color:#202124;">
+    <td align="center" style="padding:16px 8px;">
+      <table role="presentation" width="${W}" cellpadding="0" cellspacing="0" border="0" style="width:${W}px;max-width:${W}px;background-color:#ffffff;font-family:${this.emailTheme.font};color:#202124;">
         ${this.buildEmailBody()}
       </table>
     </td>
@@ -897,6 +899,17 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 </body>
 </html>`;
   }
+
+  // Overall email width in px. Kept as a fixed value (not fluid 100%) because
+  // the overview/hotel tables below deliberately avoid percentage widths and
+  // <colgroup> — Gmail's paste sanitizer strips colgroup and re-measures
+  // columns from cell content, so every column width is pinned via a
+  // width="" attribute + matching inline style on every cell instead. A
+  // truly fluid container would defeat that workaround. 1000px is ~40% wider
+  // than the previous 700px and matches the reference screenshot's proportions.
+  private readonly EMAIL_W = 1000;
+  // Usable content width inside each section (EMAIL_W minus 15px padding each side).
+  private readonly CONTENT_W = 970;
 
   private buildEmailBody(): string {
     const t = this.emailTheme;
@@ -909,7 +922,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Greeting ──
     html += `
       <tr>
-        <td style="padding:0 12px 12px 12px;font-family:${t.font};font-size:14px;color:${t.text};line-height:1.7;">
+        <td style="padding:0 15px 12px 15px;font-family:${t.font};font-size:14px;color:${t.text};line-height:1.7;">
           <p style="margin:0 0 14px 0;font-size:15px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
           <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
           <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
@@ -920,29 +933,33 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Package Overview ──
     html += `
       <tr>
-        <td style="padding:6px 12px 0 12px;">
-          ${this.buildStyledHeader('Package Overview')}
+        <td style="padding:6px 15px 0 15px;">
+          ${this.buildStyledHeader('Package Overview', '620')}
           ${this.buildOverviewTable()}
         </td>
       </tr>
     `;
 
-    // ── Price Highlight Box ──
-    if (!this.hideTotalPrice() && this.packageTypes().length) {
+    // ── Package / Hotel options (Hotel table -> Prices) ──
+    // NOTE: previously gated on !removeItinerary(), which incorrectly hid the
+    // hotel table and pricing whenever the itinerary was removed. Hotels and
+    // Prices have no removal flag of their own in this app, so they always render.
+    this.packageTypes().forEach((pkg, idx) => {
       html += `
         <tr>
-          <td style="padding:0 12px 10px 12px;">
-            ${this.buildPriceHighlightBox()}
+          <td style="padding:6px 15px 0 15px;">
+            ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
+            ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
           </td>
         </tr>
       `;
-    }
+    });
 
     // ── Day Wise Itinerary ──
     if (!this.removeItinerary()) {
       html += `
         <tr>
-          <td style="padding:6px 12px 0 12px;">
+          <td style="padding:6px 15px 0 15px;">
             ${this.buildStyledHeader('Day Wise Itinerary')}
             ${this.buildItineraryBlocks()}
           </td>
@@ -950,25 +967,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    // ── Package / Hotel options ──
-    if (!this.removeItinerary()) {
-      this.packageTypes().forEach((pkg, idx) => {
-        html += `
-          <tr>
-            <td style="padding:6px 12px 0 12px;">
-              ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
-              ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
-            </td>
-          </tr>
-        `;
-      });
-    }
-
     // ── Transportation & Activities ──
-    if (!this.removeTransportActivities() && !this.removeItinerary() && this.hasAnyTransportOrActivity()) {
+    // NOTE: previously also gated on !removeItinerary(), coupling this
+    // section to an unrelated toggle. It now depends only on its own flag,
+    // matching removeTransportActivities()'s documented behavior.
+    if (!this.removeTransportActivities() && this.hasAnyTransportOrActivity()) {
       html += `
         <tr>
-          <td style="padding:6px 12px 0 12px;">
+          <td style="padding:6px 15px 0 15px;">
             ${this.buildStyledHeader('Transportation and Activities')}
             ${this.buildTransportActivitiesHTML()}
           </td>
@@ -980,7 +986,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (this.inclusions().length || this.exclusions().length) {
       html += `
         <tr>
-          <td style="padding:6px 12px 0 12px;">
+          <td style="padding:6px 15px 0 15px;">
             ${this.buildInclusionExclusionTable()}
           </td>
         </tr>
@@ -991,7 +997,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!this.removeTerms() && this.hasTerms()) {
       html += `
         <tr>
-          <td style="padding:6px 12px 0 12px;">
+          <td style="padding:6px 15px 0 15px;">
             ${this.buildStyledHeader('Terms and Conditions')}
             ${this.buildTermsList()}
           </td>
@@ -1003,7 +1009,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (this.hasWaterSportsTerms()) {
       html += `
         <tr>
-          <td style="padding:6px 12px 0 12px;">
+          <td style="padding:6px 15px 0 15px;">
             ${this.buildStyledHeader('Water Sports Activities (if pre-booked)')}
             ${this.buildWaterSportsBox()}
           </td>
@@ -1014,24 +1020,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Notes ──
     html += `
       <tr>
-        <td style="padding:6px 12px 0 12px;">
+        <td style="padding:6px 15px 0 15px;">
           ${this.buildNotesBox()}
         </td>
       </tr>
     `;
 
-    // ── Footer ──
-    html += `
-      <tr>
-        <td style="padding:22px 12px 10px 12px;text-align:center;font-family:${t.font};font-size:11px;color:${t.muted};line-height:1.7;">
-          <strong style="color:${t.text};font-size:12px;">Green Island Tours and Travels Private Limited</strong><br>
-          <em>This is a system-generated quotation. Please verify all details before confirmation.</em><br>
-          <span>&copy; ${new Date().getFullYear()} Green Island Tours and Travels. All rights reserved.</span>
-        </td>
-      </tr>
-    `;
-
-    return html;
+      return html;
   }
 
   // ── HEADER BUILDERS ──
@@ -1040,10 +1035,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
    * Builds a styled section header - full width light lavender/blue background
    * with centered bold dark blue text, matching the reference
    */
-  private buildStyledHeader(label: string): string {
+  private buildStyledHeader(label: string, width: string = '100%'): string {
     const t = this.emailTheme;
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
+      <table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
         <tr>
           <td align="center" style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.brand};padding:12px 16px;">
             ${label}
@@ -1108,61 +1103,66 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const t = this.emailTheme;
     const trip = this.tripInfo();
 
+    const destinationValue = trip?.DestinationName || '-';
+    const locationBreakdown = this.locationNightsSummary();
+
     const rows: [string, string][] = [
       ['Trip ID', this.formatQuotationNo(trip?.QuotationNo)],
-      ['Destination', trip?.DestinationName || '-'],
+      ['Destination', locationBreakdown
+        ? `${destinationValue}<div style="display:inline-block;background-color:#fdf3b0;border:1px solid #e8d97a;border-radius:3px;padding:4px 10px;margin-top:6px;font-weight:bold;">${locationBreakdown}</div>`
+        : destinationValue],
       ['Start Date', this.formatDateLong(trip?.StartDate) || '-'],
       ['Trip Duration', this.durationLabel()],
       ['Pax', this.paxOverviewLabel()],
     ];
 
+    const overviewWidth = 620;
+    // Widths are set as a plain HTML `width` attribute (in px) AND matching
+    // inline style on EVERY row's cells (not via <colgroup>, which Gmail's
+    // compose-box paste sanitizer strips and then re-measures columns from
+    // cell content, shrinking the table). Sums to overviewWidth.
+    const labelW = 140;
+    const valueW = overviewWidth - labelW;
+
     const rowsHtml = rows.map(([label, value]) => `
       <tr>
-        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 12px 6px 0;border-bottom:1px solid #f0f2f5;width:140px;font-weight:bold;">${label}</td>
-        <td style="font-family:${t.font};font-size:13px;color:${t.text};padding:6px 0;border-bottom:1px solid #f0f2f5;font-weight:bold;">${value}</td>
+        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;font-weight:bold;vertical-align:top;">${label}</td>
+        <td width="${valueW}" style="width:${valueW}px;border:1px solid ${t.border};font-family:${t.font};font-size:13px;color:${t.text};padding:8px 12px;font-weight:bold;">${value}</td>
       </tr>
     `).join('');
 
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
+      <table role="presentation" width="${overviewWidth}" cellpadding="0" cellspacing="0" border="0" style="width:${overviewWidth}px;border-collapse:collapse;margin-bottom:10px;">
         ${rowsHtml}
       </table>
     `;
   }
 
-  // ── PRICE HIGHLIGHT BOX ──
+  /**
+   * Builds the "Port Blair 1 Night / Havelock 2 Nights / ..." breakdown shown
+   * under Destination in the overview table. Reuses stayBlocksByPackage() —
+   * the same source the Hotels table renders from — so this can never drift
+   * from the actual booked hotel data. Sourced from the first package option;
+   * if packages have different routings the breakdown reflects only that one.
+   * Only shown when there's more than one stay block (i.e. a multi-city
+   * trip) — for a single-city trip it would just repeat Trip Duration.
+   */
+  private locationNightsSummary(): string {
+    const firstPackage = this.packageTypes()[0];
+    if (!firstPackage) return '';
 
-  private buildPriceHighlightBox(): string {
-    const t = this.emailTheme;
-    const pkg = this.packageTypes()[0];
-    if (!pkg) return '';
+    const stays = this.stayBlocksByPackage(firstPackage.QuotePackageTypeId);
+    if (stays.length <= 1) return '';
 
-    const categories = this.guestCategoryTotals(pkg.QuotePackageTypeId);
-    const total = this.packageGrandTotal(pkg.QuotePackageTypeId);
-    // Overall pricing has no per-category rows (guestCategoryTotals()
-    // returns [] for it) — only bail out here if there's truly nothing to
-    // show at all, not merely because the (Per-Person-only) breakdown is
-    // empty, otherwise the Total itself would incorrectly disappear too.
-    if (!categories.length && !total) return '';
-
-    const linesHtml = categories.map(c => `
-      <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;">
-        <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
-      </div>
-    `).join('');
-
-    const gstLabel = this.isGstIncluded(pkg.QuotePackageTypeId) ? '(including GST)' : '(excluding GST)';
-
-    return `
-      <div style="border:1px solid ${t.goldBorder};padding:12px 16px;margin-top:4px;">
-        <div style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:2px 10px;margin-bottom:8px;">Prices (INR)</div>
-        ${linesHtml}
-        <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:6px;padding-top:6px;border-top:1px solid #e0e7f0;">
-          Total: ${this.formatCurrency(this.packageGrandTotal(pkg.QuotePackageTypeId))} /-
-          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">${gstLabel}</span>
-        </div>
-      </div>
-    `;
+    return stays
+      .map(stay => {
+        const n = stay.nights.length;
+        const location = stay.main?.LocationName;
+        if (!location || !n) return null;
+        return `${location} ${n} Night${n > 1 ? 's' : ''}`;
+      })
+      .filter((s): s is string => !!s)
+      .join(' / ');
   }
 
   // ── ITINERARY BLOCKS ──
@@ -1227,17 +1227,33 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     const stays = this.stayBlocksByPackage(packageTypeId);
     if (stays.length) {
+      // Same fixed-px-per-cell approach as the Overview table — Gmail's
+      // paste sanitizer strips <colgroup>, so widths are set directly as
+      // width="" attributes + inline px on every cell in every row.
+      // 5 columns per reference: Nights | City | Hotel Name | Meal Plan | Accommodation
+      const colW = { nights: 110, city: 130, hotel: 320, meal: 160, accommodation: 250 }; // sums to CONTENT_W (970)
       html += `
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;">
+        <table role="presentation" width="${this.CONTENT_W}" cellpadding="0" cellspacing="0" border="0" style="width:${this.CONTENT_W}px;border-collapse:collapse;margin-bottom:10px;">
           <tr>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:90px;">Nights</td>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Hotel</td>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:70px;">Meal</td>
-            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;width:110px;">Rooms</td>
+            <td width="${colW.nights}" style="width:${colW.nights}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Nights</td>
+            <td width="${colW.city}" style="width:${colW.city}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">City</td>
+            <td width="${colW.hotel}" style="width:${colW.hotel}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Hotel Name</td>
+            <td width="${colW.meal}" style="width:${colW.meal}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Meal Plan</td>
+            <td width="${colW.accommodation}" style="width:${colW.accommodation}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:12px;font-weight:bold;padding:7px 10px;">Accommodation</td>
           </tr>
-          ${stays.map((stay, i) => this.buildHotelRow(stay, i)).join('')}
+          ${stays.map((stay, i) => this.buildHotelRow(stay, i, colW)).join('')}
         </table>
       `;
+    }
+
+    // Prices sits directly below Hotels, per spec (moved ahead of Special
+    // Inclusions, which previously sat between Hotels and Prices).
+    if (!this.hideTotalPrice()) {
+      // Overall pricing strategy -> categories is [] (see guestCategoryTotals()),
+      // so only the Total row renders below; Per Person keeps its existing
+      // per-category breakdown exactly as before. The Total row itself is no
+      // longer gated behind categories.length, so it can never disappear.
+      html += this.buildPriceBox(packageTypeId);
     }
 
     const inclusions = this.specialInclusionsByPackage(packageTypeId);
@@ -1261,55 +1277,70 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    if (!this.hideTotalPrice()) {
-      // Overall pricing strategy -> categories is [] (see guestCategoryTotals()),
-      // so only the Total row renders below; Per Person keeps its existing
-      // per-category breakdown exactly as before. The Total row itself is no
-      // longer gated behind categories.length, so it can never disappear.
-      const categories = this.guestCategoryTotals(packageTypeId);
-      html += `
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          ${categories.map(c => `
-            <tr>
-              <td style="font-family:${t.font};font-size:12.5px;color:${t.text};padding:2px 0;">${this.formatCurrency(c.amount)} /- ${c.label} x ${c.count} ${c.paxLabel}</td>
-            </tr>
-          `).join('')}
-          <tr>
-            <td style="font-family:${t.font};font-size:13.5px;font-weight:bold;color:${t.text};padding-top:6px;">
-              Total: ${this.formatCurrency(this.packageGrandTotal(packageTypeId))} /-
-            </td>
-          </tr>
-        </table>
-      `;
-    }
-
     return html;
   }
 
-  private buildHotelRow(stay: any, index: number): string {
+  /**
+   * Builds the gold-bordered "Prices (INR)" box for a given package,
+   * shown directly under that package's hotel table.
+   */
+  private buildPriceBox(packageTypeId: number): string {
+    const t = this.emailTheme;
+    const categories = this.guestCategoryTotals(packageTypeId);
+    const total = this.packageGrandTotal(packageTypeId);
+    if (!categories.length && !total) return '';
+
+    const linesHtml = categories.map(c => `
+      <div style="font-family:${t.font};font-size:14px;color:${t.text};padding:2px 0;">
+        <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
+      </div>
+    `).join('');
+
+    const gstLabel = this.isGstIncluded(packageTypeId) ? '(including GST)' : '(excluding GST)';
+
+    return `
+      <div style="border:1px solid ${t.goldBorder};padding:12px 16px;margin:4px 0 14px 0;">
+        <div style="display:inline-block;border:1px solid ${t.goldBorder};color:${t.gold};font-family:${t.font};font-size:12px;font-weight:bold;padding:2px 10px;margin-bottom:8px;">Prices (INR)</div>
+        ${linesHtml}
+        <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:6px;padding-top:6px;border-top:1px solid #e0e7f0;">
+          Total: ${this.formatCurrency(total)} /-
+          <span style="font-weight:normal;font-style:italic;font-size:11px;color:${t.muted};">${gstLabel}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  private buildHotelRow(stay: any, index: number, colW: { nights: number; city: number; hotel: number; meal: number; accommodation: number }): string {
     const t = this.emailTheme;
     const zebra = index % 2 ? `background-color:${t.zebraBg};` : '';
 
     const nightsLabel = stay.nights
-      .map((n: number) => `${n}${this.ordinal(n)}<br><span style="font-size:11px;color:${t.muted};">${this.shortDate(this.nightDate(n))}</span>`)
+      .map((n: number) => `${n}${this.ordinal(n)} (${this.shortDate(this.nightDate(n))})`)
       .join('<br>');
 
+    const cityCell = stay.main.LocationName
+      ? `<span style="font-weight:bold;color:${t.text};">${stay.main.LocationName}</span>`
+      : '-';
+
     let hotelCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.HotelName || ''}</span>`;
-    if (stay.main.LocationName) hotelCell += `<br><span style="font-size:11px;color:${t.muted};">${stay.main.LocationName}</span>`;
+    for (const sim of stay.similar) {
+      hotelCell += ` <span style="color:${t.brand};">/ <strong>${sim.HotelName || ''}</strong></span>`;
+    }
     if (stay.main.HotelCategoryName) hotelCell += `<br><span style="font-size:11px;color:${t.muted};">${stay.main.HotelCategoryName}</span>`;
 
-    for (const sim of stay.similar) {
-      hotelCell += `<br><span style="color:${t.brand};">/ <strong>${sim.HotelName || ''}</strong>${sim.HotelCategoryName ? ` <span style="font-size:11px;color:${t.muted};">(${sim.HotelCategoryName})</span>` : ''}</span>`;
-    }
+    const mealCell = stay.main.MealPlan
+      ? `<span style="font-weight:bold;color:${t.text};">${stay.main.MealPlan}</span>`
+      : '-';
 
-    const roomsCell = `${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br><span style="font-size:11px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
+    const accommodationCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}</span><br><span style="font-size:11px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
 
     return `
       <tr>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${stay.main.MealPlan || '-'}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${roomsCell}</td>
+        <td width="${colW.nights}" style="width:${colW.nights}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
+        <td width="${colW.city}" style="width:${colW.city}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${cityCell}</td>
+        <td width="${colW.hotel}" style="width:${colW.hotel}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
+        <td width="${colW.meal}" style="width:${colW.meal}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${mealCell}</td>
+        <td width="${colW.accommodation}" style="width:${colW.accommodation}px;border:1px solid ${t.border};font-family:${t.font};font-size:12px;padding:7px 10px;vertical-align:top;${zebra}">${accommodationCell}</td>
       </tr>
     `;
   }
@@ -1381,14 +1412,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     html += `</table>`;
 
-    html += `
-      <div style="font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};margin-top:10px;padding-top:10px;border-top:1px solid #e9ecef;">
-        Total: ${this.formatCurrency(this.transportActivityTotal())} /-
-      </div>
-      <div style="font-family:${t.font};font-size:11px;color:${t.muted};">
-        Transports: ${this.formatCurrency(this.transportTotal())} &nbsp;|&nbsp; Activities/Tickets: ${this.formatCurrency(this.activityTotal())}
-      </div>
-    `;
+
 
     return html;
   }
