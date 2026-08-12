@@ -27,7 +27,7 @@ import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { Progress } from '../../component/progress/progress';
 import { QuillModule } from 'ngx-quill';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { PricingStrategy } from '../../utils/enum';
+import { PricingStrategy, TripStatus } from '../../utils/enum';
 
 // ── Interfaces ────────────────────────────────────────────────
 export interface QuoteSpecialInclusionRow {
@@ -5161,6 +5161,18 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
         if (r.Message === ConstantData.SuccessMessage) {
           this.markClean();
           this.toastr.success('Quote saved successfully');
+
+          // Move trip to "In Progress" now that a quote exists.
+          const statusObj: RequestModel = {
+            request: this.local.encrypt(JSON.stringify({
+              QueryStepOneId: this.QueryStepOneId,
+              TripStatus: TripStatus.InProgress
+            })).toString()
+          };
+          this.service.updateTripStatus(statusObj).subscribe({
+            error: () => this.toastr.error('Quote saved, but failed to update trip status')
+          });
+
           const savedQuoteId = r.QuoteId || this.QuoteId;
           this.router.navigate(['/agent/query-stepfour', this.QueryStepOneId], {
             queryParams: savedQuoteId ? { quoteId: savedQuoteId } : {},
