@@ -749,7 +749,14 @@ activityTotal = computed(() => {
     });
   });
 
-  this.hotelRows.set(allHotels);
+  // hotelRows() must contain ONLY main hotels — similar hotels live nested
+  // under main.SimilarHotels (see getActiveHotelRows()). Setting this to the
+  // flat `allHotels` list previously left similar-hotel rows floating around
+  // as independent top-level entries too, so deleting a main hotel never
+  // removed its similar-hotel duplicates: they were a different object
+  // reference, survived in hotelRows(), got re-sent on the next SaveQuote,
+  // and reappeared on the next load — looking like the deleted hotel "came back".
+  this.hotelRows.set(mainRows);
   
   console.log('[Save/Load Debug] Hotels loaded from GetQuoteDetail', allHotels.map((h: QuoteHotelRow) => ({
     QuoteHotelId: h.QuoteHotelId,
