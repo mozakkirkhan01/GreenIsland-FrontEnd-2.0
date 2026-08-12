@@ -204,10 +204,115 @@
 
     <!-- Tabs -->
     <div class="quote-tabs">
-      <span>Basic Details</span>
-      <span class="active">All Quotes <b>{{ packageTypes().length }}</b></span>
-      <span>Activities</span>
+      <span [class.active]="activeTab() === 'basic'" (click)="setActiveTab('basic')" role="button">Basic Details</span>
+      <span [class.active]="activeTab() === 'quotes'" (click)="setActiveTab('quotes')" role="button">All Quotes <b>{{ packageTypes().length }}</b></span>
+      <span [class.active]="activeTab() === 'activities'" (click)="setActiveTab('activities')" role="button">Activities</span>
     </div>
+
+    <!-- ═══════════ BASIC DETAILS TAB ═══════════ -->
+    @if (activeTab() === 'basic') {
+    <div class="quote-card">
+      <div class="section-subtitle">Latest Quote</div>
+
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+          <div class="small text-muted">Package Quote Price</div>
+          <div>
+            <span class="currency">INR</span>
+            <strong style="font-size:28px;">{{ formatCurrency(packageQuotePrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }}</strong>
+            @if (isGstIncluded(packageTypes()[0]?.QuotePackageTypeId || 0)) {
+              <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+            } @else {
+              <span class="small text-muted ms-1">(excl. GST)</span>
+            }
+          </div>
+          <div class="small text-muted">
+            INR {{ formatCurrency(packageCostPrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }} (cost price)
+          </div>
+          @if (quoteHeader()?.CreatedOn) {
+          <div class="small text-muted mt-1">
+            Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
+            @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
+          </div>
+          }
+        </div>
+      </div>
+
+      <span class="status-chip">Latest Quote</span>
+
+      <div class="mt-3">
+        <button type="button" class="btn btn-outline-primary btn-sm" (click)="convertOrHoldUsingQuote()">
+          Convert/On-Hold using Quote
+        </button>
+      </div>
+
+      <div class="quote-table mt-3" style="grid-template-columns:none;">
+        <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
+          <i class="bx bx-calendar"></i>
+          <div>
+            {{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }} for {{ (tripInfo()?.NoOfNights || 0) + 1 }} Days
+            <span>{{ totalGuestCount() }} Adults</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title mt-4">Services</div>
+
+      <div class="service-section mb-4">
+        <div class="service-icon"><i class="bx bx-bed"></i></div>
+        <div class="service-content">
+          <h5>Accommodation</h5>
+          <div class="quote-table mb-2">
+            <div class="quote-row quote-head">
+              <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
+            </div>
+            @for (group of hotelGroupsByPackage(packageTypes()[0]?.QuotePackageTypeId || 0); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
+            <div class="quote-row">
+              <div>
+                {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
+                <span>{{ group.stayDate | date:'dd MMM' }}</span>
+              </div>
+              <div class="hotel-cell">
+                <div class="hotel-line hotel-line-main">
+                  <span class="hotel-name">{{ group.main.HotelName }}</span>
+                  <span>{{ group.main.LocationName || '-' }}, {{ group.main.HotelCategoryName || '-' }}</span>
+                </div>
+              </div>
+              <div>{{ group.main.MealPlan || '-' }}</div>
+              <div>
+                {{ group.main.NoOfRooms || 1 }} {{ group.main.RoomTypeName || 'Room' }}
+                <span>{{ group.main.AWEB || 0 }} AwEB + {{ group.main.CNB || 0 }} CNB</span>
+              </div>
+              <div class="price-cell">
+                <i class="bx bx-check-circle text-success"></i>
+                <span>INR</span>
+                {{ formatCurrency(group.maxPrice) }}
+              </div>
+            </div>
+            } @empty {
+            <div class="empty-row">No accommodation added for this package.</div>
+            }
+          </div>
+
+          <div class="section-total">
+            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(packageTypes()[0]?.QuotePackageTypeId || 0) + packageSpecialInclusionTotal(packageTypes()[0]?.QuotePackageTypeId || 0)) }}
+          </div>
+        </div>
+      </div>
+
+      @if (!hasTerms() && !inclusions().length && !exclusions().length && !hasAnyDaySchedule()) {
+      <div class="mt-4">
+        <div class="mb-2">Inclusions/Exclusions and Daywise Schedule not provided!</div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="editDetail()">
+          Edit Inclusions/Exclusions and Itinerary
+        </button>
+      </div>
+      }
+    </div>
+    }
+
+    <!-- ═══════════ ALL QUOTES TAB ═══════════ -->
+    @if (activeTab() === 'quotes') {
 
     <!-- Package Quote Price -->
     <div class="quote-card">
@@ -568,6 +673,8 @@
         </div>
       </div>
     </div>
+
+    } <!-- /activeTab() === 'quotes' -->
 
   </main>
 </div>

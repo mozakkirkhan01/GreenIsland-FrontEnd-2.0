@@ -126,6 +126,7 @@
   height: 48px;
   display: inline-flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .quote-tabs .active {

@@ -47,6 +47,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   activePackageTypeId = signal<number>(0);
 
+  // ── Tabs: Basic Details / All Quotes / Activities ─────────────────
+  activeTab = signal<'basic' | 'quotes' | 'activities'>('quotes');
+
   // ── Share dialog state ──────────────────────────────────────────
   shareOpen = signal(false);
   shareChannel = signal<'whatsapp' | 'email'>('whatsapp');
@@ -216,6 +219,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   // ── Navigation ────────────────────────────────────────────────
+  setActiveTab(tab: 'basic' | 'quotes' | 'activities'): void {
+    this.activeTab.set(tab);
+  }
+
+  // TODO: wire up real convert/on-hold behavior once requirements are defined.
+  convertOrHoldUsingQuote(): void {
+    this.toastr.info('Convert/On-Hold flow is coming soon');
+  }
+
   editDetail(): void {
     this.router.navigate(['/agent/query-stepthree', this.QueryStepOneId], {
       queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
@@ -683,6 +695,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const svc = this.scheduleServiceForDay(dayNumber);
     if (!svc || !svc.DaySchedule) return null;
     return { title: svc.IteneraryServiceName || '', ...this.parseDaySchedule(svc.DaySchedule) };
+  }
+
+  hasAnyDaySchedule(): boolean {
+    return this.daySlots().some(day => !!this.daySchedule(day.dayNumber));
   }
 
   rawDaySchedule(dayNumber: number): SafeHtml | null {
