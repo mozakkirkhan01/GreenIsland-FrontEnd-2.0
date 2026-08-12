@@ -50,3 +50,7 @@
       transform: rotate(90deg);
       transition: transform 0.2s ease;
     }
+
+    .query-stepone-page{
+      zoom: 1.10;
+    }
