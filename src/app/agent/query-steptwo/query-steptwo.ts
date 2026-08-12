@@ -333,7 +333,7 @@ formatQuotationNo(no: number): string {
 
   // ── Navigation ────────────────────────────────────────
   goBack(): void {
-    this.router.navigate(['/agent/query-stepone', this.QueryStepOneId]);
+    this.router.navigate(['/agent/trips']);
   }
 
   // editTrip(): void {
