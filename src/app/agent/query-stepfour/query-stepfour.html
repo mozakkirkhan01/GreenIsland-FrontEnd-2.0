@@ -214,30 +214,43 @@
     <div class="quote-card">
       <div class="section-subtitle">Latest Quote</div>
 
-      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-2">
-        <div>
-          <div class="small text-muted">Package Quote Price</div>
+      <div class="section-subtitle">Package Quote Price</div>
+
+      <div class="package-price-grid mb-3">
+        @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
+        <div class="package-price">
+          <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
           <div>
             <span class="currency">INR</span>
-            <strong style="font-size:28px;">{{ formatCurrency(packageQuotePrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }}</strong>
-            @if (isGstIncluded(packageTypes()[0]?.QuotePackageTypeId || 0)) {
+            <strong>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+            @if (isGstIncluded(pkg.QuotePackageTypeId)) {
               <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
             } @else {
               <span class="small text-muted ms-1">(excl. GST)</span>
             }
+            @if (isOverallPricing(pkg.QuotePackageTypeId)) {
+              <span class="small text-muted ms-1">(Overall Package Price)</span>
+            }
           </div>
-          <div class="small text-muted">
-            INR {{ formatCurrency(packageCostPrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }} (cost price)
+          <div class="small text-muted mb-2">
+            INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)
           </div>
-          @if (quoteHeader()?.CreatedOn) {
-          <div class="small text-muted mt-1">
-            Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
-            @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
+          @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
+          <div class="small">
+            {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
           </div>
           }
         </div>
+        }
       </div>
 
+      @if (quoteHeader()?.CreatedOn) {
+      <div class="small text-muted mb-2">
+        Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
+        @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
+      </div>
+      }
+   
       <span class="status-chip">Latest Quote</span>
 
       <div class="mt-3">
@@ -258,6 +271,8 @@
 
       <div class="section-title mt-4">Services</div>
 
+      @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pkgIdx = $index) {
+      <span class="option-label">Option {{ pkgIdx + 1 }}: {{ pkg.PackageTypeName }}</span>
       <div class="service-section mb-4">
         <div class="service-icon"><i class="bx bx-bed"></i></div>
         <div class="service-content">
@@ -266,7 +281,7 @@
             <div class="quote-row quote-head">
               <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
             </div>
-            @for (group of hotelGroupsByPackage(packageTypes()[0]?.QuotePackageTypeId || 0); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
+            @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
             <div class="quote-row">
               <div>
                 {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
@@ -295,10 +310,11 @@
           </div>
 
           <div class="section-total">
-            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(packageTypes()[0]?.QuotePackageTypeId || 0) + packageSpecialInclusionTotal(packageTypes()[0]?.QuotePackageTypeId || 0)) }}
+            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) + packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
           </div>
         </div>
       </div>
+      }
 
       @if (!hasTerms() && !inclusions().length && !exclusions().length && !hasAnyDaySchedule()) {
       <div class="mt-4">
