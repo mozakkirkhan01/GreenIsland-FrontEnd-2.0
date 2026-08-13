@@ -223,9 +223,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.activeTab.set(tab);
   }
 
-  // TODO: wire up real convert/on-hold behavior once requirements are defined.
   convertOrHoldUsingQuote(): void {
-    this.toastr.info('Convert/On-Hold flow is coming soon');
+    this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
+      queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+    });
   }
 
   editDetail(): void {
@@ -278,7 +279,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   durationLabel(): string {
     const nights = Number(this.tripInfo()?.NoOfNights) || 0;
-    return `${nights}Nights, ${nights + 1}Days`;
+    return `${nights}Nights / ${nights + 1}Days`;
   }
 
   // ── Package / accommodation grouping ─────────────────────────────
