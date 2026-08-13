@@ -1,0 +1,447 @@
+@if (loading()) {
+<div class="quote-loading">
+  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+  <span>Loading conversion details...</span>
+</div>
+} @else {
+<div class="query-convert-page">
+
+  <!-- Breadcrumb -->
+  <div class="convert-breadcrumb">
+    <button type="button" class="btn btn-link btn-sm text-decoration-none px-0" (click)="cancel()">
+      <i class="bx bx-arrow-back me-1"></i>Conversion
+    </button>
+    <span class="text-muted">
+      Trips <i class="bx bx-chevron-right"></i> {{ QueryStepOneId }}
+      <i class="bx bx-chevron-right"></i> Quotes <i class="bx bx-chevron-right"></i> {{ QuoteId }}
+    </span>
+  </div>
+
+  <!-- ═══════ Quote Used selector ═══════ -->
+  <div class="quote-card">
+    <div class="section-title mb-1">Quote Used</div>
+    <div class="text-muted small mb-3">Please select and verify the quote used in the process.</div>
+
+    <div class="quote-used-grid">
+      @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
+      <div
+        class="quote-used-option"
+        [class.active]="selectedPackageTypeId() === pkg.QuotePackageTypeId"
+        (click)="selectPackage(pkg.QuotePackageTypeId)"
+        role="button"
+      >
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <input
+            type="radio"
+            name="quoteUsedOption"
+            [checked]="selectedPackageTypeId() === pkg.QuotePackageTypeId"
+            (change)="selectPackage(pkg.QuotePackageTypeId)"
+          />
+          <span class="quote-used-label">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</span>
+        </div>
+        <div>
+          <span class="currency">INR</span>
+          <strong style="font-size:24px;">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  @if (selectedPackage(); as pkg) {
+
+  <!-- ═══════ Package Quote Price ═══════ -->
+  <div class="quote-card">
+    <div class="section-title">Package Quote Price</div>
+
+    <div>
+      <span class="currency">INR</span>
+      <strong style="font-size:28px;">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+      @if (isGstIncluded(pkg.QuotePackageTypeId)) {
+        <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+      } @else {
+        <span class="small text-muted ms-1">(excl. GST)</span>
+      }
+      <span class="small text-muted ms-2">/ INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)</span>
+    </div>
+
+    @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
+    <div class="small mt-1">
+      {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
+    </div>
+    }
+
+    @if (quoteHeader()?.CreatedOn) {
+    <div class="small text-muted mt-2">
+      Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
+      @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
+    </div>
+    }
+
+    <span class="status-chip mt-2 d-inline-block">Latest Quote</span>
+
+    <div class="quote-table mt-3" style="grid-template-columns:none;">
+      <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
+        <i class="bx bx-calendar"></i>
+        <div>
+          {{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }} for {{ (tripInfo()?.NoOfNights || 0) + 1 }} Days
+          <span>{{ totalGuestCount() }} Adults</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Services: Accommodation ═══════ -->
+  <div class="quote-card">
+    <div class="section-title">Services</div>
+    <div class="service-section mb-4">
+      <div class="service-icon"><i class="bx bx-bed"></i></div>
+      <div class="service-content">
+        <h5>Accommodation</h5>
+        <div class="quote-table mb-2">
+          <div class="quote-row quote-head">
+            <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
+          </div>
+          @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
+          <div class="quote-row">
+            <div>
+              {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
+              <span>{{ group.stayDate | date:'dd MMM' }}</span>
+            </div>
+            <div class="hotel-cell">
+              <div class="hotel-line hotel-line-main">
+                <span class="hotel-name">{{ group.main.HotelName }}</span>
+                <span>{{ group.main.LocationName || '-' }}, {{ group.main.HotelCategoryName || '-' }}</span>
+              </div>
+            </div>
+            <div>{{ group.main.MealPlan || '-' }}</div>
+            <div>
+              {{ group.main.NoOfRooms || 1 }} {{ group.main.RoomTypeName || 'Room' }}
+              <span>{{ group.main.AWEB || 0 }} AwEB + {{ group.main.CNB || 0 }} CNB</span>
+            </div>
+            <div class="price-cell">
+              <i class="bx bx-check-circle text-success"></i>
+              <span>INR</span>
+              {{ formatCurrency(group.maxPrice) }}
+            </div>
+          </div>
+          } @empty {
+          <div class="empty-row">No accommodation added for this package.</div>
+          }
+        </div>
+
+        @if (specialInclusionsByPackage(pkg.QuotePackageTypeId).length) {
+        <h5 class="mt-3">Hotel Special Inclusions</h5>
+        <table class="special-inc-table mb-2">
+          <thead>
+            <tr>
+              <th>Night</th><th>Hotel</th><th>Location / Category</th><th>Special Inclusion</th><th class="text-end">Price (INR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (si of specialInclusionsByPackage(pkg.QuotePackageTypeId); track si.QuoteSpecialInclusionId || $index) {
+            <tr>
+              <td>
+                <strong>{{ si.NightNumber }}{{ ordinal(si.NightNumber) }}</strong>
+                <div class="text-muted" style="font-size:11px;">{{ nightDate(si.NightNumber) | date:'dd MMM' }}</div>
+              </td>
+              <td><strong>{{ si.HotelName }}</strong></td>
+              <td class="text-muted">{{ hotelLocationCategory(si.HotelId) }}</td>
+              <td>
+                <strong>{{ si.SpecialInclusionName }}</strong>
+                @if (si.Comments) { <span class="d-block text-muted" style="font-size:11px;">{{ si.Comments }}</span> }
+              </td>
+              <td class="text-end"><strong>{{ formatCurrency(si.TotalPrice) }}</strong></td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+
+        <div class="section-total">
+          Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) + packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ Transportation and Activities ═══════ -->
+    @if (transportServices().length || activityGroups().length) {
+    <div class="service-section">
+      <div class="service-icon"><i class="bx bx-car"></i></div>
+      <div class="service-content">
+        <h5>Transportation and Activities</h5>
+
+        @for (day of daySlots(); track day.dayNumber) {
+        @if (dayHasServices(day.dayNumber)) {
+        <div class="day-service">
+          <div class="day-box">
+            <strong>{{ day.dayNumber }}{{ ordinal(day.dayNumber) }} Day</strong>
+            <span>{{ day.date | date:'EEE, dd MMM' }}</span>
+          </div>
+          <div class="day-lines">
+            @for (svc of servicesForDay(day.dayNumber); track svc.QuoteServiceId || $index) {
+            @if (svc.ServiceType == 1) {
+            <div class="day-line">
+              <div>
+                <strong>{{ serviceTitle(svc) }}</strong>
+                <span>{{ serviceSubtitle(svc) }}</span>
+              </div>
+              <div>
+                {{ svc.VehicleTypeName || 'Vehicle' }}
+                <span>{{ serviceBreakdown(svc) }}</span>
+              </div>
+              <div class="price-cell">
+                <i class="bx bx-check-circle text-success"></i>
+                <span>INR</span>
+                {{ formatCurrency(svc.TotalPrice || svc.SellingPrice || 0) }}
+              </div>
+            </div>
+            }
+            }
+
+            @for (group of activityGroupsForDay(day.dayNumber); track group.LocationId + '-' + group.ActivityServiceId) {
+            <div class="day-line">
+              <div>
+                <strong>{{ group.LocationName }}</strong>
+                <span>{{ group.ActivityServiceName }}</span>
+              </div>
+              <div>
+                @for (entry of group.entries; track entry.QuoteActivityEntryId || $index) {
+                <div>{{ entry.Qty }} {{ entry.PaxTypeLabel || entry.PaxType || 'Adult' }}
+                  <span>{{ formatCurrency(entry.Rate) }} × {{ entry.Qty }}</span>
+                </div>
+                }
+              </div>
+              <div class="price-cell">
+                <i class="bx bx-check-circle text-success"></i>
+                <span>INR</span>
+                {{ formatCurrency(group.total) }}
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+        }
+
+        <div class="section-total">
+          Total <span>INR</span> {{ formatCurrency(transportActivityTotal()) }}
+          <small>Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}</small>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- ═══════ Day-wise Schedule ═══════ -->
+  @if (hasAnyDaySchedule()) {
+  <div class="quote-card">
+    <div class="collapsible-title"><i class="bx bx-chevron-down"></i> Day-wise Schedule</div>
+    @for (day of daySlots(); track day.dayNumber) {
+    @if (daySchedule(day.dayNumber); as sched) {
+    <div class="schedule-item">
+      <div class="schedule-date">
+        <strong>{{ day.dayNumber }}{{ ordinal(day.dayNumber) }} Day</strong>
+        <span>{{ day.dayLabel }}</span>
+        <b>{{ day.date | date:'dd MMM' }}</b>
+        <span>{{ day.date | date:'yyyy' }}</span>
+      </div>
+      <div class="schedule-copy">
+        <h5>{{ sched.title }}</h5>
+        @if (rawDaySchedule(day.dayNumber); as rawHtml) {
+        <div [innerHTML]="rawHtml"></div>
+        }
+      </div>
+    </div>
+    }
+    }
+  </div>
+  }
+
+  <!-- ═══════ Inclusions / Exclusions ═══════ -->
+  <div class="quote-card">
+    <div class="collapsible-title"><i class="bx bx-chevron-down"></i> Inclusions/Exclusions</div>
+    <div class="inc-exc-grid">
+      <div>
+        <span class="green-underline">Inclusions</span>
+        <ul class="tick-list">
+          @for (item of inclusions(); track item.InclusionId || $index) {
+          <li>{{ inclusionText(item) }}</li>
+          } @empty {
+          <li class="text-muted">No inclusions added for this destination.</li>
+          }
+        </ul>
+      </div>
+      <div>
+        <span class="red-underline">Exclusions</span>
+        <ul class="cross-list">
+          @for (item of exclusions(); track item.ExclusionId || $index) {
+          <li>{{ exclusionText(item) }}</li>
+          } @empty {
+          <li class="text-muted">No exclusions added for this destination.</li>
+          }
+        </ul>
+        <div class="exclusion-note">Anything not in inclusions is Excluded</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Terms ═══════ -->
+  <div class="quote-card">
+    <div class="terms-box">
+      <div class="terms-head"><i class="bx bx-chevron-down"></i> Terms and Conditions</div>
+      <div class="terms-content">
+        <h5>{{ tripInfo()?.DestinationName || 'Terms' }}</h5>
+        @if (hasTerms()) {
+        @for (term of terms(); track term.TermAndConditionId || $index) {
+        <div class="mb-2" [innerHTML]="termHtml(term)"></div>
+        }
+        } @else {
+        <div class="text-muted">No terms and conditions added for this destination.</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Instalments ═══════ -->
+  <div class="quote-card">
+    <div class="section-title">Instalments</div>
+    <div class="text-muted small mb-3">
+      Please provide tentative instalments for this trip. Basic configuration have been created based on
+      payment schedules for different service providers (hotels, cabs etc).
+    </div>
+
+    <div class="convert-summary-bar mb-3">
+      <div>
+        <div class="small text-muted text-uppercase">Trip Source</div>
+        <strong>{{ tripInfo()?.AgencyName || 'Direct Query' }}</strong>
+      </div>
+      <div>
+        <div class="small text-muted text-uppercase">Start Date</div>
+        <strong>{{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }}</strong>
+      </div>
+      <div>
+        <div class="small text-muted text-uppercase">Duration</div>
+        <strong>{{ durationLabel() }}</strong>
+      </div>
+      <div>
+        <div class="small text-muted text-uppercase">Pax</div>
+        <strong>{{ totalGuestCount() }} Adults</strong>
+      </div>
+      <div>
+        <div class="small text-muted text-uppercase">Package ({{ pkg.PackageTypeName }})</div>
+        <strong><span class="currency">INR</span>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+      </div>
+    </div>
+
+    @if (instalmentsDirty()) {
+    <div class="convert-warning mb-3">
+      <i class="bx bx-error"></i>
+      <div>You have made changes to the instalments. Please review them before conversion.</div>
+    </div>
+    }
+
+    <div class="instalments-table">
+      <div class="instalments-row instalments-head">
+        <div>#</div><div>Amount (INR)</div><div>Due Date</div><div></div>
+      </div>
+      @for (inst of instalments(); track inst.id; let idx = $index) {
+      <div class="instalments-row">
+        <div>
+          {{ idx + 1 }}{{ ordinal(idx + 1) }}
+          @if (isFirstInstalment(inst)) { <span class="instalment-badge">First</span> }
+          @if (isLastInstalment(inst)) { <span class="instalment-badge">Last</span> }
+        </div>
+        <div class="instalment-amount-cell">
+          <input
+            type="number"
+            class="form-control form-control-sm"
+            [value]="inst.amount"
+            (change)="updateInstalmentAmount(inst, $any($event.target).value)"
+          />
+          <i class="bx bx-transfer-alt text-muted"></i>
+          <input
+            type="number"
+            class="form-control form-control-sm"
+            style="max-width:90px;"
+            [value]="inst.percent"
+            (change)="updateInstalmentPercent(inst, $any($event.target).value)"
+          />
+          <span class="text-muted small">%</span>
+        </div>
+        <div>
+          <input
+            type="date"
+            class="form-control form-control-sm"
+            [value]="inst.dueDate"
+            (change)="updateInstalmentDueDate(inst, $any($event.target).value)"
+          />
+        </div>
+        <div>
+          @if (instalments().length > 1) {
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="removeInstalment(inst)">
+            <i class="bx bx-x"></i>
+          </button>
+          }
+        </div>
+      </div>
+      @if (remainingAmount() > 0.01) {
+      <div class="instalment-remaining-hint" (click)="addInstalment()" role="button">
+        + Add {{ formatCurrency(remainingAmount()) }} /-
+      </div>
+      }
+      }
+    </div>
+
+    <button type="button" class="btn btn-link btn-sm text-decoration-none mt-2" (click)="addInstalment()">
+      <i class="bx bx-plus me-1"></i>Add Another Instalment
+    </button>
+    @if (remainingAmount() > 0.01) {
+    <span class="instalment-remaining-badge ms-2">Remaining Amount: {{ formatCurrency(remainingAmount()) }} /-</span>
+    }
+
+    <div class="mt-4">
+      <label class="form-label">Comments</label>
+      <textarea
+        class="form-control"
+        rows="3"
+        placeholder="Any comments regarding verification or prices etc.."
+        [value]="comments()"
+        (change)="updateComments($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <div class="convert-verify-box mt-4">
+      <div class="d-flex gap-2">
+        <i class="bx bx-error"></i>
+        <div>
+          <div>Please make sure the above details are correct and have been verified with the client.</div>
+          <div>If verified, please confirm by selecting checkbox below</div>
+        </div>
+      </div>
+      <hr />
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="verifyCheck" [checked]="verified()" (change)="toggleVerified()">
+        <label class="form-check-label" for="verifyCheck">Yes. I have verified the details</label>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mt-4">
+      <button type="button" class="btn btn-warning" [disabled]="!canSubmit()" (click)="sendForHolding()">
+        Send for Holding
+      </button>
+      <button type="button" class="btn btn-primary" [disabled]="!canSubmit()" (click)="convertTrip()">
+        Convert Trip
+      </button>
+      <button type="button" class="btn btn-link text-decoration-none" (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+
+  } @else {
+  <div class="quote-card">
+    <div class="empty-row">This trip has no package options to convert yet.</div>
+  </div>
+  }
+
+</div>
+}
