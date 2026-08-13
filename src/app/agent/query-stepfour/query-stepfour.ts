@@ -1076,14 +1076,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    // ── Notes ──
-    html += `
-      <tr>
-        <td style="padding:6px 15px 0 15px;">
-          ${this.buildNotesBox()}
-        </td>
-      </tr>
-    `;
 
       return html;
   }
@@ -1267,7 +1259,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       for (const group of this.activityGroupsForDay(day.dayNumber)) {
         html += `
           <div style="margin:4px 0 4px 12px;font-family:${t.font};font-size:15px;color:#333;">
-            <strong>${this.activityGroupTitle(group)}</strong>
+            <span style="color:${t.brand};font-weight:bold;margin-right:6px;">&#10004;</span><strong>${this.activityGroupTitle(group)}</strong>
           </div>
         `;
       }
@@ -1573,20 +1565,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  // ── NOTES ──
 
-  private buildNotesBox(): string {
-    const t = this.emailTheme;
-    return `
-      <div style="background-color:#f8f9fa;border-left:4px solid ${t.brand};padding:12px 16px;margin:4px 0 14px 0;font-family:${t.font};font-size:14px;color:${t.muted};line-height:1.7;">
-        <strong style="color:${t.text};">Note:</strong><br>
-        • Since Union Territory of Andaman and Nicobar is under the restricted area category, please carry a valid photo identity proof for all the travelers issued from competent authorities.<br>
-        • Our representative will hold the placard outside the exit gate of the Airport.<br>
-        • Check out time at most of the hotels is 0900 hrs. Late check out as per availability only, although guaranteed check out is possible paying 50% of the room charges.<br>
-        • Issues regarding child age to be settled with hotels directly.
-      </div>
-    `;
-  }
 
   // ── HELPERS ──
 
