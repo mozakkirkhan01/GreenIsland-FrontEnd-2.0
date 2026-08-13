@@ -745,7 +745,20 @@ activityTotal = computed(() => {
     main.SimilarHotels = simRows.filter((s: QuoteHotelRow) => {
       // ✅ FIX: Set IsLoadedFromAPI for similar hotels
       s.IsLoadedFromAPI = true;
-      return s.NightNumbers.some(n => main.NightNumbers.includes(n));
+      // Prefer the explicit parent link the backend already saves and returns
+      // (SimilarHotelParentId = the main hotel's QuoteHotelId). The old logic
+      // matched purely on night-number overlap, with no package-type check —
+      // so whenever two different package types each had a main hotel on the
+      // same night, a similar hotel attached to one package's hotel was
+      // picked up by the other package's hotel too. That's why similar
+      // hotels were bleeding across every package sharing a night.
+      if (s.SimilarHotelParentId) {
+        return s.SimilarHotelParentId === main.QuoteHotelId;
+      }
+      // Legacy fallback for rows saved before SimilarHotelParentId existed —
+      // still require the package type to match, not just the night.
+      return s.QuotePackageTypeId === main.QuotePackageTypeId
+        && s.NightNumbers.some(n => main.NightNumbers.includes(n));
     });
   });
 
@@ -1444,6 +1457,46 @@ typeGroup.Entries.push({
           }));
 
           this.packageTypes.set(savedPkgTypes);
+
+          // ── Purge local state for any package type that no longer exists ──
+          // savePackageTypes only deletes the QuotePackageType row itself.
+          // hotelRows/specialInclusionRows/transportRows/serviceRows/dayGroups
+          // etc. are separate signals keyed by QuotePackageTypeId and were
+          // never filtered here — so a hotel (or transport/activity/special
+          // inclusion) row belonging to a just-deleted package stayed in
+          // memory, invisible in the UI (nothing renders a package that no
+          // longer exists), but still included in buildCompleteQuotePayload()
+          // on the next Save Quote — silently reviving it in the DB.
+          const survivingIds = new Set(savedPkgTypes.map(p => p.QuotePackageTypeId));
+          this.hotelRows.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.specialInclusionRows.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.transportRows.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.serviceRows.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.dayGroups.update(groups => groups.filter(g => survivingIds.has(g.QuotePackageTypeId)));
+          this.pricingSnapshots.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.packageSummaries.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.pricingBreakdowns.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+          this.activityTicketRows.update(rows => rows.filter(r => survivingIds.has(r.QuotePackageTypeId)));
+
+          // ── rowMarkups is NOT one of the signals above — it's a plain
+          // object keyed as "${packageTypeId}-${rowKind}" (see
+          // buildCompleteQuotePayload's RowMarkups mapping), populated by
+          // direct key assignment as markup inputs are typed. It was never
+          // covered by the filtering above, so a deleted package's markup
+          // entries stayed in this object forever and got sent as
+          // RowMarkups on the next Save Quote — Step 12 then inserted a
+          // QuoteRowMarkup referencing a QuotePackageTypeId that Step 2 had
+          // already deleted earlier in the same transaction, throwing an FK
+          // violation and rolling back the whole save.
+          const survivingRowMarkups: { [key: string]: any } = {};
+          Object.entries(this.rowMarkups).forEach(([key, value]) => {
+            const idx = key.indexOf('-');
+            const pkgId = Number(key.slice(0, idx));
+            if (survivingIds.has(pkgId)) {
+              survivingRowMarkups[key] = value;
+            }
+          });
+          this.rowMarkups = survivingRowMarkups;
 
           if (savedPkgTypes.length > 0) {
             if (this.activePackageTypeId() === 0) {
