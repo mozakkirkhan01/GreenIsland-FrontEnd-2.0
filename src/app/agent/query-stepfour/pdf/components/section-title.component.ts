@@ -71,3 +71,21 @@ export function buildSectionBanner(titleOrData: string | SectionTitleData, subti
 
 /** Alias for section builder backward compatibility */
 export { buildSectionBanner as buildSectionTitle };
+
+/**
+ * A lighter-weight heading used *inside* a section, under the main banner —
+ * e.g. "Option 1: Deluxe Package" under the "Hotels / Accommodations"
+ * banner in the reference brochure. Was imported
+ * (`import { buildSubTitle } from '../../components/section-title.component'`)
+ * from accommodation.section.ts but never defined here, which broke the
+ * build.
+ */
+export function buildSubTitle(text: string): any {
+  return {
+    text,
+    fontSize: 11.5,
+    bold: true,
+    color: COLORS.primary,
+    margin: [4, 8, 0, 8],
+  };
+}

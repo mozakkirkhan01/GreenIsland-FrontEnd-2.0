@@ -1111,7 +1111,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-
       return html;
   }
 
@@ -1126,7 +1125,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return `
       <table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
         <tr>
-          <td align="center" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.brand};padding:12px 16px;">
+          <td align="left" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.brand};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -1398,7 +1397,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     const categoryRows = categories.map(c => `
       <tr>
-        <td style="font-family:${t.font};font-size:16px;color:${t.text};padding:8px 10px 8px 0;vertical-align:top;">
+        <td style="font-family:${t.font};font-size:15px;color:${t.text};padding:4px 10px 4px 0;line-height:1.5;vertical-align:top;">
           <strong>${this.formatCurrency(c.amount)} /-</strong> ${c.label} x ${c.count} ${c.paxLabel}
         </td>
       </tr>
@@ -1407,23 +1406,23 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const gstLabel = this.isGstIncluded(packageTypeId) ? '(including GST)' : '(excluding GST)';
     const hasPerPax = categories.length > 0;
     const totalCellStyle = hasPerPax
-      ? `width:40%;border-right:1px solid ${t.goldBorder};padding:14px 12px;vertical-align:top;`
-      : `padding:14px 12px;vertical-align:top;`;
+      ? `width:25%;border-right:1px solid ${t.goldBorder};padding:12px;vertical-align:top;`
+      : `padding:12px;vertical-align:top;`;
 
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${t.goldBorder};border-collapse:collapse;margin:4px 0 14px 0;font-family:${t.font};">
         <tr>
-          <td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;font-size:16px;font-weight:bold;color:${t.text};">Prices (INR)</td>
-          ${hasPerPax ? `<td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:10px 12px;"></td>` : ''}
+          <td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:8px 12px;font-size:16px;font-weight:bold;color:${t.text};">Prices (INR)</td>
+          ${hasPerPax ? `<td style="background-color:${t.headerBg};border-bottom:1px solid ${t.goldBorder};padding:8px 12px;"></td>` : ''}
         </tr>
         <tr>
           <td style="${totalCellStyle}">
             <div style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.text};line-height:1;">${this.formatCurrency(total)} /-</div>
-            <div style="font-family:${t.font};font-size:14px;color:${t.muted};margin-top:4px;">${gstLabel}</div>
+            <div style="font-family:${t.font};font-size:13px;color:${t.muted};margin-top:4px;">${gstLabel}</div>
           </td>
           ${hasPerPax ? `
-          <td style="width:60%;padding:14px 12px;vertical-align:top;">
-            <div style="font-family:${t.font};font-size:17px;font-weight:bold;color:${t.text};margin-bottom:10px;">Per Pax (INR)</div>
+          <td style="width:75%;padding:12px;vertical-align:top;">
+            <div style="font-family:${t.font};font-size:16px;font-weight:bold;color:${t.text};margin-bottom:6px;">Per Pax (INR)</div>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
               ${categoryRows}
             </table>
@@ -1620,6 +1619,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
+  // ── NOTES ──
 
   // ── HELPERS ──
 

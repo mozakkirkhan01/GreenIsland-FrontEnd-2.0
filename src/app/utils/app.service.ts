@@ -8,6 +8,7 @@ import { ConstantData } from './constant-data';
 export class AppService {
   private readonly apiUrl: string = ConstantData.getApiUrl();
   private readonly baseUrl: string = ConstantData.getBaseUrl();
+  // private readonly liveApiUrl: string = ConstantData.getLiveApiUrl();
   private readonly headers: HttpHeaders = new HttpHeaders({ 'AppKey': ConstantData.getAdminKey() });
 
   constructor(private http: HttpClient) {
@@ -218,6 +219,10 @@ deleteQuoteSpecialInclusion(obj: any) {
   getHotelRateList(obj: any) {
     return this.http.post(this.apiUrl + "HotelRate/HotelRateList", obj, { headers: this.headers })
   }
+  //live hotelrate
+  // getHotelRateList(obj: any) {
+  //   return this.http.post(this.liveApiUrl + "HotelRate/HotelRateList", obj, { headers: this.headers })
+  // }
 
   saveHotelRate(obj: any) {
     return this.http.post(this.apiUrl + "HotelRate/saveHotelRate", obj, { headers: this.headers })
@@ -287,6 +292,31 @@ deleteQuoteSpecialInclusion(obj: any) {
   }
 
   /* ---------------------------------------------------------------------- */
+
+
+
+
+
+// ──────────────────────────────────────────────────────────────────
+// Transport Service - Location & Itinerary Service Search
+// ──────────────────────────────────────────────────────────────────
+
+getLocationsByDestination(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/getLocationsByDestination", obj, { headers: this.headers })
+}
+
+getItineraryServicesByLocation(obj: any) {
+  return this.http.post(this.apiUrl + "Quote/getItineraryServicesByLocation", obj, { headers: this.headers })
+}
+
+// ──────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
 
   /* ---------------------------------------------------------------------- */
   //Location
@@ -375,9 +405,27 @@ saveTripComment(obj: any) {
 
 // Quote Step Three
 getQuoteDetail(obj: any) {
-  return this.http.post(this.apiUrl + "Quote/QuoteDetail", obj, { headers: this.headers })
+  return this.http.post(this.apiUrl + "Quote/getQuoteDetail", obj, { headers: this.headers })
 }
-
+// Quote Step Four — PDF download (Stage 3 backend, not yet built — this
+// will 404 until GeneratePdf exists, but the frontend now compiles and
+// is ready to call it the moment it does).
+downloadQuotePdf(quoteId: number) {
+  return this.http.post(
+    `${this.apiUrl}QuotePdf/Generate/${quoteId}`,
+    {},
+    {
+      headers: this.headers,
+      responseType: 'blob'
+    }
+  );
+}
+// testApi(obj: any) {
+//   return this.http.post(this.apiUrl + "QuotePdf/Test", obj, { headers: this.headers })
+// }
+//  testApi() {
+//   return this.http.post(this.apiUrl + "QuotePdf/Test",{},{headers: this.headers});}
+  
 // Add to AppService if this endpoint exists
 getPackageTypesByQuery(obj: any) {
   return this.http.post(this.apiUrl + "Quote/getPackageTypesByQuery", obj, { headers: this.headers })

@@ -1,6 +1,7 @@
 import type { PdfBuildContext } from '../../quotation-pdf-engine';
 import { buildSectionTitle } from '../../components/section-title.component';
 import { buildDataTable } from '../../helpers/table-builder';
+import { forcePageBreakBefore } from '../../helpers/page-break';
 
 /** Day-wise transport/transfer services (vehicles) — deliberately unaware of
  *  the activities section; both read from the same daySlots but render
@@ -24,7 +25,10 @@ export function buildTransportSection(ctx: PdfBuildContext): any[] {
   }
 
   return [
-    buildSectionTitle('Transportation', 'Vehicles and transfers arranged for each day'),
+    // Fresh page: this always followed straight on from Hotels &
+    // Accommodation with no break, which could land mid-table on whatever
+    // page the last hotel card happened to end on.
+    forcePageBreakBefore(buildSectionTitle('Transportation', 'Vehicles and transfers arranged for each day')),
     buildDataTable(
       [{ header: 'Day', width: 70 }, { header: 'Service', width: '*' }, { header: 'Details', width: 130 }],
       rows,

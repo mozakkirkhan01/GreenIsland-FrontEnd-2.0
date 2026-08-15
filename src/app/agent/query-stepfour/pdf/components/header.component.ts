@@ -1,6 +1,7 @@
 import { COLORS } from '../theme/colors';
 import { PAGE_MARGINS } from '../theme/spacing';
-import { THEME_CONFIG } from '../theme/theme.config';
+import { THEME_CONFIG, ThemeConfig } from '../theme/theme.config';
+import { truncate } from '../helpers/formatter';
 
 export interface HeaderData {
   agencyName: string;
@@ -8,73 +9,64 @@ export interface HeaderData {
   quotationLabel: string; // "Trip# 4001393"
   destinationName?: string;
   website?: string;
+  /** Optional per-render theme (agency branding). Falls back to THEME_CONFIG. */
+  theme?: ThemeConfig;
 }
 
 /**
- * Renders the top header bar matching Pages 2-11 of the reference brochure:
- * - Logo + Agency Title on the left
- * - Sky blue web badge pill on the top right
- * - Angled top green banner styling & crisp divider line
+ * Full-width green branded top strip on content pages (2+), matching the
+ * reference brochure's solid teal/green header band: logo + agency name on
+ * the left, website pill on the right, all on a filled color bar rather
+ * than plain white with a thin rule underneath.
  */
 export function buildHeader(data: HeaderData, currentPage: number): any {
-  if (currentPage === 1) return null; // Cover page has custom hero layout
+  if (currentPage === 1) return null; // Cover page has its own full-bleed hero layout
+  const theme = data.theme || THEME_CONFIG;
   const [left, , right] = PAGE_MARGINS;
-  const webUrl = data.website || THEME_CONFIG.agency.website;
+  const webUrl = data.website || theme.agency.website;
 
   return {
-    stack: [
-      {
-        columns: [
-          // Logo & Agency Name
+    margin: [0, 0, 0, 0],
+    table: {
+      widths: ['*', 'auto'],
+      body: [
+        [
           {
-            width: '*',
             columns: [
               data.logoImage
-                ? { image: data.logoImage, width: 26, margin: [left, 8, 6, 0] }
+                ? { image: data.logoImage, width: 22, margin: [left, 7, 6, 7] }
                 : { text: '', width: 0 },
               {
-                text: THEME_CONFIG.agency.shortName,
-                fontSize: 16,
+                // BUG FIX: this previously ignored `data.agencyName` entirely
+                // and always printed the THEME_CONFIG default ("GREEN
+                // ISLAND"), even for a quote belonging to a different agency.
+                // Full legal names ("DREAM LEISURE DESTINATIONS (INDIA) Pvt.
+                // Ltd. (DREAM LEISURE)") are too long for this compact bar,
+                // so truncate — the full name still appears on the cover and
+                // summary sections.
+                text: truncate((data.agencyName || theme.agency.shortName || theme.agency.name).toUpperCase(), 34),
+                fontSize: 14,
                 bold: true,
-                color: COLORS.primaryDark,
-                margin: [data.logoImage ? 0 : left, 10, 0, 0],
+                color: COLORS.textOnDark,
+                margin: [data.logoImage ? 0 : left, 9, 0, 0],
               },
             ],
+            fillColor: COLORS.primary,
+            border: [false, false, false, false],
           },
-          // Website Pill Badge Top Right
           {
-            width: 'auto',
-            table: {
-              body: [
-                [
-                  {
-                    text: `🌐  ${webUrl}`,
-                    fontSize: 8.5,
-                    bold: true,
-                    color: COLORS.textOnDark,
-                    fillColor: '#0284C7',
-                    alignment: 'center',
-                  },
-                ],
-              ],
-            },
-            layout: {
-              defaultBorder: false,
-              paddingLeft: () => 10,
-              paddingRight: () => 10,
-              paddingTop: () => 3,
-              paddingBottom: () => 3,
-            },
-            margin: [0, 8, right, 0],
+            text: webUrl ? `${webUrl}` : '',
+            fontSize: 8.5,
+            bold: true,
+            color: COLORS.textOnDark,
+            alignment: 'right',
+            margin: [0, 10, right, 0],
+            fillColor: COLORS.primary,
+            border: [false, false, false, false],
           },
         ],
-      },
-      // Green angled accent line below top header
-      {
-        canvas: [
-          { type: 'line', x1: left, y1: 6, x2: 555 - right, y2: 6, lineWidth: 1.5, lineColor: COLORS.primary },
-        ],
-      },
-    ],
+      ],
+    },
+    layout: { defaultBorder: false, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
   };
 }

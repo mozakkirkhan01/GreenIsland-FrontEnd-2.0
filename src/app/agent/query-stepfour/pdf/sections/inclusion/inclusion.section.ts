@@ -3,12 +3,14 @@ import { buildSectionTitle } from '../../components/section-title.component';
 import { COLORS } from '../../theme/colors';
 import { ICONS } from '../../theme/icons';
 import { SPACING } from '../../theme/spacing';
+import { forcePageBreakBefore } from '../../helpers/page-break';
 
 export function buildInclusionSection(ctx: PdfBuildContext): any[] {
   if (ctx.removeTerms || (!ctx.inclusions.length && !ctx.exclusions.length)) return [];
 
   return [
-    buildSectionTitle('Inclusions & Exclusions'),
+    // Fresh page: previously ran on from wherever Day-Wise Itinerary ended.
+    forcePageBreakBefore(buildSectionTitle('Inclusions & Exclusions')),
     {
       columns: [
         { width: '50%', stack: checklist(ctx.inclusions.map((i: any) => ctx.inclusionText(i)), ICONS.check, COLORS.success) },

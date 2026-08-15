@@ -109,3 +109,26 @@ export enum PricingStrategy {
     Overall = 1,
     "Per-Person" = 2
 }
+// utils/enum.ts
+export enum TripStatus {
+    NewQuery = 1,
+    InProgress = 2,
+    OnHold = 3,
+    Converted = 4,
+    OnTrip = 5,
+    PastTrip = 6,
+    Canceled = 7,
+    Dropped = 8
+}
+
+// Optional: Helper for display
+export const TripStatusMap = {
+    [TripStatus.NewQuery]: { label: 'New Query', class: 'bg-primary' },
+    [TripStatus.InProgress]: { label: 'In Progress', class: 'bg-info text-dark' },
+    [TripStatus.OnHold]: { label: 'On Hold', class: 'bg-warning text-dark' },
+    [TripStatus.Converted]: { label: 'Converted', class: 'bg-success' },
+    [TripStatus.OnTrip]: { label: 'On Trip', class: 'bg-success' },
+    [TripStatus.PastTrip]: { label: 'Past Trip', class: 'bg-secondary' },
+    [TripStatus.Canceled]: { label: 'Canceled', class: 'bg-danger' },
+    [TripStatus.Dropped]: { label: 'Dropped', class: 'bg-dark' }
+} as const;

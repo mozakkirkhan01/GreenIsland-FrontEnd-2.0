@@ -65,6 +65,28 @@ export function accentBarCell(color: string): any {
   return { text: '', fillColor: color, border: [false, false, false, false] };
 }
 
+/**
+ * Shrinks a content node to `percent`% of the available width and centers
+ * it with empty side-gutter columns, instead of letting it span the full
+ * content width — used by card/day-card/hotel-card/price-card so those
+ * "brochure card" blocks read as insets rather than edge-to-edge rows.
+ *
+ * Was imported (`import { inset } from '../helpers/layout'`) from four
+ * component files but never defined/exported here, which broke the build
+ * for all of them.
+ */
+export function inset(content: any, percent: number): any {
+  const side = Math.max(0, (100 - percent) / 2);
+  if (side === 0) return content;
+  return {
+    columns: [
+      { width: `${side}%`, text: '' },
+      { width: `${percent}%`, ...content },
+      { width: `${side}%`, text: '' },
+    ],
+  };
+}
+
 export const accentBarLayout = {
   hLineWidth: () => 0,
   vLineWidth: () => 0,

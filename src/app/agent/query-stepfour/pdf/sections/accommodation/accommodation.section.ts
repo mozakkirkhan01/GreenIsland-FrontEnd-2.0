@@ -2,6 +2,7 @@ import type { PdfBuildContext } from '../../quotation-pdf-engine';
 import { buildSectionTitle, buildSubTitle } from '../../components/section-title.component';
 import { buildHotelCard, HotelCardData } from '../../components/hotel-card.component';
 import { buildCard } from '../../components/card.component';
+import { forcePageBreakBefore } from '../../helpers/page-break';
 
 export function buildAccommodationSection(ctx: PdfBuildContext): any[] {
   const out: any[] = [];
@@ -12,35 +13,67 @@ export function buildAccommodationSection(ctx: PdfBuildContext): any[] {
     if (!hotels.length) continue;
 
     if (!printedBanner) {
-      out.push(buildSectionTitle('Hotels & Accommodation', 'Stay details for each night of your trip'));
+      // Reference brochure always starts "Hotels / Accommodation" on its own
+      // fresh page rather than continuing on whatever page the price table
+      // ended on — force it explicitly, since natural pagination alone was
+      // crowding this section onto page 2 with the summary + price table.
+      out.push(forcePageBreakBefore(buildSectionTitle('Hotels & Accommodation', 'Stay details for each night of your trip')));
       printedBanner = true;
     }
     out.push(buildSubTitle(`Option: ${pkg.PackageTypeName}`));
 
-    for (const hotel of hotels) {
-      out.push(buildHotelCard(toHotelCardData(ctx, hotel)));
-      out.push(...buildHotelInclusions(ctx, hotel));
+    // hotelsByPackage() returns one row per night (business logic untouched
+    // here — this is a pure presentation grouping). The reference brochure
+    // combines consecutive nights at the same hotel into a single card
+    // ("2nd 3rd Nights at Havelock") instead of repeating an identical card
+    // per night, so group before rendering.
+    for (const group of groupConsecutiveSameHotelNights(hotels)) {
+      out.push(buildHotelCard(toHotelCardData(ctx, group)));
+      for (const hotel of group) out.push(...buildHotelInclusions(ctx, hotel));
     }
   }
   return out;
 }
 
-function toHotelCardData(ctx: PdfBuildContext, hotel: any): HotelCardData {
-  const similarNames = ctx.hasSimilarHotels(hotel.QuoteHotelId)
-    ? ctx.similarHotels.filter((s: any) => s.ParentQuoteHotelId === hotel.QuoteHotelId).map((s: any) => s.HotelName)
+/** Groups consecutive rows (already night-ordered by hotelsByPackage) that
+ *  share the same hotel + location into one array, so e.g. nights 2 and 3
+ *  both at "Hotel Havelock Gateway" become a single card. Never reorders
+ *  or drops rows — a hotel change always starts a new group. */
+function groupConsecutiveSameHotelNights(hotels: any[]): any[][] {
+  const groups: any[][] = [];
+  for (const hotel of hotels) {
+    const currentGroup = groups[groups.length - 1];
+    const prev = currentGroup?.[currentGroup.length - 1];
+    const isConsecutiveNight = prev && Number(hotel.NightNumber) === Number(prev.NightNumber) + 1;
+    const isSameHotel = prev && hotel.HotelName === prev.HotelName && (hotel.LocationName || '') === (prev.LocationName || '');
+    if (currentGroup && isConsecutiveNight && isSameHotel) {
+      currentGroup.push(hotel);
+    } else {
+      groups.push([hotel]);
+    }
+  }
+  return groups;
+}
+
+function toHotelCardData(ctx: PdfBuildContext, group: any[]): HotelCardData {
+  const first = group[0];
+  const similarNames = ctx.hasSimilarHotels(first.QuoteHotelId)
+    ? ctx.similarHotels.filter((s: any) => s.ParentQuoteHotelId === first.QuoteHotelId).map((s: any) => s.HotelName)
     : [];
+  const nightLabel = group.length === 1
+    ? `${first.NightNumber}${ctx.ordinal(first.NightNumber)} Night`
+    : `${group.map(h => `${h.NightNumber}${ctx.ordinal(h.NightNumber)}`).join(' ')} Nights`;
   return {
-    nightLabel: `${hotel.NightNumber}${ctx.ordinal(hotel.NightNumber)} Night`,
-    locationName: hotel.LocationName || '',
-    checkInLabel: `Check-in ${ctx.formatDateShort(hotel.StayDate)}`,
-    hotelName: hotel.HotelName,
-    category: hotel.HotelCategory,
-    starCount: hotel.StarRating,
-    roomType: hotel.RoomTypeName,
-    roomCount: hotel.NoOfRooms,
-    paxCount: hotel.PaxPerRoom,
-    mealPlan: hotel.MealPlan,
-    similarHotelNames: similarNames,
+    nightLabel,
+    checkInDate: `Check-in ${ctx.formatDateShort(first.StayDate)}`,
+    hotelName: first.HotelName,
+    locationName: first.LocationName || '',
+    categoryName: first.HotelCategory,
+    starRating: first.StarRating,
+    roomsText: [first.NoOfRooms, first.RoomTypeName].filter(Boolean).join(' '),
+    paxText: first.PaxPerRoom ? `${first.PaxPerRoom} Pax` : '',
+    mealPlanText: first.MealPlan,
+    similarHotels: similarNames,
   };
 }
 

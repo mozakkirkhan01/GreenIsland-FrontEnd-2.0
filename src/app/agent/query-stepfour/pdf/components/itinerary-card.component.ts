@@ -15,9 +15,13 @@ export interface ItineraryCardData {
   title: string;
   introContent: any[];
   sections: ItineraryDaySection[];
+  /** Activity/transport line items included on this day (e.g. "Cellular Jail Entry Ticket"),
+   *  from ctx.activityGroupsForDay() — shown as small "+" tagged rows under the description,
+   *  mirroring the reference brochure's day-wise included-service list. */
+  includedItems?: string[];
 }
 
-/** One full day of the itinerary: badge + date/title + intro + labeled sub-sections. */
+/** One full day of the itinerary: badge + date/title + intro + labeled sub-sections + included services. */
 export function buildItineraryCard(data: ItineraryCardData): any {
   return {
     columns: [
@@ -32,11 +36,20 @@ export function buildItineraryCard(data: ItineraryCardData): any {
             { text: s.heading, bold: true, fontSize: TYPE.body, color: COLORS.textPrimary, margin: [0, SPACING.sm, 0, 2] },
             ...s.bodyContent,
           ])),
+          ...(data.includedItems?.length ? [{
+            stack: data.includedItems.map(item => ({
+              text: [
+                { text: '+  ', bold: true, color: COLORS.accent },
+                { text: item, color: COLORS.primaryDark, bold: true, fontSize: TYPE.small },
+              ],
+              margin: [0, 3, 0, 0] as [number, number, number, number],
+            })),
+            margin: [0, SPACING.sm, 0, 0],
+          }] : []),
         ],
       },
     ],
     columnGap: SPACING.md,
     margin: [0, 0, 0, SPACING.lg],
-    unbreakable: true,
   };
 }

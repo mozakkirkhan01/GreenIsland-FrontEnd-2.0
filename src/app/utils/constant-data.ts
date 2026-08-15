@@ -9,9 +9,11 @@ export class ConstantData {
     public static DestinationTypeList = [{ Key: 1, Value: "Domestic" }, { Key: 2, Value: "International" }];
     public static BoolList = [{ Key: true, Value: "Yes" }, { Key: false, Value: "No" }];
     private static readonly adminKey = "52F4785C-7EE7-426E-A1AE-C2300972E70A";
-    private static readonly baseUrl: string = "https://localhost:44302/";   
-    // private static readonly baseUrl: string = "https://api.greenislandonline.com/";
+    // private static readonly baseUrl: string = "https://localhost:44302/";   
+    private static readonly baseUrl: string = "https://api.greenislandonline.com/";
     //private static readonly baseUrl: string = "http://192.168.192.39:7777/";
+
+    // private static readonly liveBaseUrl: string = "https://api.greenislandonline.com/";
     
     public static getBaseUrl(): string {
         return this.baseUrl;
@@ -28,4 +30,7 @@ export class ConstantData {
     public static getNoImage():string{
         return this.baseUrl + this.noImageUrl;
     }
+    // public static getLiveApiUrl(): string {
+    // return this.liveBaseUrl + "api/";
+    // }
 }

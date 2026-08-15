@@ -38,6 +38,8 @@ import { QueryStepone } from './agent/query-stepone/query-stepone';
 import { Agency } from './admin/agency/agency';
 import { QuerySteptwo } from './agent/query-steptwo/query-steptwo';
 import { QueryStepthree } from './agent/query-stepthree/query-stepthree';
+import { QueryStepfour } from './agent/query-stepfour/query-stepfour';
+import { QueryConvert } from './agent/query-convert/query-convert';
 export const routes: Routes = [
 // 👉 First Page = Login
   { path: '', redirectTo: 'admin-login', pathMatch: 'full' },
@@ -94,6 +96,8 @@ export const routes: Routes = [
       { path: 'query-stepone/:id', component: QueryStepone},
       { path: 'query-steptwo/:id', component: QuerySteptwo },
       { path: 'query-stepthree/:id', component: QueryStepthree, canDeactivate: [CanDeactivateGuard]},
+      { path: 'query-stepfour/:id', component: QueryStepfour, canDeactivate: [CanDeactivateGuard]},
+      { path: 'query-convert/:id', component: QueryConvert, canDeactivate: [CanDeactivateGuard]},
     ]
   },
 
