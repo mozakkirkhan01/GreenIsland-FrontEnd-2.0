@@ -640,6 +640,43 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   }
 
+  /**
+   * Normalizes a raw meal plan string into a fixed canonical label based on
+   * its plan code, so word order never drifts between records — e.g. a
+   * saved value of "Dinner + Breakfast + Lunch (AP)" and one saved as
+   * "Lunch + Breakfast + Dinner (AP)" both display identically as
+   * "Lunch + Dinner + Breakfast (AP)". The code (whatever sits in the
+   * trailing parentheses) is what's authoritative, not the meal words
+   * preceding it. Unrecognized codes fall through to the raw stored value
+   * unchanged, so this never hides a plan type nobody's mapped yet.
+   *
+   * Returns HTML with a <br> between the meal list and the "(CODE)" so the
+   * two always sit on separate lines in the narrow Meal Plan column,
+   * instead of wrapping mid-word wherever the column happens to break.
+   */
+  private formatMealPlan(raw: string | null | undefined): string {
+    if (!raw) return '';
+    const match = raw.match(/\(([^)]+)\)\s*$/);
+    const code = match ? match[1].trim().toUpperCase() : raw.trim().toUpperCase();
+
+    const canonical: Record<string, string> = {
+      CP: 'Breakfast',
+      MAP: 'Dinner + Breakfast',
+      AP: 'Lunch + Dinner + Breakfast',
+    };
+
+    const mealsLabel = canonical[code];
+    if (mealsLabel) return `${mealsLabel}<div style="text-align:center;">(${code})</div>`;
+
+    // Unrecognized code: keep the raw meal words as-is, just still break
+    // the "(CODE)" onto its own centered line if one is present.
+    const codeMatch = raw.match(/\s*\(([^)]+)\)\s*$/);
+    if (codeMatch) {
+      return raw.slice(0, codeMatch.index) + `<div style="text-align:center;">(${codeMatch[1]})</div>`;
+    }
+    return raw;
+  }
+
   private dayHeaderDate(date: Date): string {
     const weekday = date.toLocaleDateString('en-IN', { weekday: 'short' });
     const day = date.getDate();
@@ -1452,7 +1489,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (stay.main.HotelCategoryName) hotelCell += `<br><span style="font-size:13px;color:${t.muted};">${stay.main.HotelCategoryName}</span>`;
 
     const mealCell = stay.main.MealPlan
-      ? `<span style="font-weight:bold;color:${t.text};">${stay.main.MealPlan}</span>`
+      ? `<span style="font-weight:bold;color:${t.text};">${this.formatMealPlan(stay.main.MealPlan)}</span>`
       : '-';
 
     const accommodationCell = `<span style="font-weight:bold;color:${t.text};">${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}</span><br><span style="font-size:13px;color:${t.muted};">${this.paxSummary(stay.main)}</span>`;
