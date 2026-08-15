@@ -585,6 +585,41 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.guestCategoryTotals(packageTypeId).reduce((sum, r) => sum + r.amount * r.count, 0);
   }
 
+  /**
+   * A "stay" from stayBlocksByPackage() can hold non-contiguous nights
+   * (e.g. Port Blair nights [1, 5] when the guest returns to the same
+   * hotel just before departure after touring other islands in between).
+   * The email hotel table must not merge those into one row — each
+   * contiguous run of nights gets its own row so night 1 and night 5
+   * land in their correct chronological position relative to the other
+   * cities' rows, instead of both showing under a single Port Blair row.
+   */
+  private splitStayByContiguousNights(stay: any): any[] {
+    const nights: number[] = stay.nights;
+    if (nights.length <= 1) return [stay];
+
+    const runs: number[][] = [];
+    let current: number[] = [nights[0]];
+    for (let i = 1; i < nights.length; i++) {
+      if (nights[i] === nights[i - 1] + 1) {
+        current.push(nights[i]);
+      } else {
+        runs.push(current);
+        current = [nights[i]];
+      }
+    }
+    runs.push(current);
+
+    if (runs.length === 1) return [stay];
+
+    return runs.map(run => ({
+      ...stay,
+      nights: run,
+      checkIn: this.nightDate(run[0]),
+      checkOut: this.nightDate(run[run.length - 1] + 1),
+    }));
+  }
+
   private nightRangeLabel(nights: number[]): string {
     const label = nights.map(n => `${n}${this.ordinal(n)}`).join(', ');
     return `${label} Night${nights.length > 1 ? 's' : ''}`;
@@ -1190,19 +1225,33 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   /**
-   * Builds the "Port Blair 1 Night / Havelock 2 Nights / ..." breakdown shown
-   * under Destination in the overview table. Reuses stayBlocksByPackage() —
-   * the same source the Hotels table renders from — so this can never drift
-   * from the actual booked hotel data. Sourced from the first package option;
-   * if packages have different routings the breakdown reflects only that one.
-   * Only shown when there's more than one stay block (i.e. a multi-city
-   * trip) — for a single-city trip it would just repeat Trip Duration.
+   * Builds the "Port Blair 1 Night / Havelock 2 Nights / Neil Island 1 Night
+   * / Port Blair 1 Night" breakdown shown under Destination in the overview
+   * table. Reuses stayBlocksByPackage() — the same source the Hotels table
+   * renders from — so this can never drift from the actual booked hotel
+   * data. Sourced from the first package option; if packages have different
+   * routings the breakdown reflects only that one.
+   *
+   * Each hotel's nights are split into contiguous runs (via
+   * splitStayByContiguousNights, shared with the email hotel table) and
+   * sorted chronologically before labeling, so a hotel visited twice — e.g.
+   * Port Blair on night 1 and again on night 5 after touring other islands
+   * in between — produces two separate entries in correct night order
+   * instead of one merged "Port Blair 2 Nights" that hides the gap. Nothing
+   * here is hardcoded to a specific route; it falls directly out of however
+   * many stay segments the saved itinerary actually has.
+   *
+   * Only shown when there's more than one stay segment (i.e. a multi-city
+   * or multi-segment trip) — for a single, uninterrupted stay it would just
+   * repeat Trip Duration.
    */
   private locationNightsSummary(): string {
     const firstPackage = this.packageTypes()[0];
     if (!firstPackage) return '';
 
-    const stays = this.stayBlocksByPackage(firstPackage.QuotePackageTypeId);
+    const stays = this.stayBlocksByPackage(firstPackage.QuotePackageTypeId)
+      .flatMap(stay => this.splitStayByContiguousNights(stay))
+      .sort((a, b) => a.nights[0] - b.nights[0]);
     if (stays.length <= 1) return '';
 
     return stays
@@ -1276,7 +1325,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const t = this.emailTheme;
     let html = '';
 
-    const stays = this.stayBlocksByPackage(packageTypeId);
+    // Split any hotel whose nights aren't contiguous (e.g. a return stay
+    // on the last night) into separate rows, then reorder chronologically
+    // so those rows sit in their correct place relative to other cities —
+    // see splitStayByContiguousNights() for why this can't stay merged.
+    const stays = this.stayBlocksByPackage(packageTypeId)
+      .flatMap(stay => this.splitStayByContiguousNights(stay))
+      .sort((a, b) => a.nights[0] - b.nights[0]);
     if (stays.length) {
       // Same fixed-px-per-cell approach as the Overview table — Gmail's
       // paste sanitizer strips <colgroup>, so widths are set directly as
@@ -1564,7 +1619,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       </div>
     `;
   }
-
 
 
   // ── HELPERS ──
