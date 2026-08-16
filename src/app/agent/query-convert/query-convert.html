@@ -1,17 +1,61 @@
 @if (loading()) {
-<div class="d-flex align-items-center justify-content-center text-muted py-5" style="min-height:260px;">
-  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-  <span class="small">Loading conversion details...</span>
+<div class="d-flex flex-column align-items-center justify-content-center py-5" style="min-height:300px; margin-top: 100px;">
+  <!-- Bouncing Dots Animation -->
+  <div class="d-flex gap-2 mb-4 bouncer-container">
+    <div class="bouncer-dot bg-primary"></div>
+    <div class="bouncer-dot bg-primary"></div>
+    <div class="bouncer-dot bg-primary"></div>
+  </div>
+
+  <!-- Loading Text -->
+  <div class="text-center">
+    <h4 class="fw-bold text-dark mb-2">Hang tight!</h4>
+    <p class="text-secondary mb-0">Fetching your conversion details...</p>
+  </div>
 </div>
+
+<style>
+.bouncer-container {
+  align-items: center;
+  height: 40px; /* Gives the dots room to bounce up */
+}
+
+.bouncer-dot {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  animation: bounce 0.5s infinite alternate cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Stagger the animation delays */
+.bouncer-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.bouncer-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+}
+</style>
 } @else {
 <!-- Add pt-4 for more top padding -->
-<div class="bg-white text-dark medium pt-4 mt-2 fs-5 my-4">
+<div class="page-container bg-white text-dark medium fs-5">
 
   <!-- Breadcrumb -->
   <div class="d-flex align-items-center gap-2 px-4 py-2">
-    <button type="button" class="btn btn-link btn-sm text-decoration-none px-0" (click)="cancel()">
-      <i class="bx bx-arrow-back me-1"></i>Conversion
-    </button>
+<button type="button" class="btn btn-outline-primary btn-lg rounded-pill" (click)="cancel()">
+  <i class="bx bx-arrow-back me-2"></i>Conversion
+</button>
     <span class="text-muted">
       Trips <i class="bx bx-chevron-right"></i> {{ QueryStepOneId }}
       <i class="bx bx-chevron-right"></i> Quotes <i class="bx bx-chevron-right"></i> {{ QuoteId }}
@@ -383,71 +427,79 @@
       </div>
       }
 
-      <table class="table table-bordered align-middle">
-        <thead class="table-light">
-          <tr><th style="width:80px;">#</th><th>Amount (INR)</th><th style="width:200px;">Due Date</th><th style="width:60px;"></th></tr>
-        </thead>
-        <tbody>
-          @for (inst of instalments(); track inst.id; let idx = $index) {
-          <tr>
-            <td>
-              {{ idx + 1 }}{{ ordinal(idx + 1) }}
-              @if (isFirstInstalment(inst)) { <span class="badge bg-light text-secondary border ms-1">First</span> }
-              @if (isLastInstalment(inst)) { <span class="badge bg-light text-secondary border ms-1">Last</span> }
-            </td>
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <input
-                  type="number"
-                  class="form-control form-control-sm"
-                  style="max-width:140px;"
-                  [value]="inst.amount"
-                  (change)="updateInstalmentAmount(inst, $any($event.target).value)"
-                />
-                <i class="bx bx-transfer-alt text-muted"></i>
-                <input
-                  type="number"
-                  class="form-control form-control-sm"
-                  style="max-width:90px;"
-                  [value]="inst.percent"
-                  (change)="updateInstalmentPercent(inst, $any($event.target).value)"
-                />
-                <span class="text-muted small">%</span>
-              </div>
-            </td>
-            <td>
-              <input
-                type="date"
-                class="form-control form-control-sm"
-                [value]="inst.dueDate"
-                (change)="updateInstalmentDueDate(inst, $any($event.target).value)"
-              />
-            </td>
-            <td>
-              @if (instalments().length > 1) {
-              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="removeInstalment(inst)">
-                <i class="bx bx-x"></i>
-              </button>
-              }
-            </td>
-          </tr>
-          @if (remainingAmount() > 0.01) {
-          <tr>
-            <td colspan="4" class="text-muted small" role="button" (click)="addInstalment()">
-              + Add {{ formatCurrency(remainingAmount()) }} /-
-            </td>
-          </tr>
-          }
-          }
-        </tbody>
-      </table>
+<table class="table table-bordered align-middle">
+  <thead class="table-light">
+    <tr>
+      <th style="width:120px;">#</th>
+      <th>Amount (INR)</th>
+      <th style="width:260px;">Due Date</th>
+      <th style="width:80px;"></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (inst of instalments(); track inst.id; let idx = $index) {
+    <tr>
+      <td>
+        {{ idx + 1 }}{{ ordinal(idx + 1) }}
+        @if (isFirstInstalment(inst)) { <span class="badge bg-light text-secondary border ms-1">First</span> }
+        @if (isLastInstalment(inst)) { <span class="badge bg-light text-secondary border ms-1">Last</span> }
+      </td>
+      <td>
+        <div class="d-flex align-items-center gap-3">
+          <input
+            type="number"
+            class="form-control form-control-lg"
+            style="max-width:200px;"
+            [value]="inst.amount"
+            (change)="updateInstalmentAmount(inst, $any($event.target).value)"
+          />
+          <i class="bx bx-transfer-alt text-muted fs-3"></i>
+          <input
+            type="number"
+            class="form-control form-control-lg"
+            style="max-width:150px;"
+            [value]="inst.percent"
+            (change)="updateInstalmentPercent(inst, $any($event.target).value)"
+          />
+          <span class="text-muted fs-6">%</span>
+        </div>
+      </td>
+      <td>
+        <input
+          type="date"
+          class="form-control form-control-lg"
+          style="max-width:240px;"
+          [value]="inst.dueDate"
+          (change)="updateInstalmentDueDate(inst, $any($event.target).value)"
+        />
+      </td>
+      <td>
+        @if (instalments().length > 1) {
+        <button type="button" class="btn btn-outline-secondary btn-lg" (click)="removeInstalment(inst)">
+          <i class="bx bx-x fs-4"></i>
+        </button>
+        }
+      </td>
+    </tr>
+    @if (remainingAmount() > 0.01) {
+    <tr>
+      <td colspan="4" class="text-muted small py-3" role="button" (click)="addInstalment()">
+        + Add {{ formatCurrency(remainingAmount()) }} /-
+      </td>
+    </tr>
+    }
+    }
+  </tbody>
+</table>
 
-      <button type="button" class="btn btn-link btn-sm text-decoration-none mt-2" (click)="addInstalment()">
-        <i class="bx bx-plus me-1"></i>Add Another Instalment
-      </button>
-      @if (remainingAmount() > 0.01) {
-      <span class="badge bg-warning text-dark fw-normal ms-2">Remaining Amount: {{ formatCurrency(remainingAmount()) }} /-</span>
-      }
+     <div class="d-flex align-items-center gap-3 mt-2">
+  <button type="button" class="btn btn-link btn-lg text-decoration-none" (click)="addInstalment()">
+    <i class="bx bx-plus me-1 fs-2"></i>Add Another Instalment
+  </button>
+  @if (remainingAmount() > 0.01) {
+  <span class="badge bg-warning text-dark fw-normal fs-6 py-2 px-3">Remaining: {{ formatCurrency(remainingAmount()) }} /-</span>
+  }
+</div>
 
       <div class="mt-4">
         <label class="form-label">Comments</label>
