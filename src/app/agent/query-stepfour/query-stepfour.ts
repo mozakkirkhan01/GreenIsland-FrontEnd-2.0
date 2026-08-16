@@ -666,7 +666,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     };
 
     const mealsLabel = canonical[code];
-    if (mealsLabel) return `${mealsLabel}<div style="text-align:center;">(${code})</div>`;
+    if (mealsLabel) return `<div style="text-align:center;">${mealsLabel}<br>(${code})</div>`;
 
     // Unrecognized code: keep the raw meal words as-is, just still break
     // the "(CODE)" onto its own centered line if one is present.
@@ -1370,20 +1370,22 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .sort((a, b) => a.nights[0] - b.nights[0]);
     if (stays.length) {
       // Same fixed-px-per-cell approach as the Overview table — Gmail's
-      // paste sanitizer strips <colgroup>, so widths are set directly as
-      // width="" attributes + inline px on every cell in every row.
+      // paste sanitizer strips <colgroup>, so column widths were previously
+      // pinned per-cell via width="" + inline px. Switched to content-based
+      // (auto) sizing per request — columns now size to their longest word
+      // instead of a fixed px allotment, avoiding forced overflow when
+      // content (e.g. long hotel names) exceeds the old fixed width.
       // 5 columns per reference: Nights | City | Hotel Name | Meal Plan | Accommodation
-      const colW = { nights: 110, city: 130, hotel: 320, meal: 160, accommodation: 250 }; // sums to CONTENT_W (970)
       html += `
         <table role="presentation" width="${this.CONTENT_W}" cellpadding="0" cellspacing="0" border="0" style="width:${this.CONTENT_W}px;border-collapse:collapse;margin-bottom:10px;">
           <tr>
-            <td width="${colW.nights}" style="width:${colW.nights}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nights</td>
-            <td width="${colW.city}" style="width:${colW.city}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">City</td>
-            <td width="${colW.hotel}" style="width:${colW.hotel}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Hotel Name</td>
-            <td width="${colW.meal}" style="width:${colW.meal}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Meal Plan</td>
-            <td width="${colW.accommodation}" style="width:${colW.accommodation}px;background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Accommodation</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nights</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">City</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Hotel Name</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Meal Plan</td>
+            <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Accommodation</td>
           </tr>
-          ${stays.map((stay, i) => this.buildHotelRow(stay, i, colW)).join('')}
+          ${stays.map((stay, i) => this.buildHotelRow(stay, i)).join('')}
         </table>
       `;
     }
@@ -1470,7 +1472,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  private buildHotelRow(stay: any, index: number, colW: { nights: number; city: number; hotel: number; meal: number; accommodation: number }): string {
+  private buildHotelRow(stay: any, index: number): string {
     const t = this.emailTheme;
     const zebra = index % 2 ? `background-color:${t.zebraBg};` : '';
 
@@ -1496,11 +1498,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     return `
       <tr>
-        <td width="${colW.nights}" style="width:${colW.nights}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
-        <td width="${colW.city}" style="width:${colW.city}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${cityCell}</td>
-        <td width="${colW.hotel}" style="width:${colW.hotel}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
-        <td width="${colW.meal}" style="width:${colW.meal}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${mealCell}</td>
-        <td width="${colW.accommodation}" style="width:${colW.accommodation}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${accommodationCell}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${nightsLabel}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${cityCell}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${hotelCell}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${mealCell}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra}">${accommodationCell}</td>
       </tr>
     `;
   }
@@ -1709,6 +1711,111 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     } catch (err) {
       console.error('Plain-text clipboard copy failed:', err);
       this.toastr.error('Could not copy to clipboard. Please try again.');
+    }
+  }
+
+  /**
+   * Downloads the same HTML produced by generateEmailHTML() (the exact
+   * content Copy uses) as a Word-compatible .doc file. Uses the
+   * "HTML-as-.doc" technique — a full HTML document wrapped with the
+   * Office/Word XML namespaces and served with a Word MIME type — rather
+   * than a real OOXML (.docx) build, so no extra document-generation
+   * library is required; Word opens this natively via its long-standing
+   * HTML import path. Filename mirrors the PDF download's convention.
+   *
+   * The email tables are pinned to fixed pixel widths (EMAIL_W=1000,
+   * CONTENT_W=970, and a nested 620 for the overview table) — necessary in
+   * email clients (see the EMAIL_W comment re: Gmail stripping colgroup),
+   * but fixed pixels don't yield to any page size in Word, and border/
+   * padding box-model stacking can push the rendered width past even a
+   * generously sized custom page. So rather than guessing a paper size
+   * large enough, toWordSafeHtml() below neutralizes exactly those three
+   * known container widths to 100%/fluid for this export only — the email
+   * and PDF paths are untouched — while leaving the inner column widths
+   * (110/130/320/160/250 etc.) in place so the table still lays out with
+   * roughly the same proportions, just scaled to fit whatever page Word
+   * actually renders.
+   */
+  /**
+   * Strips every fixed pixel width/max-width in the exported HTML — both
+   * container-level (EMAIL_W/CONTENT_W/620) and, critically, the per-column
+   * cell widths (nights:110, city:130, hotel:320, meal:160,
+   * accommodation:250, etc.) that the earlier container-only fluid
+   * override missed. A width:100% on a parent table is a floor, not a
+   * ceiling — if child cells' explicit widths sum to more than the parent's
+   * rendered width, standard table layout renders the table at the larger
+   * size regardless, which is why constraining only the outer containers
+   * still overflowed. Removing every inline width declaration (plus the
+   * matching HTML width="123" attribute, since some legacy renderers
+   * prioritize it over CSS) leaves nothing that can force the table wider
+   * than the page; columns fall back to content-based auto sizing and wrap
+   * instead. Trade-off: exact column proportions from the email/PDF layout
+   * are no longer guaranteed in the Word export — this prioritizes "fits
+   * on the page" over "identical proportions," since two attempts at the
+   * latter both still clipped.
+   */
+  private toWordSafeHtml(html: string): string {
+    return html
+      .replace(/width:\s*\d+px;?/g, '')
+      .replace(/max-width:\s*\d+px;?/g, '')
+      .replace(/\swidth="\d+"/g, '');
+  }
+
+  downloadWordDoc(): void {
+    try {
+      const htmlContent = this.toWordSafeHtml(this.generateEmailHTML());
+      const wordDoc = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset="utf-8">
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>90</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            /* Landscape gives noticeably more usable width than portrait
+               for these wide comparison tables; combined with the fluid
+               containers above, nothing is hard-pinned wider than the page
+               anymore, so this is just for comfortable proportions, not
+               a load-bearing fix. */
+            @page WordSection1 {
+              size: 792.0pt 612.0pt;
+              margin: 36.0pt 36.0pt 36.0pt 36.0pt;
+              mso-page-orientation: landscape;
+            }
+            div.WordSection1 { page: WordSection1; }
+            table { width: 100% !important; }
+            table, td, th { word-wrap: break-word !important; overflow-wrap: break-word !important; }
+          </style>
+        </head>
+        <body>
+          <div class="WordSection1">
+            ${htmlContent}
+          </div>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Quotation-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      this.toastr.success('Word document downloaded.');
+    } catch (error) {
+      console.error('Word download failed:', error);
+      this.toastr.error('Could not generate the Word document. Please try again.');
     }
   }
 
