@@ -223,11 +223,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.activeTab.set(tab);
   }
 
-  convertOrHoldUsingQuote(): void {
-    this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
-      queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
-    });
-  }
+   convertOrHoldUsingQuote(): void {
+      this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
+        queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+      });
+    }
+  //  convertOrHoldUsingQuote(): void {
+  //    this.toastr.info('Convert/On-Hold flow is coming soon');
+  //  }
 
   editDetail(): void {
     this.router.navigate(['/agent/query-stepthree', this.QueryStepOneId], {
@@ -1136,17 +1139,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    // ── Water Sports Activities ──
-    if (this.hasWaterSportsTerms()) {
-      html += `
-        <tr>
-          <td style="padding:6px 15px 0 15px;">
-            ${this.buildStyledHeader('Water Sports Activities (if pre-booked)')}
-            ${this.buildWaterSportsBox()}
-          </td>
-        </tr>
-      `;
-    }
 
       return html;
   }
@@ -1658,17 +1650,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-  // ── NOTES ──
+
 
   // ── HELPERS ──
 
-  private hasWaterSportsTerms(): boolean {
-    return this.terms().some(t =>
-      this.termHtml(t).includes('Scuba') ||
-      this.termHtml(t).includes('Diving') ||
-      this.termHtml(t).includes('Snorkeling')
-    );
-  }
 
   private hasAnyTransportOrActivity(): boolean {
     return this.daySlots().some(d => this.dayHasServices(d.dayNumber));
