@@ -117,6 +117,30 @@
     .schedule-item { flex-direction: column; }
     .schedule-date { flex-basis: auto; }
   }
+
+  /* ── Basic Details tab: main content + Arrival/Departure side column ── */
+  .basic-details-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .basic-details-main { flex: 1 1 0; min-width: 0; }
+  .basic-details-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
+  @media (max-width: 992px) {
+    .basic-details-layout { flex-direction: column; }
+    .basic-details-side { flex-basis: auto; width: 100%; }
+  }
+
+  .trip-detail-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .trip-detail-panel-head .panel-title { font-weight: 600; }
+  .trip-detail-panel-head button { background: none; border: none; color: #6c757d; padding: 2px 4px; line-height: 1; }
+  .trip-detail-panel-head button:hover { color: #0d6efd; }
+  .trip-detail-empty { color: #adb5bd; }
+  .trip-detail-entry + .trip-detail-entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f3f5; }
+  .trip-detail-entry .trip-detail-datetime { font-weight: 600; color: #374151; font-size: 0.92rem; }
+  .trip-detail-entry .trip-detail-note { font-size: 0.85rem; color: #6c757d; white-space: pre-line; margin-top: 2px; }
+
+  .trip-detail-modal-entry { border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; position: relative; }
+  .trip-detail-modal-entry + .trip-detail-modal-entry { margin-top: 12px; }
+  .trip-detail-modal-entry .remove-entry-btn { position: absolute; top: 8px; right: 8px; }
+
+  .package-price-converted { border: 2px solid #22c55e; border-radius: 8px; }
 </style>
 
 <!-- PDF Loading overlay -->
@@ -247,11 +271,16 @@
     <div class="quote-tabs">
       <span [class.active]="activeTab() === 'basic'" (click)="setActiveTab('basic')" role="button">Basic Details</span>
       <span [class.active]="activeTab() === 'quotes'" (click)="setActiveTab('quotes')" role="button">All Quotes <b>{{ packageTypes().length }}</b></span>
+      @if (isConverted()) {
+      <span [class.active]="activeTab() === 'docs'" (click)="setActiveTab('docs')" role="button">Docs</span>
+      }
       <span [class.active]="activeTab() === 'activities'" (click)="setActiveTab('activities')" role="button">Activities</span>
     </div>
 
     <!-- ═══════════ BASIC DETAILS TAB ═══════════ -->
     @if (activeTab() === 'basic') {
+    <div class="basic-details-layout">
+    <div class="basic-details-main">
     <div class="quote-card">
       <div class="section-subtitle">Latest Quote</div>
 
@@ -259,7 +288,7 @@
 
       <div class="package-price-grid mb-3">
         @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
-        <div class="package-price">
+        <div class="package-price" [class.package-price-converted]="pkg.QuotePackageTypeId === convertedPackageTypeId()">
           <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
           <div>
             <span class="currency">INR</span>
@@ -294,11 +323,13 @@
    
       <span class="status-chip">Latest Quote</span>
 
+      @if (!isConverted()) {
       <div class="mt-3">
         <button type="button" class="btn btn-outline-primary btn-sm" (click)="convertOrHoldUsingQuote()">
           Convert/On-Hold using Quote
         </button>
       </div>
+      }
 
       <div class="quote-table mt-3" style="grid-template-columns:none;">
         <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
@@ -366,6 +397,57 @@
       </div>
       }
     </div>
+    </div> <!-- /basic-details-main -->
+
+    <!-- ─── Arrival / Departure (Basic Details side column) ─── -->
+    <!-- Only shown once a package has been converted; nothing to schedule against beforehand. -->
+    @if (isConverted()) {
+    <div class="basic-details-side">
+      <div class="quote-card">
+        <div class="trip-detail-panel-head">
+          <span class="panel-title">Arrival Details</span>
+          <button type="button" (click)="openScheduleModal('Arrival')" title="Edit arrival details">
+            <i class="bx bx-pencil"></i>
+          </button>
+        </div>
+        @if (arrivalDetail().length) {
+          @for (entry of arrivalDetail(); track $index) {
+          <div class="trip-detail-entry">
+            <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
+            @if (entry.Details) {
+            <div class="trip-detail-note">{{ entry.Details }}</div>
+            }
+          </div>
+          }
+        } @else {
+          <div class="trip-detail-empty">Not Set</div>
+        }
+      </div>
+
+      <div class="quote-card">
+        <div class="trip-detail-panel-head">
+          <span class="panel-title">Departure Details</span>
+          <button type="button" (click)="openScheduleModal('Departure')" title="Edit departure details">
+            <i class="bx bx-pencil"></i>
+          </button>
+        </div>
+        @if (departureDetail().length) {
+          @for (entry of departureDetail(); track $index) {
+          <div class="trip-detail-entry">
+            <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
+            @if (entry.Details) {
+            <div class="trip-detail-note">{{ entry.Details }}</div>
+            }
+          </div>
+          }
+        } @else {
+          <div class="trip-detail-empty">Not Set</div>
+        }
+      </div>
+    </div> <!-- /basic-details-side -->
+    }
+
+    </div> <!-- /basic-details-layout -->
     }
 
     <!-- ═══════════ ALL QUOTES TAB ═══════════ -->
@@ -733,6 +815,21 @@
 
     } <!-- /activeTab() === 'quotes' -->
 
+    <!-- ═══════════ DOCS TAB (converted trips only) ═══════════ -->
+    @if (activeTab() === 'docs' && isConverted()) {
+    <div class="quote-card">
+      <div class="section-subtitle">Docs</div>
+      <!--
+        No Documents/Doc table exists anywhere in the schema I was given
+        (DB script + QuoteController + QueryConvertController), so there is
+        nothing real to list here yet. Placeholder only — wire this to an
+        actual document list/upload endpoint once one exists; don't treat
+        this block as a working feature.
+      -->
+      <div class="text-muted">No documents added for this trip yet.</div>
+    </div>
+    }
+
   </main>
 </div>
 }
@@ -802,6 +899,66 @@
         <button type="button" class="btn btn-danger btn-sm" (click)="downloadPdf()" [disabled]="pdfLoading()">
           <i class="bx bx-file-pdf me-1"></i>Download PDF
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════
+     ARRIVAL / DEPARTURE DETAILS MODAL
+     ══════════════════════════════════════════════════════════════ -->
+@if (scheduleModalOpen()) {
+<div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update {{ scheduleModalType() }} Details</h5>
+        <button type="button" class="btn-close" (click)="closeScheduleModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        @for (entry of scheduleEntries(); track $index; let idx = $index) {
+        <div class="trip-detail-modal-entry">
+          @if (scheduleEntries().length > 1) {
+          <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn" (click)="removeScheduleEntry(idx)">
+            <i class="bx bx-x"></i>
+          </button>
+          }
+
+          <label class="form-label small fw-semibold">Date and Time</label>
+          <input
+            type="datetime-local"
+            class="form-control mb-3"
+            [value]="entry.DateTime"
+            (change)="onScheduleDateTimeChange(idx, $event)"
+          />
+
+          <label class="form-label small fw-semibold">Details</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            placeholder="Add details here.&#10;Use new lines to enter multiple details."
+            [value]="entry.Details"
+            (change)="onScheduleDetailsChange(idx, $event)"
+          ></textarea>
+        </div>
+        }
+
+        <button type="button" class="btn btn-outline-primary btn-sm mt-3" (click)="addScheduleEntry()">
+          Add More
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-sm" (click)="saveScheduleDetail()" [disabled]="savingSchedule()">
+          @if (savingSchedule()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>Saving…
+          } @else {
+          Save Details
+          }
+        </button>
+        <button type="button" class="btn btn-light btn-sm border" (click)="closeScheduleModal()">Cancel</button>
       </div>
     </div>
   </div>

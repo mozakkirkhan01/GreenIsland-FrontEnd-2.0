@@ -14,6 +14,7 @@ import { ConstantData } from '../../utils/constant-data';
 import { RequestModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
+import { TripStatus } from '../../utils/enum';
 
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs;
 
@@ -47,8 +48,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   activePackageTypeId = signal<number>(0);
 
-  // ── Tabs: Basic Details / All Quotes / Activities ─────────────────
-  activeTab = signal<'basic' | 'quotes' | 'activities'>('quotes');
+  // ── Tabs: Basic Details / All Quotes / Docs (converted only) / Activities ──
+  activeTab = signal<'basic' | 'quotes' | 'docs' | 'activities'>('quotes');
+
+  // ── Arrival / Departure edit modal state ─────────────────────────
+  scheduleModalOpen = signal(false);
+  scheduleModalType = signal<'Arrival' | 'Departure'>('Arrival');
+  scheduleEntries = signal<{ DateTime: string; Details: string }[]>([{ DateTime: '', Details: '' }]);
+  savingSchedule = signal(false);
 
   // ── Share dialog state ──────────────────────────────────────────
   shareOpen = signal(false);
@@ -61,6 +68,35 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // ── Derived data from the single GetQuoteDetail payload ─────────
   tripInfo = computed<any>(() => this.quoteDetail()?.TripInfo ?? null);
   quoteHeader = computed<any>(() => this.quoteDetail()?.Quote ?? null);
+
+  // ── Conversion status ─────────────────────────────────────────
+  // Confirmed against QueryStepOne.TripStatus / TripStatus enum (enum.ts)
+  // and QuoteController.TripInfoModel.TripStatus, which GetQuoteDetail
+  // already returns as part of tripInfo() — no extra call needed for
+  // isConverted() itself.
+  isConverted = computed<boolean>(() => Number(this.tripInfo()?.TripStatus) === TripStatus.Converted);
+
+  // Which package was converted is NOT on GetQuoteDetail — it lives on
+  // QuoteConversion.QuotePackageTypeId, fetched via the existing
+  // QueryConvert/GetQueryConversion endpoint (already in app_service.ts).
+  // Only fetched once isConverted() is true.
+  convertedPackageTypeId = signal<number>(0);
+
+  private loadConversionStatus(): void {
+    if (!this.isConverted()) {
+      this.convertedPackageTypeId.set(0);
+      return;
+    }
+    this.service.getQueryConversion(this.enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
+      next: (res: any) => {
+        if (res?.Message === ConstantData.SuccessMessage) {
+          this.convertedPackageTypeId.set(Number(res?.Conversion?.QuotePackageTypeId) || 0);
+        }
+      },
+      error: (err: any) => console.error('getQueryConversion error:', err),
+    });
+  }
+
   packageTypes = computed<any[]>(() => {
     const list = this.quoteDetail()?.PackageTypes ?? [];
     return list.length ? list : [{ QuotePackageTypeId: 0, PackageTypeName: 'Package' }];
@@ -74,6 +110,17 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   packageMarkups = computed<any[]>(() => this.quoteDetail()?.PackageMarkups ?? []);
   pricingSnapshots = computed<any[]>(() => this.quoteDetail()?.PricingSnapshots ?? []);
   packageSummaries = computed<any[]>(() => this.quoteDetail()?.PackageSummaries ?? []);
+
+  // ── Arrival / Departure (Basic Details side panel) ──────────────
+  // ASSUMPTION: I couldn't find these fields anywhere in the existing
+  // code, so I'm reading them off the same GetQuoteDetail payload every
+  // other computed() above uses, under `ArrivalDetail` / `DepartureDetail`
+  // — each expected to be an array of { DateTime, Details }, matching the
+  // "Add More" multi-entry UI in the Update Arrival/Departure modal.
+  // If your backend returns these under different keys (or not at all
+  // yet), update these two lines and nothing else needs to change.
+  arrivalDetail = computed<any[]>(() => this.quoteDetail()?.ArrivalDetail ?? []);
+  departureDetail = computed<any[]>(() => this.quoteDetail()?.DepartureDetail ?? []);
 
   // ── Activities grouped by Location + ActivityService + Day ──────
   activityGroups = computed(() => {
@@ -153,6 +200,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           const firstPackage = this.packageTypes()[0];
           if (firstPackage) this.activePackageTypeId.set(firstPackage.QuotePackageTypeId);
           this.loadDestinationContent();
+          this.loadConversionStatus();
         } else {
           this.toastr.error(quote.Message || 'Unable to load quote detail');
         }
@@ -219,18 +267,87 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   // ── Navigation ────────────────────────────────────────────────
-  setActiveTab(tab: 'basic' | 'quotes' | 'activities'): void {
+  setActiveTab(tab: 'basic' | 'quotes' | 'activities' | 'docs'): void {
     this.activeTab.set(tab);
   }
 
-   convertOrHoldUsingQuote(): void {
-      this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
-        queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
-      });
-    }
-  //  convertOrHoldUsingQuote(): void {
-  //    this.toastr.info('Convert/On-Hold flow is coming soon');
-  //  }
+  convertOrHoldUsingQuote(): void {
+     this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
+       queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+     });
+   }
+  // convertOrHoldUsingQuote(): void {
+  //   this.toastr.info('Convert/On-Hold flow is coming soon');
+  // }
+
+  // ── Arrival / Departure edit modal ───────────────────────────────
+  openScheduleModal(type: 'Arrival' | 'Departure'): void {
+    const existing = type === 'Arrival' ? this.arrivalDetail() : this.departureDetail();
+    this.scheduleModalType.set(type);
+    this.scheduleEntries.set(
+      existing.length
+        ? existing.map((e: any) => ({ DateTime: e.DateTime || '', Details: e.Details || '' }))
+        : [{ DateTime: '', Details: '' }]
+    );
+    this.scheduleModalOpen.set(true);
+  }
+
+  closeScheduleModal(): void {
+    this.scheduleModalOpen.set(false);
+  }
+
+  addScheduleEntry(): void {
+    this.scheduleEntries.update(entries => [...entries, { DateTime: '', Details: '' }]);
+  }
+
+  removeScheduleEntry(index: number): void {
+    this.scheduleEntries.update(entries => entries.filter((_, i) => i !== index));
+  }
+
+  onScheduleDateTimeChange(index: number, event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.scheduleEntries.update(entries => entries.map((e, i) => (i === index ? { ...e, DateTime: value } : e)));
+  }
+
+  onScheduleDetailsChange(index: number, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.scheduleEntries.update(entries => entries.map((e, i) => (i === index ? { ...e, Details: value } : e)));
+  }
+
+  saveScheduleDetail(): void {
+    const entries = this.scheduleEntries().filter(e => e.DateTime || e.Details);
+    this.savingSchedule.set(true);
+    const payload = this.enc({
+      QueryStepOneId: this.QueryStepOneId,
+      QuoteId: this.QuoteId,
+      Type: this.scheduleModalType(),
+      Entries: entries,
+    });
+    this.service.saveTripScheduleDetail(payload).subscribe({
+      next: (res: any) => {
+        this.savingSchedule.set(false);
+        if (res?.Message === ConstantData.SuccessMessage) {
+          this.toastr.success(`${this.scheduleModalType()} details saved`);
+          this.scheduleModalOpen.set(false);
+          this.loadPreview(); // re-fetch rather than assume the local edit matches what the server saved
+        } else {
+          this.toastr.error(res?.Message || 'Unable to save details');
+        }
+      },
+      error: (err: any) => {
+        this.savingSchedule.set(false);
+        console.error('saveTripScheduleDetail error:', err);
+        this.toastr.error('Error saving details');
+      },
+    });
+  }
+
+  formatScheduleDateTime(value: string): string {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
 
   editDetail(): void {
     this.router.navigate(['/agent/query-stepthree', this.QueryStepOneId], {
@@ -1140,6 +1257,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
 
 
+
       return html;
   }
 
@@ -1650,7 +1768,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
-
+  // ── NOTES ──
 
   // ── HELPERS ──
 
