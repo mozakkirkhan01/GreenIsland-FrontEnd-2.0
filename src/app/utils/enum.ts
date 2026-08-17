@@ -132,3 +132,33 @@ export const TripStatusMap = {
     [TripStatus.Canceled]: { label: 'Canceled', class: 'bg-danger' },
     [TripStatus.Dropped]: { label: 'Dropped', class: 'bg-dark' }
 } as const;
+
+// ── QueryConvert screen (query-convert.ts) ─────────────────────────
+// Backs QuoteConversion.ActionType — distinguishes sendForHolding() from
+// convertTrip() on the same header row. The resulting TripStatus change
+// itself still goes through the existing TripStatus enum above
+// (OnHold / Converted) — this enum only tags *which action produced*
+// that QuoteConversion row, since both actions save the same shape of
+// data (package, instalments, comments, verified).
+export enum QuoteConversionActionType {
+    SendForHolding = 1,
+    ConvertTrip = 2
+}
+
+// Backs QuoteConversion.Status. Lets a conversion be re-done (e.g. agent
+// picks a different package or corrects instalments) without losing the
+// audit trail of the earlier attempt — old rows get marked Superseded
+// instead of being overwritten or deleted.
+export enum QuoteConversionStatus {
+    Active = 1,
+    Superseded = 2,
+    Cancelled = 3
+}
+
+// Backs QuoteConversionInstalment.Status — tracks each instalment's
+// payment state independently of the parent QuoteConversion's own status.
+export enum InstalmentStatus {
+    Pending = 1,
+    Paid = 2,
+    Overdue = 3
+}
