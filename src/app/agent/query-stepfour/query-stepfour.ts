@@ -236,7 +236,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   backToQuotes(): void {
-    this.router.navigate(['/agent/query-steptwo', this.QueryStepOneId]);
+    this.router.navigate(['/agent/trips']);
   }
 
   goToDashboard(): void {
