@@ -6,8 +6,9 @@ import { ToastrService } from 'ngx-toastr';
 
 import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
-import { RequestModel } from '../../utils/interface';
+import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
+import { QuoteConversionActionType } from '../../utils/enum';
 
 type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: number; CostPrice?: number };
 
@@ -16,6 +17,28 @@ export interface Instalment {
   amount: number;
   percent: number;
   dueDate: string; // yyyy-MM-dd, bound to <input type="date">
+}
+
+// Mirrors QueryConvertModel on the API (QueryConvertController.SaveQueryConvert)
+// and the QuoteConversion + QuoteConversionInstalment tables. ActionType is
+// the only field that differs between sendForHolding() and convertTrip() —
+// both save this exact shape. CreatedBy is supplied from staffLogin, same
+// as every other save call in this app (see Hotel.saveHotel()).
+export interface QuoteConversionPayload {
+  QueryStepOneId: number;
+  QuoteId: number;
+  QuotePackageTypeId: number;
+  ActionType: QuoteConversionActionType;
+  TotalAmount: number;
+  Comments: string;
+  IsVerified: boolean;
+  CreatedBy: number;
+  Instalments: {
+    InstalmentNo: number;
+    Amount: number;
+    Percent: number;
+    DueDate: string;
+  }[];
 }
 
 @Component({
@@ -35,6 +58,7 @@ export class QueryConvert implements OnInit {
 
   QueryStepOneId = 0;
   QuoteId = 0;
+  staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
   loading = signal(false);
   quoteDetail = signal<any | null>(null);
@@ -111,6 +135,7 @@ export class QueryConvert implements OnInit {
   ngOnInit(): void {
     this.QueryStepOneId = Number(this.route.snapshot.paramMap.get('id')) || 0;
     this.QuoteId = Number(this.route.snapshot.queryParamMap.get('quoteId')) || 0;
+    this.staffLogin = this.local.getEmployeeDetail();
     this.loadQuote();
   }
 
@@ -680,23 +705,71 @@ export class QueryConvert implements OnInit {
     return this.verified() && Math.abs(this.remainingAmount()) < 1 && this.instalments().length > 0;
   }
 
-  // TODO: wire these up to the real convert/on-hold endpoints once the
-  // backend contract for this flow is defined — currently just guards on
-  // the verification checkbox and gives feedback.
-  sendForHolding(): void {
+  /**
+   * Builds the QuoteConversion + QuoteConversionInstalment payload for the
+   * currently selected package, tagged with the given ActionType. Both
+   * sendForHolding() and convertTrip() save this exact shape — ActionType
+   * is the only thing that distinguishes which button produced the row.
+   */
+  private buildConversionPayload(actionType: QuoteConversionActionType): QuoteConversionPayload {
+    const pkg = this.selectedPackage();
+    return {
+      QueryStepOneId: this.QueryStepOneId,
+      QuoteId: this.QuoteId,
+      QuotePackageTypeId: pkg ? Number(pkg.QuotePackageTypeId) : 0,
+      ActionType: actionType,
+      TotalAmount: this.selectedTotal(),
+      Comments: this.comments(),
+      IsVerified: this.verified(),
+      CreatedBy: this.staffLogin.StaffLoginId,
+      Instalments: this.instalments().map((inst, index) => ({
+        InstalmentNo: index + 1,
+        Amount: inst.amount,
+        Percent: inst.percent,
+        DueDate: inst.dueDate,
+      })),
+    };
+  }
+
+  submitting = signal(false);
+
+  private submitConversion(actionType: QuoteConversionActionType, successMessage: string, navigateAfter: boolean): void {
     if (!this.canSubmit()) {
       this.toastr.warning('Please verify the details before proceeding.');
       return;
     }
-    this.toastr.info('Send for Holding — backend not wired up yet.');
+    if (this.submitting()) return;
+
+    const payload = this.buildConversionPayload(actionType);
+    this.submitting.set(true);
+    this.service.saveQueryConvert(this.enc(payload)).subscribe({
+      next: (res: any) => {
+        this.submitting.set(false);
+        if (res?.Message === ConstantData.SuccessMessage) {
+          this.toastr.success(successMessage);
+          if (navigateAfter) {
+            this.router.navigate(['/agent/query-stepfour', this.QueryStepOneId], {
+              queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+            });
+          }
+        } else {
+          this.toastr.error(res?.Message || 'Unable to save.');
+        }
+      },
+      error: (err: any) => {
+        console.error('saveQueryConvert error:', err);
+        this.submitting.set(false);
+        this.toastr.error('Error saving conversion details.');
+      },
+    });
+  }
+
+  sendForHolding(): void {
+    this.submitConversion(QuoteConversionActionType.SendForHolding, 'Trip sent for holding.', true);
   }
 
   convertTrip(): void {
-    if (!this.canSubmit()) {
-      this.toastr.warning('Please verify the details before proceeding.');
-      return;
-    }
-    this.toastr.info('Convert Trip — backend not wired up yet.');
+    this.submitConversion(QuoteConversionActionType.ConvertTrip, 'Trip converted successfully.', true);
   }
 
   cancel(): void {
