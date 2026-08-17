@@ -466,6 +466,17 @@ getActivityRateByDate(obj: any) {
   return this.http.post(this.apiUrl + "Quote/ActivityRateByDate", obj, { headers: this.headers })
 }
 
+// ── QueryConvert (Send for Holding / Convert Trip) ────────────────
+// Matches QueryConvertController — see QueryConvertPayload in
+// query-convert.ts for the exact request shape.
+saveQueryConvert(obj: any) {
+  return this.http.post(this.apiUrl + "QueryConvert/SaveQueryConvert", obj, { headers: this.headers })
+}
+
+getQueryConversion(obj: any) {
+  return this.http.post(this.apiUrl + "QueryConvert/GetQueryConversion", obj, { headers: this.headers })
+}
+
 
 
 
