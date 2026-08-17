@@ -131,10 +131,51 @@
 }
 
 @if (loading()) {
-<div class="quote-loading">
-  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-  <span>Loading quotation preview...</span>
+<div class="quote-loading d-flex align-items-center text-secondary fw-medium">
+  <!-- Bouncing Dots Animation (Size from reference) -->
+  <div class="d-flex gap-2 me-3 bouncer-inline-xl">
+    <div class="bouncer-dot-xl bg-primary"></div>
+    <div class="bouncer-dot-xl bg-primary"></div>
+    <div class="bouncer-dot-xl bg-primary"></div>
+  </div>
+  
+  <!-- Loading Text -->
+  <span class="fs-5">Loading quotation preview...</span>
 </div>
+
+<style>
+.bouncer-inline-xl {
+  align-items: center;
+  height: 40px; /* Exact height from your reference */
+}
+
+.bouncer-dot-xl {
+  width: 1.25rem;  /* Exact size from your reference */
+  height: 1.25rem; /* Exact size from your reference */
+  border-radius: 50%;
+  animation: bounce-xl 0.5s infinite alternate cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Stagger the animation delays */
+.bouncer-dot-xl:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.bouncer-dot-xl:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce-xl {
+  0% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-20px); /* Exact bounce height from your reference */
+    opacity: 1;
+  }
+}
+</style>
 } @else {
 <div class="quote-preview-shell">
 
