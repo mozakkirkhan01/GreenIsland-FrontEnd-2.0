@@ -1,4 +1,4 @@
-import { Component, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -18,6 +18,7 @@ import { LoadDataService } from '../../utils/load-data.service';
 import { ActionModel, RequestModel, StaffLoginModel } from '../../utils/interface';
 import { FilterPipe } from '../../utils/filter-pipe';
 import { OrderByPipe } from '../../utils/orderby-pipe';
+import { Progress } from '../../component/progress/progress';
 
 @Component({
   selector: 'app-staff-login',
@@ -35,6 +36,7 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
     NgxPaginationModule,
     FilterPipe,
     OrderByPipe,
+    Progress,
   ],
   templateUrl: './staff-login.html',
   styleUrls: ['./staff-login.css']
@@ -42,43 +44,45 @@ import { OrderByPipe } from '../../utils/orderby-pipe';
 export class StaffLogin {
   @ViewChild('formStaffLogin') formStaffLogin!: NgForm;
 
-  // State
-  dataLoading = false;
-  showModal = false;
-  hide = true;
-  isSubmitted = false;
+  // ── Signals ──────────────────────────────────────────────────────────
+  dataLoading         = signal(false);
+  showModal           = signal(false);
+  StaffLoginList       = signal<any[]>([]);
+  StaffList             = signal<any[]>([]);
+  filterStaff           = signal<any[]>([]);
+  StaffLoginRoleList    = signal<any[]>([]);
+  action               = signal<ActionModel>({
+    CanCreate: false,
+    CanEdit: false,
+    CanDelete: false,
+    MenuTitle: '',
+    ParentMenuTitle: ''
+  } as ActionModel);
 
-  // Pagination & Table
-  PageSize = ConstantData.PageSizes;
-  p = 1;
-  Search = '';
-  sortKey = '';
-  reverse = false;
-  itemPerPage: number = this.PageSize[0];
-
-  // Data
-  StaffLoginList: any[] = [];
+  // ── Plain properties ────────────────────────────────────────────────
+  hide         = true;
+  isSubmitted  = false;
   StaffLogin: any = {};
-  StaffList: any[] = [];
-  filterStaff: any[] = [];
-  StaffLoginRoleList: any[] = [];
+  Search       = '';
+  sortKey      = '';
+  reverse      = false;
+  p            = 1;
+  itemPerPage: number;
 
-  // Auth & Actions
-  action: ActionModel = {} as ActionModel;
-  staffLogin: StaffLoginModel = {} as StaffLoginModel;
-
-  // Lookup
-  private loadData = inject(LoadDataService);
-  StatusList = this.loadData.GetEnumList(Status);
+  PageSize      = ConstantData.PageSizes;
+  loadData      = inject(LoadDataService);
+  StatusList    = this.loadData.GetEnumList(Status);
   AllStatusList = Status;
+  staffLogin: StaffLoginModel = {} as StaffLoginModel;
 
   constructor(
     private service: AppService,
     private toastr: ToastrService,
     private localService: LocalService,
     private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  ) {
+    this.itemPerPage = this.PageSize[0];
+  }
 
   ngOnInit(): void {
     this.staffLogin = this.localService.getEmployeeDetail();
@@ -99,7 +103,30 @@ export class StaffLogin {
     this.p = page;
   }
 
-  // ─── Modal ───────────────────────────────────────────────────────
+  private encrypt(data: object): RequestModel {
+    return { request: this.localService.encrypt(JSON.stringify(data)).toString() };
+  }
+
+  // ─── Menu validation ────────────────────────────────────────────────
+
+  validateMenu(): void {
+    this.dataLoading.set(true);
+    this.service.validiateMenu(this.encrypt({
+      Url: this.router.url,
+      StaffLoginId: this.staffLogin.StaffLoginId
+    })).subscribe({
+      next: (response: any) => {
+        this.action.set({ ...this.loadData.validiateMenu(response, this.toastr, this.router) });
+        this.dataLoading.set(false);
+      },
+      error: () => {
+        this.toastr.error("Error while fetching records");
+        this.dataLoading.set(false);
+      }
+    });
+  }
+
+  // ─── Modal ───────────────────────────────────────────────────────────
 
   private resetForm(): void {
     this.StaffLogin = { Status: 1 };
@@ -112,113 +139,92 @@ export class StaffLogin {
 
   newStaffLogin(): void {
     this.resetForm();
-    this.StaffLoginRoleList.forEach(role => {
-      role.IsSelected = false;
-      role.StaffLoginRoleId = null;
-    });
-    this.showModal = true;
+    this.StaffLoginRoleList.update(list =>
+      list.map(role => ({ ...role, IsSelected: false, StaffLoginRoleId: null }))
+    );
+    this.showModal.set(true);
   }
 
   closeModal(): void {
     this.resetForm();
-    this.showModal = false;
+    this.showModal.set(false);
   }
 
   editStaffLogin(obj: any): void {
     this.resetForm();
     this.StaffLogin = { ...obj };
-    this.StaffLoginRoleList.forEach(role => {
-      const match = obj.StaffLoginRoleList.find((x: any) => x.RoleId === role.RoleId);
-      role.IsSelected = !!match;
-      role.StaffLoginRoleId = match?.StaffLoginRoleId ?? 0;
-    });
-    this.showModal = true;
+    this.StaffLoginRoleList.update(list =>
+      list.map(role => {
+        const match = obj.StaffLoginRoleList.find((x: any) => x.RoleId === role.RoleId);
+        return { ...role, IsSelected: !!match, StaffLoginRoleId: match?.StaffLoginRoleId ?? 0 };
+      })
+    );
+    this.showModal.set(true);
   }
 
   // ─── Autocomplete ─────────────────────────────────────────────────
 
   filterStaffList(value: string): void {
     const lower = value?.toLowerCase() ?? '';
-    this.filterStaff = lower
-      ? this.StaffList.filter(s => s.StaffName.toLowerCase().includes(lower))
-      : [...this.StaffList];
+    const source = this.StaffList();
+    this.filterStaff.set(
+      lower ? source.filter(s => s.StaffName.toLowerCase().includes(lower)) : [...source]
+    );
   }
 
   // ─── API Calls ────────────────────────────────────────────────────
 
-  private encrypt(data: object): RequestModel {
-    return { request: this.localService.encrypt(JSON.stringify(data)).toString() };
-  }
-
-  private validateMenu(): void {
-    this.dataLoading = true;
-    this.service.validiateMenu(this.encrypt({
-      Url: this.router.url,
-      StaffLoginId: this.staffLogin.StaffLoginId
-    })).subscribe({
-      next: (response: any) => {
-        this.action = this.loadData.validiateMenu(response, this.toastr, this.router);
-        this.dataLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.toastr.error("Error while fetching records");
-        this.dataLoading = false;
-      }
-    });
-  }
-
   getRoleList(): void {
-    this.dataLoading = true;
+    this.dataLoading.set(true);
     this.service.getRoleList(this.encrypt({})).subscribe({
       next: (r1: any) => {
         if (r1.Message === ConstantData.SuccessMessage) {
-          this.StaffLoginRoleList = r1.RoleList;
+          this.StaffLoginRoleList.set(r1.RoleList);
         } else {
           this.toastr.error(r1.Message);
         }
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       },
       error: () => {
         this.toastr.error("Error while fetching records");
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       }
     });
   }
 
   getStaffList(): void {
-    this.dataLoading = true;
+    this.dataLoading.set(true);
     this.service.getStaffList(this.encrypt({})).subscribe({
       next: (r1: any) => {
         if (r1.Message === ConstantData.SuccessMessage) {
-          this.StaffList = r1.StaffList;
-          this.filterStaff = [...r1.StaffList];
+          this.StaffList.set(r1.StaffList);
+          this.filterStaff.set([...r1.StaffList]);
         } else {
           this.toastr.error(r1.Message);
         }
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       },
       error: () => {
         this.toastr.error("Error while fetching records");
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       }
     });
   }
 
   getStaffLoginList(): void {
-    this.dataLoading = true;
+    this.dataLoading.set(true);
     this.service.getStaffLoginList(this.encrypt({})).subscribe({
       next: (r1: any) => {
         if (r1.Message === ConstantData.SuccessMessage) {
-          this.StaffLoginList = r1.StaffLoginList;
+          this.StaffLoginList.set(r1.StaffLoginList);
         } else {
           this.toastr.error(r1.Message);
         }
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       },
       error: () => {
         this.toastr.error("Error while fetching records");
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       }
     });
   }
@@ -231,16 +237,17 @@ export class StaffLogin {
       return;
     }
 
-    this.StaffLoginRoleList.forEach(role => {
-      if (role.IsSelected && role.StaffLoginRoleId == null) {
-        role.StaffLoginRoleId = 0;
-      }
-    });
+    const roles = this.StaffLoginRoleList().map(role =>
+      role.IsSelected && role.StaffLoginRoleId == null
+        ? { ...role, StaffLoginRoleId: 0 }
+        : role
+    );
+    this.StaffLoginRoleList.set(roles);
 
-    this.dataLoading = true;
+    this.dataLoading.set(true);
     this.service.saveStaffLogin(this.encrypt({
       StaffLogin: this.StaffLogin,
-      StaffLoginRoleList: this.StaffLoginRoleList.filter(r => r.IsSelected),
+      StaffLoginRoleList: roles.filter(r => r.IsSelected),
       StaffClassList: [],
       StaffLoginId: this.staffLogin.StaffLoginId
     })).subscribe({
@@ -249,16 +256,17 @@ export class StaffLogin {
           this.toastr.success(this.StaffLogin.StaffLoginId > 0
             ? "Staff Login updated successfully"
             : "Staff Login added successfully");
+          this.dataLoading.set(false);
           this.closeModal();
           this.getStaffLoginList();
         } else {
           this.toastr.error(r1.Message);
-          this.dataLoading = false;
+          this.dataLoading.set(false);
         }
       },
       error: () => {
         this.toastr.error("Error occurred while submitting data");
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       }
     });
   }
@@ -266,20 +274,22 @@ export class StaffLogin {
   deleteStaffLogin(obj: any): void {
     if (!confirm("Are you sure you want to delete this record?")) return;
 
-    this.dataLoading = true;
+    this.dataLoading.set(true);
     this.service.deleteStaffLogin(this.encrypt(obj)).subscribe({
       next: (r1: any) => {
         if (r1.Message === ConstantData.SuccessMessage) {
           this.toastr.success("Record deleted successfully");
-          this.getStaffLoginList();
+          this.StaffLoginList.update(list =>
+            list.filter(x => x.StaffLoginId !== obj.StaffLoginId)
+          );
         } else {
           this.toastr.error(r1.Message);
         }
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       },
       error: () => {
         this.toastr.error("Error occurred while deleting the record");
-        this.dataLoading = false;
+        this.dataLoading.set(false);
       }
     });
   }

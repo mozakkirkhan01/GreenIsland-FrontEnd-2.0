@@ -1,3 +1,4 @@
+@if (dataLoading()) { <app-progress></app-progress> }
 <div class="page-content">
     <div class="container-fluid">
 
@@ -5,14 +6,14 @@
         <div class="row">
             <div class="col-12">
                 <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0 font-size-18">{{ action.MenuTitle }}</h4>
+                    <h4 class="mb-sm-0 font-size-18">{{ action().MenuTitle }}</h4>
                     <div class="page-title-right">
                         <ol class="breadcrumb m-0">
                             <li class="breadcrumb-item">
                                 <a routerLink="/admin/admin-dashboard">Dashboard</a>
                             </li>
-                            <li class="breadcrumb-item active">{{ action.ParentMenuTitle }}</li>
-                            <li class="breadcrumb-item">{{ action.MenuTitle }}</li>
+                            <li class="breadcrumb-item active">{{ action().ParentMenuTitle }}</li>
+                            <li class="breadcrumb-item">{{ action().MenuTitle }}</li>
                         </ol>
                     </div>
                 </div>
@@ -30,7 +31,7 @@
 
                                 <!-- New Staff Login Button -->
                                 <div class="col-12 d-flex justify-content-end mb-2">
-                                    @if (action.CanCreate) {
+                                    @if (action().CanCreate) {
                                     <button mat-raised-button color="primary" (click)="newStaffLogin()">
                                         New Staff Login
                                     </button>
@@ -78,14 +79,14 @@
                                                     <th style="cursor:pointer" (click)="sort('UserName')">User Name</th>
                                                     <th>Roles</th>
                                                     <th style="cursor:pointer" (click)="sort('Status')">Status</th>
-                                                    @if (action.CanEdit || action.CanDelete) {
+                                                    @if (action().CanEdit || action().CanDelete) {
                                                     <th>Action</th>
                                                     }
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @for (
-                                                item of StaffLoginList
+                                                item of StaffLoginList()
                                                 | filter: Search
                                                 | orderBy: sortKey : reverse
                                                 | paginate: { itemsPerPage: itemPerPage, currentPage: p };
@@ -109,15 +110,15 @@
                                                             {{ AllStatusList[item.Status] }}
                                                         </span>
                                                     </td>
-                                                    @if (action.CanEdit || action.CanDelete) {
+                                                    @if (action().CanEdit || action().CanDelete) {
                                                     <td>
-                                                        @if (action.CanEdit) {
+                                                        @if (action().CanEdit) {
                                                         <a class="text-success p-1" style="cursor:pointer"
                                                             (click)="editStaffLogin(item)">
                                                             <i class="bx bxs-edit-alt"></i>
                                                         </a>
                                                         }
-                                                        @if (action.CanDelete) {
+                                                        @if (action().CanDelete) {
                                                         <a class="text-danger p-1" style="cursor:pointer"
                                                             (click)="deleteStaffLogin(item)">
                                                             <i class="bx bxs-trash"></i>
@@ -125,6 +126,13 @@
                                                         }
                                                     </td>
                                                     }
+                                                </tr>
+                                                }
+                                                @if (StaffLoginList().length === 0 && !dataLoading()) {
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted">
+                                                        No staff logins found
+                                                    </td>
                                                 </tr>
                                                 }
                                             </tbody>
@@ -150,7 +158,7 @@
 </div>
 
 <!-- Modal -->
-@if (showModal && (action.CanEdit || action.CanCreate)) {
+@if (showModal() && (action().CanEdit || action().CanCreate)) {
 <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -167,14 +175,13 @@
 
                     <form #formStaffLogin="ngForm">
                         <div class="row">
-                            <!-- subscriptSizing="dynamic" -->
                             <mat-form-field appearance="outline" class="col-sm-3">
                                 <mat-label>Staff</mat-label>
                                 <input matInput #StaffName="ngModel" name="StaffName" [(ngModel)]="StaffLogin.StaffName"
                                     (ngModelChange)="filterStaffList($event)" [matAutocomplete]="autoStaffName" required
                                     autofocus>
                                 <mat-autocomplete #autoStaffName="matAutocomplete">
-                                    @for (option of filterStaff; track option.StaffId) {
+                                    @for (option of filterStaff(); track option.StaffId) {
                                     <mat-option [value]="option.StaffName"
                                         (onSelectionChange)="StaffLogin.StaffId = option.StaffId">
                                         {{ option.StaffName }}
@@ -229,10 +236,11 @@
                             <h3 class="header-text">Staff Roles</h3>
                             <hr style="border:2px solid rgb(19, 25, 97);">
                         </div>
-                        @for (role of StaffLoginRoleList; track role.RoleId) {
+                        @for (role of StaffLoginRoleList(); track role.RoleId) {
                         <div class="col-6 col-sm-2">
-                            <input [id]="'id' + role.RoleId" [(ngModel)]="role.IsSelected" class="form-check-input me-2"
-                                type="checkbox">
+                            <input [id]="'id' + role.RoleId" [ngModel]="role.IsSelected"
+                                (ngModelChange)="role.IsSelected = $event" [name]="'role' + role.RoleId"
+                                class="form-check-input me-2" type="checkbox">
                             <label [for]="'id' + role.RoleId" class="form-check-label text-link">
                                 {{ role.RoleTitle }}
                             </label>
