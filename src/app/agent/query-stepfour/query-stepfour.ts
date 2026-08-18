@@ -399,7 +399,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   durationLabel(): string {
     const nights = Number(this.tripInfo()?.NoOfNights) || 0;
-    return `${nights}Nights / ${nights + 1}Days`;
+    return `${nights} Nights / ${nights + 1} Days`;
   }
 
   // ── Package / accommodation grouping ─────────────────────────────
@@ -1199,7 +1199,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       html += `
         <tr>
           <td style="padding:6px 15px 0 15px;">
-            ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1}: ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
+            ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1} : ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
             ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
           </td>
         </tr>
