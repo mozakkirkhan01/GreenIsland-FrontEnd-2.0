@@ -4,6 +4,10 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SecurityContext } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { PdfImageLoader } from './pdf/helpers/image-loader';
@@ -21,10 +25,30 @@ import { forkJoin } from 'rxjs';
 
 type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: number; CostPrice?: number };
 
+// ── Tourist/Guest row shape for the Edit Guest modal ─────────────
+// Mirrors TouristRow from query-steptwo.ts so the same GetGuestByTrip /
+// SaveGuestList endpoints and row shape work identically here.
+export interface TouristRow {
+  GuestId: number;
+  AgencyId: number;
+  Salutation: string;
+  ContactName: string;
+  CountryCode: string;
+  Phone: string;
+  Email: string;
+  IsPrimary: boolean;
+  Status: number;
+  CreatedBy: number;
+  UpdatedBy: number;
+  // UI only
+  IsExpanded: boolean;
+  IsNew: boolean;
+}
+
 @Component({
   selector: 'app-query-stepfour',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule, MatButtonModule, MatIconModule, MatTooltipModule],
   templateUrl: './query-stepfour.html',
   styleUrl: './query-stepfour.css',
 })
@@ -508,6 +532,184 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.router.navigate(['/agent/query-stepthree', this.QueryStepOneId], {
       queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
     });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // EDIT GUEST (Tourist Management) — mirrors query-steptwo.ts's
+  // editGuest()/openTouristModal() flow, backed by the same
+  // GetGuestByTrip / SaveGuestList endpoints, so guest edits made
+  // from Step Four stay in sync with Step Two.
+  // ══════════════════════════════════════════════════════════════
+  showTouristModal = signal(false);
+  touristRows = signal<TouristRow[]>([]);
+  deletedTouristRows = signal<TouristRow[]>([]);
+  savingTourists = signal(false);
+
+  readonly countryCodes = [
+    { code: '91-IN', label: '91-IN' },
+    { code: '1-US', label: '1-US' },
+    { code: '44-GB', label: '44-GB' },
+    { code: '971-AE', label: '971-AE' },
+    { code: '65-SG', label: '65-SG' },
+  ];
+
+  editGuest(): void {
+    this.openTouristModal();
+  }
+
+  openTouristModal(): void {
+    this.loadTouristsForTrip();
+    this.showTouristModal.set(true);
+  }
+
+  closeTouristModal(): void {
+    this.showTouristModal.set(false);
+    this.touristRows.set([]);
+    this.deletedTouristRows.set([]);
+  }
+
+  loadTouristsForTrip(): void {
+    // ASSUMPTION: tripInfo() carries AgencyId the same way it already
+    // carries AgencyName (used elsewhere on this page) — matching
+    // TripDetail.AgencyId in query-steptwo.ts. If your GetQuoteDetail
+    // payload doesn't include it, update this one line.
+    const agencyId = Number(this.tripInfo()?.AgencyId) || 0;
+    const staffLoginId = this.local.getEmployeeDetail()?.StaffLoginId || 0;
+
+    const obj: RequestModel = this.enc({
+      AgencyId: agencyId,
+      QueryStepOneId: this.QueryStepOneId,
+    });
+
+    this.service.getGuestByTrip(obj).subscribe({
+      next: (r: any) => {
+        if (r.Message === ConstantData.SuccessMessage) {
+          const rows: TouristRow[] = (r.GuestList ?? [])
+            .filter((g: any) => (g.Status ?? 1) !== 0)
+            .map((g: any) => ({
+              GuestId: g.GuestId,
+              AgencyId: g.AgencyId,
+              Salutation: g.Salutation ?? 'Mr.',
+              ContactName: g.ContactName ?? '',
+              CountryCode: g.CountryCode ?? '91-IN',
+              Phone: g.Phone ?? '',
+              Email: g.Email ?? '',
+              IsPrimary: g.IsPrimary ?? false,
+              Status: g.Status ?? 1,
+              CreatedBy: staffLoginId,
+              UpdatedBy: staffLoginId,
+              IsExpanded: false,
+              IsNew: false,
+            }));
+          this.touristRows.set(rows);
+          this.deletedTouristRows.set([]);
+        } else {
+          this.toastr.error(r.Message || 'Unable to load tourists');
+        }
+      },
+      error: (err: any) => {
+        console.error('getGuestByTrip error:', err);
+        this.toastr.error('Error loading tourists');
+      },
+    });
+  }
+
+  addTouristRow(): void {
+    const agencyId = Number(this.tripInfo()?.AgencyId) || 0;
+    const staffLoginId = this.local.getEmployeeDetail()?.StaffLoginId || 0;
+    this.touristRows.update(rows => [
+      ...rows,
+      {
+        GuestId: 0,
+        AgencyId: agencyId,
+        Salutation: 'Mr.',
+        ContactName: '',
+        CountryCode: '91-IN',
+        Phone: '',
+        Email: '',
+        IsPrimary: false,
+        Status: 1,
+        CreatedBy: staffLoginId,
+        UpdatedBy: staffLoginId,
+        IsExpanded: true,
+        IsNew: true,
+      },
+    ]);
+  }
+
+  removeTouristRow(index: number): void {
+    const staffLoginId = this.local.getEmployeeDetail()?.StaffLoginId || 0;
+    const rows = this.touristRows();
+    const row = rows[index];
+    if (!row) return;
+
+    if (row.GuestId > 0) {
+      this.deletedTouristRows.update(list => [
+        ...list,
+        { ...row, Status: 0, UpdatedBy: staffLoginId, IsExpanded: false, IsNew: false },
+      ]);
+    }
+
+    this.touristRows.update(r => r.filter((_, i) => i !== index));
+  }
+
+  toggleExpand(index: number): void {
+    this.touristRows.update(rows =>
+      rows.map((r, i) => (i === index ? { ...r, IsExpanded: !r.IsExpanded } : r))
+    );
+  }
+
+  saveTourists(): void {
+    const rows = this.touristRows();
+    const deletedRows = this.deletedTouristRows();
+
+    const invalid = rows.find(r => r.Status !== 0 && (!r.ContactName?.trim()));
+    if (invalid) {
+      this.toastr.error('Please fill Name for all tourists');
+      return;
+    }
+
+    this.savingTourists.set(true);
+
+    const obj: RequestModel = this.enc({
+      QueryStepOneId: this.QueryStepOneId,
+      Guests: [...rows, ...deletedRows].map(r => ({
+        GuestId: r.GuestId,
+        AgencyId: r.AgencyId,
+        Salutation: r.Salutation,
+        ContactName: r.ContactName,
+        CountryCode: r.CountryCode,
+        Phone: r.Phone,
+        Email: r.Email,
+        IsPrimary: r.IsPrimary,
+        Status: r.Status ?? 1,
+        CreatedBy: r.CreatedBy,
+        UpdatedBy: r.UpdatedBy,
+      })),
+    });
+
+    this.service.saveGuestList(obj).subscribe({
+      next: (r: any) => {
+        this.savingTourists.set(false);
+        if (r.Message === ConstantData.SuccessMessage) {
+          this.toastr.success('Tourists saved successfully');
+          this.deletedTouristRows.set([]);
+          this.closeTouristModal();
+          this.loadPreview(); // re-fetch so totalGuestCount()/tripInfo() reflect the saved guest list
+        } else {
+          this.toastr.error(r.Message);
+        }
+      },
+      error: (err: any) => {
+        this.savingTourists.set(false);
+        console.error('saveGuestList error:', err);
+        this.toastr.error('Error saving tourists');
+      },
+    });
+  }
+
+  get touristCount(): number {
+    return this.touristRows().length;
   }
 
   backToQuotes(): void {
