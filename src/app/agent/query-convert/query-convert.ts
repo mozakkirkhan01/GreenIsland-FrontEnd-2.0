@@ -62,9 +62,17 @@ export class QueryConvert implements OnInit {
 
   loading = signal(false);
   quoteDetail = signal<any | null>(null);
-  inclusions = signal<any[]>([]);
-  exclusions = signal<any[]>([]);
+  inclusions = signal<any[]>([]);        // destination-level defaults
+  exclusions = signal<any[]>([]);        // destination-level defaults
   terms = signal<any[]>([]);
+
+  // ── Quote-specific Inclusions/Exclusions (QuoteInclusion/QuoteExclusion) ──
+  // Same pattern as query-stepfour.ts: this quote's own saved list, when it
+  // has one, takes priority over the destination defaults above.
+  quoteInclusions = signal<any[]>([]);
+  quoteExclusions = signal<any[]>([]);
+  effectiveInclusions = computed<any[]>(() => this.quoteInclusions().length ? this.quoteInclusions() : this.inclusions());
+  effectiveExclusions = computed<any[]>(() => this.quoteExclusions().length ? this.quoteExclusions() : this.exclusions());
 
   selectedPackageTypeId = signal<number>(0);
   comments = signal<string>('');
@@ -153,6 +161,7 @@ export class QueryConvert implements OnInit {
           const first = this.packageTypes()[0];
           if (first) this.selectPackage(first.QuotePackageTypeId);
           this.loadDestinationContent();
+          this.loadQuoteInclusionsExclusions();
         } else {
           this.toastr.error(quote.Message || 'Unable to load quote detail');
         }
@@ -181,6 +190,26 @@ export class QueryConvert implements OnInit {
     this.service.getTermAndConditionList(this.enc({ DestinationId: destinationId })).subscribe({
       next: (res: any) => this.terms.set(res?.Message === ConstantData.SuccessMessage ? res.TermAndConditionList ?? [] : []),
       error: () => this.terms.set([]),
+    });
+  }
+
+  // ── Quote-specific Inclusions/Exclusions ─────────────────────────
+  // Confirmed endpoints (see InclusionExclusionController.cs / QuoteInclusion
+  // + QuoteExclusion tables) — same call query-stepfour.ts uses to save
+  // these; this page only reads them.
+  private loadQuoteInclusionsExclusions(): void {
+    if (!this.QuoteId) {
+      this.quoteInclusions.set([]);
+      this.quoteExclusions.set([]);
+      return;
+    }
+    this.service.getQuoteInclusions(this.enc({ QuoteId: this.QuoteId })).subscribe({
+      next: (res: any) => this.quoteInclusions.set(res?.Message === ConstantData.SuccessMessage ? (res.QuoteInclusions ?? []) : []),
+      error: (err: any) => { console.error('getQuoteInclusions error:', err); this.quoteInclusions.set([]); },
+    });
+    this.service.getQuoteExclusions(this.enc({ QuoteId: this.QuoteId })).subscribe({
+      next: (res: any) => this.quoteExclusions.set(res?.Message === ConstantData.SuccessMessage ? (res.QuoteExclusions ?? []) : []),
+      error: (err: any) => { console.error('getQuoteExclusions error:', err); this.quoteExclusions.set([]); },
     });
   }
 
@@ -587,11 +616,11 @@ export class QueryConvert implements OnInit {
   }
 
   inclusionText(row: any): string {
-    return row.InclusionDetails || row.InclusionName || row.Name || row.Description || row.Inclusion || '';
+    return row.InclusionText || row.InclusionDetails || row.InclusionName || row.Name || row.Description || row.Inclusion || '';
   }
 
   exclusionText(row: any): string {
-    return row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
+    return row.ExclusionText || row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
   }
 
   termHtml(row: any): string {

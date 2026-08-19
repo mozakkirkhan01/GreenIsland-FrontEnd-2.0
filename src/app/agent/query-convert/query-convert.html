@@ -351,20 +351,20 @@
         <div class="col-12 col-md-6">
           <span class="d-inline-block fw-bold border-bottom border-success border-3 pb-1 mb-3">Inclusions</span>
           <ul class="list-unstyled">
-            @for (item of inclusions(); track item.InclusionId || $index) {
+            @for (item of effectiveInclusions(); track item.QuoteInclusionId || item.InclusionId || $index) {
             <li class="mb-2"><i class="bx bx-check-circle text-success me-2"></i>{{ inclusionText(item) }}</li>
             } @empty {
-            <li class="text-muted">No inclusions added for this destination.</li>
+            <li class="text-muted">No inclusions added for this quotation.</li>
             }
           </ul>
         </div>
         <div class="col-12 col-md-6">
           <span class="d-inline-block fw-bold border-bottom border-danger border-3 pb-1 mb-3">Exclusions</span>
           <ul class="list-unstyled">
-            @for (item of exclusions(); track item.ExclusionId || $index) {
+            @for (item of effectiveExclusions(); track item.QuoteExclusionId || item.ExclusionId || $index) {
             <li class="mb-2"><i class="bx bx-x-circle text-danger me-2"></i>{{ exclusionText(item) }}</li>
             } @empty {
-            <li class="text-muted">No exclusions added for this destination.</li>
+            <li class="text-muted">No exclusions added for this quotation.</li>
             }
           </ul>
           <div class="border-start border-warning border-3 ps-2 mt-2 fw-bold">Anything not in inclusions is Excluded</div>
