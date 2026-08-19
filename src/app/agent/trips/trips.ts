@@ -346,7 +346,8 @@ export class Trips implements OnInit, AfterViewInit {
 
   // ── Row actions ───────────────────────────────────────
   openTripDetail(row: Trip): void {
-    if (row.status === 'progress') {
+    // If the trip is in progress or already converted, open step four (finalized query view)
+    if (row.status === 'progress' || row.status === 'converted') {
       this.router.navigate(['/agent/query-stepfour', row.id]);
       return;
     }
