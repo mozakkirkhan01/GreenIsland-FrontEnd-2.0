@@ -346,6 +346,33 @@
   .package-price-converted .package-name {
     color: #111827;
   }
+
+  /* ── Tourist Management modal: larger, easier-to-read fields ── */
+  .tourist-modal .modal-title {
+    font-size: 18px;
+  }
+
+  .tourist-modal .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4b5563;
+  }
+
+  .tourist-modal .form-control,
+  .tourist-modal .form-select {
+    font-size: 15px;
+    padding: 8px 12px;
+    min-height: 42px;
+  }
+
+  .tourist-modal .form-check-label {
+    font-size: 14px;
+  }
+
+  .tourist-modal .form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+  }
 </style>
 
 <!-- PDF Loading overlay -->
@@ -1330,7 +1357,7 @@
   <!-- Dialog -->
   <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content border-0 shadow-lg">
+      <div class="modal-content border-0 shadow-lg tourist-modal">
 
         <!-- Header -->
         <div class="modal-header border-bottom px-4 py-3">
@@ -1342,7 +1369,7 @@
         <div class="modal-body px-4 py-3">
 
           <!-- Tourist count -->
-          <p class="text-muted small mb-3">
+          <p class="text-muted mb-3" style="font-size:14px;">
             Showing {{ touristCount }} tourist{{ touristCount !== 1 ? 's' : '' }}
             <i class="bx bx-refresh ms-1" style="cursor:pointer;" (click)="loadTouristsForTrip()"></i>
           </p>
@@ -1354,29 +1381,29 @@
             <!-- Row header (collapsed view) -->
             <div class="d-flex align-items-center px-3 py-2 bg-light">
 
-              <span class="text-muted me-2" style="font-size:13px; min-width:20px;">{{ i + 1 }}.</span>
-              <i class="bx bx-user-circle text-muted fs-5 me-2"></i>
+              <span class="text-muted me-2" style="font-size:14px; min-width:22px;">{{ i + 1 }}.</span>
+              <i class="bx bx-user-circle text-muted me-2" style="font-size:22px;"></i>
 
               <div class="flex-grow-1 d-flex align-items-center gap-2">
                 @if (row.ContactName) {
-                <span class="fw-semibold" style="font-size:13.5px;">{{ row.Salutation }} {{ row.ContactName }}</span>
+                <span class="fw-semibold" style="font-size:15px;">{{ row.Salutation }} {{ row.ContactName }}</span>
                 } @else {
-                <span class="text-muted fst-italic" style="font-size:13px;">New Tourist</span>
+                <span class="text-muted fst-italic" style="font-size:14px;">New Tourist</span>
                 }
                 @if (row.Phone) {
-                <span class="text-muted small">
+                <span class="text-muted" style="font-size:14px;">
                   <i class="bx bx-phone me-1"></i>{{ row.CountryCode }} {{ row.Phone }}
                 </span>
                 }
               </div>
 
               <div class="d-flex align-items-center gap-1">
-                <button mat-icon-button style="width:30px;height:30px;line-height:30px;" matTooltip="Remove tourist"
+                <button mat-icon-button style="width:32px;height:32px;line-height:32px;" matTooltip="Remove tourist"
                   (click)="removeTouristRow(i)">
-                  <mat-icon style="font-size:16px;" color="warn">delete</mat-icon>
+                  <mat-icon style="font-size:18px;" color="warn">delete</mat-icon>
                 </button>
-                <button mat-icon-button style="width:30px;height:30px;line-height:30px;" (click)="toggleExpand(i)">
-                  <mat-icon style="font-size:16px;">{{ row.IsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+                <button mat-icon-button style="width:32px;height:32px;line-height:32px;" (click)="toggleExpand(i)">
+                  <mat-icon style="font-size:18px;">{{ row.IsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
                 </button>
               </div>
 
@@ -1389,45 +1416,56 @@
 
                 <!-- Salutation -->
                 <div class="col-sm-2">
-                  <label class="form-label small text-muted mb-1">Salutation</label>
-                  <input type="text" class="form-control form-control-sm" [(ngModel)]="row.Salutation"
+                  <label class="form-label mb-1">Salutation</label>
+                  <input type="text" class="form-control" [(ngModel)]="row.Salutation"
                     placeholder="e.g. Mr." maxlength="10">
                 </div>
 
                 <!-- Name -->
                 <div class="col-sm-4">
-                  <label class="form-label small text-muted mb-1">Name *</label>
-                  <input type="text" class="form-control form-control-sm" [(ngModel)]="row.ContactName"
+                  <label class="form-label mb-1">Name *</label>
+                  <input type="text" class="form-control" [(ngModel)]="row.ContactName"
                     placeholder="e.g. Guest Name">
                 </div>
 
+                <!-- Nationality -->
+                <!-- UI only for now — the Guest table has no Nationality
+                     column, so this is unbound (matches query-steptwo.html's
+                     Nationality field, which is also display-only there).
+                     Add a Nationality column + wire it into TouristRow /
+                     SaveGuestList if you want this persisted. -->
+                <div class="col-sm-6">
+                  <label class="form-label mb-1">Nationality</label>
+                  <input type="text" class="form-control" placeholder="e.g. India">
+                </div>
+
                 <!-- Primary -->
-                <div class="col-sm-6 d-flex align-items-end">
+                <div class="col-sm-12 d-flex align-items-center">
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" [(ngModel)]="row.IsPrimary" id="primary-{{i}}">
-                    <label class="form-check-label small" for="primary-{{i}}">Primary contact</label>
+                    <label class="form-check-label" for="primary-{{i}}">Primary contact</label>
                   </div>
                 </div>
 
                 <!-- Phone -->
                 <div class="col-sm-6">
-                  <label class="form-label small text-muted mb-1">Phone Number</label>
+                  <label class="form-label mb-1">Phone Number *</label>
                   <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm flex-shrink-0" style="width:90px;"
+                    <select class="form-select flex-shrink-0" style="width:110px;"
                       [(ngModel)]="row.CountryCode">
                       @for (cc of countryCodes; track cc.code) {
                       <option [value]="cc.code">{{ cc.label }}</option>
                       }
                     </select>
-                    <input type="text" class="form-control form-control-sm" [(ngModel)]="row.Phone"
+                    <input type="text" class="form-control" [(ngModel)]="row.Phone"
                       placeholder="e.g. 9779212232">
                   </div>
                 </div>
 
                 <!-- Email -->
                 <div class="col-sm-6">
-                  <label class="form-label small text-muted mb-1">Email</label>
-                  <input type="email" class="form-control form-control-sm" [(ngModel)]="row.Email"
+                  <label class="form-label mb-1">Email</label>
+                  <input type="email" class="form-control" [(ngModel)]="row.Email"
                     placeholder="e.g. user@domain.com">
                 </div>
 
