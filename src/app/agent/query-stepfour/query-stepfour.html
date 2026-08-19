@@ -14,7 +14,8 @@
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" routerLink="/agent/dashboard">Dashboards</a></li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0)">Roles &amp; Responsibilities</a>
+          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0)">Roles &amp;
+            Responsibilities</a>
           <ul class="dropdown-menu dropdown-menu-dark"></ul>
         </li>
         <li class="nav-item dropdown">
@@ -30,7 +31,8 @@
           <ul class="dropdown-menu dropdown-menu-dark"></ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0)">Itinerary/Transport</a>
+          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown"
+            href="javascript:void(0)">Itinerary/Transport</a>
           <ul class="dropdown-menu dropdown-menu-dark"></ul>
         </li>
         <li class="nav-item dropdown">
@@ -43,13 +45,15 @@
         </li>
       </ul>
       <ul class="navbar-nav align-items-center gap-2">
-        <li class="nav-item"><a class="nav-link" href="javascript:void(0)"><i class="bx bx-fullscreen fs-5"></i></a></li>
+        <li class="nav-item"><a class="nav-link" href="javascript:void(0)"><i class="bx bx-fullscreen fs-5"></i></a>
+        </li>
         <li class="nav-item"><a class="nav-link position-relative" href="javascript:void(0)">
-          <i class="bx bx-bell fs-5"></i>
-          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
-        </a></li>
+            <i class="bx bx-bell fs-5"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
+          </a></li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown" href="javascript:void(0)">
+          <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown"
+            href="javascript:void(0)">
             <i class="bx bx-user-circle fs-5"></i> Administrator
           </a>
           <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
@@ -64,83 +68,321 @@
 </nav>
 
 <style>
-  .hotel-cell { display: flex; flex-direction: column; gap: 2px; }
-  .hotel-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
-  .hotel-line .hotel-name { font-weight: 600; }
-  .hotel-line-main .hotel-name { color: #1f2937; }
-  .hotel-line span:not(.similar-slash) { font-size: 0.8rem; color: #6c757d; }
-  .hotel-line-similar { padding-left: 14px; margin-top: 2px; }
-  .hotel-line-similar .hotel-name { color: #0d6efd; font-weight: 600; font-size: 0.92rem; }
-  .similar-slash { color: #adb5bd; font-weight: 600; }
-  .similar-room-detail { flex-basis: 100%; padding-left: 14px; font-size: 0.78rem; color: #6c757d; }
-  .quote-head-4, .quote-row-4 { display: grid; grid-template-columns: 0.8fr 2fr 2fr 1fr; gap: 8px; padding: 10px 4px; align-items: center; }
-  .quote-head-4 { font-weight: 600; border-bottom: 1px solid #e9ecef; }
-  .quote-row-4 { border-bottom: 1px solid #f1f3f5; }
-  .quote-row-4 .si-comment { display: block; font-size: 0.78rem; color: #6c757d; border-left: 2px solid #dee2e6; padding-left: 6px; margin-top: 2px; }
+  .hotel-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hotel-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .hotel-line .hotel-name {
+    font-weight: 600;
+  }
+
+  .hotel-line-main .hotel-name {
+    color: #1f2937;
+  }
+
+  .hotel-line span:not(.similar-slash) {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+
+  .hotel-line-similar {
+    padding-left: 14px;
+    margin-top: 2px;
+  }
+
+  .hotel-line-similar .hotel-name {
+    color: #0d6efd;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .similar-slash {
+    color: #adb5bd;
+    font-weight: 600;
+  }
+
+  .similar-room-detail {
+    flex-basis: 100%;
+    padding-left: 14px;
+    font-size: 0.78rem;
+    color: #6c757d;
+  }
+
+  .quote-head-4,
+  .quote-row-4 {
+    display: grid;
+    grid-template-columns: 0.8fr 2fr 2fr 1fr;
+    gap: 8px;
+    padding: 10px 4px;
+    align-items: center;
+  }
+
+  .quote-head-4 {
+    font-weight: 600;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .quote-row-4 {
+    border-bottom: 1px solid #f1f3f5;
+  }
+
+  .quote-row-4 .si-comment {
+    display: block;
+    font-size: 0.78rem;
+    color: #6c757d;
+    border-left: 2px solid #dee2e6;
+    padding-left: 6px;
+    margin-top: 2px;
+  }
 
   /* ── QuoteActivityEntries table ── */
-  .activity-entries-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
-  .activity-entries-table th { background: #f0f4ff; font-weight: 600; padding: 6px 8px; border: 1px solid #dee2e6; color: #374151; }
-  .activity-entries-table td { padding: 6px 8px; border: 1px solid #eee; vertical-align: top; }
-  .activity-entries-table tr:nth-child(even) td { background: #fafbff; }
+  .activity-entries-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .activity-entries-table th {
+    background: #f0f4ff;
+    font-weight: 600;
+    padding: 6px 8px;
+    border: 1px solid #dee2e6;
+    color: #374151;
+  }
+
+  .activity-entries-table td {
+    padding: 6px 8px;
+    border: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  .activity-entries-table tr:nth-child(even) td {
+    background: #fafbff;
+  }
 
   /* ── QuoteTransportServices table ── */
-  .transport-services-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
-  .transport-services-table th { background: #f0f4ff; font-weight: 600; padding: 6px 8px; border: 1px solid #dee2e6; color: #374151; }
-  .transport-services-table td { padding: 6px 8px; border: 1px solid #eee; vertical-align: top; }
-  .transport-services-table tr:nth-child(even) td { background: #fafbff; }
+  .transport-services-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .transport-services-table th {
+    background: #f0f4ff;
+    font-weight: 600;
+    padding: 6px 8px;
+    border: 1px solid #dee2e6;
+    color: #374151;
+  }
+
+  .transport-services-table td {
+    padding: 6px 8px;
+    border: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  .transport-services-table tr:nth-child(even) td {
+    background: #fafbff;
+  }
 
   /* ── QuoteSpecialInclusions table ── */
-  .special-inc-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
-  .special-inc-table th { background: #f0f4ff; font-weight: 600; padding: 6px 8px; border: 1px solid #dee2e6; color: #374151; }
-  .special-inc-table td { padding: 6px 8px; border: 1px solid #eee; vertical-align: top; }
-  .special-inc-table tr:nth-child(even) td { background: #fafbff; }
+  .special-inc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .special-inc-table th {
+    background: #f0f4ff;
+    font-weight: 600;
+    padding: 6px 8px;
+    border: 1px solid #dee2e6;
+    color: #374151;
+  }
+
+  .special-inc-table td {
+    padding: 6px 8px;
+    border: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  .special-inc-table tr:nth-child(even) td {
+    background: #fafbff;
+  }
 
   /* ── PDF loading overlay ── */
   .pdf-loading-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999;
-    display: flex; align-items: center; justify-content: center;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+
   .pdf-loading-box {
-    background: #fff; border-radius: 12px; padding: 32px 40px;
-    text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
   /* Schedule layout: prevent description from overflowing the page */
-  .schedule-item { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-  .schedule-date { flex: 0 0 160px; min-width: 120px; color: #374151; }
-  .schedule-copy { flex: 1 1 0; min-width: 220px; overflow-wrap: break-word; word-break: break-word; white-space: normal; }
-  .schedule-copy h5, .schedule-copy h6, .schedule-copy div { word-break: break-word; overflow-wrap: anywhere; }
-  .schedule-copy img { max-width: 100%; height: auto; display: block; }
+  .schedule-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .schedule-date {
+    flex: 0 0 160px;
+    min-width: 120px;
+    color: #374151;
+  }
+
+  .schedule-copy {
+    flex: 1 1 0;
+    min-width: 220px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .schedule-copy h5,
+  .schedule-copy h6,
+  .schedule-copy div {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .schedule-copy img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
 
   @media (max-width: 768px) {
-    .schedule-item { flex-direction: column; }
-    .schedule-date { flex-basis: auto; }
+    .schedule-item {
+      flex-direction: column;
+    }
+
+    .schedule-date {
+      flex-basis: auto;
+    }
   }
 
   /* ── Basic Details tab: main content + Arrival/Departure side column ── */
-  .basic-details-layout { display: flex; gap: 16px; align-items: flex-start; }
-  .basic-details-main { flex: 1 1 0; min-width: 0; }
-  .basic-details-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
-  @media (max-width: 992px) {
-    .basic-details-layout { flex-direction: column; }
-    .basic-details-side { flex-basis: auto; width: 100%; }
+  .basic-details-layout {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
   }
 
-  .trip-detail-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .trip-detail-panel-head .panel-title { font-weight: 600; }
-  .trip-detail-panel-head button { background: none; border: none; color: #6c757d; padding: 2px 4px; line-height: 1; }
-  .trip-detail-panel-head button:hover { color: #0d6efd; }
-  .trip-detail-empty { color: #adb5bd; }
-  .trip-detail-entry + .trip-detail-entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f3f5; }
-  .trip-detail-entry .trip-detail-datetime { font-weight: 600; color: #374151; font-size: 0.92rem; }
-  .trip-detail-entry .trip-detail-note { font-size: 0.85rem; color: #6c757d; white-space: pre-line; margin-top: 2px; }
+  .basic-details-main {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 
-  .trip-detail-modal-entry { border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; position: relative; }
-  .trip-detail-modal-entry + .trip-detail-modal-entry { margin-top: 12px; }
-  .trip-detail-modal-entry .remove-entry-btn { position: absolute; top: 8px; right: 8px; }
+  .basic-details-side {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-  .package-price-converted { border: 2px solid #22c55e; border-radius: 8px; }
+  @media (max-width: 992px) {
+    .basic-details-layout {
+      flex-direction: column;
+    }
+
+    .basic-details-side {
+      flex-basis: auto;
+      width: 100%;
+    }
+  }
+
+  .trip-detail-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .trip-detail-panel-head .panel-title {
+    font-weight: 600;
+  }
+
+  .trip-detail-panel-head button {
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+
+  .trip-detail-panel-head button:hover {
+    color: #0d6efd;
+  }
+
+  .trip-detail-empty {
+    color: #adb5bd;
+  }
+
+  .trip-detail-entry+.trip-detail-entry {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f1f3f5;
+  }
+
+  .trip-detail-entry .trip-detail-datetime {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.92rem;
+  }
+
+  .trip-detail-entry .trip-detail-note {
+    font-size: 0.85rem;
+    color: #6c757d;
+    white-space: pre-line;
+    margin-top: 2px;
+  }
+
+  .trip-detail-modal-entry {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 5px;
+    position: relative;
+  }
+
+  .trip-detail-modal-entry+.trip-detail-modal-entry {
+    margin-top: 12px;
+  }
+
+  .trip-detail-modal-entry .remove-entry-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  .package-price-converted {
+    border: 2px solid #22c55e;
+    border-radius: 8px;
+  }
 </style>
 
 <!-- PDF Loading overlay -->
@@ -162,43 +404,48 @@
     <div class="bouncer-dot-xl bg-primary"></div>
     <div class="bouncer-dot-xl bg-primary"></div>
   </div>
-  
+
   <!-- Loading Text -->
   <span class="fs-5">Loading quotation preview...</span>
 </div>
 
 <style>
-.bouncer-inline-xl {
-  align-items: center;
-  height: 40px; /* Exact height from your reference */
-}
-
-.bouncer-dot-xl {
-  width: 1.25rem;  /* Exact size from your reference */
-  height: 1.25rem; /* Exact size from your reference */
-  border-radius: 50%;
-  animation: bounce-xl 0.5s infinite alternate cubic-bezier(0.19, 1, 0.22, 1);
-}
-
-/* Stagger the animation delays */
-.bouncer-dot-xl:nth-child(2) {
-  animation-delay: 0.15s;
-}
-
-.bouncer-dot-xl:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes bounce-xl {
-  0% {
-    transform: translateY(0);
-    opacity: 0.6;
+  .bouncer-inline-xl {
+    align-items: center;
+    height: 40px;
+    /* Exact height from your reference */
   }
-  100% {
-    transform: translateY(-20px); /* Exact bounce height from your reference */
-    opacity: 1;
+
+  .bouncer-dot-xl {
+    width: 1.25rem;
+    /* Exact size from your reference */
+    height: 1.25rem;
+    /* Exact size from your reference */
+    border-radius: 50%;
+    animation: bounce-xl 0.5s infinite alternate cubic-bezier(0.19, 1, 0.22, 1);
   }
-}
+
+  /* Stagger the animation delays */
+  .bouncer-dot-xl:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .bouncer-dot-xl:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes bounce-xl {
+    0% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+
+    100% {
+      transform: translateY(-20px);
+      /* Exact bounce height from your reference */
+      opacity: 1;
+    }
+  }
 </style>
 } @else {
 <div class="quote-preview-shell">
@@ -209,7 +456,8 @@
     @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
     <div class="quote-option" [class.active]="idx === 0">
       <div class="option-price">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</div>
-      <div class="small text-muted">{{ tripInfo()?.StartDate | date:'dd MMM' }} · {{ durationLabel() }} · {{ totalGuestCount() }}A</div>
+      <div class="small text-muted">{{ tripInfo()?.StartDate | date:'dd MMM' }} · {{ durationLabel() }} · {{
+        totalGuestCount() }}A</div>
     </div>
     }
   </aside>
@@ -243,9 +491,9 @@
           <div class="small text-muted">Package (INR)</div>
           <strong>{{ formatCurrency(packageQuotePrice(packageTypes()[0]?.QuotePackageTypeId || 0)) }}</strong>
           @if (isGstIncluded(packageTypes()[0]?.QuotePackageTypeId || 0)) {
-            <div class="small text-muted">Inc. {{ quoteHeader()?.GstPercent || 0 }}% GST</div>
+          <div class="small text-muted">Inc. {{ quoteHeader()?.GstPercent || 0 }}% GST</div>
           } @else {
-            <div class="small text-muted">Excl. GST</div>
+          <div class="small text-muted">Excl. GST</div>
           }
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" (click)="editDetail()">
@@ -270,147 +518,156 @@
     <!-- Tabs -->
     <div class="quote-tabs">
       <span [class.active]="activeTab() === 'basic'" (click)="setActiveTab('basic')" role="button">Basic Details</span>
-      <span [class.active]="activeTab() === 'quotes'" (click)="setActiveTab('quotes')" role="button">All Quotes <b>{{ packageTypes().length }}</b></span>
+      <span [class.active]="activeTab() === 'quotes'" (click)="setActiveTab('quotes')" role="button">All Quotes <b>{{
+          packageTypes().length }}</b></span>
       @if (isConverted()) {
       <span [class.active]="activeTab() === 'docs'" (click)="setActiveTab('docs')" role="button">Docs</span>
       }
-      <span [class.active]="activeTab() === 'activities'" (click)="setActiveTab('activities')" role="button">Activities</span>
+      <span [class.active]="activeTab() === 'activities'" (click)="setActiveTab('activities')"
+        role="button">Activities</span>
     </div>
 
     <!-- ═══════════ BASIC DETAILS TAB ═══════════ -->
     @if (activeTab() === 'basic') {
     <div class="basic-details-layout">
-    <div class="basic-details-main">
-    <div class="quote-card">
-      <div class="section-subtitle">Latest Quote</div>
+      <div class="basic-details-main">
+        <div class="quote-card">
+          <div class="section-subtitle">Latest Quote</div>
 
-      <div class="section-subtitle">Package Quote Price</div>
+          <div class="section-subtitle">Package Quote Price</div>
 
-      <div class="package-price-grid mb-3">
-        @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
-        <div class="package-price" [class.package-price-converted]="pkg.QuotePackageTypeId === convertedPackageTypeId()">
-          <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
-          <div>
-            <span class="currency">INR</span>
-            <strong>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
-            @if (isGstIncluded(pkg.QuotePackageTypeId)) {
-              <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
-            } @else {
-              <span class="small text-muted ms-1">(excl. GST)</span>
-            }
-            @if (isOverallPricing(pkg.QuotePackageTypeId)) {
-              <span class="small text-muted ms-1">(Overall Package Price)</span>
+          <div class="package-price-grid mb-3">
+            @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
+            <div class="package-price"
+              [class.package-price-converted]="pkg.QuotePackageTypeId === convertedPackageTypeId()">
+              <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
+              <div>
+                <span class="currency">INR</span>
+                <strong>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+                @if (isGstIncluded(pkg.QuotePackageTypeId)) {
+                <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+                } @else {
+                <span class="small text-muted ms-1">(excl. GST)</span>
+                }
+                @if (isOverallPricing(pkg.QuotePackageTypeId)) {
+                <span class="small text-muted ms-1">(Overall Package Price)</span>
+                }
+              </div>
+              <div class="small text-muted mb-2">
+                INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)
+              </div>
+              @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
+              <div class="small">
+                {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
+              </div>
+              }
+            </div>
             }
           </div>
+
+          @if (quoteHeader()?.CreatedOn) {
           <div class="small text-muted mb-2">
-            INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)
+            Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
+            @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
           </div>
-          @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
-          <div class="small">
-            {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
+          }
+
+          <span class="status-chip">Latest Quote</span>
+
+          @if (!isConverted()) {
+          <div class="mt-3">
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="convertOrHoldUsingQuote()">
+              Convert/On-Hold using Quote
+            </button>
+          </div>
+          }
+
+          <div class="quote-table mt-3" style="grid-template-columns:none;">
+            <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
+              <i class="bx bx-calendar"></i>
+              <div>
+                {{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }} for {{ (tripInfo()?.NoOfNights || 0) + 1 }} Days
+                <span>{{ totalGuestCount() }} Adults</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title mt-4">Services</div>
+
+          @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pkgIdx = $index) {
+          <span class="option-label">Option {{ pkgIdx + 1 }}: {{ pkg.PackageTypeName }}</span>
+          <div class="service-section mb-4">
+            <div class="service-icon"><i class="bx bx-bed"></i></div>
+            <div class="service-content">
+              <h5>Accommodation</h5>
+              <div class="quote-table mb-2">
+                <div class="quote-row quote-head">
+                  <div>Night</div>
+                  <div>Hotel</div>
+                  <div>Meal</div>
+                  <div>Rooms</div>
+                  <div class="text-end">Price</div>
+                </div>
+                @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) +
+                '-' + group.nightNumber) {
+                <div class="quote-row">
+                  <div>
+                    {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
+                    <span>{{ group.stayDate | date:'dd MMM' }}</span>
+                  </div>
+                  <div class="hotel-cell">
+                    <div class="hotel-line hotel-line-main">
+                      <span class="hotel-name">{{ group.main.HotelName }}</span>
+                      <span>{{ group.main.LocationName || '-' }}, {{ group.main.HotelCategoryName || '-' }}</span>
+                    </div>
+                  </div>
+                  <div>{{ group.main.MealPlan || '-' }}</div>
+                  <div>
+                    {{ group.main.NoOfRooms || 1 }} {{ group.main.RoomTypeName || 'Room' }}
+                    <span>{{ group.main.AWEB || 0 }} AwEB + {{ group.main.CNB || 0 }} CNB</span>
+                  </div>
+                  <div class="price-cell">
+                    <i class="bx bx-check-circle text-success"></i>
+                    <span>INR</span>
+                    {{ formatCurrency(group.maxPrice) }}
+                  </div>
+                </div>
+                } @empty {
+                <div class="empty-row">No accommodation added for this package.</div>
+                }
+              </div>
+
+              <div class="section-total">
+                Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) +
+                packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
+              </div>
+            </div>
+          </div>
+          }
+
+          @if (!hasTerms() && !effectiveInclusions().length && !effectiveExclusions().length && !hasAnyDaySchedule()) {
+          <div class="mt-4">
+            <div class="mb-2">Inclusions/Exclusions and Daywise Schedule not provided!</div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="editDetail()">
+              Edit Inclusions/Exclusions and Itinerary
+            </button>
           </div>
           }
         </div>
-        }
-      </div>
+      </div> <!-- /basic-details-main -->
 
-      @if (quoteHeader()?.CreatedOn) {
-      <div class="small text-muted mb-2">
-        Created on {{ quoteHeader()?.CreatedOn | date:'dd MMM yyyy, h:mm a' }}
-        @if (tripInfo()?.SalesPersonName) { by {{ tripInfo()?.SalesPersonName }} }
-      </div>
-      }
-   
-      <span class="status-chip">Latest Quote</span>
-
-      @if (!isConverted()) {
-      <div class="mt-3">
-        <button type="button" class="btn btn-outline-primary btn-sm" (click)="convertOrHoldUsingQuote()">
-          Convert/On-Hold using Quote
-        </button>
-      </div>
-      }
-
-      <div class="quote-table mt-3" style="grid-template-columns:none;">
-        <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
-          <i class="bx bx-calendar"></i>
-          <div>
-            {{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }} for {{ (tripInfo()?.NoOfNights || 0) + 1 }} Days
-            <span>{{ totalGuestCount() }} Adults</span>
+      <!-- ─── Arrival / Departure (Basic Details side column) ─── -->
+      <!-- Only shown once a package has been converted; nothing to schedule against beforehand. -->
+      @if (isConverted()) {
+      <div class="basic-details-side">
+        <div class="quote-card">
+          <div class="trip-detail-panel-head">
+            <span class="panel-title">Arrival Details</span>
+            <button type="button" (click)="openScheduleModal('Arrival')" title="Edit arrival details">
+              <i class="bx bx-pencil"></i>
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div class="section-title mt-4">Services</div>
-
-      @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let pkgIdx = $index) {
-      <span class="option-label">Option {{ pkgIdx + 1 }}: {{ pkg.PackageTypeName }}</span>
-      <div class="service-section mb-4">
-        <div class="service-icon"><i class="bx bx-bed"></i></div>
-        <div class="service-content">
-          <h5>Accommodation</h5>
-          <div class="quote-table mb-2">
-            <div class="quote-row quote-head">
-              <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
-            </div>
-            @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
-            <div class="quote-row">
-              <div>
-                {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
-                <span>{{ group.stayDate | date:'dd MMM' }}</span>
-              </div>
-              <div class="hotel-cell">
-                <div class="hotel-line hotel-line-main">
-                  <span class="hotel-name">{{ group.main.HotelName }}</span>
-                  <span>{{ group.main.LocationName || '-' }}, {{ group.main.HotelCategoryName || '-' }}</span>
-                </div>
-              </div>
-              <div>{{ group.main.MealPlan || '-' }}</div>
-              <div>
-                {{ group.main.NoOfRooms || 1 }} {{ group.main.RoomTypeName || 'Room' }}
-                <span>{{ group.main.AWEB || 0 }} AwEB + {{ group.main.CNB || 0 }} CNB</span>
-              </div>
-              <div class="price-cell">
-                <i class="bx bx-check-circle text-success"></i>
-                <span>INR</span>
-                {{ formatCurrency(group.maxPrice) }}
-              </div>
-            </div>
-            } @empty {
-            <div class="empty-row">No accommodation added for this package.</div>
-            }
-          </div>
-
-          <div class="section-total">
-            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) + packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
-          </div>
-        </div>
-      </div>
-      }
-
-      @if (!hasTerms() && !inclusions().length && !exclusions().length && !hasAnyDaySchedule()) {
-      <div class="mt-4">
-        <div class="mb-2">Inclusions/Exclusions and Daywise Schedule not provided!</div>
-        <button type="button" class="btn btn-primary btn-sm" (click)="editDetail()">
-          Edit Inclusions/Exclusions and Itinerary
-        </button>
-      </div>
-      }
-    </div>
-    </div> <!-- /basic-details-main -->
-
-    <!-- ─── Arrival / Departure (Basic Details side column) ─── -->
-    <!-- Only shown once a package has been converted; nothing to schedule against beforehand. -->
-    @if (isConverted()) {
-    <div class="basic-details-side">
-      <div class="quote-card">
-        <div class="trip-detail-panel-head">
-          <span class="panel-title">Arrival Details</span>
-          <button type="button" (click)="openScheduleModal('Arrival')" title="Edit arrival details">
-            <i class="bx bx-pencil"></i>
-          </button>
-        </div>
-        @if (arrivalDetail().length) {
+          @if (arrivalDetail().length) {
           @for (entry of arrivalDetail(); track $index) {
           <div class="trip-detail-entry">
             <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
@@ -419,19 +676,19 @@
             }
           </div>
           }
-        } @else {
+          } @else {
           <div class="trip-detail-empty">Not Set</div>
-        }
-      </div>
-
-      <div class="quote-card">
-        <div class="trip-detail-panel-head">
-          <span class="panel-title">Departure Details</span>
-          <button type="button" (click)="openScheduleModal('Departure')" title="Edit departure details">
-            <i class="bx bx-pencil"></i>
-          </button>
+          }
         </div>
-        @if (departureDetail().length) {
+
+        <div class="quote-card">
+          <div class="trip-detail-panel-head">
+            <span class="panel-title">Departure Details</span>
+            <button type="button" (click)="openScheduleModal('Departure')" title="Edit departure details">
+              <i class="bx bx-pencil"></i>
+            </button>
+          </div>
+          @if (departureDetail().length) {
           @for (entry of departureDetail(); track $index) {
           <div class="trip-detail-entry">
             <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
@@ -440,12 +697,12 @@
             }
           </div>
           }
-        } @else {
+          } @else {
           <div class="trip-detail-empty">Not Set</div>
-        }
-      </div>
-    </div> <!-- /basic-details-side -->
-    }
+          }
+        </div>
+      </div> <!-- /basic-details-side -->
+      }
 
     </div> <!-- /basic-details-layout -->
     }
@@ -464,12 +721,12 @@
             <span class="currency">INR</span>
             <strong>{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
             @if (isGstIncluded(pkg.QuotePackageTypeId)) {
-              <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+            <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
             } @else {
-              <span class="small text-muted ms-1">(excl. GST)</span>
+            <span class="small text-muted ms-1">(excl. GST)</span>
             }
             @if (isOverallPricing(pkg.QuotePackageTypeId)) {
-              <span class="small text-muted ms-1">(Overall Package Price)</span>
+            <span class="small text-muted ms-1">(Overall Package Price)</span>
             }
           </div>
           <div class="small text-muted">
@@ -491,9 +748,14 @@
           <h5>Accommodation</h5>
           <div class="quote-table mb-2">
             <div class="quote-row quote-head">
-              <div>Night</div><div>Hotel</div><div>Meal</div><div>Rooms</div><div class="text-end">Price</div>
+              <div>Night</div>
+              <div>Hotel</div>
+              <div>Meal</div>
+              <div>Rooms</div>
+              <div class="text-end">Price</div>
             </div>
-            @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-' + group.nightNumber) {
+            @for (group of hotelGroupsByPackage(pkg.QuotePackageTypeId); track (group.main.QuoteHotelId || $index) + '-'
+            + group.nightNumber) {
             <div class="quote-row">
               <div>
                 {{ group.nightNumber }}{{ ordinal(group.nightNumber) }}
@@ -549,7 +811,8 @@
               </tr>
             </thead>
             <tbody>
-              @for (si of specialInclusionsByPackage(pkg.QuotePackageTypeId); track si.QuoteSpecialInclusionId || $index) {
+              @for (si of specialInclusionsByPackage(pkg.QuotePackageTypeId); track si.QuoteSpecialInclusionId ||
+              $index) {
               <tr>
                 <td>
                   <strong>{{ si.NightNumber }}{{ ordinal(si.NightNumber) }}</strong>
@@ -559,7 +822,8 @@
                 <td class="text-muted">{{ hotelLocationCategory(si.HotelId) }}</td>
                 <td>
                   <strong>{{ si.SpecialInclusionName }}</strong>
-                  @if (si.Comments) { <span class="d-block text-muted" style="font-size:11px;">{{ si.Comments }}</span> }
+                  @if (si.Comments) { <span class="d-block text-muted" style="font-size:11px;">{{ si.Comments }}</span>
+                  }
                 </td>
                 <td class="text-end"><strong>{{ formatCurrency(si.TotalPrice) }}</strong></td>
               </tr>
@@ -569,7 +833,8 @@
           }
 
           <div class="section-total">
-            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) + packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
+            Total <span>INR</span> {{ formatCurrency(packageHotelTotal(pkg.QuotePackageTypeId) +
+            packageSpecialInclusionTotal(pkg.QuotePackageTypeId)) }}
           </div>
         </div>
       </div>
@@ -615,7 +880,8 @@
               }
 
               <!-- ── QuoteActivityEntries grouped by service ── -->
-              @for (group of activityGroupsForDay(day.dayNumber); track group.LocationId + '-' + group.ActivityServiceId) {
+              @for (group of activityGroupsForDay(day.dayNumber); track group.LocationId + '-' +
+              group.ActivityServiceId) {
               <div class="day-line">
                 <div>
                   <strong>{{ group.LocationName }}</strong>
@@ -642,7 +908,8 @@
 
           <div class="section-total">
             Total <span>INR</span> {{ formatCurrency(transportActivityTotal()) }}
-            <small>Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{ formatCurrency(activityTotal()) }}</small>
+            <small>Transports: INR {{ formatCurrency(transportTotal()) }} • Activity/Tickets: INR {{
+              formatCurrency(activityTotal()) }}</small>
           </div>
         </div>
       </div>
@@ -769,25 +1036,30 @@
     <!-- Inclusions / Exclusions -->
     <div class="quote-card">
       <div>
-        <div class="collapsible-title"><i class="bx bx-chevron-down"></i> Inclusions/Exclusions</div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="collapsible-title"><i class="bx bx-chevron-down"></i> Inclusions/Exclusions</div>
+          <button type="button" class="btn btn-outline-primary btn-sm" (click)="openIncExcModal()">
+            Add/Edit Inc-Exclusion
+          </button>
+        </div>
         <div class="inc-exc-grid">
           <div>
             <span class="green-underline">Inclusions</span>
             <ul class="tick-list">
-              @for (item of inclusions(); track item.InclusionId || $index) {
+              @for (item of effectiveInclusions(); track item.QuoteInclusionId || item.InclusionId || $index) {
               <li>{{ inclusionText(item) }}</li>
               } @empty {
-              <li class="text-muted">No inclusions added for this destination.</li>
+              <li class="text-muted">No inclusions added for this quotation.</li>
               }
             </ul>
           </div>
           <div>
             <span class="red-underline">Exclusions</span>
             <ul class="cross-list">
-              @for (item of exclusions(); track item.ExclusionId || $index) {
+              @for (item of effectiveExclusions(); track item.QuoteExclusionId || item.ExclusionId || $index) {
               <li>{{ exclusionText(item) }}</li>
               } @empty {
-              <li class="text-muted">No exclusions added for this destination.</li>
+              <li class="text-muted">No exclusions added for this quotation.</li>
               }
             </ul>
             <div class="exclusion-note">Anything not in inclusions is Excluded</div>
@@ -844,10 +1116,12 @@
       <div class="modal-header">
         <ul class="nav nav-tabs card-header-tabs border-0">
           <li class="nav-item">
-            <a class="nav-link" [class.active]="shareChannel() === 'whatsapp'" href="javascript:void(0)" (click)="setShareChannel('whatsapp')">WhatsApp</a>
+            <a class="nav-link" [class.active]="shareChannel() === 'whatsapp'" href="javascript:void(0)"
+              (click)="setShareChannel('whatsapp')">WhatsApp</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" [class.active]="shareChannel() === 'email'" href="javascript:void(0)" (click)="setShareChannel('email')">Email</a>
+            <a class="nav-link" [class.active]="shareChannel() === 'email'" href="javascript:void(0)"
+              (click)="setShareChannel('email')">Email</a>
           </li>
         </ul>
         <button type="button" class="btn-close" (click)="closeShare()"></button>
@@ -856,11 +1130,13 @@
       <div class="modal-body">
         <div class="d-flex flex-wrap gap-3 mb-3 small">
           <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" [checked]="hideTotalPrice()" (change)="toggleHideTotalPrice()">
+            <input class="form-check-input" type="checkbox" [checked]="hideTotalPrice()"
+              (change)="toggleHideTotalPrice()">
             <label class="form-check-label">Hide Total Price</label>
           </div>
           <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" [checked]="removeItinerary()" (change)="toggleRemoveItinerary()">
+            <input class="form-check-input" type="checkbox" [checked]="removeItinerary()"
+              (change)="toggleRemoveItinerary()">
             <label class="form-check-label">Remove Itinerary</label>
           </div>
           <div class="form-check form-switch">
@@ -868,13 +1144,15 @@
             <label class="form-check-label">Remove Terms</label>
           </div>
           <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" [checked]="removeTransportActivities()" (change)="toggleRemoveTransportActivities()">
+            <input class="form-check-input" type="checkbox" [checked]="removeTransportActivities()"
+              (change)="toggleRemoveTransportActivities()">
             <label class="form-check-label">Remove Transports &amp; Activities</label>
           </div>
         </div>
 
         @if (shareChannel() === 'whatsapp') {
-        <pre class="border rounded p-3 bg-light small" style="white-space: pre-wrap; font-family: 'Bookman Old Style', 'URW Bookman', Georgia, serif;">{{ buildWhatsAppText() }}</pre>
+        <pre class="border rounded p-3 bg-light small"
+          style="white-space: pre-wrap; font-family: 'Bookman Old Style', 'URW Bookman', Georgia, serif;">{{ buildWhatsAppText() }}</pre>
         } @else {
         <div class="border rounded p-3" [innerHTML]="buildEmailHtml()"></div>
         }
@@ -921,27 +1199,20 @@
         @for (entry of scheduleEntries(); track $index; let idx = $index) {
         <div class="trip-detail-modal-entry">
           @if (scheduleEntries().length > 1) {
-          <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn" (click)="removeScheduleEntry(idx)">
+          <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn"
+            (click)="removeScheduleEntry(idx)">
             <i class="bx bx-x"></i>
           </button>
           }
 
           <label class="form-label small fw-semibold">Date and Time</label>
-          <input
-            type="datetime-local"
-            class="form-control mb-3"
-            [value]="entry.DateTime"
-            (change)="onScheduleDateTimeChange(idx, $event)"
-          />
+          <input type="datetime-local" class="form-control mb-3" [value]="entry.DateTime"
+            (change)="onScheduleDateTimeChange(idx, $event)" />
 
           <label class="form-label small fw-semibold">Details</label>
-          <textarea
-            class="form-control"
-            rows="3"
-            placeholder="Add details here.&#10;Use new lines to enter multiple details."
-            [value]="entry.Details"
-            (change)="onScheduleDetailsChange(idx, $event)"
-          ></textarea>
+          <textarea class="form-control" rows="3"
+            placeholder="Add details here.&#10;Use new lines to enter multiple details." [value]="entry.Details"
+            (change)="onScheduleDetailsChange(idx, $event)"></textarea>
         </div>
         }
 
@@ -951,7 +1222,8 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary btn-sm" (click)="saveScheduleDetail()" [disabled]="savingSchedule()">
+        <button type="button" class="btn btn-primary btn-sm" (click)="saveScheduleDetail()"
+          [disabled]="savingSchedule()">
           @if (savingSchedule()) {
           <span class="spinner-border spinner-border-sm me-1"></span>Saving…
           } @else {
@@ -960,6 +1232,111 @@
         </button>
         <button type="button" class="btn btn-light btn-sm border" (click)="closeScheduleModal()">Cancel</button>
       </div>
+    </div>
+  </div>
+</div>
+}
+
+@if (incExcModalOpen()) {
+<div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-dialog-scrollable" style="max-width: 95vw; margin: 1.75rem auto;">
+
+    <div class="modal-content inc-exc-modal">
+
+      <div class="modal-header" style="background-color: #cce0e6;">
+        <h5 class="modal-title">Add/Edit Inclusions &amp; Exclusions</h5>
+
+        <button type="button" class="btn-close" (click)="closeIncExcModal()">
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="text-muted mb-3">
+          These apply to this quotation only and appear in WhatsApp, email, and PDF exports for it.
+        </div>
+
+        <div class="row">
+
+          <div class="col-md-6">
+
+            <div class="green-underline mb-2 fs-3">
+              Inclusions
+            </div>
+
+            @for (line of incExcInclusionLines(); track $index; let idx = $index) {
+            <div class="trip-detail-modal-entry">
+
+              @if (incExcInclusionLines().length > 1) {
+              <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn" (click)="removeIncLine(idx)">
+                <i class="bx bx-x"></i>
+              </button>
+              }
+
+              <textarea class="form-control" rows="2" placeholder="e.g. Accommodation on double sharing basis"
+                [value]="line.InclusionText" (change)="onIncLineChange(idx, $event)">
+              </textarea>
+
+            </div>
+            }
+
+            <button type="button" class="btn btn-outline-primary mt-2" (click)="addIncLine()">
+              Add Inclusion
+            </button>
+
+          </div>
+
+
+          <div class="col-md-6">
+
+            <div class="red-underline mb-2 fs-3">
+              Exclusions
+            </div>
+
+            @for (line of incExcExclusionLines(); track $index; let idx = $index) {
+            <div class="trip-detail-modal-entry">
+
+              @if (incExcExclusionLines().length > 1) {
+              <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn" (click)="removeExcLine(idx)">
+                <i class="bx bx-x"></i>
+              </button>
+              }
+
+              <textarea class="form-control" rows="2" placeholder="e.g. Airfare / Ship's fare"
+                [value]="line.ExclusionText" (change)="onExcLineChange(idx, $event)">
+              </textarea>
+
+            </div>
+            }
+
+            <button type="button" class="btn btn-outline-primary mt-2" (click)="addExcLine()">
+              Add Exclusion
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+
+        <button type="button" class="btn btn-primary w-18" (click)="saveIncExc()" [disabled]="savingIncExc()">
+
+          @if (savingIncExc()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+          Saving…
+          } @else {
+          Save
+          }
+
+        </button>
+
+        <button type="button" class="btn btn-light border w-18" (click)="closeIncExcModal()">
+          Cancel
+        </button>
+
+      </div>
+
     </div>
   </div>
 </div>

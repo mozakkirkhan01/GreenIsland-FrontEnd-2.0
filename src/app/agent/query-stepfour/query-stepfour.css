@@ -523,3 +523,10 @@ main {
 .quote-row {
   grid-template-columns: minmax(120px,140px) minmax(220px,1.4fr) minmax(90px,120px) minmax(160px,180px) minmax(110px,130px);
 }
+.w-18 {
+  width: 15% !important;
+}
+
+.inc-exc-modal textarea {
+  font-size: 16px;
+}

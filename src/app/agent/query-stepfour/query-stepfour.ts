@@ -15,6 +15,7 @@ import { RequestModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
 import { TripStatus } from '../../utils/enum';
+import { forkJoin } from 'rxjs';
 
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs;
 
@@ -41,10 +42,25 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   loading = signal(false);
   pdfLoading = signal(false);
   quoteDetail = signal<any | null>(null);
-  inclusions = signal<any[]>([]);
-  exclusions = signal<any[]>([]);
+  inclusions = signal<any[]>([]);        // destination-level defaults (InclusionExclusion/InclusionList)
+  exclusions = signal<any[]>([]);        // destination-level defaults (InclusionExclusion/ExclusionList)
   terms = signal<any[]>([]);
   emailGreetingHtml = signal<string>('');
+
+  // ── Quote-specific Inclusions/Exclusions ─────────────────────────
+  // Backed by the real QuoteInclusion/QuoteExclusion tables + the
+  // InclusionExclusion controller's GetQuoteInclusions/GetQuoteExclusions/
+  // SaveQuoteInclusions/SaveQuoteExclusions endpoints — confirmed against
+  // the DB script and controller, not guessed. These override the
+  // destination-level defaults above for THIS quote only, once set.
+  quoteInclusions = signal<any[]>([]);
+  quoteExclusions = signal<any[]>([]);
+
+  // What actually gets displayed / sent: this quote's own list if it has
+  // one, otherwise the destination default — so untouched quotes keep
+  // working exactly as before.
+  effectiveInclusions = computed<any[]>(() => this.quoteInclusions().length ? this.quoteInclusions() : this.inclusions());
+  effectiveExclusions = computed<any[]>(() => this.quoteExclusions().length ? this.quoteExclusions() : this.exclusions());
 
   activePackageTypeId = signal<number>(0);
 
@@ -56,6 +72,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   scheduleModalType = signal<'Arrival' | 'Departure'>('Arrival');
   scheduleEntries = signal<{ DateTime: string; Details: string }[]>([{ DateTime: '', Details: '' }]);
   savingSchedule = signal(false);
+
+  // ── Inclusions/Exclusions edit modal state (per-quote) ────────────
+  incExcModalOpen = signal(false);
+  incExcInclusionLines = signal<{ QuoteInclusionId: number; InclusionText: string }[]>([{ QuoteInclusionId: 0, InclusionText: '' }]);
+  incExcExclusionLines = signal<{ QuoteExclusionId: number; ExclusionText: string }[]>([{ QuoteExclusionId: 0, ExclusionText: '' }]);
+  savingIncExc = signal(false);
 
   // ── Share dialog state ──────────────────────────────────────────
   shareOpen = signal(false);
@@ -201,6 +223,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           if (firstPackage) this.activePackageTypeId.set(firstPackage.QuotePackageTypeId);
           this.loadDestinationContent();
           this.loadConversionStatus();
+          this.loadQuoteInclusionsExclusions();
         } else {
           this.toastr.error(quote.Message || 'Unable to load quote detail');
         }
@@ -347,6 +370,138 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const d = new Date(value);
     if (isNaN(d.getTime())) return value;
     return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ── Quote-specific Inclusions/Exclusions ─────────────────────────
+  private loadQuoteInclusionsExclusions(): void {
+    if (!this.QuoteId) {
+      this.quoteInclusions.set([]);
+      this.quoteExclusions.set([]);
+      return;
+    }
+    this.service.getQuoteInclusions(this.enc({ QuoteId: this.QuoteId })).subscribe({
+      next: (res: any) => this.quoteInclusions.set(res?.Message === ConstantData.SuccessMessage ? (res.QuoteInclusions ?? []) : []),
+      error: (err: any) => { console.error('getQuoteInclusions error:', err); this.quoteInclusions.set([]); },
+    });
+    this.service.getQuoteExclusions(this.enc({ QuoteId: this.QuoteId })).subscribe({
+      next: (res: any) => this.quoteExclusions.set(res?.Message === ConstantData.SuccessMessage ? (res.QuoteExclusions ?? []) : []),
+      error: (err: any) => { console.error('getQuoteExclusions error:', err); this.quoteExclusions.set([]); },
+    });
+  }
+
+  openIncExcModal(): void {
+    // Seed from this quote's own saved list if it has one; otherwise start
+    // from the destination defaults as a convenient starting point (text
+    // only — these become new quote-specific rows on save, the
+    // destination master rows are never touched).
+    const incSeed = this.quoteInclusions().length ? this.quoteInclusions() : this.inclusions();
+    const excSeed = this.quoteExclusions().length ? this.quoteExclusions() : this.exclusions();
+
+    this.incExcInclusionLines.set(
+      incSeed.length
+        ? incSeed.map((r: any) => ({ QuoteInclusionId: r.QuoteInclusionId || 0, InclusionText: this.inclusionText(r) }))
+        : [{ QuoteInclusionId: 0, InclusionText: '' }]
+    );
+    this.incExcExclusionLines.set(
+      excSeed.length
+        ? excSeed.map((r: any) => ({ QuoteExclusionId: r.QuoteExclusionId || 0, ExclusionText: this.exclusionText(r) }))
+        : [{ QuoteExclusionId: 0, ExclusionText: '' }]
+    );
+    this.incExcModalOpen.set(true);
+  }
+
+  closeIncExcModal(): void {
+    this.incExcModalOpen.set(false);
+  }
+
+  addIncLine(): void {
+    this.incExcInclusionLines.update(lines => [...lines, { QuoteInclusionId: 0, InclusionText: '' }]);
+  }
+  removeIncLine(index: number): void {
+    this.incExcInclusionLines.update(lines => lines.filter((_, i) => i !== index));
+  }
+  onIncLineChange(index: number, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.incExcInclusionLines.update(lines => lines.map((l, i) => (i === index ? { ...l, InclusionText: value } : l)));
+  }
+
+  addExcLine(): void {
+    this.incExcExclusionLines.update(lines => [...lines, { QuoteExclusionId: 0, ExclusionText: '' }]);
+  }
+  removeExcLine(index: number): void {
+    this.incExcExclusionLines.update(lines => lines.filter((_, i) => i !== index));
+  }
+  onExcLineChange(index: number, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.incExcExclusionLines.update(lines => lines.map((l, i) => (i === index ? { ...l, ExclusionText: value } : l)));
+  }
+
+  saveIncExc(): void {
+    if (!this.QuoteId) {
+      this.toastr.error('Save the quote before adding inclusions/exclusions.');
+      return;
+    }
+
+    const staffLoginId = this.local.getEmployeeDetail()?.StaffLoginId || 0;
+
+    // NOTE: QuoteInclusion/QuoteExclusion are keyed by (QuoteId,
+    // QuotePackageTypeId) in the DB, but this editor is quote-wide (matches
+    // how the Inclusions/Exclusions panel displays — one list, not split
+    // per package option). Attaching every row to the quote's first
+    // package type is a deliberate simplification, not an oversight: if
+    // you actually need different inclusions per package option, the
+    // schema already supports it but this UI doesn't expose it yet — say
+    // so and I'll add per-package tabs here instead.
+    const packageTypeId = this.packageTypes()[0]?.QuotePackageTypeId || 0;
+    if (!packageTypeId) {
+      this.toastr.error('Add a package option before adding inclusions/exclusions.');
+      return;
+    }
+
+    const inclusionPayload = this.incExcInclusionLines()
+      .filter(l => l.InclusionText.trim())
+      .map((l, i) => ({
+        QuoteInclusionId: l.QuoteInclusionId,
+        QuoteId: this.QuoteId,
+        QuotePackageTypeId: packageTypeId,
+        InclusionText: l.InclusionText.trim(),
+        Status: 1,
+        SortOrder: i + 1,
+        UpdatedBy: staffLoginId,
+      }));
+    const exclusionPayload = this.incExcExclusionLines()
+      .filter(l => l.ExclusionText.trim())
+      .map((l, i) => ({
+        QuoteExclusionId: l.QuoteExclusionId,
+        QuoteId: this.QuoteId,
+        QuotePackageTypeId: packageTypeId,
+        ExclusionText: l.ExclusionText.trim(),
+        Status: 1,
+        SortOrder: i + 1,
+        UpdatedBy: staffLoginId,
+      }));
+
+    this.savingIncExc.set(true);
+    forkJoin({
+      inc: this.service.saveQuoteInclusions(this.enc(inclusionPayload)),
+      exc: this.service.saveQuoteExclusions(this.enc(exclusionPayload)),
+    }).subscribe({
+      next: ({ inc, exc }: any) => {
+        this.savingIncExc.set(false);
+        if (inc?.Message === ConstantData.SuccessMessage && exc?.Message === ConstantData.SuccessMessage) {
+          this.toastr.success('Inclusions/Exclusions saved for this quotation');
+          this.incExcModalOpen.set(false);
+          this.loadQuoteInclusionsExclusions();
+        } else {
+          this.toastr.error(inc?.Message !== ConstantData.SuccessMessage ? inc?.Message : exc?.Message || 'Unable to save');
+        }
+      },
+      error: (err: any) => {
+        this.savingIncExc.set(false);
+        console.error('saveQuoteInclusions/saveQuoteExclusions error:', err);
+        this.toastr.error('Error saving inclusions/exclusions');
+      },
+    });
   }
 
   editDetail(): void {
@@ -952,11 +1107,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   inclusionText(row: any): string {
-    return row.InclusionDetails || row.InclusionName || row.Name || row.Description || row.Inclusion || '';
+    return row.InclusionText || row.InclusionDetails || row.InclusionName || row.Name || row.Description || row.Inclusion || '';
   }
 
   exclusionText(row: any): string {
-    return row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
+    return row.ExclusionText || row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
   }
 
   termHtml(row: any): string {
@@ -1078,6 +1233,21 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           lines.push(`• ${this.activityGroupTitle(group)} _(${paxLabel})_`);
         }
       }
+    }
+
+    if (this.effectiveInclusions().length || this.effectiveExclusions().length) {
+      lines.push('-------');
+      lines.push('✅  *Inclusions*');
+      for (const item of this.effectiveInclusions()) {
+        const text = this.inclusionText(item);
+        if (text) lines.push(`• ${text}`);
+      }
+      lines.push('❌  *Exclusions*');
+      for (const item of this.effectiveExclusions()) {
+        const text = this.exclusionText(item);
+        if (text) lines.push(`• ${text}`);
+      }
+      lines.push('_Anything not listed under inclusions is excluded._');
     }
 
     return lines.join('\n');
@@ -1234,7 +1404,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
 
     // ── Inclusions / Exclusions ──
-    if (this.inclusions().length || this.exclusions().length) {
+    if (this.effectiveInclusions().length || this.effectiveExclusions().length) {
       html += `
         <tr>
           <td style="padding:6px 15px 0 15px;">
@@ -1693,8 +1863,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   private buildInclusionExclusionTable(): string {
     const t = this.emailTheme;
-    const incItems = this.inclusions().map(i => this.inclusionText(i)).filter(Boolean);
-    const excItems = this.exclusions().map(e => this.exclusionText(e)).filter(Boolean);
+    const incItems = this.effectiveInclusions().map(i => this.inclusionText(i)).filter(Boolean);
+    const excItems = this.effectiveExclusions().map(e => this.exclusionText(e)).filter(Boolean);
 
     const list = (items: string[], color: string): string =>
       items.length
@@ -1976,8 +2146,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         serviceBreakdown: (s: any) => this.serviceBreakdown(s),
         daySchedule: (d: number) => this.daySchedule(d),
         rawDaySchedule: (d: number) => this.rawDayScheduleHtml(d),
-        inclusions: this.inclusions(),
-        exclusions: this.exclusions(),
+        inclusions: this.effectiveInclusions(),
+        exclusions: this.effectiveExclusions(),
         inclusionText: (i: any) => this.inclusionText(i),
         exclusionText: (e: any) => this.exclusionText(e),
         terms: this.terms(),
