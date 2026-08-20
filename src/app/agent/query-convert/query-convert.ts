@@ -8,7 +8,7 @@ import { AppService } from '../../utils/app.service';
 import { ConstantData } from '../../utils/constant-data';
 import { RequestModel, StaffLoginModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
-import { QuoteConversionActionType } from '../../utils/enum';
+import { QuoteConversionActionType, TripStatus } from '../../utils/enum';
 
 type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: number; CostPrice?: number };
 
@@ -80,6 +80,47 @@ export class QueryConvert implements OnInit {
   instalments = signal<Instalment[]>([]);
   instalmentsDirty = signal<boolean>(false);
   private nextInstalmentId = 1;
+
+  // ── On-Hold state ─────────────────────────────────────────────────
+  // Same TripStatus/isOnHold pattern as query-stepfour.ts. When a trip
+  // is already on hold, this page shouldn't offer the "pick any package"
+  // selector again — it should show the package that was actually used
+  // for holding, read-only, and only offer "Convert Trip" (not
+  // "Send for Holding" a second time).
+  isOnHold = computed<boolean>(() => Number(this.tripInfo()?.TripStatus) === TripStatus.OnHold);
+
+  // Details of the existing hold, fetched via the same getQueryConversion()
+  // endpoint query-stepfour.ts uses for convertedPackageTypeId. Only
+  // populated when isOnHold() is true.
+  //
+  // ASSUMPTION: res.Conversion carries CreatedOn/CreatedByName in addition
+  // to QuotePackageTypeId (mirroring quoteHeader()?.CreatedOn /
+  // tripInfo()?.SalesPersonName used elsewhere on this page for the
+  // "Created on ... by ..." line). If the actual field names differ,
+  // holdConversion() below is the only place that needs updating.
+  holdConversion = signal<any | null>(null);
+
+  private loadHoldConversion(): void {
+    if (!this.isOnHold()) {
+      this.holdConversion.set(null);
+      return;
+    }
+    this.service.getQueryConversion(this.enc({ QueryStepOneId: this.QueryStepOneId })).subscribe({
+      next: (res: any) => {
+        if (res?.Message === ConstantData.SuccessMessage && res?.Conversion) {
+          this.holdConversion.set(res.Conversion);
+          // Lock the selection to whichever package was actually used for
+          // holding, instead of defaulting to packageTypes()[0].
+          const heldPackageTypeId = Number(res.Conversion.QuotePackageTypeId) || 0;
+          if (heldPackageTypeId) {
+            this.selectedPackageTypeId.set(heldPackageTypeId);
+            this.resetInstalments();
+          }
+        }
+      },
+      error: (err: any) => console.error('getQueryConversion error:', err),
+    });
+  }
 
   // ── Derived data — same shape as GetQuoteDetail everywhere else in the app ──
   tripInfo = computed<any>(() => this.quoteDetail()?.TripInfo ?? null);
@@ -162,6 +203,7 @@ export class QueryConvert implements OnInit {
           if (first) this.selectPackage(first.QuotePackageTypeId);
           this.loadDestinationContent();
           this.loadQuoteInclusionsExclusions();
+          this.loadHoldConversion(); // overrides selectPackage() above if this trip is already on hold
         } else {
           this.toastr.error(quote.Message || 'Unable to load quote detail');
         }

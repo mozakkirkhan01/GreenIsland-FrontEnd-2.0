@@ -65,6 +65,10 @@
   <!-- ═══════ Quote Used selector ═══════ -->
   <div class="card mx-4">
     <div class="card-body">
+      @if (isOnHold()) {
+      <div class="fs-5 fw-bold mb-1">Quote Used</div>
+      <div class="text-muted small mb-3">Here are the quote details used in the process.</div>
+      } @else {
       <div class="fs-5 fw-bold mb-1">Quote Used</div>
       <div class="text-muted small mb-3">Please select and verify the quote used in the process.</div>
 
@@ -100,6 +104,7 @@
         </div>
         }
       </div>
+      }
     </div>
   </div>
 
@@ -110,22 +115,28 @@
     <div class="card-body">
       <div class="fs-5 fw-bold mb-3">Package Quote Price</div>
 
-      <div>
-        <span class="text-info me-1">INR</span>
-        <strong class="fs-2">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
-        @if (isGstIncluded(pkg.QuotePackageTypeId)) {
-          <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
-        } @else {
-          <span class="small text-muted ms-1">(excl. GST)</span>
+      <div class="p-3 w-25" [class.onhold-price-box]="isOnHold()">
+        @if (isOnHold()) {
+        <span class="onhold-chip d-inline-block mb-2">Used for Holding</span>
         }
-        <span class="small text-muted ms-2">/ INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} (cost price)</span>
-      </div>
+        <div>
+          <span class="text-info me-1">INR</span>
+          <strong class="fs-2">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</strong>
+          @if (isGstIncluded(pkg.QuotePackageTypeId)) {
+            <span class="small text-muted ms-1">(inc. {{ quoteHeader()?.GstPercent || 0 }}% GST)</span>
+          } @else {
+            <span class="small text-muted ms-1">(excl. GST)</span>
+          }
+          <br>
+          <span class="small text-muted ms-2">INR {{ formatCurrency(packageCostPrice(pkg.QuotePackageTypeId)) }} /- (cost price)</span>
+        </div>
 
-      @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
-      <div class="small mt-1">
-        {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
+        @for (line of guestCategoryTotals(pkg.QuotePackageTypeId); track line.label) {
+        <div class="small mt-1">
+          {{ formatCurrency(line.amount) }} / {{ line.label }} x {{ line.count }} {{ line.paxLabel }}
+        </div>
+        }
       </div>
-      }
 
       @if (quoteHeader()?.CreatedOn) {
       <div class="small text-muted mt-2">
@@ -528,9 +539,11 @@
       </div>
 
       <div class="d-flex align-items-center gap-2 mt-4">
+        @if (!isOnHold()) {
         <button type="button" class="btn btn-warning" [disabled]="!canSubmit()" (click)="sendForHolding()">
           Send for Holding
         </button>
+        }
         <button type="button" class="btn btn-primary" [disabled]="!canSubmit()" (click)="convertTrip()">
           Convert Trip
         </button>
@@ -547,3 +560,20 @@
 
 </div>
 }
+
+<style>
+  .onhold-price-box {
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    background: #fffbeb;
+  }
+
+  .onhold-chip {
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 5px;
+  }
+</style>
