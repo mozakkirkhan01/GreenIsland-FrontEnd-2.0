@@ -1144,18 +1144,118 @@
 
     } <!-- /activeTab() === 'quotes' -->
 
-    <!-- ═══════════ DOCS TAB (converted trips only) ═══════════ -->
+<!-- ═══════════ DOCS TAB (converted trips only) ═══════════ -->
     @if (activeTab() === 'docs' && isConverted()) {
-    <div class="quote-card">
-      <div class="section-subtitle">Docs</div>
-      <!--
-        No Documents/Doc table exists anywhere in the schema I was given
-        (DB script + QuoteController + QueryConvertController), so there is
-        nothing real to list here yet. Placeholder only — wire this to an
-        actual document list/upload endpoint once one exists; don't treat
-        this block as a working feature.
-      -->
-      <div class="text-muted">No documents added for this trip yet.</div>
+    <div class="w-100 pt-2" style="max-width: 100%;">
+
+      <!-- Toggles in a single wrapping row -->
+      <div class="d-flex flex-wrap gap-4 mb-4 small align-items-center fw-medium text-dark">
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherPrices" [checked]="voucherShowPrices()"
+            (change)="toggleVoucherShowPrices()">
+          <label class="form-check-label" for="voucherPrices">Prices</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherRemoveBranding"
+            [checked]="voucherRemoveBranding()" (change)="toggleVoucherRemoveBranding()">
+          <label class="form-check-label" for="voucherRemoveBranding">Remove Branding</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherRemoveHotels" [checked]="voucherRemoveHotels()"
+            (change)="toggleVoucherRemoveHotels()">
+          <label class="form-check-label" for="voucherRemoveHotels">Remove Hotels</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherRemoveItinerary"
+            [checked]="voucherRemoveFullItinerary()" (change)="toggleVoucherRemoveFullItinerary()">
+          <label class="form-check-label" for="voucherRemoveItinerary">Remove Full Itinerary</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherSupplierContact"
+            [checked]="voucherShowSupplierContact()" (change)="toggleVoucherShowSupplierContact()">
+          <label class="form-check-label" for="voucherSupplierContact">Show Supplier Contact</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherBankAccount"
+            [checked]="voucherShowBankAccount()" (change)="toggleVoucherShowBankAccount()">
+          <label class="form-check-label" for="voucherBankAccount">Bank Account</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherGuestList" [checked]="voucherShowGuestList()"
+            (change)="toggleVoucherShowGuestList()">
+          <label class="form-check-label" for="voucherGuestList">Guest List</label>
+        </div>
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="voucherTnC" [checked]="voucherShowTnC()"
+            (change)="toggleVoucherShowTnC()">
+          <label class="form-check-label" for="voucherTnC">TnC</label>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="d-flex justify-content-end gap-2 mb-3 w-100">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadVoucherGuestsIfNeeded()"
+          title="Refresh">
+          <i class="bx bx-refresh"></i>
+        </button>
+        <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm" style="background-color: #556ee6; border-color: #556ee6;" (click)="copyVoucherHtml()">
+          <i class="bx bx-copy me-1"></i>Copy
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3 bg-white shadow-sm" (click)="downloadVoucherPdf()">
+          <i class="bx bxs-file-pdf me-1 text-muted"></i>PDF
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3 bg-white shadow-sm" (click)="downloadVoucherWordDoc()">
+          <i class="bx bx-file me-1 text-muted"></i>Word
+        </button>
+      </div>
+
+<!-- Aggressive inline styles to constrain the injected HTML -->
+      <style>
+        .responsive-voucher-wrapper {
+          width: 100%;
+          max-width: 100%;
+          max-height: 75vh;
+          overflow-y: auto;
+          overflow-x: hidden; /* Strict no horizontal scroll */
+        }
+        
+        /* TARGET EVERY SINGLE CHILD ELEMENT INSIDE THE VOUCHER */
+        .constrained-voucher-content,
+        .constrained-voucher-content * {
+          max-width: 100% !important;
+          min-width: 0 !important; /* Defeats hardcoded min-widths */
+          box-sizing: border-box !important;
+        }
+
+        /* Force tables to shrink-to-fit instead of overflowing */
+        .constrained-voucher-content table {
+          width: 100% !important;
+          table-layout: fixed !important; /* Forces columns to respect the table's 100% width */
+          margin-bottom: 1rem !important;
+        }
+
+        /* Force text inside table cells to wrap to the next line */
+        .constrained-voucher-content th,
+        .constrained-voucher-content td,
+        .constrained-voucher-content p,
+        .constrained-voucher-content span {
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important; /* Defeats 'nowrap' which causes right-side cutoff */
+        }
+
+        /* Ensure images scale down smoothly */
+        .constrained-voucher-content img {
+          max-width: 100% !important;
+          height: auto !important;
+        }
+      </style>
+
+      <!-- Rendered voucher preview -->
+      <div class="border rounded p-3 bg-white responsive-voucher-wrapper">
+        <div class="constrained-voucher-content" [innerHTML]="voucherHtml()"></div>
+      </div>
+      
     </div>
     }
 

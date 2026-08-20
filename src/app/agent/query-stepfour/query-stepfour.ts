@@ -346,6 +346,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // ── Navigation ────────────────────────────────────────────────
   setActiveTab(tab: 'basic' | 'quotes' | 'activities' | 'docs'): void {
     this.activeTab.set(tab);
+    // The voucher (Docs tab) needs the named guest list, which — unlike
+    // everything else on this page — isn't part of GetQuoteDetail and is
+    // otherwise only fetched when the Edit Guest modal opens. Load it once,
+    // lazily, the first time someone actually looks at the voucher.
+    if (tab === 'docs') this.loadVoucherGuestsIfNeeded();
   }
 
   convertOrHoldUsingQuote(): void {
@@ -2427,5 +2432,413 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     } finally {
       this.pdfLoading.set(false);
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // BOOKING CONFIRMATION VOUCHER (Docs tab, converted trips only)
+  // ══════════════════════════════════════════════════════════════
+  //
+  // Reuses the same builder methods as the email/PDF quotation (theme,
+  // buildStyledHeader, buildItineraryBlocks, buildTransportActivitiesHTML,
+  // buildInclusionExclusionTable, buildTermsList, stayBlocksByPackage, etc.)
+  // so this can never visually drift from the quotation output. What's new
+  // here is the voucher-specific framing: Trip Voucher summary, Guest List,
+  // and a 4-column Hotel/Check-In/Check-Out/Accommodation table, all scoped
+  // to whichever package was actually converted — not every package option
+  // on the quote.
+  //
+  // Two real data gaps worth calling out rather than papering over:
+  //   1. Guest has no Age or Nationality column in the schema. Age is shown
+  //      as "(A)" for every named guest (adults are all this page can tell
+  //      apart); Nationality falls back to QueryStepOne.Nationality, which
+  //      is a single trip-level value, not per-guest.
+  //   2. There is no Bank Account table/columns anywhere in the schema. The
+  //      "Bank Account" toggle renders an honest "not configured" line
+  //      instead of inventing account details — wire this up for real once
+  //      that data exists somewhere.
+
+  voucherShowPrices = signal(false);
+  voucherRemoveBranding = signal(false);
+  voucherRemoveHotels = signal(false);
+  voucherRemoveFullItinerary = signal(false);
+  voucherShowSupplierContact = signal(false);
+  voucherShowBankAccount = signal(false);
+  voucherShowGuestList = signal(true);
+  voucherShowTnC = signal(true);
+
+  toggleVoucherShowPrices(): void { this.voucherShowPrices.update(v => !v); }
+  toggleVoucherRemoveBranding(): void { this.voucherRemoveBranding.update(v => !v); }
+  toggleVoucherRemoveHotels(): void { this.voucherRemoveHotels.update(v => !v); }
+  toggleVoucherRemoveFullItinerary(): void { this.voucherRemoveFullItinerary.update(v => !v); }
+  toggleVoucherShowSupplierContact(): void { this.voucherShowSupplierContact.update(v => !v); }
+  toggleVoucherShowBankAccount(): void { this.voucherShowBankAccount.update(v => !v); }
+  toggleVoucherShowGuestList(): void { this.voucherShowGuestList.update(v => !v); }
+  toggleVoucherShowTnC(): void { this.voucherShowTnC.update(v => !v); }
+
+  private voucherGuestsLoaded = signal(false);
+  public loadVoucherGuestsIfNeeded(): void {
+    if (this.voucherGuestsLoaded() || !this.isConverted()) return;
+    this.voucherGuestsLoaded.set(true);
+    this.loadTouristsForTrip(); // populates the shared touristRows() signal
+  }
+
+  /** Package actually confirmed/converted — falls back to the first option
+   *  only so the voucher never renders fully blank before conversion data
+   *  has loaded. */
+  voucherPackageTypeId = computed<number>(() =>
+    this.convertedPackageTypeId() || this.packageTypes()[0]?.QuotePackageTypeId || 0
+  );
+
+  voucherHtml(): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(this.generateVoucherHtml());
+  }
+
+  /** On-screen preview only. generateVoucherHtml() is deliberately pinned to
+   *  a fixed 1000px table (EMAIL_W) so Copy/Word/Gmail render correctly —
+   *  see the EMAIL_W comment above. That fixed width is exactly what caused
+   *  the horizontal scrollbar in the in-app preview, since the Docs tab
+   *  panel is narrower than 1000px. Reuses toWordSafeHtml()'s existing
+   *  width-stripping (same technique the Word export already relies on) so
+   *  the preview lays out fluidly at whatever width the panel actually is,
+   *  with a `table { width:100% }` override so sections fill the panel
+   *  instead of shrinking to content. Copy/PDF/Word still export the
+   *  original fixed-width HTML untouched. */
+  voucherPreviewHtml(): SafeHtml {
+    // Note: this <style> tag ends up as a real DOM node once inserted via
+    // [innerHTML] (browsers hoist <title>/<style> out of a parsed <head>
+    // and attach them to the current node during fragment parsing), and
+    // <style> elements are never scoped by their position in the DOM. Using
+    // a bare `table` selector here would therefore leak out and restyle
+    // every table on the page, not just the voucher preview. Scoping every
+    // rule under `.constrained-voucher-content` keeps it contained to this
+    // widget regardless of where in the DOM the tag lands.
+    const fluid = this.toWordSafeHtml(this.generateVoucherHtml())
+      .replace('<title>Booking Confirmation Voucher</title>',
+        '<title>Booking Confirmation Voucher</title><style>.constrained-voucher-content table{width:100% !important;} .constrained-voucher-content img{max-width:100%;height:auto;}</style>');
+    return this.sanitizer.bypassSecurityTrustHtml(fluid);
+  }
+
+  private generateVoucherHtml(): string {
+    const t = this.emailTheme;
+    const trip = this.tripInfo();
+    let body = '';
+
+
+    body += `
+      <h1 style="font-family:${t.font};font-size:28px;font-weight:bold;color:${t.text};margin:0 0 14px 0;text-align:center;">Booking Confirmation Voucher</h1>
+      <p style="font-family:${t.font};font-size:15px;color:${t.text};margin:0 0 14px 0;">We are pleased to confirm the below booking. Please find confirmation details</p>
+    `;
+
+    body += `${this.buildStyledHeader('Trip Voucher')}${this.buildVoucherTripTable()}`;
+
+    if (this.voucherShowGuestList()) {
+      body += `${this.buildStyledHeader('Guest List')}${this.buildVoucherGuestListHtml()}`;
+    }
+
+    if (!this.voucherRemoveHotels()) {
+      body += `${this.buildStyledHeader('Hotels')}${this.buildVoucherHotelsHtml()}`;
+    }
+
+    if (!this.voucherRemoveFullItinerary()) {
+      body += `${this.buildStyledHeader('Day Wise Itinerary')}${this.buildItineraryBlocks()}`;
+      if (this.hasAnyTransportOrActivity()) {
+        body += `${this.buildStyledHeader('Transportation and Activities')}${this.buildTransportActivitiesHTML()}`;
+      }
+    }
+
+    if (this.effectiveInclusions().length || this.effectiveExclusions().length) {
+      body += this.buildInclusionExclusionTable();
+    }
+
+    if (this.voucherShowPrices()) {
+      body += `${this.buildStyledHeader('Prices (INR)')}${this.buildPriceBox(this.voucherPackageTypeId())}`;
+    }
+
+    if (this.voucherShowTnC() && this.hasTerms()) {
+      body += `${this.buildStyledHeader('Terms and Conditions')}${this.buildTermsList()}`;
+    }
+
+    if (this.voucherShowBankAccount()) {
+      body += `
+        ${this.buildStyledHeader('Bank Account')}
+        <div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No bank account details are configured for this agency yet.</div>
+      `;
+    }
+
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Booking Confirmation Voucher</title></head>
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:${t.font};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
+  <tr>
+    <td align="center" style="padding:16px 8px;">
+      <table role="presentation" width="${this.EMAIL_W}" cellpadding="0" cellspacing="0" border="0" style="width:${this.EMAIL_W}px;max-width:${this.EMAIL_W}px;background-color:#ffffff;font-family:${t.font};color:${t.text};">
+        <tr><td style="padding:0 15px;">${body}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+  }
+
+  // ── Trip Voucher summary table ──
+  private buildVoucherTripTable(): string {
+    const t = this.emailTheme;
+    const trip = this.tripInfo();
+    const labelW = 170;
+
+    const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
+      <tr>
+        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${l1}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v1}</td>
+        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${l2}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v2}</td>
+      </tr>
+    `;
+    const fullRow = (label: string, value: string): string => `
+      <tr>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${label}</td>
+        <td colspan="3" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 12px;vertical-align:top;">${value}</td>
+      </tr>
+    `;
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
+        ${pairRow('Trip ID', this.formatQuotationNo(trip?.QuotationNo), 'Start Date', this.formatDateComma(trip?.StartDate))}
+        ${pairRow('Destination', trip?.DestinationName || '-', 'Trip Duration', this.durationLabel())}
+        ${pairRow('Guest Name', trip?.ContactName || '-', 'Guest Ph.', trip?.Phone || '-')}
+        ${fullRow('Pax', this.paxOverviewLabel())}
+        ${fullRow('Arrival Details', this.scheduleLinesHtml(this.arrivalDetail()))}
+        ${fullRow('Departure Details', this.scheduleLinesHtml(this.departureDetail()))}
+      </table>
+    `;
+  }
+
+  /** Formats Arrival/Departure schedule rows as "18 Oct, 2026 at 07:07 hrs : details",
+   *  one per line — matches TripScheduleDetail's DateTime + Details fields. */
+  private scheduleLinesHtml(rows: any[]): string {
+    const t = this.emailTheme;
+    if (!rows?.length) {
+      return `<span style="color:${t.muted};font-style:italic;">Not added</span>`;
+    }
+    return rows
+      .map(r => {
+        const dt = r.DateTime ? new Date(r.DateTime) : null;
+        const dateStr = dt ? this.formatDateComma(dt) : '-';
+        const timeStr = dt
+          ? `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`
+          : '00:00';
+        return `${dateStr} at ${timeStr} hrs : ${r.Details || ''}`;
+      })
+      .join('<br>');
+  }
+
+  /** "18 Oct, 2026" — same info as formatDateLong() but abbreviated month
+   *  and a comma, to match the voucher reference layout exactly. */
+  private formatDateComma(value: any): string {
+    if (!value) return '-';
+    const d = new Date(value);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = d.toLocaleDateString('en-IN', { month: 'short' });
+    return `${day} ${month}, ${d.getFullYear()}`;
+  }
+
+  // ── Guest List table ──
+  private buildVoucherGuestListHtml(): string {
+    const t = this.emailTheme;
+    const trip = this.tripInfo();
+    const rows = this.touristRows();
+    // Guest carries no per-row Age/Type split, so every loaded row is
+    // assumed adult; NoOfAdults/ChildrenAges (trip-level) fill the gap for
+    // guests that were never itemized individually, exactly as the
+    // reference "+N more adults, M more child (Details Pending)" line does.
+    const nationality = trip?.Nationality || '';
+    const totalAdults = Number(trip?.NoOfAdults) || 0;
+    const ages = this.childrenAgesList();
+    const extraAdults = Math.max(0, totalAdults - rows.length);
+    const extraChildren = ages.length;
+
+    if (!rows.length && !extraAdults && !extraChildren) {
+      return `<div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No guests added yet.</div>`;
+    }
+
+    const rowsHtml = rows.map((g, i) => `
+      <tr>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${i + 1}.${g.IsPrimary ? ' \u2605' : ''}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;font-weight:bold;">${g.Salutation || ''} ${g.ContactName || ''}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">(A)</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${g.Phone ? `+${(g.CountryCode || '91-IN').split('-')[0]}-${g.Phone}` : ''}</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${nationality}</td>
+      </tr>
+    `).join('');
+
+    const extraParts: string[] = [];
+    if (extraAdults) extraParts.push(`${extraAdults} more adult${extraAdults > 1 ? 's' : ''}`);
+    if (extraChildren) extraParts.push(`${extraChildren} more child${extraChildren > 1 ? 'ren' : ''}`);
+    const extraRow = extraParts.length ? `
+      <tr>
+        <td colspan="5" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-style:italic;color:${t.muted};padding:7px 10px;">+ ${extraParts.join(', ')} (Details Pending)</td>
+      </tr>
+    ` : '';
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
+        <tr>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">S.No.</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Guest Name</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Age</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Phone</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nationality</td>
+        </tr>
+        ${rowsHtml}
+        ${extraRow}
+      </table>
+    `;
+  }
+
+  // ── Hotels table (Hotel | Check-In | Check-Out | Accommodation) ──
+  private buildVoucherHotelsHtml(): string {
+    const t = this.emailTheme;
+    const stays = this.stayBlocksByPackage(this.voucherPackageTypeId())
+      .flatMap(stay => this.splitStayByContiguousNights(stay))
+      .sort((a, b) => a.nights[0] - b.nights[0]);
+
+    if (!stays.length) {
+      return `<div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No hotels added.</div>`;
+    }
+
+    const rowsHtml = stays.map((stay, i) => {
+      const zebra = i % 2 ? `background-color:${t.zebraBg};` : '';
+      const nightsLabel = stay.nights.map((n: number) => `${n}${this.ordinal(n)}`).join(', ') + ` Night${stay.nights.length > 1 ? 's' : ''}`;
+      const contact = this.voucherShowSupplierContact() && stay.main.HotelContactNumber
+        ? `<br><span style="font-size:12px;color:${t.muted};">Contact: ${stay.main.HotelContactNumber}</span>`
+        : '';
+
+      return `
+        <tr>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">
+            <strong>${stay.main.HotelName || ''}</strong><br>
+            <span style="font-size:13px;color:${t.muted};">${stay.main.LocationName || ''}</span>${contact}
+          </td>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">${this.shortDate(stay.checkIn)}<br><strong>${nightsLabel}</strong></td>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">${this.shortDate(stay.checkOut)}</td>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">
+            ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br>
+            <span style="font-size:13px;color:${t.muted};">(${this.paxSummary(stay.main)})</span><br>
+            <span style="font-size:13px;color:${t.gold};font-weight:bold;">${this.formatMealPlan(stay.main.MealPlan)}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
+        <tr>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Hotel</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Check-In</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Check-Out</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Accommodation</td>
+        </tr>
+        ${rowsHtml}
+      </table>
+    `;
+  }
+
+  private stripHtmlToText(html: string): string {
+    return html
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(tr|p|div|h1|table)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  /** Copies the voucher as rich HTML (pastes formatted into Word/Gmail/
+   *  WhatsApp Web), falling back to plain text where the rich Clipboard
+   *  API isn't available — same pattern as copyEmailHtml(). */
+  async copyVoucherHtml(): Promise<void> {
+    const html = this.generateVoucherHtml();
+    try {
+      if (navigator.clipboard && typeof (window as any).ClipboardItem !== 'undefined') {
+        const clipboardItem = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([this.stripHtmlToText(html)], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([clipboardItem]);
+        this.toastr.success('Voucher copied! Paste directly into Word, Gmail, or WhatsApp Web.');
+        return;
+      }
+    } catch (error) {
+      console.error('Rich clipboard copy failed, falling back:', error);
+    }
+    try {
+      await navigator.clipboard.writeText(this.stripHtmlToText(html));
+      this.toastr.success('Copied as plain text (rich HTML copy not supported in this browser).');
+    } catch (err) {
+      console.error('Plain-text clipboard copy failed:', err);
+      this.toastr.error('Could not copy to clipboard. Please try again.');
+    }
+  }
+
+  /** Same "HTML-as-.doc" technique as downloadWordDoc() — reused directly
+   *  rather than reinvented, just pointed at the voucher HTML/filename. */
+  downloadVoucherWordDoc(): void {
+    try {
+      const htmlContent = this.toWordSafeHtml(this.generateVoucherHtml());
+      const wordDoc = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset="utf-8">
+          <!--[if gte mso 9]>
+          <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
+          <![endif]-->
+          <style>
+            @page WordSection1 { size: 612.0pt 792.0pt; margin: 36.0pt; }
+            div.WordSection1 { page: WordSection1; }
+            table { width: 100% !important; }
+            table, td, th { word-wrap: break-word !important; overflow-wrap: break-word !important; }
+          </style>
+        </head>
+        <body><div class="WordSection1">${htmlContent}</div></body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Voucher-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      this.toastr.success('Word document downloaded.');
+    } catch (error) {
+      console.error('Voucher Word download failed:', error);
+      this.toastr.error('Could not generate the Word document. Please try again.');
+    }
+  }
+
+  /** Print-to-PDF via the browser's own print dialog, targeted at the same
+   *  HTML the Copy/Word buttons use. NOT wired into QuotationPdfEngine —
+   *  that engine's docDefinition builder is shaped around the quotation's
+   *  own layout (cover/back-cover, pdfMake content trees keyed off
+   *  daySlots/packageTypes callbacks) and would need real extension work to
+   *  support this voucher's different sections; faking that integration
+   *  here would just produce a PDF that silently doesn't match what Copy/
+   *  Word actually export. This gets a working PDF today without that risk. */
+  downloadVoucherPdf(): void {
+    const win = window.open('', '_blank');
+    if (!win) {
+      this.toastr.error('Please allow pop-ups to download the voucher as PDF.');
+      return;
+    }
+    win.document.write(this.generateVoucherHtml());
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
   }
 }
