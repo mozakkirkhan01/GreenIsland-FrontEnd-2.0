@@ -347,6 +347,50 @@
     color: #111827;
   }
 
+  .onhold-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f59e0b;
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .onhold-pill i {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .package-price-onhold {
+    display: inline-block !important;
+    width: auto !important;
+    max-width: 380px !important;
+    min-width: 260px;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    background: #fffbeb;
+    padding: 14px 18px;
+  }
+
+  .package-price-onhold .package-name {
+    color: #111827;
+  }
+
+  .onhold-chip {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+  }
+
   /* ── Tourist Management modal: larger, easier-to-read fields ── */
   .tourist-modal .modal-title {
     font-size: 18px;
@@ -468,6 +512,8 @@
           <span class="small text-muted">{{ tripInfo()?.AgencyName || 'Direct Query' }}</span>
           @if (isConverted()) {
           <span class="converted-pill"><i class="bx bx-check"></i>Converted</span>
+          } @else if (isOnHold()) {
+          <span class="onhold-pill"><i class="bx bx-time-five"></i>On Hold</span>
           } @else {
           <span class="status-chip">Quote Given</span>
           }
@@ -539,7 +585,11 @@
           <div class="package-price-grid mb-3">
             @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
             <div class="package-price"
-              [class.package-price-converted]="pkg.QuotePackageTypeId === convertedPackageTypeId()">
+              [class.package-price-converted]="isConverted() && pkg.QuotePackageTypeId === convertedPackageTypeId()"
+              [class.package-price-onhold]="isOnHold() && pkg.QuotePackageTypeId === convertedPackageTypeId()">
+              @if (isOnHold() && pkg.QuotePackageTypeId === convertedPackageTypeId()) {
+              <span class="onhold-chip">Used for Holding</span>
+              }
               <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
               <div>
                 <span class="currency">INR</span>
@@ -716,7 +766,11 @@
       <div class="package-price-grid">
         @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
         <div class="package-price"
-          [class.package-price-converted]="isConverted() && pkg.QuotePackageTypeId === convertedPackageTypeId()">
+          [class.package-price-converted]="isConverted() && pkg.QuotePackageTypeId === convertedPackageTypeId()"
+          [class.package-price-onhold]="isOnHold() && pkg.QuotePackageTypeId === convertedPackageTypeId()">
+          @if (isOnHold() && pkg.QuotePackageTypeId === convertedPackageTypeId()) {
+          <span class="onhold-chip">Used for Holding</span>
+          }
           <div class="package-name">Option {{ idx + 1 }}: {{ pkg.PackageTypeName }}</div>
           <div>
             <span class="currency">INR</span>

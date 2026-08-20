@@ -122,14 +122,29 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // isConverted() itself.
   isConverted = computed<boolean>(() => Number(this.tripInfo()?.TripStatus) === TripStatus.Converted);
 
+  // ASSUMPTION: the enum member is named `OnHold` (mirroring the
+  // `TripStatus.Converted` naming already confirmed above). If the
+  // actual member in enum.ts is named differently (e.g. `Hold`,
+  // `HoldStatus`), this is the one line to fix.
+  isOnHold = computed<boolean>(() => Number(this.tripInfo()?.TripStatus) === TripStatus.OnHold);
+
   // Which package was converted is NOT on GetQuoteDetail — it lives on
   // QuoteConversion.QuotePackageTypeId, fetched via the existing
   // QueryConvert/GetQueryConversion endpoint (already in app_service.ts).
   // Only fetched once isConverted() is true.
+  //
+  // ASSUMPTION: the same QueryConversion record/endpoint also carries
+  // the selected package when the trip is put On Hold (i.e. Convert and
+  // Hold write to the same table, just with a different TripStatus) —
+  // this mirrors how "Convert/On-Hold using Quote" is already a single
+  // combined action/button below. If Hold actually has its own record
+  // or endpoint, swap the call in loadConversionStatus() accordingly;
+  // everything downstream (convertedPackageTypeId signal, the
+  // highlight classes, the pills) stays the same either way.
   convertedPackageTypeId = signal<number>(0);
 
   private loadConversionStatus(): void {
-    if (!this.isConverted()) {
+    if (!this.isConverted() && !this.isOnHold()) {
       this.convertedPackageTypeId.set(0);
       return;
     }
