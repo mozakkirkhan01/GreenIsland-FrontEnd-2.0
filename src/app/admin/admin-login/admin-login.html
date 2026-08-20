@@ -1,101 +1,112 @@
-<!-- admin-login.html -->
-
 @if (dataLoading()) {
   <app-progress></app-progress>
 }
 
-<div class="account-pages my-5 pt-sm-5">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6 col-xl-5">
+<!-- Minimal style block strictly for input placeholders in glassmorphism -->
+<style>
+  .glass-input::placeholder { color: rgba(255, 255, 255, 0.7) !important; }
+  .glass-input:focus { box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.2) !important; border-color: white !important; }
+</style>
 
-        <div class="card overflow-hidden shadow">
-          <div class="bg-primary bg-soft">
-            <div class="row">
-              <div class="col-7">
-                <div class="text-primary p-4">
-                  <h5 class="text-primary">Welcome Back!</h5>
-                  <p>Sign in to Green Island.</p>
-                </div>
-              </div>
-              <div class="col-5 align-self-end">
-                <img src="assets/img/profile-img.png" alt="" class="img-fluid">
-              </div>
-            </div>
-          </div>
+<!-- Full viewport wrapper with your background image -->
+<div class="min-vh-100 d-flex align-items-center justify-content-center p-3 p-md-4"
+     style="background: url('assets/img/andaman.jpg') no-repeat center center / cover;">
+  
+  <!-- Outer Glass Panel -->
+  <div class="container rounded-4 shadow-lg w-100 h-100 position-relative"
+       style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); max-width: 1200px;">
 
-          <div class="card-body pt-4">
 
-            <div class="auth-logo text-center mb-3">
+    <!-- Main Content Area -->
+    <div class="row align-items-center px-3 px-md-5 pb-5">
+      
+      <!-- Left Side Text -->
+      <div class="col-lg-6 text-white mb-5 mb-lg-0 pe-lg-5">
+        <h1 class="display-3 fw-bold mb-2">Green Island</h1>
+        <p class="fs-3 fst-italic" style="font-family: 'Georgia', serif;">Travel with the best</p>
+      </div>
+
+      <!-- Right Side Login Box -->
+      <div class="col-lg-6 ps-lg-5">
+        <!-- Inner Glass Panel -->
+        <div class="p-4 p-md-5 rounded-4 shadow-sm"
+             style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.3);">
+          
+           <div class="auth-logo text-center mb-3">
               <img src="/assets/img/greenlogo.png" alt="" height="40">
             </div>
 
-            <!-- FORM START -->
-            <form #myForm="ngForm" (ngSubmit)="staffLogin(myForm)" novalidate>
+          <!-- FORM START -->
+          <form #myForm="ngForm" (ngSubmit)="staffLogin(myForm)" novalidate>
 
-              <!-- USERNAME -->
-              <mat-form-field appearance="outline" class="w-100 mb-3">
-                <mat-label>Username</mat-label>
-                <mat-icon matPrefix>person</mat-icon>
-                <input matInput
-                       type="text"
-                       name="UserName"
-                       [(ngModel)]="Staff.UserName"
-                       #UserName="ngModel"
-                       required>
-                @if (submitted() && UserName.invalid) {
-                  <mat-error>Username is required</mat-error>
-                }
-              </mat-form-field>
+            <!-- USERNAME -->
+            <div class="mb-4 position-relative">
+              <input type="text"
+                     name="UserName"
+                     [(ngModel)]="Staff.UserName"
+                     #UserName="ngModel"
+                     required
+                     class="form-control form-control-lg rounded-pill bg-transparent text-white glass-input px-4"
+                     style="border: 1px solid rgba(255, 255, 255, 0.5);"
+                     placeholder="Enter username">
+              <mat-icon class="position-absolute text-white" style="top: 50%; right: 20px; transform: translateY(-50%); opacity: 0.8;">person_outline</mat-icon>
+              
+              @if (submitted() && UserName.invalid) {
+                <div class="text-warning ps-3 mt-1 small">Username is required</div>
+              }
+            </div>
 
-              <!-- PASSWORD -->
-              <mat-form-field appearance="outline" class="w-100 mb-4">
-                <mat-label>Password</mat-label>
-                <mat-icon matPrefix>lock</mat-icon>
-                <input matInput
-                       [type]="hidePassword() ? 'password' : 'text'"
-                       name="LoginPassword"
-                       [(ngModel)]="Staff.LoginPassword"
-                       #LoginPassword="ngModel"
-                       required>
-                <button mat-icon-button matSuffix
-                        type="button"
-                        (click)="togglePassword()"
-                        (mousedown)="$event.preventDefault()">
-                  <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-                @if (submitted() && LoginPassword.invalid) {
-                  <mat-error>Password is required</mat-error>
-                }
-              </mat-form-field>
+            <!-- PASSWORD -->
+            <div class="mb-4 position-relative">
+              <input [type]="hidePassword() ? 'password' : 'text'"
+                     name="LoginPassword"
+                     [(ngModel)]="Staff.LoginPassword"
+                     #LoginPassword="ngModel"
+                     required
+                     class="form-control form-control-lg rounded-pill bg-transparent text-white glass-input px-4"
+                     style="border: 1px solid rgba(255, 255, 255, 0.5);"
+                     placeholder="Enter password">
+              
+              <!-- Toggle Password Visibility -->
+              <button type="button" 
+                      class="btn position-absolute border-0 p-0 text-white" 
+                      style="top: 50%; right: 20px; transform: translateY(-50%); opacity: 0.8;"
+                      (click)="togglePassword()"
+                      (mousedown)="$event.preventDefault()">
+                <mat-icon>{{ hidePassword() ? 'lock_outline' : 'lock_open' }}</mat-icon>
+              </button>
 
-              <!-- SUBMIT -->
-              <button mat-raised-button
-                      color="primary"
-                      class="w-100"
-                      type="submit"
+              @if (submitted() && LoginPassword.invalid) {
+                <div class="text-warning ps-3 mt-1 small">Password is required</div>
+              }
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <div class="text-center mt-5">
+              <button type="submit"
+                      class="btn rounded-pill px-5 py-2 fs-5 text-white fw-medium shadow-sm w-50"
+                      style="background-color: #34d399; border: none;"
                       [disabled]="dataLoading()">
                 @if (dataLoading()) {
                   <ng-container>
-                    <mat-icon class="spin-icon">autorenew</mat-icon>
-                    Signing in…
+                    <mat-icon class="spin-icon align-middle fs-5">autorenew</mat-icon>
                   </ng-container>
                 } @else {
-                  Login
+                  Log in
                 }
               </button>
+            </div>
 
-            </form>
-            <!-- FORM END -->
+            <div class="text-center mt-4">
+              <a href="#" class="text-white text-decoration-none small" style="opacity: 0.8;">Forgot password?</a>
+            </div>
 
-          </div>
+          </form>
+          <!-- FORM END -->
+
         </div>
-
-        <div class="text-center mt-3">
-          <p>© {{ currentYear }} Green Island Tours &amp; Travels Pvt. Ltd.</p>
-        </div>
-
       </div>
+
     </div>
   </div>
 </div>
