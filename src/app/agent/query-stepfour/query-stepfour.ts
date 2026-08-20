@@ -173,15 +173,29 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   packageSummaries = computed<any[]>(() => this.quoteDetail()?.PackageSummaries ?? []);
 
   // ── Arrival / Departure (Basic Details side panel) ──────────────
-  // ASSUMPTION: I couldn't find these fields anywhere in the existing
-  // code, so I'm reading them off the same GetQuoteDetail payload every
-  // other computed() above uses, under `ArrivalDetail` / `DepartureDetail`
-  // — each expected to be an array of { DateTime, Details }, matching the
-  // "Add More" multi-entry UI in the Update Arrival/Departure modal.
-  // If your backend returns these under different keys (or not at all
-  // yet), update these two lines and nothing else needs to change.
-  arrivalDetail = computed<any[]>(() => this.quoteDetail()?.ArrivalDetail ?? []);
-  departureDetail = computed<any[]>(() => this.quoteDetail()?.DepartureDetail ?? []);
+  // Backed by the new TripScheduleController (GetTripScheduleDetail /
+  // saveTripScheduleDetail) — this data was never part of GetQuoteDetail,
+  // so these are plain signals populated by loadScheduleDetails() below,
+  // not computed off quoteDetail() like everything else on this page.
+  arrivalDetail = signal<any[]>([]);
+  departureDetail = signal<any[]>([]);
+
+  private loadScheduleDetails(): void {
+    if (!this.QueryStepOneId || !this.QuoteId) {
+      this.arrivalDetail.set([]);
+      this.departureDetail.set([]);
+      return;
+    }
+    this.service.getTripScheduleDetail(this.enc({ QueryStepOneId: this.QueryStepOneId, QuoteId: this.QuoteId })).subscribe({
+      next: (res: any) => {
+        if (res?.Message === ConstantData.SuccessMessage) {
+          this.arrivalDetail.set(res.ArrivalDetail ?? []);
+          this.departureDetail.set(res.DepartureDetail ?? []);
+        }
+      },
+      error: (err: any) => console.error('getTripScheduleDetail error:', err),
+    });
+  }
 
   // ── Activities grouped by Location + ActivityService + Day ──────
   activityGroups = computed(() => {
@@ -263,6 +277,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           this.loadDestinationContent();
           this.loadConversionStatus();
           this.loadQuoteInclusionsExclusions();
+          this.loadScheduleDetails();
         } else {
           this.toastr.error(quote.Message || 'Unable to load quote detail');
         }
@@ -384,6 +399,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       QuoteId: this.QuoteId,
       Type: this.scheduleModalType(),
       Entries: entries,
+      CreatedBy: this.local.getEmployeeDetail()?.StaffLoginId || 0,
     });
     this.service.saveTripScheduleDetail(payload).subscribe({
       next: (res: any) => {
@@ -391,7 +407,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         if (res?.Message === ConstantData.SuccessMessage) {
           this.toastr.success(`${this.scheduleModalType()} details saved`);
           this.scheduleModalOpen.set(false);
-          this.loadPreview(); // re-fetch rather than assume the local edit matches what the server saved
+          this.loadScheduleDetails(); // re-fetch rather than assume the local edit matches what the server saved
         } else {
           this.toastr.error(res?.Message || 'Unable to save details');
         }

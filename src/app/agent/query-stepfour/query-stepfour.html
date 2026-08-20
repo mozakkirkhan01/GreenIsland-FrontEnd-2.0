@@ -706,51 +706,53 @@
         </div>
       </div> <!-- /basic-details-main -->
 
-      <!-- ─── Arrival / Departure (Basic Details side column) ─── -->
+<!-- ─── Arrival / Departure (Basic Details side column) ─── -->
       <!-- Only shown once a package has been converted; nothing to schedule against beforehand. -->
       @if (isConverted()) {
-      <div class="basic-details-side">
-        <div class="quote-card">
+      <div class="basic-details-side schedule-side-container">
+        
+        <div class="schedule-info-card">
           <div class="trip-detail-panel-head">
             <span class="panel-title">Arrival Details</span>
-            <button type="button" (click)="openScheduleModal('Arrival')" title="Edit arrival details">
+            <button type="button" class="edit-btn-circle" (click)="openScheduleModal('Arrival')" title="Edit arrival details">
               <i class="bx bx-pencil"></i>
             </button>
           </div>
           @if (arrivalDetail().length) {
-          @for (entry of arrivalDetail(); track $index) {
-          <div class="trip-detail-entry">
-            <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
-            @if (entry.Details) {
-            <div class="trip-detail-note">{{ entry.Details }}</div>
+            @for (entry of arrivalDetail(); track $index) {
+            <div class="trip-detail-entry">
+              <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
+              @if (entry.Details) {
+              <div class="trip-detail-note">{{ entry.Details }}</div>
+              }
+            </div>
             }
-          </div>
-          }
           } @else {
-          <div class="trip-detail-empty">Not Set</div>
+            <div class="trip-detail-empty">Not Set</div>
           }
         </div>
 
-        <div class="quote-card">
+        <div class="schedule-info-card mt-3">
           <div class="trip-detail-panel-head">
             <span class="panel-title">Departure Details</span>
-            <button type="button" (click)="openScheduleModal('Departure')" title="Edit departure details">
+            <button type="button" class="edit-btn-circle" (click)="openScheduleModal('Departure')" title="Edit departure details">
               <i class="bx bx-pencil"></i>
             </button>
           </div>
           @if (departureDetail().length) {
-          @for (entry of departureDetail(); track $index) {
-          <div class="trip-detail-entry">
-            <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
-            @if (entry.Details) {
-            <div class="trip-detail-note">{{ entry.Details }}</div>
+            @for (entry of departureDetail(); track $index) {
+            <div class="trip-detail-entry">
+              <div class="trip-detail-datetime">{{ formatScheduleDateTime(entry.DateTime) }}</div>
+              @if (entry.Details) {
+              <div class="trip-detail-note">{{ entry.Details }}</div>
+              }
+            </div>
             }
-          </div>
-          }
           } @else {
-          <div class="trip-detail-empty">Not Set</div>
+            <div class="trip-detail-empty">Not Set</div>
           }
         </div>
+        
       </div> <!-- /basic-details-side -->
       }
 
