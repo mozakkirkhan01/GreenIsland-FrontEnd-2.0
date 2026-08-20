@@ -2504,17 +2504,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
    *  instead of shrinking to content. Copy/PDF/Word still export the
    *  original fixed-width HTML untouched. */
   voucherPreviewHtml(): SafeHtml {
-    // Note: this <style> tag ends up as a real DOM node once inserted via
-    // [innerHTML] (browsers hoist <title>/<style> out of a parsed <head>
-    // and attach them to the current node during fragment parsing), and
-    // <style> elements are never scoped by their position in the DOM. Using
-    // a bare `table` selector here would therefore leak out and restyle
-    // every table on the page, not just the voucher preview. Scoping every
-    // rule under `.constrained-voucher-content` keeps it contained to this
-    // widget regardless of where in the DOM the tag lands.
     const fluid = this.toWordSafeHtml(this.generateVoucherHtml())
       .replace('<title>Booking Confirmation Voucher</title>',
-        '<title>Booking Confirmation Voucher</title><style>.constrained-voucher-content table{width:100% !important;} .constrained-voucher-content img{max-width:100%;height:auto;}</style>');
+        '<title>Booking Confirmation Voucher</title><style>table{width:100% !important;} img{max-width:100%;height:auto;}</style>');
     return this.sanitizer.bypassSecurityTrustHtml(fluid);
   }
 

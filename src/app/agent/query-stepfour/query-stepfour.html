@@ -1209,53 +1209,16 @@
         </button>
       </div>
 
-<!-- Aggressive inline styles to constrain the injected HTML -->
-      <style>
-        .responsive-voucher-wrapper {
-          width: 100%;
-          max-width: 100%;
-          max-height: 75vh;
-          overflow-y: auto;
-          overflow-x: hidden; /* Strict no horizontal scroll */
-        }
-        
-        /* TARGET EVERY SINGLE CHILD ELEMENT INSIDE THE VOUCHER */
-        .constrained-voucher-content,
-        .constrained-voucher-content * {
-          max-width: 100% !important;
-          min-width: 0 !important; /* Defeats hardcoded min-widths */
-          box-sizing: border-box !important;
-        }
-
-        /* Force tables to shrink-to-fit instead of overflowing */
-        .constrained-voucher-content table {
-          width: 100% !important;
-          table-layout: fixed !important; /* Forces columns to respect the table's 100% width */
-          margin-bottom: 1rem !important;
-        }
-
-        /* Force text inside table cells to wrap to the next line */
-        .constrained-voucher-content th,
-        .constrained-voucher-content td,
-        .constrained-voucher-content p,
-        .constrained-voucher-content span {
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
-          white-space: normal !important; /* Defeats 'nowrap' which causes right-side cutoff */
-        }
-
-        /* Ensure images scale down smoothly */
-        .constrained-voucher-content img {
-          max-width: 100% !important;
-          height: auto !important;
-        }
-      </style>
-
-      <!-- Rendered voucher preview -->
-      <div class="border rounded p-3 bg-white responsive-voucher-wrapper">
-        <div class="constrained-voucher-content" [innerHTML]="voucherHtml()"></div>
+      <!-- Voucher preview -->
+      <div class="voucher-preview-container">
+        <div class="voucher-preview-scale">
+          <div
+            class="constrained-voucher-content"
+            [innerHTML]="voucherHtml()">
+          </div>
+        </div>
       </div>
-      
+
     </div>
     }
 

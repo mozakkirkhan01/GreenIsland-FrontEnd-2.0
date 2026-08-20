@@ -580,3 +580,67 @@ main {
     color: #6b7280;
     font-size: 13.5px;
   }
+  /* ── Booking Confirmation Voucher preview ── */
+
+.voucher-preview-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.voucher-preview-scale {
+  width: 100%;
+  max-width: 900px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  overflow: hidden;
+}
+
+.constrained-voucher-content {
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/*
+ * Everything below targets elements that come from voucherHtml() via
+ * [innerHTML], not from this component's own template. Angular's default
+ * (Emulated) view encapsulation rewrites scoped selectors to require an
+ * `_ngcontent-*` attribute that only template-rendered elements carry —
+ * raw innerHTML nodes never get it, so a plain `.constrained-voucher-content
+ * table { ... }` rule would silently match nothing. `::ng-deep` disables
+ * that rewriting for everything after it in the selector, which is what
+ * lets these rules actually reach the injected table/img/etc. Without it,
+ * this whole block is dead code and the voucher will clip again.
+ */
+::ng-deep .constrained-voucher-content * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+::ng-deep .constrained-voucher-content table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+::ng-deep .constrained-voucher-content th,
+::ng-deep .constrained-voucher-content td {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+::ng-deep .constrained-voucher-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
