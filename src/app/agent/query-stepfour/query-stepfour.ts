@@ -2646,12 +2646,16 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   // ── Trip Voucher summary table ──
+  // Every field/row is conditional on real underlying data (not the
+  // formatted '-' / placeholder fallbacks the formatters produce). A pair
+  // row collapses to a single full-width row when only one side has data,
+  // and disappears entirely when neither side does.
   private buildVoucherTripTable(): string {
     const t = this.emailTheme;
     const trip = this.tripInfo();
     const labelW = 170;
 
-const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
+    const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
   <tr>
     <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:normal;padding:8px 12px;vertical-align:top;">${l1}</td>
     <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v1}</td>
@@ -2659,21 +2663,52 @@ const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
     <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v2}</td>
   </tr>
 `;
-const fullRow = (label: string, value: string): string => `
+    const fullRow = (label: string, value: string): string => `
   <tr>
     <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:normal;padding:8px 12px;vertical-align:top;">${label}</td>
     <td colspan="3" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${value}</td>
   </tr>
 `;
 
+    // [label, formattedValue, hasRealData]
+    type Field = [string, string, boolean];
+    const conditionalRow = (f1: Field, f2: Field): string => {
+      const [l1, v1, has1] = f1;
+      const [l2, v2, has2] = f2;
+      if (has1 && has2) return pairRow(l1, v1, l2, v2);
+      if (has1) return fullRow(l1, v1);
+      if (has2) return fullRow(l2, v2);
+      return '';
+    };
+
+    const tripIdField: Field = ['Trip ID', this.formatQuotationNo(trip?.QuotationNo), !!trip?.QuotationNo];
+    const startDateField: Field = ['Start Date', this.formatDateComma(trip?.StartDate), !!trip?.StartDate];
+    const destinationField: Field = ['Destination', trip?.DestinationName || '-', !!trip?.DestinationName];
+    const durationField: Field = ['Trip Duration', this.durationLabel(), !!Number(trip?.NoOfNights)];
+    const guestNameField: Field = ['Guest Name', trip?.ContactName || '-', !!trip?.ContactName];
+    const guestPhoneField: Field = ['Guest Ph.', trip?.Phone || '-', !!trip?.Phone];
+
+    const adults = Number(trip?.NoOfAdults) || 0;
+    const hasPax = adults > 0 || this.childrenAgesList().length > 0;
+    const arrivalRows = this.arrivalDetail();
+    const departureRows = this.departureDetail();
+
+    const rows = [
+      conditionalRow(tripIdField, startDateField),
+      conditionalRow(destinationField, durationField),
+      conditionalRow(guestNameField, guestPhoneField),
+      hasPax ? fullRow('Pax', this.paxOverviewLabel()) : '',
+      arrivalRows?.length ? fullRow('Arrival Details', this.scheduleLinesHtml(arrivalRows)) : '',
+      departureRows?.length ? fullRow('Departure Details', this.scheduleLinesHtml(departureRows)) : '',
+    ].join('');
+
+    if (!rows.trim()) {
+      return `<div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No trip details added yet.</div>`;
+    }
+
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
-        ${pairRow('Trip ID', this.formatQuotationNo(trip?.QuotationNo), 'Start Date', this.formatDateComma(trip?.StartDate))}
-        ${pairRow('Destination', trip?.DestinationName || '-', 'Trip Duration', this.durationLabel())}
-        ${pairRow('Guest Name', trip?.ContactName || '-', 'Guest Ph.', trip?.Phone || '-')}
-        ${fullRow('Pax', this.paxOverviewLabel())}
-        ${fullRow('Arrival Details', this.scheduleLinesHtml(this.arrivalDetail()))}
-        ${fullRow('Departure Details', this.scheduleLinesHtml(this.departureDetail()))}
+        ${rows}
       </table>
     `;
   }
@@ -2708,6 +2743,11 @@ const fullRow = (label: string, value: string): string => `
   }
 
   // ── Guest List table ──
+  // Phone and Nationality columns only render if at least one guest (or
+  // the trip record, for Nationality) actually carries that data — an
+  // empty phone/nationality column across every row is dropped rather
+  // than shown blank. "Age" stays fixed: it's not sourced per guest (see
+  // note at the top of this section), so there's no per-row data to test.
   private buildVoucherGuestListHtml(): string {
     const t = this.emailTheme;
     const trip = this.tripInfo();
@@ -2726,13 +2766,17 @@ const fullRow = (label: string, value: string): string => `
       return `<div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No guests added yet.</div>`;
     }
 
+    const showPhone = rows.some(g => !!g.Phone);
+    const showNationality = !!nationality;
+    const colCount = 3 + (showPhone ? 1 : 0) + (showNationality ? 1 : 0);
+
     const rowsHtml = rows.map((g, i) => `
       <tr>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${i + 1}.${g.IsPrimary ? ' \u2605' : ''}</td>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;font-weight:bold;">${g.Salutation || ''} ${g.ContactName || ''}</td>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">(A)</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${g.Phone ? `+${(g.CountryCode || '91-IN').split('-')[0]}-${g.Phone}` : ''}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${nationality}</td>
+        ${showPhone ? `<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${g.Phone ? `+${(g.CountryCode || '91-IN').split('-')[0]}-${g.Phone}` : ''}</td>` : ''}
+        ${showNationality ? `<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${nationality}</td>` : ''}
       </tr>
     `).join('');
 
@@ -2741,7 +2785,7 @@ const fullRow = (label: string, value: string): string => `
     if (extraChildren) extraParts.push(`${extraChildren} more child${extraChildren > 1 ? 'ren' : ''}`);
     const extraRow = extraParts.length ? `
       <tr>
-        <td colspan="5" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-style:italic;color:${t.muted};padding:7px 10px;">+ ${extraParts.join(', ')} (Details Pending)</td>
+        <td colspan="${colCount}" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-style:italic;color:${t.muted};padding:7px 10px;">+ ${extraParts.join(', ')} (Details Pending)</td>
       </tr>
     ` : '';
 
@@ -2751,8 +2795,8 @@ const fullRow = (label: string, value: string): string => `
           <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">S.No.</td>
           <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Guest Name</td>
           <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Age</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Phone</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nationality</td>
+          ${showPhone ? `<td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Phone</td>` : ''}
+          ${showNationality ? `<td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Nationality</td>` : ''}
         </tr>
         ${rowsHtml}
         ${extraRow}
