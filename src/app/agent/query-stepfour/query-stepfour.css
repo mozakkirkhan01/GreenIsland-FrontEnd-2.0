@@ -15,6 +15,10 @@
 .quote-preview-shell {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar main";
   min-height: calc(100vh - 70px);
   background: #fff;
   color: #0f172a;
@@ -22,9 +26,10 @@
 }
 
 .quote-sidebar {
+  grid-area: sidebar;
   border-right: 1px solid #d8dee7;
   background: #fbfcfe;
-  padding-top: 72px;
+  padding-top: 20px;
 }
 
 .quote-option {
@@ -47,16 +52,24 @@
 }
 
 .quote-main {
+  grid-area: main;
   min-width: 0;
+  /* Overrides the page-level `main { padding-top: 65px }` rule further
+     down this file (meant for the outer <main> that sits under the fixed
+     app navbar). This is a nested <main>, not that one — it shouldn't
+     inherit that offset. */
+  padding-top: 0;
 }
 
 .quote-header {
+  grid-area: header;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   border-bottom: 1px solid #d8dee7;
   padding: 18px 28px;
+  padding-top: 70px;
 }
 
 .quote-title {
@@ -492,6 +505,9 @@ main {
 @media (max-width: 900px) {
   .quote-preview-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main";
   }
 
   .quote-sidebar {

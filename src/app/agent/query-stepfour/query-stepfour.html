@@ -484,23 +484,8 @@
 } @else {
 <div class="quote-preview-shell mt-3">
 
-  <!-- ═══════════ SIDEBAR ═══════════ -->
-  <aside class="quote-sidebar">
-    <div class="small text-muted px-3 mb-2">{{ packageTypes().length }} Options</div>
-    @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
-    <div class="quote-option" [class.active]="idx === 0">
-      <div class="option-price">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</div>
-      <div class="small text-muted">{{ tripInfo()?.StartDate | date:'dd MMM' }} · {{ durationLabel() }} · {{
-        totalGuestCount() }}A</div>
-    </div>
-    }
-  </aside>
-
-  <!-- ═══════════ MAIN ═══════════ -->
-  <main>
-
-    <!-- Header -->
-    <div class="quote-header mt-2">
+  <!-- ═══════════ HEADER (full width row, sits above sidebar + main) ═══════════ -->
+  <div class="quote-header mt-3">
       <div>
         <div class="quote-title">
           <span>#{{ formatQuotationNo(tripInfo()?.QuotationNo) }}</span>
@@ -560,6 +545,21 @@
         </button>
       </div>
     </div>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="quote-sidebar">
+    <div class="small text-muted px-3 mb-2">{{ packageTypes().length }} Options</div>
+    @for (pkg of packageTypes(); track pkg.QuotePackageTypeId; let idx = $index) {
+    <div class="quote-option" [class.active]="idx === 0">
+      <div class="option-price">{{ formatCurrency(packageQuotePrice(pkg.QuotePackageTypeId)) }}</div>
+      <div class="small text-muted">{{ tripInfo()?.StartDate | date:'dd MMM' }} · {{ durationLabel() }} · {{
+        totalGuestCount() }}A</div>
+    </div>
+    }
+  </aside>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="quote-main">
 
     <!-- Tabs -->
     <div class="quote-tabs">

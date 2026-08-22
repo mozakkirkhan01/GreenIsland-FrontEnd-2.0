@@ -588,7 +588,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   touristRows = signal<TouristRow[]>([]);
   deletedTouristRows = signal<TouristRow[]>([]);
   savingTourists = signal(false);
-    loadData      = inject(LoadDataService);
+  loadData = inject(LoadDataService);
   GuestTypes = this.loadData.GetEnumList(GuestType);
 
 
@@ -647,7 +647,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
               UpdatedBy: staffLoginId,
               Nationality: g.Nationality ?? '',
               DateOfBirth: g.DateOfBirth ? g.DateOfBirth.substring(0, 10) : null, // trim to yyyy-MM-dd for <input type="date">
-              GuestType: g.GuestType ?? null,
+              GuestType: g.GuestType ?? GuestType.Adult,
               IsExpanded: false,
               IsNew: false,
             }));
@@ -2646,7 +2646,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     return `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Booking Confirmation Voucher</title></head>
 <body style="margin:0;padding:0;background-color:#ffffff;font-family:${t.font};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
   <tr>
@@ -2881,11 +2880,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           </td>
           <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">${this.shortDate(stay.checkIn)}<br><strong>${nightsLabel}</strong></td>
           <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">${this.shortDate(stay.checkOut)}</td>
-          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:top;${zebra}">
-            ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br>
-            <span style="font-size:13px;color:${t.muted};">(${this.paxSummary(stay.main)})</span><br>
-            <span style="font-size:13px;color:${t.gold};font-weight:bold;">${this.formatMealPlan(stay.main.MealPlan)}</span>
-          </td>
+<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 10px;vertical-align:middle;text-align:center;${zebra}">
+  ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'}<br>
+  <span style="font-size:13px;color:${t.muted};">
+    (${this.paxSummary(stay.main)})
+  </span><br>
+  <span style="font-size:13px;color:${t.gold};font-weight:bold;">
+    ${this.formatMealPlan(stay.main.MealPlan)}
+  </span>
+</td>
         </tr>
       `;
     }).join('');
