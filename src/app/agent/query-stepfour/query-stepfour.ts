@@ -1908,16 +1908,6 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       `;
     }
 
-    // Prices sits directly below Hotels, per spec (moved ahead of Special
-    // Inclusions, which previously sat between Hotels and Prices).
-    if (!this.hideTotalPrice()) {
-      // Overall pricing strategy -> categories is [] (see guestCategoryTotals()),
-      // so only the Total row renders below; Per Person keeps its existing
-      // per-category breakdown exactly as before. The Total row itself is no
-      // longer gated behind categories.length, so it can never disappear.
-      html += this.buildPriceBox(packageTypeId);
-    }
-
     const inclusions = this.specialInclusionsByPackage(packageTypeId);
     if (inclusions.length) {
       html += `
@@ -1937,6 +1927,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           `).join('')}
         </table>
       `;
+    }
+
+    // Prices goes directly below Hotel Special Inclusions, per spec.
+    if (!this.hideTotalPrice()) {
+      // Overall pricing strategy -> categories is [] (see guestCategoryTotals()),
+      // so only the Total row renders below; Per Person keeps its existing
+      // per-category breakdown exactly as before. The Total row itself is no
+      // longer gated behind categories.length, so it can never disappear.
+      html += this.buildPriceBox(packageTypeId);
     }
 
     return html;
