@@ -2651,20 +2651,20 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const trip = this.tripInfo();
     const labelW = 170;
 
-    const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
-      <tr>
-        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${l1}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v1}</td>
-        <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${l2}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v2}</td>
-      </tr>
-    `;
-    const fullRow = (label: string, value: string): string => `
-      <tr>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${label}</td>
-        <td colspan="3" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:8px 12px;vertical-align:top;">${value}</td>
-      </tr>
-    `;
+const pairRow = (l1: string, v1: string, l2: string, v2: string): string => `
+  <tr>
+    <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:normal;padding:8px 12px;vertical-align:top;">${l1}</td>
+    <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v1}</td>
+    <td width="${labelW}" style="width:${labelW}px;border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:normal;padding:8px 12px;vertical-align:top;">${l2}</td>
+    <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${v2}</td>
+  </tr>
+`;
+const fullRow = (label: string, value: string): string => `
+  <tr>
+    <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:normal;padding:8px 12px;vertical-align:top;">${label}</td>
+    <td colspan="3" style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:8px 12px;vertical-align:top;">${value}</td>
+  </tr>
+`;
 
     return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
