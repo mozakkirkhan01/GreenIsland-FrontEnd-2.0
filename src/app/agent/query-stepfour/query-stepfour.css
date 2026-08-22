@@ -644,3 +644,34 @@ main {
   height: auto !important;
   display: block;
 }
+
+/* ── Booking Confirmation Voucher preview ──
+ * These two rules only frame and center the voucher; they target elements
+ * Angular renders directly from this component's own template, so normal
+ * scoped styles are fine here — no ::ng-deep needed.
+ *
+ * The voucher's actual page sizing, table rules, image rules, and
+ * page-break rules live INSIDE the injected HTML itself (see
+ * VOUCHER_A4_STYLES / .voucher-export-root in query-stepfour.ts), not
+ * here. That content comes from [innerHTML] and never receives Angular's
+ * view-encapsulation attribute, so a scoped `.constrained-voucher-content
+ * table {...}` rule in this file would silently match nothing — which is
+ * why those rules are self-contained in the generated document instead.
+ */
+
+.voucher-preview-container {
+  width: 100%;
+  max-width: 100%;
+  max-height: 75vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+}
+
+.voucher-preview-scale {
+  width: auto;
+  max-width: 100%;
+}
