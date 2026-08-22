@@ -2269,7 +2269,89 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return html
       .replace(/width:\s*\d+px;?/g, '')
       .replace(/max-width:\s*\d+px;?/g, '')
+      .replace(/min-width:\s*\d+px;?/g, '')
+      .replace(/white-space:\s*nowrap;?/g, '')
       .replace(/\swidth="\d+"/g, '');
+  }
+
+  /** Shared CSS for every voucher export surface (on-screen preview, printed
+   *  PDF, Word doc): pins the voucher to an A4 page, forces every table/
+   *  image/paragraph to stay inside that page instead of overflowing it,
+   *  and keeps each section from splitting across a page break. Scoped
+   *  entirely under `.voucher-export-root` so it can never leak out and
+   *  restyle unrelated tables elsewhere in the app or in Word itself. */
+  private readonly VOUCHER_A4_STYLES = `
+    .voucher-export-root {
+      width: 794px;
+      min-height: 1123px;
+      background: #ffffff;
+      margin: 0 auto;
+      padding: 24px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    @media print {
+      .voucher-export-root {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 12mm;
+        margin: 0;
+        page-break-after: always;
+      }
+      body { margin: 0 !important; padding: 0 !important; }
+      * { box-sizing: border-box; }
+    }
+    .voucher-export-root table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse;
+    }
+    .voucher-export-root td,
+    .voucher-export-root th {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+    .voucher-export-root img {
+      max-width: 100% !important;
+      height: auto !important;
+      display: block;
+    }
+    .voucher-export-root p,
+    .voucher-export-root div,
+    .voucher-export-root li {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      line-height: 1.5;
+    }
+    .voucher-export-root .trip-voucher-section,
+    .voucher-export-root .hotel-section,
+    .voucher-export-root .guest-section,
+    .voucher-export-root .daywise-section,
+    .voucher-export-root .transport-section,
+    .voucher-export-root .inclusion-section,
+    .voucher-export-root .terms-section,
+    .voucher-export-root .day-card {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .voucher-export-root table { page-break-inside: auto; }
+    .voucher-export-root tr { page-break-inside: avoid; }
+  `;
+
+  /** Turns the raw voucher document (fixed-px, email-oriented layout) into
+   *  a self-contained A4 document: strips every fixed pixel width so
+   *  nothing can force the page wider than 210mm, wraps the body in
+   *  `.voucher-export-root`, and injects VOUCHER_A4_STYLES. Used by the
+   *  preview, PDF print, and Word export so all three stay visually
+   *  identical (req: "preview must match export"). */
+  private toVoucherExportHtml(rawHtml: string): string {
+    return this.toWordSafeHtml(rawHtml)
+      .replace('<title>Booking Confirmation Voucher</title>',
+        `<title>Booking Confirmation Voucher</title><style>${this.VOUCHER_A4_STYLES}</style>`)
+      .replace(/(<body[^>]*>)/, '$1<div class="voucher-export-root">')
+      .replace('</body>', '</div></body>');
   }
 
   downloadWordDoc(): void {
@@ -2493,21 +2575,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.sanitizer.bypassSecurityTrustHtml(this.generateVoucherHtml());
   }
 
-  /** On-screen preview only. generateVoucherHtml() is deliberately pinned to
-   *  a fixed 1000px table (EMAIL_W) so Copy/Word/Gmail render correctly —
-   *  see the EMAIL_W comment above. That fixed width is exactly what caused
-   *  the horizontal scrollbar in the in-app preview, since the Docs tab
-   *  panel is narrower than 1000px. Reuses toWordSafeHtml()'s existing
-   *  width-stripping (same technique the Word export already relies on) so
-   *  the preview lays out fluidly at whatever width the panel actually is,
-   *  with a `table { width:100% }` override so sections fill the panel
-   *  instead of shrinking to content. Copy/PDF/Word still export the
-   *  original fixed-width HTML untouched. */
+  /** On-screen preview, built from the exact same A4-wrapped document as
+   *  the PDF/Word exports (toVoucherExportHtml), so what you see in the
+   *  panel is what downloads. */
   voucherPreviewHtml(): SafeHtml {
-    const fluid = this.toWordSafeHtml(this.generateVoucherHtml())
-      .replace('<title>Booking Confirmation Voucher</title>',
-        '<title>Booking Confirmation Voucher</title><style>table{width:100% !important;} img{max-width:100%;height:auto;}</style>');
-    return this.sanitizer.bypassSecurityTrustHtml(fluid);
+    return this.sanitizer.bypassSecurityTrustHtml(this.toVoucherExportHtml(this.generateVoucherHtml()));
   }
 
   private generateVoucherHtml(): string {
@@ -2521,25 +2593,25 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       <p style="font-family:${t.font};font-size:15px;color:${t.text};margin:0 0 14px 0;">We are pleased to confirm the below booking. Please find confirmation details</p>
     `;
 
-    body += `${this.buildStyledHeader('Trip Voucher')}${this.buildVoucherTripTable()}`;
+    body += `<div class="trip-voucher-section">${this.buildStyledHeader('Trip Voucher')}${this.buildVoucherTripTable()}</div>`;
 
     if (this.voucherShowGuestList()) {
-      body += `${this.buildStyledHeader('Guest List')}${this.buildVoucherGuestListHtml()}`;
+      body += `<div class="guest-section">${this.buildStyledHeader('Guest List')}${this.buildVoucherGuestListHtml()}</div>`;
     }
 
     if (!this.voucherRemoveHotels()) {
-      body += `${this.buildStyledHeader('Hotels')}${this.buildVoucherHotelsHtml()}`;
+      body += `<div class="hotel-section">${this.buildStyledHeader('Hotels')}${this.buildVoucherHotelsHtml()}</div>`;
     }
 
     if (!this.voucherRemoveFullItinerary()) {
-      body += `${this.buildStyledHeader('Day Wise Itinerary')}${this.buildItineraryBlocks()}`;
+      body += `<div class="daywise-section">${this.buildStyledHeader('Day Wise Itinerary')}${this.buildItineraryBlocks()}</div>`;
       if (this.hasAnyTransportOrActivity()) {
-        body += `${this.buildStyledHeader('Transportation and Activities')}${this.buildTransportActivitiesHTML()}`;
+        body += `<div class="transport-section">${this.buildStyledHeader('Transportation and Activities')}${this.buildTransportActivitiesHTML()}</div>`;
       }
     }
 
     if (this.effectiveInclusions().length || this.effectiveExclusions().length) {
-      body += this.buildInclusionExclusionTable();
+      body += `<div class="inclusion-section">${this.buildInclusionExclusionTable()}</div>`;
     }
 
     if (this.voucherShowPrices()) {
@@ -2547,7 +2619,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
 
     if (this.voucherShowTnC() && this.hasTerms()) {
-      body += `${this.buildStyledHeader('Terms and Conditions')}${this.buildTermsList()}`;
+      body += `<div class="terms-section">${this.buildStyledHeader('Terms and Conditions')}${this.buildTermsList()}</div>`;
     }
 
     if (this.voucherShowBankAccount()) {
@@ -2779,7 +2851,16 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
    *  rather than reinvented, just pointed at the voucher HTML/filename. */
   downloadVoucherWordDoc(): void {
     try {
-      const htmlContent = this.toWordSafeHtml(this.generateVoucherHtml());
+      // Word ignores @media print and mostly ignores flex/box-sizing, so it
+      // gets its own simpler style block rather than reusing
+      // VOUCHER_A4_STYLES: @page WordSection1 in points is what Word's own
+      // engine actually paginates against, sized to A4 (595.3pt x 841.9pt)
+      // instead of the previous 612.0pt x 792.0pt, which was US Letter —
+      // that mismatch, not just wide tables, is why content was cropping
+      // on the right and not fitting the page.
+      const htmlContent = this.toWordSafeHtml(this.generateVoucherHtml())
+        .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
+        .replace(/<\/body>\s*<\/html>\s*$/i, '');
       const wordDoc = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office'
               xmlns:w='urn:schemas-microsoft-com:office:word'
@@ -2790,10 +2871,13 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
           <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
           <![endif]-->
           <style>
-            @page WordSection1 { size: 612.0pt 792.0pt; margin: 36.0pt; }
+            @page WordSection1 { size: 595.3pt 841.9pt; margin: 36.0pt; }
+            @page { size: A4 portrait; margin: 12mm; }
             div.WordSection1 { page: WordSection1; }
-            table { width: 100% !important; }
-            table, td, th { word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            body { width: 210mm; margin: 0 auto; font-family: Calibri, Arial, sans-serif; }
+            table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse; }
+            td, th { word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
+            img { max-width: 100% !important; height: auto !important; }
           </style>
         </head>
         <body><div class="WordSection1">${htmlContent}</div></body>
@@ -2829,7 +2913,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       this.toastr.error('Please allow pop-ups to download the voucher as PDF.');
       return;
     }
-    win.document.write(this.generateVoucherHtml());
+    // Print the A4-wrapped document (voucher-export-root + VOUCHER_A4_STYLES),
+    // not the raw fixed-1000px email layout — otherwise "Save as PDF" prints
+    // an email-width page that clips on the right instead of a fitted A4 page.
+    win.document.write(this.toVoucherExportHtml(this.generateVoucherHtml()));
     win.document.close();
     win.onload = () => { win.focus(); win.print(); };
   }

@@ -1147,6 +1147,7 @@
 <!-- ═══════════ DOCS TAB (converted trips only) ═══════════ -->
     @if (activeTab() === 'docs' && isConverted()) {
     <div class="w-100 pt-2" style="max-width: 100%;">
+      
 
       <!-- Toggles in a single wrapping row -->
       <div class="d-flex flex-wrap gap-4 mb-4 small align-items-center fw-medium text-dark">
@@ -1209,13 +1210,13 @@
         </button>
       </div>
 
-      <!-- Voucher preview -->
+      <!-- Voucher preview: renders the exact same A4-wrapped document
+           (.voucher-export-root, styled by VOUCHER_A4_STYLES) that
+           downloadVoucherPdf() prints and downloadVoucherWordDoc() saves,
+           so the preview matches the export pixel-for-pixel. -->
       <div class="voucher-preview-container">
         <div class="voucher-preview-scale">
-          <div
-            class="constrained-voucher-content"
-            [innerHTML]="voucherHtml()">
-          </div>
+          <div class="constrained-voucher-content" [innerHTML]="voucherPreviewHtml()"></div>
         </div>
       </div>
 

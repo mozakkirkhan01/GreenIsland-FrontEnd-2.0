@@ -164,6 +164,26 @@ deleteQuoteSpecialInclusion(obj: any) {
     return this.http.post(this.apiUrl + "InclusionExclusion/deleteInclusion", obj, { headers: this.headers });
   }
 
+  // In app.service.ts, add these methods:
+
+// ── Quote-specific Inclusions ─────────────────────────────────────────
+getQuoteInclusions(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/GetQuoteInclusions", obj, { headers: this.headers });
+}
+
+saveQuoteInclusions(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/SaveQuoteInclusions", obj, { headers: this.headers });
+}
+
+// ── Quote-specific Exclusions ─────────────────────────────────────────
+getQuoteExclusions(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/GetQuoteExclusions", obj, { headers: this.headers });
+}
+
+saveQuoteExclusions(obj: any) {
+    return this.http.post(this.apiUrl + "InclusionExclusion/SaveQuoteExclusions", obj, { headers: this.headers });
+}
+
   // ─ Exclusion ─────────────────────────────────────────────────────────
   getExclusionList(obj: any) {
     return this.http.post(this.apiUrl + "InclusionExclusion/ExclusionList", obj, { headers: this.headers });
@@ -476,6 +496,22 @@ saveQueryConvert(obj: any) {
 getQueryConversion(obj: any) {
   return this.http.post(this.apiUrl + "QueryConvert/GetQueryConversion", obj, { headers: this.headers })
 }
+
+// ── Trip Arrival / Departure schedule (Basic Details tab) ──────────
+// ASSUMPTION: no controller for this existed anywhere in this service.
+// Route name/response shape is guessed to match the {Message, ...}
+// contract every other method here follows — confirm against your real
+// TripController before relying on this in production. Display data is
+// read off the existing GetQuoteDetail response (see arrivalDetail() /
+// departureDetail() in query-stepfour.ts), so no separate "get" call
+// was added — only add one if that field isn't already on that payload.
+saveTripScheduleDetail(obj: any) {
+  return this.http.post(this.apiUrl + "TripSchedule/saveTripScheduleDetail", obj, { headers: this.headers })
+}
+getTripScheduleDetail(obj: any) {
+  return this.http.post(this.apiUrl + "TripSchedule/GetTripScheduleDetail", obj, { headers: this.headers })
+}
+
 
 
 
