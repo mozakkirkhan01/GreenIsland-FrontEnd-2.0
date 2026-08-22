@@ -18,7 +18,8 @@ import { ConstantData } from '../../utils/constant-data';
 import { RequestModel } from '../../utils/interface';
 import { LocalService } from '../../utils/local.service';
 import { CanComponentDeactivate } from '../../guards/can-deactivate-guard';
-import { TripStatus } from '../../utils/enum';
+import { TripStatus, GuestType } from '../../utils/enum';
+import { LoadDataService } from '../../utils/load-data.service';
 import { forkJoin } from 'rxjs';
 
 (pdfMake as any).vfs = (pdfFonts as any).pdfMake ? (pdfFonts as any).pdfMake.vfs : (pdfFonts as any).vfs;
@@ -28,6 +29,10 @@ type MoneySource = { TotalPrice?: number; FinalPrice?: number; SellingPrice?: nu
 // ── Tourist/Guest row shape for the Edit Guest modal ─────────────
 // Mirrors TouristRow from query-steptwo.ts so the same GetGuestByTrip /
 // SaveGuestList endpoints and row shape work identically here.
+// Nationality/DateOfBirth/GuestType are editable in the Trip Tourists
+// Management modal below and persisted via SaveGuestList — keep
+// query-steptwo.ts's TouristRow and Edit Guest form in sync with these
+// three fields if that page is meant to stay interchangeable with this one.
 export interface TouristRow {
   GuestId: number;
   AgencyId: number;
@@ -40,6 +45,9 @@ export interface TouristRow {
   Status: number;
   CreatedBy: number;
   UpdatedBy: number;
+  Nationality?: string;
+  DateOfBirth?: string | null;
+  GuestType?: number | null; // 1 = Adult, 2 = Child — fallback only when DateOfBirth is absent
   // UI only
   IsExpanded: boolean;
   IsNew: boolean;
@@ -354,10 +362,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
 
   convertOrHoldUsingQuote(): void {
-     this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
-       queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
-     });
-   }
+    this.router.navigate(['/agent/query-convert', this.QueryStepOneId], {
+      queryParams: this.QuoteId ? { quoteId: this.QuoteId } : {},
+    });
+  }
   // convertOrHoldUsingQuote(): void {
   //   this.toastr.info('Convert/On-Hold flow is coming soon');
   // }
@@ -580,6 +588,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   touristRows = signal<TouristRow[]>([]);
   deletedTouristRows = signal<TouristRow[]>([]);
   savingTourists = signal(false);
+    loadData      = inject(LoadDataService);
+  GuestTypes = this.loadData.GetEnumList(GuestType);
+
 
   readonly countryCodes = [
     { code: '91-IN', label: '91-IN' },
@@ -634,6 +645,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
               Status: g.Status ?? 1,
               CreatedBy: staffLoginId,
               UpdatedBy: staffLoginId,
+              Nationality: g.Nationality ?? '',
+              DateOfBirth: g.DateOfBirth ? g.DateOfBirth.substring(0, 10) : null, // trim to yyyy-MM-dd for <input type="date">
+              GuestType: g.GuestType ?? null,
               IsExpanded: false,
               IsNew: false,
             }));
@@ -667,6 +681,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         Status: 1,
         CreatedBy: staffLoginId,
         UpdatedBy: staffLoginId,
+        Nationality: '',
+        DateOfBirth: null,
+        GuestType: GuestType.Adult,
         IsExpanded: true,
         IsNew: true,
       },
@@ -721,6 +738,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         Status: r.Status ?? 1,
         CreatedBy: r.CreatedBy,
         UpdatedBy: r.UpdatedBy,
+        Nationality: r.Nationality || null,
+        DateOfBirth: r.DateOfBirth || null,
+        GuestType: r.GuestType ?? null,
       })),
     });
 
@@ -1297,7 +1317,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return svc?.DaySchedule ? svc.DaySchedule : '';
   }
 
-   sanitizeHtml(html: string): SafeHtml {
+  sanitizeHtml(html: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
   private parseDaySchedule(raw: string): { intro: string; sections: { heading: string; body: string }[] } {
@@ -1666,7 +1686,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
 
 
-      return html;
+    return html;
   }
 
   // ── HEADER BUILDERS ──
@@ -2528,15 +2548,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // to whichever package was actually converted — not every package option
   // on the quote.
   //
-  // Two real data gaps worth calling out rather than papering over:
-  //   1. Guest has no Age or Nationality column in the schema. Age is shown
-  //      as "(A)" for every named guest (adults are all this page can tell
-  //      apart); Nationality falls back to QueryStepOne.Nationality, which
-  //      is a single trip-level value, not per-guest.
-  //   2. There is no Bank Account table/columns anywhere in the schema. The
-  //      "Bank Account" toggle renders an honest "not configured" line
-  //      instead of inventing account details — wire this up for real once
-  //      that data exists somewhere.
+  // One real data gap left after adding Nationality/DateOfBirth/GuestType
+  // to Guest: there's still no Bank Account table/columns anywhere in the
+  // schema. The "Bank Account" toggle renders an honest "not configured"
+  // line instead of inventing account details — wire this up for real
+  // once that data exists somewhere.
 
   voucherShowPrices = signal(false);
   voucherRemoveBranding = signal(false);
@@ -2746,37 +2762,72 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // Phone and Nationality columns only render if at least one guest (or
   // the trip record, for Nationality) actually carries that data — an
   // empty phone/nationality column across every row is dropped rather
-  // than shown blank. "Age" stays fixed: it's not sourced per guest (see
-  // note at the top of this section), so there's no per-row data to test.
+  // than shown blank. Age/Type is derived from DateOfBirth relative to
+  // the trip's StartDate when DOB is known; GuestType is a fallback for
+  // rows without a DOB, and "(A)" is the last-resort default when
+  // neither is set (matches pre-DOB behavior for old rows).
+  private guestAgeLabel(g: TouristRow): string {
+    const trip = this.tripInfo();
+    if (g.DateOfBirth) {
+      const dob = new Date(g.DateOfBirth);
+      const asOf = trip?.StartDate ? new Date(trip.StartDate) : new Date();
+      let age = asOf.getFullYear() - dob.getFullYear();
+      const beforeBirthday = (asOf.getMonth() < dob.getMonth()) ||
+        (asOf.getMonth() === dob.getMonth() && asOf.getDate() < dob.getDate());
+      if (beforeBirthday) age--;
+      return age >= 12 ? `(A) ${age}y` : `(C) ${age}y`;
+    }
+    if (g.GuestType === 2) return '(C)';
+    if (g.GuestType === 1) return '(A)';
+    return '(A)';
+  }
+
   private buildVoucherGuestListHtml(): string {
     const t = this.emailTheme;
     const trip = this.tripInfo();
     const rows = this.touristRows();
-    // Guest carries no per-row Age/Type split, so every loaded row is
-    // assumed adult; NoOfAdults/ChildrenAges (trip-level) fill the gap for
-    // guests that were never itemized individually, exactly as the
-    // reference "+N more adults, M more child (Details Pending)" line does.
-    const nationality = trip?.Nationality || '';
+    // NoOfAdults/ChildrenAges (trip-level) fill the gap for guests that
+    // were never itemized individually, exactly as the reference
+    // "+N more adults, M more child (Details Pending)" line does.
+    const tripNationality = trip?.Nationality || '';
     const totalAdults = Number(trip?.NoOfAdults) || 0;
     const ages = this.childrenAgesList();
-    const extraAdults = Math.max(0, totalAdults - rows.length);
-    const extraChildren = ages.length;
+    // Children already itemized as individual guest rows (via DateOfBirth-derived
+    // age or the GuestType fallback) must be subtracted from the trip-level
+    // ChildrenAges count, the same way extraAdults subtracts itemized adult rows.
+    // Without this, extraChildren always reflected the full trip-level count and
+    // never decreased as children were added, so "+N more children (Details
+    // Pending)" kept showing even after every child had been added individually.
+    const itemizedChildren = rows.filter(g => {
+      if (g.DateOfBirth) {
+        const dob = new Date(g.DateOfBirth);
+        const asOf = trip?.StartDate ? new Date(trip.StartDate) : new Date();
+        let age = asOf.getFullYear() - dob.getFullYear();
+        const beforeBirthday = (asOf.getMonth() < dob.getMonth()) ||
+          (asOf.getMonth() === dob.getMonth() && asOf.getDate() < dob.getDate());
+        if (beforeBirthday) age--;
+        return age < 12;
+      }
+      return g.GuestType === 2;
+    }).length;
+    const extraAdults = Math.max(0, totalAdults - (rows.length - itemizedChildren));
+    const extraChildren = Math.max(0, ages.length - itemizedChildren);
 
     if (!rows.length && !extraAdults && !extraChildren) {
       return `<div style="font-family:${t.font};font-size:14px;color:${t.muted};font-style:italic;margin-bottom:14px;">No guests added yet.</div>`;
     }
 
     const showPhone = rows.some(g => !!g.Phone);
-    const showNationality = !!nationality;
+    const showNationality = !!tripNationality || rows.some(g => !!g.Nationality);
     const colCount = 3 + (showPhone ? 1 : 0) + (showNationality ? 1 : 0);
 
     const rowsHtml = rows.map((g, i) => `
       <tr>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${i + 1}.${g.IsPrimary ? ' \u2605' : ''}</td>
         <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;font-weight:bold;">${g.Salutation || ''} ${g.ContactName || ''}</td>
-        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">(A)</td>
+        <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${this.guestAgeLabel(g)}</td>
         ${showPhone ? `<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${g.Phone ? `+${(g.CountryCode || '91-IN').split('-')[0]}-${g.Phone}` : ''}</td>` : ''}
-        ${showNationality ? `<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${nationality}</td>` : ''}
+        ${showNationality ? `<td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;">${g.Nationality || tripNationality}</td>` : ''}
       </tr>
     `).join('');
 

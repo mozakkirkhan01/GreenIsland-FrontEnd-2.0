@@ -1476,7 +1476,7 @@
 
   <!-- Dialog -->
   <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg tourist-modal">
 
         <!-- Header -->
@@ -1534,8 +1534,24 @@
             <div class="p-3 border-top bg-white">
               <div class="row g-3">
 
-                <!-- Salutation -->
+
+                
+                <!-- Guest Type -->
                 <div class="col-sm-2">
+                  <label class="form-label mb-1">Type</label>
+                  <div class="d-flex gap-2">
+                    <select class="form-select flex-shrink-0" style="width:100%;"
+                      [(ngModel)]="row.GuestType">
+                      @for (gt of GuestTypes; track gt.Key) {
+                      <option [ngValue]="gt.Key">{{ gt.Value }}</option>
+                      }
+                    </select>
+                   </div>
+                </div>
+                
+
+                <!-- Salutation -->
+                <div class="col-sm-1">
                   <label class="form-label mb-1">Salutation</label>
                   <input type="text" class="form-control" [(ngModel)]="row.Salutation"
                     placeholder="e.g. Mr." maxlength="10">
@@ -1548,17 +1564,12 @@
                     placeholder="e.g. Guest Name">
                 </div>
 
-                <!-- Nationality -->
-                <!-- UI only for now — the Guest table has no Nationality
-                     column, so this is unbound (matches query-steptwo.html's
-                     Nationality field, which is also display-only there).
-                     Add a Nationality column + wire it into TouristRow /
-                     SaveGuestList if you want this persisted. -->
-                <div class="col-sm-6">
-                  <label class="form-label mb-1">Nationality</label>
-                  <input type="text" class="form-control" placeholder="e.g. India">
+                <!-- Date of Birth -->
+                <div class="col-sm-3">
+                  <label class="form-label mb-1">Date of Birth</label>
+                  <input type="date" class="form-control" [(ngModel)]="row.DateOfBirth">
                 </div>
-
+                
                 <!-- Primary -->
                 <div class="col-sm-12 d-flex align-items-center">
                   <div class="form-check">
@@ -1568,8 +1579,8 @@
                 </div>
 
                 <!-- Phone -->
-                <div class="col-sm-6">
-                  <label class="form-label mb-1">Phone Number *</label>
+                <div class="col-sm-4">
+                  <label class="form-label mb-1">Phone Number</label>
                   <div class="d-flex gap-2">
                     <select class="form-select flex-shrink-0" style="width:110px;"
                       [(ngModel)]="row.CountryCode">
@@ -1583,11 +1594,18 @@
                 </div>
 
                 <!-- Email -->
-                <div class="col-sm-6">
+                <div class="col-sm-5">
                   <label class="form-label mb-1">Email</label>
                   <input type="email" class="form-control" [(ngModel)]="row.Email"
                     placeholder="e.g. user@domain.com">
                 </div>
+                
+                                <!-- Nationality -->
+                                <div class="col-sm-3">
+                                  <label class="form-label mb-1">Nationality</label>
+                                  <input type="text" class="form-control" [(ngModel)]="row.Nationality"
+                                    placeholder="e.g. India">
+                                </div>
 
               </div>
             </div>
