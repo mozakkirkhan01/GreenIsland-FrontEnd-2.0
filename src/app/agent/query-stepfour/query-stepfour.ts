@@ -2367,8 +2367,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
    *  identical (req: "preview must match export"). */
   private toVoucherExportHtml(rawHtml: string): string {
     return this.toWordSafeHtml(rawHtml)
-      .replace('<title>Booking Confirmation Voucher</title>',
-        `<title>Booking Confirmation Voucher</title><style>${this.VOUCHER_A4_STYLES}</style>`)
+      .replace(/<html[^>]*>/i, `$&<head><style>${this.VOUCHER_A4_STYLES}</style></head>`)
       .replace(/(<body[^>]*>)/, '$1<div class="voucher-export-root">')
       .replace('</body>', '</div></body>');
   }
