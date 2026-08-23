@@ -377,9 +377,38 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.scheduleEntries.set(
       existing.length
         ? existing.map((e: any) => ({ DateTime: e.DateTime || '', Details: e.Details || '' }))
-        : [{ DateTime: '', Details: '' }]
+        : [{ DateTime: this.defaultScheduleDateTime(type), Details: '' }]
     );
     this.scheduleModalOpen.set(true);
+  }
+
+  /** Formats a JS Date as the `YYYY-MM-DDTHH:mm` string `<input type="datetime-local">` expects. */
+  private toDateTimeLocalString(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  /**
+   * Default Arrival/Departure date-time used to pre-fill the schedule modal
+   * the first time it's opened for a freshly converted trip (i.e. before any
+   * ArrivalDetail/DepartureDetail has been saved for it):
+   *   Arrival   -> tripInfo().StartDate
+   *   Departure -> tripInfo().StartDate + trip duration in days
+   *                (NoOfNights + 1 — same "days" count durationLabel() shows
+   *                as "X Nights / Y Days")
+   * Once the agent saves real details, loadScheduleDetails() re-fetches from
+   * the server and this default is never consulted again for that trip.
+   */
+  private defaultScheduleDateTime(type: 'Arrival' | 'Departure'): string {
+    const trip = this.tripInfo();
+    if (!trip?.StartDate) return '';
+    const date = new Date(trip.StartDate);
+    if (isNaN(date.getTime())) return '';
+    if (type === 'Departure') {
+      const totalDays = (Number(trip.NoOfNights) || 0) + 1;
+      date.setDate(date.getDate() + totalDays);
+    }
+    return this.toDateTimeLocalString(date);
   }
 
   closeScheduleModal(): void {
