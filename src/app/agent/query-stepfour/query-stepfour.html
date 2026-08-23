@@ -1144,84 +1144,137 @@
 
     } <!-- /activeTab() === 'quotes' -->
 
-<!-- ═══════════ DOCS TAB (converted trips only) ═══════════ -->
-    @if (activeTab() === 'docs' && isConverted()) {
-    <div class="w-100 pt-2" style="max-width: 100%;">
-      
+<!-- ═══════════════════════════════════════════════════
+     DOCS TAB (converted trips only) — Redesigned
+     ═══════════════════════════════════════════════════ -->
+@if (activeTab() === 'docs' && isConverted()) {
+  <div class="docs-workspace">
 
-      <!-- Toggles in a single wrapping row -->
-      <div class="d-flex flex-wrap gap-4 mb-4 small align-items-center fw-medium text-dark">
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherPrices" [checked]="voucherShowPrices()"
-            (change)="toggleVoucherShowPrices()">
-          <label class="form-check-label" for="voucherPrices">Prices</label>
+    <!-- ── Toolbar Card ── -->
+    <div class="docs-toolbar">
+
+      <!-- Header -->
+      <div class="docs-toolbar__header">
+        <div class="docs-toolbar__title">
+          <span class="docs-toolbar__icon"><i class="bx bx-slider-alt"></i></span>
+          <div>
+            <div class="docs-toolbar__heading">Voucher Builder</div>
+            <div class="docs-toolbar__subheading">Choose which sections appear on the voucher</div>
+          </div>
         </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherRemoveBranding"
-            [checked]="voucherRemoveBranding()" (change)="toggleVoucherRemoveBranding()">
-          <label class="form-check-label" for="voucherRemoveBranding">Remove Branding</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherRemoveHotels" [checked]="voucherRemoveHotels()"
-            (change)="toggleVoucherRemoveHotels()">
-          <label class="form-check-label" for="voucherRemoveHotels">Remove Hotels</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherRemoveItinerary"
-            [checked]="voucherRemoveFullItinerary()" (change)="toggleVoucherRemoveFullItinerary()">
-          <label class="form-check-label" for="voucherRemoveItinerary">Remove Full Itinerary</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherSupplierContact"
-            [checked]="voucherShowSupplierContact()" (change)="toggleVoucherShowSupplierContact()">
-          <label class="form-check-label" for="voucherSupplierContact">Show Supplier Contact</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherBankAccount"
-            [checked]="voucherShowBankAccount()" (change)="toggleVoucherShowBankAccount()">
-          <label class="form-check-label" for="voucherBankAccount">Bank Account</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherGuestList" [checked]="voucherShowGuestList()"
-            (change)="toggleVoucherShowGuestList()">
-          <label class="form-check-label" for="voucherGuestList">Guest List</label>
-        </div>
-        <div class="form-check m-0">
-          <input class="form-check-input" type="checkbox" id="voucherTnC" [checked]="voucherShowTnC()"
-            (change)="toggleVoucherShowTnC()">
-          <label class="form-check-label" for="voucherTnC">TnC</label>
-        </div>
+        <span class="docs-toolbar__badge">Live Preview</span>
       </div>
 
-      <!-- Action buttons -->
-      <div class="d-flex justify-content-end gap-2 mb-3 w-100">
-        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadVoucherGuestsIfNeeded()"
-          title="Refresh">
-          <i class="bx bx-refresh"></i>
-        </button>
-        <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm" style="background-color: #556ee6; border-color: #556ee6;" (click)="copyVoucherHtml()">
-          <i class="bx bx-copy me-1"></i>Copy
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm px-3 bg-white shadow-sm" (click)="downloadVoucherPdf()">
-          <i class="bx bxs-file-pdf me-1 text-muted"></i>PDF
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm px-3 bg-white shadow-sm" (click)="downloadVoucherWordDoc()">
-          <i class="bx bx-file me-1 text-muted"></i>Word
-        </button>
-      </div>
+      <!-- Toggles + Actions -->
+      <div class="docs-toolbar__body">
 
-      <!-- Voucher preview: renders the exact same A4-wrapped document
-           (.voucher-export-root, styled by VOUCHER_A4_STYLES) that
-           downloadVoucherPdf() prints and downloadVoucherWordDoc() saves,
-           so the preview matches the export pixel-for-pixel. -->
-      <div class="voucher-preview-container">
-        <div class="voucher-preview-scale">
-          <div class="constrained-voucher-content" [innerHTML]="voucherPreviewHtml()"></div>
+        <!-- Toggle groups -->
+        <div class="docs-toggles">
+
+          <!-- Show -->
+          <div class="docs-toggle-group">
+            <span class="docs-toggle-group__label">Show</span>
+            <div class="docs-toggle-group__items">
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherPrices"
+                  [checked]="voucherShowPrices()" (change)="toggleVoucherShowPrices()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Prices</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherSupplierContact"
+                  [checked]="voucherShowSupplierContact()" (change)="toggleVoucherShowSupplierContact()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Supplier Contact</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherBankAccount"
+                  [checked]="voucherShowBankAccount()" (change)="toggleVoucherShowBankAccount()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Bank Account</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherGuestList"
+                  [checked]="voucherShowGuestList()" (change)="toggleVoucherShowGuestList()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Guest List</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherTnC"
+                  [checked]="voucherShowTnC()" (change)="toggleVoucherShowTnC()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">T&amp;C</span>
+              </label>
+
+            </div>
+          </div>
+
+          <!-- Hide -->
+          <div class="docs-toggle-group">
+            <span class="docs-toggle-group__label">Hide</span>
+            <div class="docs-toggle-group__items">
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherRemoveBranding"
+                  [checked]="voucherRemoveBranding()" (change)="toggleVoucherRemoveBranding()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Remove Branding</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherRemoveHotels"
+                  [checked]="voucherRemoveHotels()" (change)="toggleVoucherRemoveHotels()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">Remove Hotels</span>
+              </label>
+
+              <label class="docs-switch">
+                <input class="docs-switch__input" type="checkbox" id="voucherRemoveItinerary"
+                  [checked]="voucherRemoveFullItinerary()" (change)="toggleVoucherRemoveFullItinerary()">
+                <span class="docs-switch__track"><span class="docs-switch__thumb"></span></span>
+                <span class="docs-switch__label">No Itinerary</span>
+              </label>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="docs-actions">
+          <button type="button" class="docs-icon-btn" (click)="loadVoucherGuestsIfNeeded()" title="Refresh guest list">
+            <i class="bx bx-refresh"></i>
+          </button>
+
+          <button type="button" class="docs-btn docs-btn--copy" (click)="copyVoucherHtml()">
+            <i class="bx bx-copy"></i> Copy
+          </button>
+
+          <div class="docs-btn-group">
+            <button type="button" class="docs-btn" (click)="downloadVoucherPdf()">
+              <i class="bx bxs-file-pdf text-danger"></i> PDF
+            </button>
+            <button type="button" class="docs-btn" (click)="downloadVoucherWordDoc()">
+              <i class="bx bxs-file-doc text-primary"></i> Word
+            </button>
+          </div>
         </div>
       </div>
-
     </div>
-    }
+
+    <!-- ── Preview Canvas ── -->
+    <div class="docs-preview">
+      <div class="docs-preview__paper voucher-preview-container">
+        <div class="constrained-voucher-content" [innerHTML]="voucherPreviewHtml()"></div>
+      </div>
+    </div>
+
+  </div>
+}
 
   </main>
 </div>

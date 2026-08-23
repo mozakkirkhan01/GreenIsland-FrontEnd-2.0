@@ -691,3 +691,405 @@ main {
   width: auto;
   max-width: 100%;
 }
+
+.cursor-pointer {
+  cursor: pointer;
+}
+.border-start-lg {
+  /* Only show border separator on large screens where items are side-by-side */
+  @media (min-width: 992px) {
+    border-left: 1px solid #dee2e6 !important;
+  }
+}
+.voucher-preview-container {
+  /* Give the A4 paper a nice distinct edge */
+  border: 1px solid #ddd; 
+  margin: 0 auto;
+}
+/* Custom Switch Styling to match design */
+.form-check-input:not(:checked) {
+    background-color: transparent !important;
+    border-color: #212529 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23212529'/%3e%3c/svg%3e") !important;
+}
+.cursor-pointer {
+    cursor: pointer;
+}
+/* ════════════════════════════════════════════════════════════
+   DOCS / VOUCHER BUILDER — COMPACT REDESIGN
+   ════════════════════════════════════════════════════════════ */
+
+.docs-workspace {
+  width: 100%;
+}
+
+/* ── Toolbar card ─────────────────────────────────────────── */
+.docs-toolbar {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.docs-toolbar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  background: linear-gradient(to bottom, #fbfcfe, #ffffff);
+  border-bottom: 1px solid #eef2f7;
+}
+
+.docs-toolbar__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.docs-toolbar__icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #eff3ff;
+  color: #3e63dd;
+  border: 1px solid #dbe6ff;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.docs-toolbar__heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.docs-toolbar__subheading {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.docs-toolbar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.docs-toolbar__badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  animation: docs-badge-pulse 1.8s ease-out infinite;
+}
+
+@keyframes docs-badge-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45); }
+  70%  { box-shadow: 0 0 0 6px rgba(14, 165, 233, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+}
+
+/* ── Toolbar body ─────────────────────────────────────────── */
+.docs-toolbar__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  padding: 12px 14px;
+}
+
+.docs-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 36px;
+  flex: 1 1 620px;
+  min-width: 320px;
+}
+
+.docs-toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.docs-toggle-group__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.docs-toggle-group__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+/* ── Custom compact switch ────────────────────────────────── */
+.docs-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.docs-switch__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.docs-switch__track {
+  position: relative;
+  width: 29px;
+  height: 17px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.18);
+  transition: background 0.22s ease;
+}
+
+.docs-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.docs-switch__input:checked + .docs-switch__track {
+  background: #556ee6;
+}
+
+.docs-switch__input:checked + .docs-switch__track .docs-switch__thumb {
+  transform: translateX(14px);
+}
+
+.docs-switch__input:focus-visible + .docs-switch__track {
+  outline: 3px solid rgba(85, 110, 230, 0.35);
+  outline-offset: 2px;
+}
+
+.docs-switch__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #344054;
+  line-height: 1.2;
+  transition: color 0.15s ease;
+}
+
+.docs-switch:hover .docs-switch__label {
+  color: #0f172a;
+}
+
+/* ── Action buttons ───────────────────────────────────────── */
+.docs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.docs-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d0d7e3;
+  border-radius: 7px;
+  background: #fff;
+  color: #475569;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.docs-icon-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #1d4ed8;
+}
+
+.docs-btn {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border-radius: 7px;
+  border: 1px solid #d0d7e3;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  white-space: nowrap;
+}
+
+.docs-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.docs-btn--copy {
+  background: #3e63dd;
+  border-color: #3e63dd;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(62, 99, 221, 0.30);
+}
+
+.docs-btn--copy:hover {
+  background: #2f4fc4;
+  border-color: #2f4fc4;
+  color: #fff;
+}
+
+.docs-btn-group {
+  display: inline-flex;
+}
+
+.docs-btn-group .docs-btn {
+  border-radius: 0;
+}
+
+.docs-btn-group .docs-btn:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.docs-btn-group .docs-btn:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.docs-btn-group .docs-btn + .docs-btn {
+  border-left-width: 0;
+}
+
+/* ── Preview canvas ───────────────────────────────────────── */
+.docs-preview {
+  background-color: #e9edf3;
+  background-image: radial-gradient(rgba(100, 116, 139, 0.20) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  min-height: 60vh;
+  padding: 22px 18px;
+  overflow: auto;
+}
+
+.voucher-preview-container.docs-preview__paper {
+  display: block;
+  width: 100%;
+  max-width: 1000px;
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  background: #ffffff;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 6px rgba(16, 24, 40, 0.08),
+    0 16px 44px rgba(16, 24, 40, 0.14);
+  transition: box-shadow 0.25s ease;
+}
+
+.voucher-preview-container.docs-preview__paper:hover {
+  box-shadow:
+    0 2px 6px rgba(16, 24, 40, 0.08),
+    0 20px 52px rgba(16, 24, 40, 0.18);
+}
+
+.docs-preview__paper .constrained-voucher-content {
+  width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ── Inner HTML content ─────────────────────────────────────
+   Voucher HTML is injected via [innerHTML], so it won't get
+   Angular's encapsulated attribute. These ::ng-deep rules are
+   required to style the table / img elements inside it.       */
+::ng-deep .constrained-voucher-content * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+::ng-deep .constrained-voucher-content table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+::ng-deep .constrained-voucher-content th,
+::ng-deep .constrained-voucher-content td {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+::ng-deep .constrained-voucher-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+/* ── Responsive tweaks ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .docs-toolbar__header {
+    align-items: flex-start;
+  }
+
+  .docs-toolbar__badge {
+    display: none;
+  }
+
+  .docs-toolbar__body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .docs-actions {
+    justify-content: flex-end;
+  }
+
+  .docs-preview {
+    padding: 16px 10px;
+  }
+}
