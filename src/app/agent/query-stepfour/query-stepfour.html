@@ -2,429 +2,12 @@
      NAVBAR
      ══════════════════════════════════════════════════════════════ -->
 
-<style>
-  .hotel-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .hotel-line {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .hotel-line .hotel-name {
-    font-weight: 600;
-  }
-
-  .hotel-line-main .hotel-name {
-    color: #1f2937;
-  }
-
-  .hotel-line span:not(.similar-slash) {
-    font-size: 0.8rem;
-    color: #6c757d;
-  }
-
-  .hotel-line-similar {
-    padding-left: 14px;
-    margin-top: 2px;
-  }
-
-  .hotel-line-similar .hotel-name {
-    color: #0d6efd;
-    font-weight: 600;
-    font-size: 0.92rem;
-  }
-
-  .similar-slash {
-    color: #adb5bd;
-    font-weight: 600;
-  }
-
-  .similar-room-detail {
-    flex-basis: 100%;
-    padding-left: 14px;
-    font-size: 0.78rem;
-    color: #6c757d;
-  }
-
-  .quote-head-4,
-  .quote-row-4 {
-    display: grid;
-    grid-template-columns: 0.8fr 2fr 2fr 1fr;
-    gap: 8px;
-    padding: 10px 4px;
-    align-items: center;
-  }
-
-  .quote-head-4 {
-    font-weight: 600;
-    border-bottom: 1px solid #e9ecef;
-  }
-
-  .quote-row-4 {
-    border-bottom: 1px solid #f1f3f5;
-  }
-
-  .quote-row-4 .si-comment {
-    display: block;
-    font-size: 0.78rem;
-    color: #6c757d;
-    border-left: 2px solid #dee2e6;
-    padding-left: 6px;
-    margin-top: 2px;
-  }
-
-  /* ── QuoteActivityEntries table ── */
-  .activity-entries-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin-top: 6px;
-  }
-
-  .activity-entries-table th {
-    background: #f0f4ff;
-    font-weight: 600;
-    padding: 6px 8px;
-    border: 1px solid #dee2e6;
-    color: #374151;
-  }
-
-  .activity-entries-table td {
-    padding: 6px 8px;
-    border: 1px solid #eee;
-    vertical-align: top;
-  }
-
-  .activity-entries-table tr:nth-child(even) td {
-    background: #fafbff;
-  }
-
-  /* ── QuoteTransportServices table ── */
-  .transport-services-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin-top: 6px;
-  }
-
-  .transport-services-table th {
-    background: #f0f4ff;
-    font-weight: 600;
-    padding: 6px 8px;
-    border: 1px solid #dee2e6;
-    color: #374151;
-  }
-
-  .transport-services-table td {
-    padding: 6px 8px;
-    border: 1px solid #eee;
-    vertical-align: top;
-  }
-
-  .transport-services-table tr:nth-child(even) td {
-    background: #fafbff;
-  }
-
-  /* ── QuoteSpecialInclusions table ── */
-  .special-inc-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin-top: 6px;
-  }
-
-  .special-inc-table th {
-    background: #f0f4ff;
-    font-weight: 600;
-    padding: 6px 8px;
-    border: 1px solid #dee2e6;
-    color: #374151;
-  }
-
-  .special-inc-table td {
-    padding: 6px 8px;
-    border: 1px solid #eee;
-    vertical-align: top;
-  }
-
-  .special-inc-table tr:nth-child(even) td {
-    background: #fafbff;
-  }
-
-  /* ── PDF loading overlay ── */
-  .pdf-loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .pdf-loading-box {
-    background: #fff;
-    border-radius: 12px;
-    padding: 32px 40px;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  }
-
-  /* Schedule layout: prevent description from overflowing the page */
-  .schedule-item {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .schedule-date {
-    flex: 0 0 160px;
-    min-width: 120px;
-    color: #374151;
-  }
-
-  .schedule-copy {
-    flex: 1 1 0;
-    min-width: 220px;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    white-space: normal;
-  }
-
-  .schedule-copy h5,
-  .schedule-copy h6,
-  .schedule-copy div {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
-
-  .schedule-copy img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  @media (max-width: 768px) {
-    .schedule-item {
-      flex-direction: column;
-    }
-
-    .schedule-date {
-      flex-basis: auto;
-    }
-  }
-
-  /* ── Basic Details tab: main content + Arrival/Departure side column ── */
-  .basic-details-layout {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-  }
-
-  .basic-details-main {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .basic-details-side {
-    flex: 0 0 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  @media (max-width: 992px) {
-    .basic-details-layout {
-      flex-direction: column;
-    }
-
-    .basic-details-side {
-      flex-basis: auto;
-      width: 100%;
-    }
-  }
-
-  .trip-detail-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-
-  .trip-detail-panel-head .panel-title {
-    font-weight: 600;
-  }
-
-  .trip-detail-panel-head button {
-    background: none;
-    border: none;
-    color: #6c757d;
-    padding: 2px 4px;
-    line-height: 1;
-  }
-
-  .trip-detail-panel-head button:hover {
-    color: #0d6efd;
-  }
-
-  .trip-detail-empty {
-    color: #adb5bd;
-  }
-
-  .trip-detail-entry+.trip-detail-entry {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #f1f3f5;
-  }
-
-  .trip-detail-entry .trip-detail-datetime {
-    font-weight: 600;
-    color: #374151;
-    font-size: 0.92rem;
-  }
-
-  .trip-detail-entry .trip-detail-note {
-    font-size: 0.85rem;
-    color: #6c757d;
-    white-space: pre-line;
-    margin-top: 2px;
-  }
-
-  .trip-detail-modal-entry {
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 5px;
-    position: relative;
-  }
-
-  .trip-detail-modal-entry+.trip-detail-modal-entry {
-    margin-top: 12px;
-  }
-
-  .trip-detail-modal-entry .remove-entry-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-  }
-
-  .converted-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #22c55e;
-    color: #fff;
-    font-weight: 700;
-    font-size: 11px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  }
-
-  .converted-pill i {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .package-price-converted {
-    display: inline-block !important;
-    width: auto !important;
-    max-width: 380px !important;
-    min-width: 260px;
-    border: 2px solid #a1d0b3;
-    border-radius: 8px;
-    background: linear-gradient(145deg, #fbfdfc 0%, #d9fbe5 40%, #86efac 100%);
-    padding: 14px 18px;
-  }
-
-  .package-price-converted .package-name {
-    color: #111827;
-  }
-
-  .onhold-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #f59e0b;
-    color: #fff;
-    font-weight: 700;
-    font-size: 11px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  }
-
-  .onhold-pill i {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .package-price-onhold {
-    display: inline-block !important;
-    width: auto !important;
-    max-width: 380px !important;
-    min-width: 260px;
-    border: 2px solid #f59e0b;
-    border-radius: 8px;
-    background: #fffbeb;
-    padding: 14px 18px;
-  }
-
-  .package-price-onhold .package-name {
-    color: #111827;
-  }
-
-  .onhold-chip {
-    display: inline-block;
-    background: #fef3c7;
-    color: #92400e;
-    font-weight: 700;
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 5px;
-    margin-bottom: 8px;
-  }
-
-  /* ── Tourist Management modal: larger, easier-to-read fields ── */
-  .tourist-modal .modal-title {
-    font-size: 18px;
-  }
-
-  .tourist-modal .form-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #4b5563;
-  }
-
-  .tourist-modal .form-control,
-  .tourist-modal .form-select {
-    font-size: 15px;
-    padding: 8px 12px;
-    min-height: 42px;
-  }
-
-  .tourist-modal .form-check-label {
-    font-size: 14px;
-  }
-
-  .tourist-modal .form-check-input {
-    width: 1.1em;
-    height: 1.1em;
-  }
-</style>
-
 <!-- PDF Loading overlay -->
 @if (pdfLoading()) {
 <div class="pdf-loading-overlay">
   <div class="pdf-loading-box">
-    <div class="spinner-border text-primary mb-3" style="width:48px;height:48px;"></div>
-    <div class="fw-semibold" style="font-size:15px;">Generating PDF…</div>
+    <div class="spinner-border text-primary mb-3 pdf-spinner"></div>
+    <div class="fw-semibold text-15">Generating PDF…</div>
     <div class="text-muted small mt-1">Please wait</div>
   </div>
 </div>
@@ -443,44 +26,6 @@
   <span class="fs-5">Loading quotation preview...</span>
 </div>
 
-<style>
-  .bouncer-inline-xl {
-    align-items: center;
-    height: 40px;
-    /* Exact height from your reference */
-  }
-
-  .bouncer-dot-xl {
-    width: 1.25rem;
-    /* Exact size from your reference */
-    height: 1.25rem;
-    /* Exact size from your reference */
-    border-radius: 50%;
-    animation: bounce-xl 0.5s infinite alternate cubic-bezier(0.19, 1, 0.22, 1);
-  }
-
-  /* Stagger the animation delays */
-  .bouncer-dot-xl:nth-child(2) {
-    animation-delay: 0.15s;
-  }
-
-  .bouncer-dot-xl:nth-child(3) {
-    animation-delay: 0.3s;
-  }
-
-  @keyframes bounce-xl {
-    0% {
-      transform: translateY(0);
-      opacity: 0.6;
-    }
-
-    100% {
-      transform: translateY(-20px);
-      /* Exact bounce height from your reference */
-      opacity: 1;
-    }
-  }
-</style>
 } @else {
 <div class="quote-preview-shell mt-3">
 
@@ -508,9 +53,9 @@
           <span>{{ durationLabel() }}</span>
           <span class="d-flex align-items-center gap-1">
             <i class="bx bx-group"></i>{{ totalGuestCount() }} Guests
-            <button mat-icon-button style="width:20px;height:20px;line-height:20px;" (click)="editGuest()"
+            <button class="icon-btn-xs" mat-icon-button (click)="editGuest()"
               matTooltip="Edit guest">
-              <mat-icon style="font-size:13px;width:13px;height:13px;">edit</mat-icon>
+              <mat-icon class="icon-xs">edit</mat-icon>
             </button>
           </span>
           <span><i class="bx bx-user"></i>{{ tripInfo()?.SalesPersonName || 'Unassigned' }}</span>
@@ -632,8 +177,8 @@
           </div>
           }
 
-          <div class="quote-table mt-3" style="grid-template-columns:none;">
-            <div class="quote-row" style="grid-template-columns: 24px minmax(0,1fr); background:#f8fbff;">
+          <div class="quote-table mt-3 quote-table-single-col">
+            <div class="quote-row quote-row-checkbox">
               <i class="bx bx-calendar"></i>
               <div>
                 {{ tripInfo()?.StartDate | date:'dd MMM, yyyy' }} for {{ (tripInfo()?.NoOfNights || 0) + 1 }} Days
@@ -873,13 +418,13 @@
               <tr>
                 <td>
                   <strong>{{ si.NightNumber }}{{ ordinal(si.NightNumber) }}</strong>
-                  <div class="text-muted" style="font-size:11px;">{{ nightDate(si.NightNumber) | date:'dd MMM' }}</div>
+                  <div class="text-muted text-11">{{ nightDate(si.NightNumber) | date:'dd MMM' }}</div>
                 </td>
                 <td><strong>{{ si.HotelName }}</strong></td>
                 <td class="text-muted">{{ hotelLocationCategory(si.HotelId) }}</td>
                 <td>
                   <strong>{{ si.SpecialInclusionName }}</strong>
-                  @if (si.Comments) { <span class="d-block text-muted" style="font-size:11px;">{{ si.Comments }}</span>
+                  @if (si.Comments) { <span class="d-block text-muted text-11">{{ si.Comments }}</span>
                   }
                 </td>
                 <td class="text-end"><strong>{{ formatCurrency(si.TotalPrice) }}</strong></td>
@@ -997,7 +542,7 @@
             <td>
               <strong>{{ svc.LocationName || svc.IteneraryServiceName || '-' }}</strong>
               @if (svc.IteneraryServiceName && svc.LocationName) {
-              <span class="d-block text-muted" style="font-size:11px;">{{ svc.IteneraryServiceName }}</span>
+              <span class="d-block text-muted text-11">{{ svc.IteneraryServiceName }}</span>
               }
             </td>
             <td>{{ svc.VehicleTypeName || '-' }}</td>
@@ -1008,7 +553,7 @@
           }
         </tbody>
         <tfoot>
-          <tr style="background:#f0f4ff;">
+          <tr class="table-row-highlight">
             <td colspan="6" class="fw-bold text-end">Transport Total:</td>
             <td class="text-end fw-bold text-primary">INR {{ formatCurrency(transportTotal()) }}</td>
           </tr>
@@ -1044,7 +589,7 @@
               <strong>{{ entry.ActivityServiceName || '-' }}</strong>
             </td>
             <td>
-              <span class="badge bg-light text-dark border" style="font-size:11px;">
+              <span class="badge bg-light text-dark border text-11">
                 {{ entry.PaxTypeLabel || entry.PaxType || 'Adult' }}
               </span>
             </td>
@@ -1055,7 +600,7 @@
           }
         </tbody>
         <tfoot>
-          <tr style="background:#f0f4ff;">
+          <tr class="table-row-highlight">
             <td colspan="7" class="fw-bold text-end">Activity Total:</td>
             <td class="text-end fw-bold text-primary">INR {{ formatCurrency(activityTotal()) }}</td>
           </tr>
@@ -1284,7 +829,7 @@
      SHARE MODAL
      ══════════════════════════════════════════════════════════════ -->
 @if (shareOpen()) {
-<div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+<div class="modal d-block modal-backdrop-dim" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -1325,8 +870,8 @@
         </div>
 
         @if (shareChannel() === 'whatsapp') {
-        <pre class="border rounded p-3 bg-light small"
-          style="white-space: pre-wrap; font-family: 'Bookman Old Style', 'URW Bookman', Georgia, serif;">{{ buildWhatsAppText() }}</pre>
+        <pre class="border rounded p-3 bg-light small whatsapp-preview-text"
+         >{{ buildWhatsAppText() }}</pre>
         } @else {
         <div class="border rounded p-3" [innerHTML]="buildEmailHtml()"></div>
         }
@@ -1361,7 +906,7 @@
      ARRIVAL / DEPARTURE DETAILS MODAL
      ══════════════════════════════════════════════════════════════ -->
 @if (scheduleModalOpen()) {
-<div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+<div class="modal d-block modal-backdrop-dim" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -1412,12 +957,12 @@
 }
 
 @if (incExcModalOpen()) {
-<div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-  <div class="modal-dialog modal-dialog-scrollable" style="max-width: 95vw; margin: 1.75rem auto;">
+<div class="modal d-block modal-backdrop-dim" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable modal-dialog-wide">
 
     <div class="modal-content inc-exc-modal">
 
-      <div class="modal-header" style="background-color: #cce0e6;">
+      <div class="modal-header modal-header-teal">
         <h5 class="modal-title">Add/Edit Inclusions &amp; Exclusions</h5>
 
         <button type="button" class="btn-close" (click)="closeIncExcModal()">
@@ -1459,7 +1004,6 @@
             </button>
 
           </div>
-
 
           <div class="col-md-6">
 
@@ -1524,11 +1068,11 @@
 @if (showTouristModal()) {
 
   <!-- Backdrop -->
-  <div class="modal-backdrop fade show" style="z-index:1040; backdrop-filter:blur(3px);"
+  <div class="modal-backdrop fade show modal-backdrop-blur"
        (click)="closeTouristModal()"></div>
 
   <!-- Dialog -->
-  <div class="modal fade show d-block" style="z-index:1050;" tabindex="-1">
+  <div class="modal fade show d-block modal-z-1050" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg tourist-modal">
 
@@ -1542,41 +1086,41 @@
         <div class="modal-body px-4 py-3">
 
           <!-- Tourist count -->
-          <p class="text-muted mb-3" style="font-size:14px;">
+          <p class="text-muted mb-3 text-14">
             Showing {{ touristCount }} tourist{{ touristCount !== 1 ? 's' : '' }}
-            <i class="bx bx-refresh ms-1" style="cursor:pointer;" (click)="loadTouristsForTrip()"></i>
+            <i class="bx bx-refresh ms-1 cursor-pointer" (click)="loadTouristsForTrip()"></i>
           </p>
 
           <!-- Tourist rows -->
           @for (row of touristRows(); track $index; let i = $index) {
-          <div class="border rounded mb-3" style="overflow:hidden;">
+          <div class="border rounded mb-3 overflow-hidden">
 
             <!-- Row header (collapsed view) -->
             <div class="d-flex align-items-center px-3 py-2 bg-light">
 
-              <span class="text-muted me-2" style="font-size:14px; min-width:22px;">{{ i + 1 }}.</span>
-              <i class="bx bx-user-circle text-muted me-2" style="font-size:22px;"></i>
+              <span class="text-muted me-2 tourist-row-index">{{ i + 1 }}.</span>
+              <i class="bx bx-user-circle text-muted me-2 icon-user-circle"></i>
 
               <div class="flex-grow-1 d-flex align-items-center gap-2">
                 @if (row.ContactName) {
-                <span class="fw-semibold" style="font-size:15px;">{{ row.Salutation }} {{ row.ContactName }}</span>
+                <span class="fw-semibold text-15">{{ row.Salutation }} {{ row.ContactName }}</span>
                 } @else {
-                <span class="text-muted fst-italic" style="font-size:14px;">New Tourist</span>
+                <span class="text-muted fst-italic text-14">New Tourist</span>
                 }
                 @if (row.Phone) {
-                <span class="text-muted" style="font-size:14px;">
+                <span class="text-muted text-14">
                   <i class="bx bx-phone me-1"></i>{{ row.CountryCode }} {{ row.Phone }}
                 </span>
                 }
               </div>
 
               <div class="d-flex align-items-center gap-1">
-                <button mat-icon-button style="width:32px;height:32px;line-height:32px;" matTooltip="Remove tourist"
+                <button class="icon-btn-sm" mat-icon-button matTooltip="Remove tourist"
                   (click)="removeTouristRow(i)">
-                  <mat-icon style="font-size:18px;" color="warn">delete</mat-icon>
+                  <mat-icon class="icon-sm-18" color="warn">delete</mat-icon>
                 </button>
-                <button mat-icon-button style="width:32px;height:32px;line-height:32px;" (click)="toggleExpand(i)">
-                  <mat-icon style="font-size:18px;">{{ row.IsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+                <button class="icon-btn-sm" mat-icon-button (click)="toggleExpand(i)">
+                  <mat-icon class="icon-sm-18">{{ row.IsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
                 </button>
               </div>
 
@@ -1587,13 +1131,12 @@
             <div class="p-3 border-top bg-white">
               <div class="row g-3">
 
-
                 
                 <!-- Guest Type -->
                 <div class="col-sm-2">
                   <label class="form-label mb-1">Type</label>
                   <div class="d-flex gap-2">
-                    <select class="form-select flex-shrink-0" style="width:100%;"
+                    <select class="form-select flex-shrink-0 select-full-width"
                       [(ngModel)]="row.GuestType">
                       @for (gt of GuestTypes; track gt.Key) {
                       <option [ngValue]="gt.Key">{{ gt.Value }}</option>
@@ -1635,7 +1178,7 @@
                 <div class="col-sm-4">
                   <label class="form-label mb-1">Phone Number</label>
                   <div class="d-flex gap-2">
-                    <select class="form-select flex-shrink-0" style="width:110px;"
+                    <select class="form-select flex-shrink-0 select-fixed-110"
                       [(ngModel)]="row.CountryCode">
                       @for (cc of countryCodes; track cc.code) {
                       <option [value]="cc.code">{{ cc.label }}</option>
@@ -1668,7 +1211,7 @@
           }
 
           <!-- Add Tourist button -->
-          <button class="btn btn-outline-secondary btn-sm mt-1" style="font-size:13px;" (click)="addTouristRow()">
+          <button class="btn btn-outline-secondary btn-sm mt-1 text-13" (click)="addTouristRow()">
             <i class="bx bx-plus me-1"></i> Add Tourist
           </button>
 
