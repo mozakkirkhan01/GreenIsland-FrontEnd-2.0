@@ -750,8 +750,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         if (r.Message === ConstantData.SuccessMessage) {
           this.toastr.success('Tourists saved successfully');
           this.deletedTouristRows.set([]);
-          this.closeTouristModal();
+          this.showTouristModal.set(false);
           this.loadPreview(); // re-fetch so totalGuestCount()/tripInfo() reflect the saved guest list
+          this.loadTouristsForTrip(); // re-fetch so touristRows()/voucher Guest List reflect the saved guests
         } else {
           this.toastr.error(r.Message);
         }
