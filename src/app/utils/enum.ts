@@ -162,3 +162,8 @@ export enum InstalmentStatus {
     Paid = 2,
     Overdue = 3
 }
+
+export enum GuestType {
+    Adult =1,
+    Child = 2
+}
