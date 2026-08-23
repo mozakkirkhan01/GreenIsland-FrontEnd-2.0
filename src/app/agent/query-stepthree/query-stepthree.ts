@@ -2395,10 +2395,13 @@ removeSimilarHotel(mainHotel: QuoteHotelRow, similar: QuoteHotelRow): void {
       // Show first 5 locations when empty
       this.filteredLocations = this.locationList().slice(0, 5);
     } else {
-      // Filter locations
+      // Filter + rank locations so the closest match (exact/prefix) surfaces first
       this.filteredLocations = this.locationList()
-        .filter(l => l.LocationName.toLowerCase().includes(query))
-        .slice(0, 5);
+        .map(l => ({ loc: l, rank: this.rankLocationMatch(l.LocationName, query) }))
+        .filter(x => x.rank >= 0)
+        .sort((a, b) => a.rank - b.rank || a.loc.LocationName.length - b.loc.LocationName.length)
+        .slice(0, 5)
+        .map(x => x.loc);
     }
 
     this.showLocationDropdown = true;
@@ -3488,8 +3491,11 @@ getActiveTransportRows(): QuoteTransportRow[] {
     }
 
     this.filteredLocations = this.itineraryList()
-      .filter(it => it.IteneraryServiceName.toLowerCase().includes(query))
-      .slice(0, 6);
+      .map(it => ({ item: it, rank: this.rankLocationMatch(it.IteneraryServiceName, query) }))
+      .filter(x => x.rank >= 0)
+      .sort((a, b) => a.rank - b.rank || a.item.IteneraryServiceName.length - b.item.IteneraryServiceName.length)
+      .slice(0, 6)
+      .map(x => x.item);
 
     this.showLocationDropdown = true;
   }
@@ -5453,8 +5459,11 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
       row.FilteredLocations = locations.slice(0, 6);
     } else {
       row.FilteredLocations = locations
-        .filter(l => l.LocationName.toLowerCase().includes(query))
-        .slice(0, 6);
+        .map(l => ({ loc: l, rank: this.rankLocationMatch(l.LocationName, query) }))
+        .filter(x => x.rank >= 0)
+        .sort((a, b) => a.rank - b.rank || a.loc.LocationName.length - b.loc.LocationName.length)
+        .slice(0, 6)
+        .map(x => x.loc);
     }
     row.ShowLocationDropdown = true;
     this.transportRows.update(rows => [...rows]);
@@ -6042,11 +6051,29 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
   onActivityLocationSearch(row: ActivityTicketRow): void {
     const query = (row.LocationSearch ?? '').toLowerCase().trim();
     const locations = this.locationList();
+
     row.FilteredLocations = !query
-      ? locations.slice(0, 6)
-      : locations.filter(l => l.LocationName.toLowerCase().includes(query)).slice(0, 6);
+      ? locations.slice(0, 12)
+      : locations
+          .map(l => ({ loc: l, rank: this.rankLocationMatch(l.LocationName, query) }))
+          .filter(x => x.rank >= 0)
+          .sort((a, b) => a.rank - b.rank || a.loc.LocationName.length - b.loc.LocationName.length)
+          .slice(0, 12)
+          .map(x => x.loc);
+
     row.ShowLocationDropdown = true;
     this.activityTicketRows.update(rows => [...rows]);
+  }
+
+  // Lower rank = better match. -1 = no match.
+  private rankLocationMatch(name: string, query: string): number {
+    const n = (name ?? '').toLowerCase();
+    if (n === query) return 0;                       // exact match
+    if (n.startsWith(query)) return 1;                // starts with query
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`\\b${escaped}`).test(n)) return 2; // query starts a word within the name
+    if (n.includes(query)) return 3;                  // query appears anywhere
+    return -1;                                         // no match
   }
 
   selectActivityLocation(row: ActivityTicketRow, loc: any): void {
