@@ -2975,55 +2975,104 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   /** Same "HTML-as-.doc" technique as downloadWordDoc() — reused directly
    *  rather than reinvented, just pointed at the voucher HTML/filename. */
-  downloadVoucherWordDoc(): void {
-    try {
-      // Word ignores @media print and mostly ignores flex/box-sizing, so it
-      // gets its own simpler style block rather than reusing
-      // VOUCHER_A4_STYLES: @page WordSection1 in points is what Word's own
-      // engine actually paginates against, sized to A4 (595.3pt x 841.9pt)
-      // instead of the previous 612.0pt x 792.0pt, which was US Letter —
-      // that mismatch, not just wide tables, is why content was cropping
-      // on the right and not fitting the page.
-      const htmlContent = this.toWordSafeHtml(this.generateVoucherHtml())
-        .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
-        .replace(/<\/body>\s*<\/html>\s*$/i, '');
-      const wordDoc = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office'
-              xmlns:w='urn:schemas-microsoft-com:office:word'
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-          <meta charset="utf-8">
-          <!--[if gte mso 9]>
-          <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
-          <![endif]-->
-          <style>
-            @page WordSection1 { size: 595.3pt 841.9pt; margin: 36.0pt; }
-            @page { size: A4 portrait; margin: 12mm; }
-            div.WordSection1 { page: WordSection1; }
-            body { width: 210mm; margin: 0 auto; font-family: Calibri, Arial, sans-serif; }
-            table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse; }
-            td, th { word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
-            img { max-width: 100% !important; height: auto !important; }
-          </style>
-        </head>
-        <body><div class="WordSection1">${htmlContent}</div></body>
-        </html>
-      `;
-      const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Voucher-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      this.toastr.success('Word document downloaded.');
-    } catch (error) {
-      console.error('Voucher Word download failed:', error);
-      this.toastr.error('Could not generate the Word document. Please try again.');
-    }
+downloadVoucherWordDoc(): void {
+  try {
+    // Use the same A4-safe document the on-screen preview / print-PDF path already uses
+    // so the Word export matches what the user sees and no longer overflows the page.
+    const fullHtml = this.toVoucherExportHtml(this.generateVoucherHtml());
+
+    // Strip the outer <html>/<body> wrapper — we rebuild it with Word namespaces below.
+    const htmlContent = fullHtml
+      .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
+      .replace(/<\/body>\s*<\/html>\s*$/i, '');
+
+    const wordDoc = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office'
+            xmlns:w='urn:schemas-microsoft-com:office:word'
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset="utf-8">
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>90</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+            <w:Compatibility>
+              <w:DontGrowAutofit/>
+            </w:Compatibility>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          /* A4 portrait – matches the print/PDF path */
+          @page WordSection1 {
+            size: 595.3pt 841.9pt;
+            margin: 36.0pt 36.0pt 36.0pt 36.0pt;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          div.WordSection1 { page: WordSection1; }
+
+          body {
+            margin: 0;
+            font-family: Calibri, Arial, sans-serif;
+            font-size: 11pt;
+          }
+
+          /* Force every table to stay inside the page width */
+          table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse;
+            mso-table-layout-alt: fixed;
+          }
+          td, th {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important;
+          }
+          img {
+            max-width: 100% !important;
+            height: auto !important;
+          }
+
+          /* Keep voucher sections from splitting badly across pages */
+          .trip-voucher-section,
+          .hotel-section,
+          .guest-section,
+          .daywise-section,
+          .transport-section,
+          .inclusion-section,
+          .terms-section,
+          .day-card {
+            page-break-inside: avoid;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="WordSection1">${htmlContent}</div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Voucher-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.toastr.success('Word document downloaded.');
+  } catch (error) {
+    console.error('Voucher Word download failed:', error);
+    this.toastr.error('Could not generate the Word document. Please try again.');
   }
+}
 
   /** Print-to-PDF via the browser's own print dialog, targeted at the same
    *  HTML the Copy/Word buttons use. NOT wired into QuotationPdfEngine —
