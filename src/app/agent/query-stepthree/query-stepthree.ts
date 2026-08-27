@@ -5505,6 +5505,13 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
   }
 
   // ── Service Search (Per Row) ──────────────────────────────
+  // Debounced: filtering is deferred until the user pauses typing for
+  // TRANSPORT_SERVICE_SEARCH_DEBOUNCE_MS, instead of re-filtering the
+  // itinerary list on every keystroke. Keyed by row object identity so
+  // unsaved rows (QuoteServiceId === 0) don't collide with each other.
+  private transportServiceSearchTimers = new Map<QuoteTransportRow, ReturnType<typeof setTimeout>>();
+  private readonly TRANSPORT_SERVICE_SEARCH_DEBOUNCE_MS = 200;
+
   onTransportServiceSearch(row: QuoteTransportRow): void {
 
     // No location selected
@@ -5513,19 +5520,31 @@ console.log("DayGroups", this.buildCompleteQuotePayload().DayGroups);
       return;
     }
 
+    // Cancel any pending filter for this row and schedule a fresh one.
+    const pending = this.transportServiceSearchTimers.get(row);
+    if (pending) clearTimeout(pending);
+
+    const timer = setTimeout(() => {
+      this.transportServiceSearchTimers.delete(row);
+      this.filterTransportServices(row);
+    }, this.TRANSPORT_SERVICE_SEARCH_DEBOUNCE_MS);
+
+    this.transportServiceSearchTimers.set(row, timer);
+  }
+
+  // Does the actual filtering — pulled out of onTransportServiceSearch so
+  // it can be called after the debounce delay above.
+  private filterTransportServices(row: QuoteTransportRow): void {
     const query = (row.ServiceSearch ?? '').toLowerCase().trim();
 
-    // Filter services by selected location
+    // Filter services by selected location — no result cap, the dropdown
+    // (max-height + overflow-y:auto in the template) scrolls the full list.
     const services = this.itineraryList()
       .filter(s => s.LocationId === row.LocationId);
 
-    if (!query) {
-      row.FilteredServices = services.slice(0, 4);
-    } else {
-      row.FilteredServices = services
-        .filter(s => s.IteneraryServiceName.toLowerCase().includes(query))
-        .slice(0, 4);
-    }
+    row.FilteredServices = query
+      ? services.filter(s => s.IteneraryServiceName.toLowerCase().includes(query))
+      : services;
 
     // Show warning if no services are available
     if (row.FilteredServices.length === 0) {
@@ -6657,6 +6676,13 @@ getActiveDayGroups(): DayGroup[] {
     if (!this.deferSectionPersistenceUntilSaveQuote && row.QuoteServiceId > 0) {
       const enc = (d: object): RequestModel => ({ request: this.local.encrypt(JSON.stringify(d)).toString() });
       this.service.deleteQuoteService(enc({ QuoteServiceId: row.QuoteServiceId })).subscribe({ next: () => { } });
+    }
+    // Cancel any pending debounced service search for this row so it can't
+    // fire and touch a row that's no longer in the group.
+    const pending = this.transportServiceSearchTimers.get(row);
+    if (pending) {
+      clearTimeout(pending);
+      this.transportServiceSearchTimers.delete(row);
     }
     group.TransportRows = group.TransportRows.filter(r => r !== row);
     if (refresh) this.dayGroups.update(groups => [...groups]);
