@@ -119,7 +119,7 @@ export class Staff implements OnInit {
   }
 
   // ─── Sorting ─────────────────────────────────────────────────────────
-  sort(key: string) {this.onItemsPerPageChange
+  sort(key: string) {
     if (this.sortKey() === key) {
       this.reverse.set(!this.reverse());
     } else {
@@ -238,12 +238,31 @@ export class Staff implements OnInit {
     this.isSubmitted.set(true);
     this.formStaff.control.markAllAsTouched();
 
-    if (this.formStaff.invalid) {
-      this.toastr.error("Fill all the required fields !!");
+    // NOTE: formStaff.invalid was relied on before, but every `required`
+    // attribute in staff.html is commented out, so Angular's own validators
+    // never fire and formStaff.invalid is always false. Validating the
+    // Staff() model directly here means this works regardless of what's
+    // wired up (or not) in the template.
+    const missing = this.validateStaffForm();
+    if (missing.length) {
+      this.toastr.error(`Please fill: ${missing.join(', ')}`);
       return;
     }
 
-    const currentStaff = this.Staff();
+    const currentStaff = { ...this.Staff() };
+
+    // Designation/Department/StaffType come from <select> elements as
+    // strings ("" when unselected, "5" when selected). Staff.DesignationId,
+    // Staff.DepartmentId are NOT NULL int columns in SQL — sending an empty
+    // string crashes JsonConvert.DeserializeObject<Staff> server-side with a
+    // raw, unfriendly exception instead of ever reaching the "Message"
+    // check. validateStaffForm() above already blocks the empty-string
+    // case; this just makes sure a real selection is sent as a number, not
+    // a numeric string, so nothing is left to chance.
+    currentStaff.DesignationId = Number(currentStaff.DesignationId);
+    currentStaff.DepartmentId = Number(currentStaff.DepartmentId);
+    currentStaff.StaffType = Number(currentStaff.StaffType);
+
     currentStaff.UpdatedBy = this.staffLogin.StaffLoginId;
     currentStaff.CreatedBy = this.staffLogin.StaffLoginId;
 
@@ -269,6 +288,25 @@ export class Staff implements OnInit {
       this.toastr.error("Error occured while submitting data");
       this.dataLoading.set(false);
     });
+  }
+
+  /** Returns the human-readable labels of any required field that's
+   *  missing/blank on the current Staff() model. Empty array = valid.
+   *  Kept independent of Angular template validators on purpose — see
+   *  the comment in saveStaff(). */
+  private validateStaffForm(): string[] {
+    const s = this.Staff();
+    const missing: string[] = [];
+
+    if (!s.CompanyName?.trim()) missing.push('Company Name');
+    if (!s.StaffName?.trim()) missing.push('Staff/Agent Name');
+    if (!s.DesignationId) missing.push('Designation');
+    if (!s.DepartmentId) missing.push('Department');
+    if (s.StaffType === undefined || s.StaffType === null || s.StaffType === '') missing.push('Staff/Agent Type');
+    if (!s.MobileNo?.trim()) missing.push('Mobile Number');
+    if (!s.Status) missing.push('Status');
+
+    return missing;
   }
 
   deleteStaff(obj: any) {

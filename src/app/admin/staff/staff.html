@@ -271,7 +271,7 @@
                          placeholder="e.g. ABC Travel Agency Pvt. Ltd."
                          name="CompanyName" 
                          [(ngModel)]="Staff().CompanyName" 
-                         required>
+                         >
                 </div>
 
                 <div class="col-md-6">
@@ -284,11 +284,10 @@
                          #StaffName="ngModel"
                          name="StaffName" 
                          [(ngModel)]="Staff().StaffName" 
-                         autofocus
-                         required>
-                  @if ((StaffName.dirty || StaffName.touched) || (StaffName.invalid && isSubmitted())) {
+                         autofocus>
+                  <!-- @if ((StaffName.dirty || StaffName.touched) || (StaffName.invalid && isSubmitted())) {
                     <div class="text-danger small mt-1">Staff/Agent name is required</div>
-                  }
+                  } -->
                 </div>
               </div>
             </div>
@@ -312,8 +311,7 @@
                   <select class="form-select" 
                           #DesignationId="ngModel"
                           name="DesignationId" 
-                          [(ngModel)]="Staff().DesignationId"
-                          required>
+                          [(ngModel)]="Staff().DesignationId">
                     <option value="">Select Designation</option>
                     @for (option of DesignationList(); track option.DesignationId) {
                       <option [value]="option.DesignationId">
@@ -321,9 +319,9 @@
                       </option>
                     }
                   </select>
-                  @if ((DesignationId.dirty || DesignationId.touched) || (DesignationId.invalid && isSubmitted())) {
+                  <!-- @if ((DesignationId.dirty || DesignationId.touched) || (DesignationId.invalid && isSubmitted())) {
                     <div class="text-danger small mt-1">Designation is required</div>
-                  }
+                  } -->
                 </div>
 
                 <div class="col-md-4">
@@ -333,8 +331,7 @@
                   <select class="form-select" 
                           #DepartmentId="ngModel"
                           name="DepartmentId" 
-                          [(ngModel)]="Staff().DepartmentId"
-                          required>
+                          [(ngModel)]="Staff().DepartmentId">
                     <option value="">Select Department</option>
                     @for (option of DepartmentList(); track option.DepartmentId) {
                       <option [value]="option.DepartmentId">
@@ -342,9 +339,9 @@
                       </option>
                     }
                   </select>
-                  @if ((DepartmentId.dirty || DepartmentId.touched) || (DepartmentId.invalid && isSubmitted())) {
+                  <!-- @if ((DepartmentId.dirty || DepartmentId.touched) || (DepartmentId.invalid && isSubmitted())) {
                     <div class="text-danger small mt-1">Department is required</div>
-                  }
+                  } -->
                 </div>
 
                 <div class="col-md-4">
@@ -354,16 +351,15 @@
                   <select class="form-select" 
                           #StaffType="ngModel"
                           name="StaffType" 
-                          [(ngModel)]="Staff().StaffType"
-                          required>
+                          [(ngModel)]="Staff().StaffType">
                     <option value="">Select Type</option>
                     @for (staffType of StaffTypeList; track staffType.Key) {
                       <option [value]="staffType.Key">{{ staffType.Value }}</option>
                     }
                   </select>
-                  @if ((StaffType.dirty || StaffType.touched) || (StaffType.invalid && isSubmitted())) {
+                  <!-- @if ((StaffType.dirty || StaffType.touched) || (StaffType.invalid && isSubmitted())) {
                     <div class="text-danger small mt-1">Staff/Agent Type is required</div>
-                  }
+                  } -->
                 </div>
               </div>
             </div>
@@ -389,11 +385,10 @@
                          placeholder="e.g. 9876543210"
                          #MobileNo="ngModel"
                          name="MobileNo" 
-                         [(ngModel)]="Staff().MobileNo"
-                         required>
-                  @if ((MobileNo.dirty || MobileNo.touched) || (MobileNo.invalid && isSubmitted())) {
+                         [(ngModel)]="Staff().MobileNo">
+                  <!-- @if ((MobileNo.dirty || MobileNo.touched) || (MobileNo.invalid && isSubmitted())) {
                     <div class="text-danger small mt-1">Mobile number is required</div>
-                  }
+                  } -->
                 </div>
 
                 <div class="col-md-4">
@@ -492,17 +487,16 @@
                                name="Status" 
                                [value]="status.Key"
                                [(ngModel)]="Staff().Status"
-                               [id]="'status_' + status.Key"
-                               required>
+                               [id]="'status_' + status.Key">
                         <label class="form-check-label" [for]="'status_' + status.Key">
                           {{ status.Value }}
                         </label>
                       </div>
                     }
                   </div>
-                  @if (isSubmitted() && !Staff().Status) {
+                  <!-- @if (isSubmitted() && !Staff().Status) {
                     <div class="text-danger small mt-1">Status is required</div>
-                  }
+                  } -->
                 </div>
               </div>
             </div>
