@@ -77,6 +77,7 @@
                                                     <th>S.No</th>
                                                     <th style="cursor:pointer" (click)="sort('StaffName')">Staff</th>
                                                     <th style="cursor:pointer" (click)="sort('UserName')">User Name</th>
+                                                    <th>Password</th>
                                                     <th>Roles</th>
                                                     <th style="cursor:pointer" (click)="sort('Status')">Status</th>
                                                     @if (action().CanEdit || action().CanDelete) {
@@ -97,6 +98,7 @@
                                                     <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
                                                     <td>{{ item.StaffName }}</td>
                                                     <td>{{ item.UserName }}</td>
+                                                    <td>{{ item.LoginPassword }}</td>
                                                     <td>
                                                         <ul style="margin:0;">
                                                             @for (role of item.StaffLoginRoleList; track role.RoleId) {
