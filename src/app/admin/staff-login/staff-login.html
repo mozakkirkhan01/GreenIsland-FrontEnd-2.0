@@ -98,7 +98,23 @@
                                                     <td>{{ (itemPerPage * (p - 1)) + i + 1 }}</td>
                                                     <td>{{ item.StaffName }}</td>
                                                     <td>{{ item.UserName }}</td>
-                                                    <td>{{ item.LoginPassword }}</td>
+                                                    <td class="align-middle">
+                                                        <div
+                                                            class="d-inline-flex align-items-center gap-2 px-2 py-1 rounded hover-bg-light transition-all">
+                                                            <code class="text-dark bg-transparent fs-6">
+                                                                {{ isPasswordVisible(item.StaffLoginId) ? item.LoginPassword : '••••••••' }}
+                                                                </code>
+                                                            <button type="button"
+                                                                class="btn btn-link btn-sm p-0 text-secondary text-decoration-none shadow-none"
+                  
+                                                                (click)="togglePassword(item.StaffLoginId)"
+                                                                [title]="isPasswordVisible(item.StaffLoginId) ? 'Hide password' : 'Show password'">
+                                                                <i class="bx fs-5 align-middle"
+                                                                    [class.bx-show]="!isPasswordVisible(item.StaffLoginId)"
+                                                                    [class.bx-hide]="isPasswordVisible(item.StaffLoginId)"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         <ul style="margin:0;">
                                                             @for (role of item.StaffLoginRoleList; track role.RoleId) {

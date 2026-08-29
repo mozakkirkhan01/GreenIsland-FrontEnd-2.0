@@ -51,6 +51,7 @@ export class StaffLogin {
   StaffList             = signal<any[]>([]);
   filterStaff           = signal<any[]>([]);
   StaffLoginRoleList    = signal<any[]>([]);
+  visiblePasswords = signal(new Set<number>());
   action               = signal<ActionModel>({
     CanCreate: false,
     CanEdit: false,
@@ -125,6 +126,22 @@ export class StaffLogin {
       }
     });
   }
+
+togglePassword(staffLoginId: number): void {
+  this.visiblePasswords.update(set => {
+    const next = new Set(set);
+    if (next.has(staffLoginId)) {
+      next.delete(staffLoginId);
+    } else {
+      next.add(staffLoginId);
+    }
+    return next;
+  });
+}
+
+isPasswordVisible(staffLoginId: number): boolean {
+  return this.visiblePasswords().has(staffLoginId);
+}
 
   // ─── Modal ───────────────────────────────────────────────────────────
 
