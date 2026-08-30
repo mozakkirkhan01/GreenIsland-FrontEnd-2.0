@@ -2320,7 +2320,22 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .replace(/max-width:\s*\d+px;?/g, '')
       .replace(/min-width:\s*\d+px;?/g, '')
       .replace(/white-space:\s*nowrap;?/g, '')
-      .replace(/\swidth="\d+"/g, '');
+      .replace(/\swidth="\d+"/g, '')
+      // Soft hyphens / zero-width chars (from rich-text editors) cause mid-word
+      // line breaks in Word: "beautiful" -> "beauti" + "ful". Strip them.
+      .replace(/\u00AD/g, '')
+      .replace(/&shy;/gi, '')
+      .replace(/&#173;/g, '')
+      .replace(/&#x00AD;/gi, '')
+      .replace(/\u200B/g, '')
+      .replace(/\u200C/g, '')
+      .replace(/\u200D/g, '')
+      .replace(/&#8203;/g, '')
+      // Neutralize any inline word-break rules that force mid-word wraps
+      .replace(/word-break\s*:\s*[^;"]+;?/gi, 'word-break:normal;')
+      .replace(/overflow-wrap\s*:\s*[^;"]+;?/gi, 'overflow-wrap:break-word;')
+      .replace(/word-wrap\s*:\s*[^;"]+;?/gi, 'word-wrap:normal;')
+      .replace(/hyphens\s*:\s*[^;"]+;?/gi, 'hyphens:none;');
   }
 
   /** Shared CSS for every voucher export surface (on-screen preview, printed
@@ -2357,9 +2372,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
     .voucher-export-root td,
     .voucher-export-root th {
-      word-break: break-word;
-      overflow-wrap: anywhere;
+      word-break: normal;
+      overflow-wrap: break-word;
       white-space: normal;
+      hyphens: none;
+      -webkit-hyphens: none;
+      -ms-hyphens: none;
     }
     .voucher-export-root img {
       max-width: 100% !important;
@@ -2369,9 +2387,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     .voucher-export-root p,
     .voucher-export-root div,
     .voucher-export-root li {
-      word-break: break-word;
-      overflow-wrap: anywhere;
+      word-break: normal;
+      overflow-wrap: break-word;
       white-space: normal;
+      hyphens: none;
+      -webkit-hyphens: none;
+      -ms-hyphens: none;
       line-height: 1.5;
     }
     .voucher-export-root .trip-voucher-section,
@@ -2973,106 +2994,142 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
   }
 
-  /** Same "HTML-as-.doc" technique as downloadWordDoc() — reused directly
-   *  rather than reinvented, just pointed at the voucher HTML/filename. */
-downloadVoucherWordDoc(): void {
-  try {
-    // Use the same A4-safe document the on-screen preview / print-PDF path already uses
-    // so the Word export matches what the user sees and no longer overflows the page.
-    const fullHtml = this.toVoucherExportHtml(this.generateVoucherHtml());
+  /**
+   * Harden HTML for Microsoft Word export.
+   * - Decode &nbsp; to real spaces (rich-text itineraries often use &nbsp; between
+   *   every word; if Word fails to parse HTML those show up as the literal text).
+   * - Insert Unicode WORD JOINER (U+2060) between letters of each word so Word
+   *   cannot break mid-word even when auto-hyphenation is on. No extra tags, so
+   *   the HTML structure stays valid.
+   */
+  private preventWordMidWordBreaks(html: string): string {
+    // Normalize non-breaking spaces to ordinary spaces for Word
+    let s = html
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#160;/g, ' ')
+      .replace(/&#xA0;/gi, ' ')
+      .replace(/\u00A0/g, ' ');
 
-    // Strip the outer <html>/<body> wrapper — we rebuild it with Word namespaces below.
-    const htmlContent = fullHtml
-      .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
-      .replace(/<\/body>\s*<\/html>\s*$/i, '');
-
-    const wordDoc = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office'
-            xmlns:w='urn:schemas-microsoft-com:office:word'
-            xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset="utf-8">
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>90</w:Zoom>
-            <w:DoNotOptimizeForBrowser/>
-            <w:Compatibility>
-              <w:DontGrowAutofit/>
-            </w:Compatibility>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          /* A4 portrait – matches the print/PDF path */
-          @page WordSection1 {
-            size: 595.3pt 841.9pt;
-            margin: 36.0pt 36.0pt 36.0pt 36.0pt;
-          }
-          @page {
-            size: A4 portrait;
-            margin: 12mm;
-          }
-          div.WordSection1 { page: WordSection1; }
-
-          body {
-            margin: 0;
-            font-family: Calibri, Arial, sans-serif;
-            font-size: 11pt;
-          }
-
-          /* Force every table to stay inside the page width */
-          table {
-            width: 100% !important;
-            table-layout: fixed !important;
-            border-collapse: collapse;
-            mso-table-layout-alt: fixed;
-          }
-          td, th {
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: normal !important;
-          }
-          img {
-            max-width: 100% !important;
-            height: auto !important;
-          }
-
-          /* Keep voucher sections from splitting badly across pages */
-          .trip-voucher-section,
-          .hotel-section,
-          .guest-section,
-          .daywise-section,
-          .transport-section,
-          .inclusion-section,
-          .terms-section,
-          .day-card {
-            page-break-inside: avoid;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="WordSection1">${htmlContent}</div>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Voucher-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    this.toastr.success('Word document downloaded.');
-  } catch (error) {
-    console.error('Voucher Word download failed:', error);
-    this.toastr.error('Could not generate the Word document. Please try again.');
+    // Only rewrite text nodes (between tags). Insert word joiners inside words.
+    return s.replace(/>([^<]+)</g, (_m, text: string) => {
+      if (!/\S/.test(text)) return `>${text}<`;
+      const fixed = text.replace(/[A-Za-z]{3,}/g, (word: string) =>
+        word.split('').join('\u2060')
+      );
+      return `>${fixed}<`;
+    });
   }
-}
+
+  /** Same "HTML-as-.doc" technique as downloadWordDoc() — pointed at the voucher. */
+  downloadVoucherWordDoc(): void {
+    try {
+      let fullHtml = this.toVoucherExportHtml(this.generateVoucherHtml());
+      fullHtml = this.preventWordMidWordBreaks(fullHtml);
+
+      const htmlContent = fullHtml
+        .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/i, '')
+        .replace(/<\/body>\s*<\/html>\s*$/i, '');
+
+      const wordDoc = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<!--[if gte mso 9]>
+<xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+    <w:AutoHyphenation>false</w:AutoHyphenation>
+    <w:DoNotHyphenateCaps/>
+    <w:ConsecutiveHyphenLimit>0</w:ConsecutiveHyphenLimit>
+    <w:HyphenationZone>0</w:HyphenationZone>
+    <w:Compatibility>
+      <w:DontGrowAutofit/>
+    </w:Compatibility>
+  </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  <!--
+  /* Style Definitions */
+  p.MsoNormal, li.MsoNormal, div.MsoNormal {
+    mso-style-parent:"";
+    margin:0cm;
+    mso-pagination:widow-orphan;
+    font-size:11.0pt;
+    font-family:Calibri,Arial,sans-serif;
+    mso-fareast-font-family:"Times New Roman";
+    mso-hyphenate:none;
+  }
+  -->
+  @page WordSection1 {
+    size:595.3pt 841.9pt;
+    margin:36.0pt 36.0pt 36.0pt 36.0pt;
+  }
+  div.WordSection1 { page:WordSection1; }
+  body {
+    margin:0;
+    font-family:Calibri,Arial,sans-serif;
+    font-size:11pt;
+    mso-hyphenate:none;
+  }
+  * {
+    mso-hyphenate:none !important;
+    hyphens:none !important;
+    -ms-hyphens:none !important;
+    word-break:normal !important;
+    overflow-wrap:break-word !important;
+    word-wrap:normal !important;
+  }
+  table {
+    width:100% !important;
+    table-layout:auto !important;
+    border-collapse:collapse;
+  }
+  td, th, p, div, li, span {
+    word-break:normal !important;
+    overflow-wrap:break-word !important;
+    word-wrap:normal !important;
+    white-space:normal !important;
+    hyphens:none !important;
+    mso-hyphenate:none !important;
+  }
+  img { max-width:100% !important; height:auto !important; }
+  .trip-voucher-section,
+  .hotel-section,
+  .guest-section,
+  .daywise-section,
+  .transport-section,
+  .inclusion-section,
+  .terms-section,
+  .day-card {
+    page-break-inside:avoid;
+  }
+</style>
+</head>
+<body>
+<div class="WordSection1">${htmlContent}</div>
+</body>
+</html>`;
+
+      const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Voucher-${this.formatQuotationNo(this.tripInfo()?.QuotationNo)}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      this.toastr.success('Word document downloaded.');
+    } catch (error) {
+      console.error('Voucher Word download failed:', error);
+      this.toastr.error('Could not generate the Word document. Please try again.');
+    }
+  }
 
   /** Print-to-PDF via the browser's own print dialog, targeted at the same
    *  HTML the Copy/Word buttons use. NOT wired into QuotationPdfEngine —
