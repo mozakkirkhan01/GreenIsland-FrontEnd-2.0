@@ -1402,8 +1402,27 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return row.ExclusionText || row.ExclusionDetails || row.ExclusionName || row.Name || row.Description || row.Exclusion || '';
   }
 
+  /**
+   * Some stored Term/Condition text was saved with literal HTML entities
+   * (e.g. "&amp;" instead of "&") rather than the decoded character — this
+   * decodes the common ones defensively so it doesn't render as "&amp;" in
+   * the voucher. The real fix is cleaning up the source data; this just
+   * prevents it from being visibly broken in the meantime.
+   */
+  private decodeHtmlEntities(text: string): string {
+    if (!text) return text;
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+  }
+
   termHtml(row: any): string {
-    return row.TermAndConditionName || row.TermConditionName || row.Description || '';
+    const raw = row.TermAndConditionName || row.TermConditionName || row.Description || '';
+    return this.decodeHtmlEntities(raw);
   }
 
   hasTerms(): boolean {
@@ -2153,29 +2172,31 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const incItems = this.effectiveInclusions().map(i => this.inclusionText(i)).filter(Boolean);
     const excItems = this.effectiveExclusions().map(e => this.exclusionText(e)).filter(Boolean);
 
-    const list = (items: string[], color: string): string =>
+    // Use inline mark + text (NOT a 2-col nested table). VOUCHER_A4_STYLES forces
+    // table-layout:fixed on every table, which was splitting a width="18" icon
+    // column 50/50 with the text column and leaving a huge gap in PDF/print.
+    const list = (items: string[], color: string, mark: string): string =>
       items.length
         ? items.map(i => `
-            <div style="font-family:${t.font};font-size:15px;color:${t.text};padding:3px 0 3px 22px;position:relative;">
-              <span style="position:absolute;left:0;color:${color};font-weight:bold;">${color === t.green ? '✓' : '✗'}</span>
-              ${i}
+            <div style="font-family:${t.font};font-size:15px;color:${t.text};padding:4px 0;line-height:1.5;">
+              <span style="color:${color};font-weight:bold;margin-right:8px;">${mark}</span>${i}
             </div>
           `).join('')
-        : `<div style="font-family:${t.font};font-size:15px;color:${t.muted};font-style:italic;">No ${color === t.green ? 'inclusions' : 'exclusions'} added.</div>`;
+        : `<div style="font-family:${t.font};font-size:15px;color:${t.muted};font-style:italic;">No ${mark === '✓' ? 'inclusions' : 'exclusions'} added.</div>`;
 
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;table-layout:fixed;">
         <tr>
-          <td style="width:50%;padding:0 6px 0 0;vertical-align:top;">
+          <td width="50%" style="width:50%;padding:0 6px 0 0;vertical-align:top;">
             ${this.buildInclusionHeader('Inclusions')}
             <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
-              ${list(incItems, t.green)}
+              ${list(incItems, t.green, '✓')}
             </div>
           </td>
-          <td style="width:50%;padding:0 0 0 6px;vertical-align:top;">
+          <td width="50%" style="width:50%;padding:0 0 0 6px;vertical-align:top;">
             ${this.buildExclusionHeader('Exclusions')}
             <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
-              ${list(excItems, t.red)}
+              ${list(excItems, t.red, '✗')}
               <div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
             </div>
           </td>
@@ -2405,6 +2426,15 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     .voucher-export-root .day-card {
       page-break-inside: avoid;
       break-inside: avoid;
+    }
+    .voucher-export-root .trip-voucher-section,
+    .voucher-export-root .hotel-section,
+    .voucher-export-root .guest-section,
+    .voucher-export-root .daywise-section,
+    .voucher-export-root .transport-section,
+    .voucher-export-root .inclusion-section,
+    .voucher-export-root .terms-section {
+      margin-bottom: 24px;
     }
     .voucher-export-root table { page-break-inside: auto; }
     .voucher-export-root tr { page-break-inside: avoid; }
@@ -3107,6 +3137,16 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   .terms-section,
   .day-card {
     page-break-inside:avoid;
+  }
+  .trip-voucher-section,
+  .hotel-section,
+  .guest-section,
+  .daywise-section,
+  .transport-section,
+  .inclusion-section,
+  .terms-section {
+    margin-bottom: 24px;
+    mso-margin-bottom-alt: 24pt;
   }
 </style>
 </head>
