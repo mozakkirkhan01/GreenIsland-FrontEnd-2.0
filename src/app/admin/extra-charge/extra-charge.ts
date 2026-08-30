@@ -268,7 +268,7 @@ export class ExtraCharge {
                 Status: record.Status
               };
             })
-            // .sort((a: any, b: any) => a.ChargeType - b.ChargeType)  
+            .sort((a: any, b: any) => this.getChargeTypeOrder(a.ChargeType) - this.getChargeTypeOrder(b.ChargeType))
           );
 
         } else {
@@ -282,6 +282,16 @@ export class ExtraCharge {
         this.dataLoading.set(false);
       }
     });
+  }
+
+  // ── Fixed display order for charge summary list: AWEB → CWEB → CNB ────
+  private getChargeTypeOrder(chargeType: number): number {
+    switch (chargeType) {
+      case ChargeType.AWEB: return 1;
+      case ChargeType.CWEB: return 2;
+      case ChargeType.CNB:  return 3;
+      default: return 99;
+    }
   }
 
   // ── Load single rate by ID (edit from another page) ───────────────────
