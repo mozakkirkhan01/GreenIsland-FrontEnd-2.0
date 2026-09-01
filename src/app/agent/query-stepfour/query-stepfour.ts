@@ -1198,6 +1198,31 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return parts.join(' + ');
   }
 
+  // Plain-text meal plan for WhatsApp — same code-mapping as formatMealPlan()
+  // below, but without the HTML <div>/<br> wrapper (WhatsApp text has no HTML).
+  private formatMealPlanPlain(raw: string | null | undefined): string {
+    if (!raw) return '-';
+    const match = raw.match(/\(([^)]+)\)\s*$/);
+    const code = match ? match[1].trim().toUpperCase() : raw.trim().toUpperCase();
+
+    const canonical: Record<string, string> = {
+      CP: 'Breakfast',
+      MAP: 'Dinner + Breakfast',
+      AP: 'Lunch + Dinner + Breakfast',
+    };
+
+    return canonical[code] || raw;
+  }
+
+  // Plain-text hotel category for WhatsApp — "3*" / "3 *" -> "3 Star";
+  // anything not matching that shorthand is shown exactly as stored, so
+  // this never hides or invents a category value.
+  private formatHotelCategoryPlain(raw: string | null | undefined): string {
+    if (!raw) return '';
+    const m = raw.trim().match(/^(\d+)\s*\*+$/);
+    return m ? `${m[1]} Star` : raw.trim();
+  }
+
   private shortDate(value: any): string {
     if (!value) return '';
     return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
@@ -1491,13 +1516,21 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       }
 
       if (!this.removeItinerary()) {
-        lines.push('🏨  *_Hotels_*');
+        lines.push('🏨  Hotels');
         lines.push('-----------');
-        for (const stay of this.stayBlocksByPackage(pkg.QuotePackageTypeId)) {
-          lines.push(`*${this.nightRangeLabel(stay.nights)}* _at_ *${stay.main.LocationName || ''}*`);
-          lines.push(`_Check-in: ${this.shortDate(stay.checkIn)}_ & _Check-out: ${this.shortDate(stay.checkOut)}_`);
-          lines.push(`*${stay.main.HotelName}* (${stay.main.HotelCategoryName || ''})`);
-          lines.push(`${stay.main.MealPlan || '-'} • ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'} (${this.paxSummary(stay.main)})`);
+        // Split any stay whose nights aren't contiguous (e.g. Port Blair on
+        // nights [1, 5] with other islands in between) into separate runs,
+        // then sort by first night so night 5 lands after Neil Island in
+        // chronological order instead of being merged with night 1.
+        const stayBlocks = this.stayBlocksByPackage(pkg.QuotePackageTypeId)
+          .flatMap(stay => this.splitStayByContiguousNights(stay))
+          .sort((a, b) => a.nights[0] - b.nights[0]);
+        stayBlocks.forEach((stay, stayIdx) => {
+          if (stayIdx > 0) lines.push(''); // gap between each night's block
+          lines.push(`${this.nightRangeLabel(stay.nights)} at ${stay.main.LocationName || ''}`);
+          lines.push(`Check-in: ${this.shortDate(stay.checkIn)} & Check-out: ${this.shortDate(stay.checkOut)}`);
+          lines.push(`Hotel ${stay.main.HotelName} (${this.formatHotelCategoryPlain(stay.main.HotelCategoryName)})`);
+          lines.push(`${this.formatMealPlanPlain(stay.main.MealPlan)} • ${stay.main.NoOfRooms || 1} ${stay.main.RoomTypeName || 'Room'} (${this.paxSummary(stay.main)})`);
           if (stay.similar.length) {
             lines.push('*Similar Options:*');
             for (const sim of stay.similar) {
@@ -1505,7 +1538,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
               lines.push(`\`\`\`•\`\`\` ${sim.NoOfRooms || 1} ${sim.RoomTypeName || 'Room'} (${this.paxSummary(sim)})`);
             }
           }
-        }
+        });
 
         const inclusions = this.specialInclusionsByPackage(pkg.QuotePackageTypeId);
         if (inclusions.length) {
