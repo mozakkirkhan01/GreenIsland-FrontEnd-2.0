@@ -298,6 +298,24 @@
           }
         </div>
         
+        <div class="schedule-info-card mt-3">
+          <div class="trip-detail-panel-head">
+            <span class="panel-title">Special Inclusions</span>
+            <button type="button" class="edit-btn-circle" (click)="openSpecialInclusionModal()" title="Edit special inclusions">
+              <i class="bx bx-pencil"></i>
+            </button>
+          </div>
+          @if (specialInclusionDetail().length) {
+            @for (entry of specialInclusionDetail(); track $index; let idx = $index) {
+            <div class="trip-detail-entry">
+              <div class="trip-detail-note"><strong>{{ idx + 1 }}.</strong> {{ entry.Details }}</div>
+            </div>
+            }
+          } @else {
+            <div class="trip-detail-empty">Not Set</div>
+          }
+        </div>
+
       </div> <!-- /basic-details-side -->
       }
 
@@ -950,6 +968,65 @@
           }
         </button>
         <button type="button" class="btn btn-light btn-sm border" (click)="closeScheduleModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════
+     SPECIAL INCLUSIONS DETAILS MODAL
+     ══════════════════════════════════════════════════════════════ -->
+@if (specialInclusionModalOpen()) {
+<div class="modal d-block modal-backdrop-dim" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update special inclusions Details</h5>
+        <button type="button" class="btn-close" (click)="closeSpecialInclusionModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex fw-bold text-muted mb-2 px-1">
+          <span style="width: 60px;">SI No.</span>
+          <span class="flex-grow-1">Inclusion Description</span>
+        </div>
+
+        @for (entry of specialInclusionEntries(); track $index; let idx = $index) {
+        <div class="trip-detail-modal-entry d-flex align-items-start gap-2 mb-2">
+          <span class="fw-bold fs-6 pt-1 text-center" style="width: 50px;">{{ idx + 1 }}.</span>
+          <div class="flex-grow-1 position-relative">
+            @if (specialInclusionEntries().length > 1) {
+            <button type="button" class="btn btn-sm btn-outline-danger remove-entry-btn"
+              (click)="removeSpecialInclusionEntry(idx)" title="Remove item">
+              <i class="bx bx-x"></i>
+            </button>
+            }
+            <textarea class="form-control" rows="2"
+              placeholder="write special inclusion here...."
+              [value]="entry.Details"
+              (input)="onSpecialInclusionTextChange(idx, $event)">
+            </textarea>
+          </div>
+        </div>
+        }
+
+        <button type="button" class="btn btn-outline-primary btn-sm mt-2" (click)="addSpecialInclusionEntry()">
+          <i class="bx bx-plus me-1"></i>Add More
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-sm"
+          (click)="saveSpecialInclusionDetail()"
+          [disabled]="savingSpecialInclusion()">
+          @if (savingSpecialInclusion()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>Saving…
+          } @else {
+            Save Details
+          }
+        </button>
+        <button type="button" class="btn btn-light btn-sm border" (click)="closeSpecialInclusionModal()">Cancel</button>
       </div>
     </div>
   </div>

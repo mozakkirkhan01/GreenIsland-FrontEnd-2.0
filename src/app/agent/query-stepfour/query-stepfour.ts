@@ -105,6 +105,12 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   scheduleEntries = signal<{ DateTime: string; Details: string }[]>([{ DateTime: '', Details: '' }]);
   savingSchedule = signal(false);
 
+  // ── Special Inclusions edit modal state (per-quote logistics) ─────
+  specialInclusionDetail = signal<{ TripScheduleDetailId?: number; Details: string; SortOrder: number }[]>([]);
+  specialInclusionModalOpen = signal(false);
+  specialInclusionEntries = signal<{ Details: string }[]>([{ Details: '' }]);
+  savingSpecialInclusion = signal(false);
+
   // ── Inclusions/Exclusions edit modal state (per-quote) ────────────
   incExcModalOpen = signal(false);
   incExcInclusionLines = signal<{ QuoteInclusionId: number; InclusionText: string }[]>([{ QuoteInclusionId: 0, InclusionText: '' }]);
@@ -192,6 +198,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!this.QueryStepOneId || !this.QuoteId) {
       this.arrivalDetail.set([]);
       this.departureDetail.set([]);
+      this.specialInclusionDetail.set([]);
       return;
     }
     this.service.getTripScheduleDetail(this.enc({ QueryStepOneId: this.QueryStepOneId, QuoteId: this.QuoteId })).subscribe({
@@ -199,6 +206,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         if (res?.Message === ConstantData.SuccessMessage) {
           this.arrivalDetail.set(res.ArrivalDetail ?? []);
           this.departureDetail.set(res.DepartureDetail ?? []);
+          this.specialInclusionDetail.set(res.SpecialInclusionDetail ?? []);
         }
       },
       error: (err: any) => console.error('getTripScheduleDetail error:', err),
@@ -467,6 +475,65 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const d = new Date(value);
     if (isNaN(d.getTime())) return value;
     return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ── Special Inclusions edit modal ──────────────────────────────
+  openSpecialInclusionModal(): void {
+    const existing = this.specialInclusionDetail();
+    this.specialInclusionEntries.set(
+      existing.length
+        ? existing.map(e => ({ Details: e.Details || '' }))
+        : [{ Details: '' }]
+    );
+    this.specialInclusionModalOpen.set(true);
+  }
+
+  closeSpecialInclusionModal(): void {
+    this.specialInclusionModalOpen.set(false);
+  }
+
+  addSpecialInclusionEntry(): void {
+    this.specialInclusionEntries.update(entries => [...entries, { Details: '' }]);
+  }
+
+  removeSpecialInclusionEntry(index: number): void {
+    this.specialInclusionEntries.update(entries => entries.filter((_, i) => i !== index));
+  }
+
+  onSpecialInclusionTextChange(index: number, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.specialInclusionEntries.update(entries =>
+      entries.map((e, i) => (i === index ? { ...e, Details: value } : e))
+    );
+  }
+
+  saveSpecialInclusionDetail(): void {
+    const entries = this.specialInclusionEntries().filter(e => e.Details?.trim());
+    this.savingSpecialInclusion.set(true);
+    const payload = this.enc({
+      QueryStepOneId: this.QueryStepOneId,
+      QuoteId: this.QuoteId,
+      Type: 'SpecialInclusion',
+      Entries: entries,
+      CreatedBy: this.local.getEmployeeDetail()?.StaffLoginId || 0,
+    });
+    this.service.saveTripScheduleDetail(payload).subscribe({
+      next: (res: any) => {
+        this.savingSpecialInclusion.set(false);
+        if (res?.Message === ConstantData.SuccessMessage) {
+          this.toastr.success('Special inclusions saved');
+          this.specialInclusionModalOpen.set(false);
+          this.loadScheduleDetails();
+        } else {
+          this.toastr.error(res?.Message || 'Unable to save details');
+        }
+      },
+      error: (err: any) => {
+        this.savingSpecialInclusion.set(false);
+        console.error('saveSpecialInclusion error:', err);
+        this.toastr.error('Error saving special inclusions');
+      },
+    });
   }
 
   // ── Quote-specific Inclusions/Exclusions ─────────────────────────
@@ -2451,6 +2518,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
     .voucher-export-root .trip-voucher-section,
     .voucher-export-root .hotel-section,
+    .voucher-export-root .special-inclusions-section,
     .voucher-export-root .guest-section,
     .voucher-export-root .daywise-section,
     .voucher-export-root .transport-section,
@@ -2462,6 +2530,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }
     .voucher-export-root .trip-voucher-section,
     .voucher-export-root .hotel-section,
+    .voucher-export-root .special-inclusions-section,
     .voucher-export-root .guest-section,
     .voucher-export-root .daywise-section,
     .voucher-export-root .transport-section,
@@ -2729,6 +2798,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
     if (!this.voucherRemoveHotels()) {
       body += `<div class="hotel-section">${this.buildStyledHeader('Hotels')}${this.buildVoucherHotelsHtml()}</div>`;
+    }
+
+    if (this.specialInclusionDetail().length) {
+      body += `<div class="special-inclusions-section">${this.buildStyledHeader('Special Inclusions')}${this.buildVoucherSpecialInclusionsHtml()}</div>`;
     }
 
     if (!this.voucherRemoveFullItinerary()) {
@@ -3019,6 +3092,37 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     `;
   }
 
+  // ── Special Inclusions table for Trip Voucher ──
+  private buildVoucherSpecialInclusionsHtml(): string {
+    const t = this.emailTheme;
+    const items = this.specialInclusionDetail();
+    if (!items.length) return '';
+
+    const rowsHtml = items.map((item, i) => {
+      const zebra = i % 2 ? `background-color:${t.zebraBg};` : '';
+      return `
+        <tr>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;text-align:center;vertical-align:top;${zebra};width:70px;">
+            ${i + 1}.
+          </td>
+          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra};">
+            ${item.Details}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
+        <tr>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;text-align:center;width:70px;">SI No.</td>
+          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Special Inclusion Details</td>
+        </tr>
+        ${rowsHtml}
+      </table>
+    `;
+  }
+
   private stripHtmlToText(html: string): string {
     return html
       .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -3163,6 +3267,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   img { max-width:100% !important; height:auto !important; }
   .trip-voucher-section,
   .hotel-section,
+  .special-inclusions-section,
   .guest-section,
   .daywise-section,
   .transport-section,
@@ -3173,6 +3278,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   }
   .trip-voucher-section,
   .hotel-section,
+  .special-inclusions-section,
   .guest-section,
   .daywise-section,
   .transport-section,
