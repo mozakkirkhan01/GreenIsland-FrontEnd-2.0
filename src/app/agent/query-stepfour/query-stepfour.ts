@@ -2491,6 +2491,18 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       table-layout: fixed !important;
       border-collapse: collapse;
     }
+    .voucher-export-root .special-inclusions-table col:first-child,
+    .voucher-export-root .special-inclusions-table .col-sno {
+      width: 8% !important;
+      max-width: 80px !important;
+      text-align: center !important;
+    }
+    .voucher-export-root .special-inclusions-table col:last-child,
+    .voucher-export-root .special-inclusions-table .col-desc {
+      width: 92% !important;
+      text-align: left !important;
+      border-collapse: collapse;
+    }
     .voucher-export-root td,
     .voucher-export-root th {
       word-break: normal;
@@ -3102,10 +3114,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       const zebra = i % 2 ? `background-color:${t.zebraBg};` : '';
       return `
         <tr>
-          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;text-align:center;vertical-align:top;${zebra};width:70px;">
+          <td class="col-sno" width="8%" style="border:1px solid ${t.border};font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};padding:8px 12px;text-align:center;vertical-align:middle;${zebra};width:8% !important;max-width:80px !important;">
             ${i + 1}.
           </td>
-          <td style="border:1px solid ${t.border};font-family:${t.font};font-size:14px;padding:7px 10px;vertical-align:top;${zebra};">
+          <td class="col-desc" width="92%" style="border:1px solid ${t.border};font-family:${t.font};font-size:15px;color:${t.text};padding:8px 12px;vertical-align:middle;${zebra};width:92% !important;">
             ${item.Details}
           </td>
         </tr>
@@ -3113,10 +3125,14 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     }).join('');
 
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;">
+      <table class="special-inclusions-table" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:14px;table-layout:fixed;width:100%;">
+        <colgroup>
+          <col class="col-sno" style="width:8% !important;">
+          <col class="col-desc" style="width:92% !important;">
+        </colgroup>
         <tr>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;text-align:center;width:70px;">SI No.</td>
-          <td style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:14px;font-weight:bold;padding:7px 10px;">Special Inclusion Details</td>
+          <td class="col-sno" width="8%" style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};padding:8px 12px;text-align:center;width:8% !important;max-width:80px !important;">SI No.</td>
+          <td class="col-desc" width="92%" style="background-color:${t.headerBg};border:1px solid ${t.border};font-family:${t.font};font-size:15px;font-weight:bold;color:${t.text};padding:8px 12px;text-align:left;width:92% !important;">Special Inclusion Details</td>
         </tr>
         ${rowsHtml}
       </table>
@@ -3254,6 +3270,16 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   table {
     width:100% !important;
     table-layout:auto !important;
+    border-collapse:collapse;
+  }
+  .special-inclusions-table .col-sno {
+    width: 8% !important;
+    max-width: 80px !important;
+    text-align: center !important;
+  }
+  .special-inclusions-table .col-desc {
+    width: 92% !important;
+    text-align: left !important;
     border-collapse:collapse;
   }
   td, th, p, div, li, span {
