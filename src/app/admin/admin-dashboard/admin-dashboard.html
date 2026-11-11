@@ -1,19 +1,589 @@
+@if (loading()) {
+  <app-progress></app-progress>
+}
+
 <div class="page-content">
-    <div class="container-fluid">
+  <div class="container-fluid p-0">
 
+    <!-- ── 1. HERO HEADER BANNER ────────────────────────────────────────── -->
+    <div class="dashboard-hero-banner px-4 py-4 mb-4 text-white">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span class="badge bg-light text-dark fw-semibold px-3 py-2 rounded-pill shadow-sm">
+              <i class="bx bx-shield-quarter text-success me-1"></i>
+              {{ staffLogin().DesignationName || 'Travel Executive' }}
+            </span>
+            <span class="text-white-50 small d-flex align-items-center">
+              <i class="bx bx-calendar me-1"></i> {{ currentDateFormatted }}
+            </span>
+          </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0 font-size-18">Dashboard</h4>
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item active">Dashboard</li>
-                        </ol>
-                    </div>
-
-                </div>
-            </div>
+          <h3 class="fw-bold mb-1 text-white">
+            {{ greetingMessage }}, {{ staffLogin().StaffName || 'Admin' }}! 👋
+          </h3>
+          <p class="mb-0 text-white-50">
+            Welcome to the Green Island Tourism portal. Here is your daily operational summary and booking pipeline.
+          </p>
         </div>
+
+        <!-- Quick Hero Actions -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a routerLink="/agent/query-stepone" class="btn btn-emerald shadow-sm fw-semibold d-inline-flex align-items-center gap-2">
+            <i class="bx bx-plus-circle fs-5"></i>
+            <span>+ New Inquiry</span>
+          </a>
+
+          <a routerLink="/agent/trips" class="btn btn-glass fw-semibold d-inline-flex align-items-center gap-2">
+            <i class="bx bx-map-alt fs-5"></i>
+            <span>All Trips</span>
+          </a>
+
+          <button (click)="refreshDashboard()" class="btn btn-icon-glass" matTooltip="Refresh Dashboard">
+            <i class="bx bx-refresh fs-5"></i>
+          </button>
+        </div>
+      </div>
     </div>
+
+    <div class="px-4">
+
+      <!-- ── 2. KEY METRIC SUMMARY CARDS (KPIs) ────────────────────────── -->
+      <div class="row g-3 mb-4">
+
+        <!-- Total Inquiries -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 h-100 kpi-card">
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="text-muted fw-medium text-uppercase font-size-12">Total Inquiries</span>
+                  <h3 class="fw-bold my-2 text-dark">{{ totalQueriesCount() }}</h3>
+                  <div class="d-flex align-items-center gap-1 text-primary small">
+                    <i class="bx bx-file font-size-14"></i>
+                    <span>All queries in database</span>
+                  </div>
+                </div>
+                <div class="kpi-icon-box bg-primary-subtle text-primary">
+                  <i class="bx bx-trip fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Pipeline -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 h-100 kpi-card">
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="text-muted fw-medium text-uppercase font-size-12">Active Pipeline</span>
+                  <h3 class="fw-bold my-2 text-warning">{{ activePipelineCount() }}</h3>
+                  <div class="d-flex align-items-center gap-1 text-muted small">
+                    <span class="badge bg-warning-subtle text-warning fw-semibold px-2 py-1 rounded">
+                      {{ newQueriesCount() }} New
+                    </span>
+                    <span>•</span>
+                    <span class="badge bg-info-subtle text-info fw-semibold px-2 py-1 rounded">
+                      {{ inProgressCount() }} In Progress
+                    </span>
+                  </div>
+                </div>
+                <div class="kpi-icon-box bg-warning-subtle text-warning">
+                  <i class="bx bx-time-five fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Converted Bookings -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 h-100 kpi-card">
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="text-muted fw-medium text-uppercase font-size-12">Converted Bookings</span>
+                  <h3 class="fw-bold my-2 text-success">{{ convertedCount() }}</h3>
+                  <div class="d-flex align-items-center gap-1 text-success small fw-medium">
+                    <i class="bx bx-check-circle font-size-14"></i>
+                    <span>{{ conversionRate() }}% Conversion Rate</span>
+                  </div>
+                </div>
+                <div class="kpi-icon-box bg-success-subtle text-success">
+                  <i class="bx bx-badge-check fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory & Network -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 h-100 kpi-card">
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="text-muted fw-medium text-uppercase font-size-12">Hotels & Partners</span>
+                  <h3 class="fw-bold my-2 text-info">{{ totalHotels() }}</h3>
+                  <div class="d-flex align-items-center gap-1 text-muted small">
+                    <span class="badge bg-purple-subtle text-purple fw-semibold px-2 py-1 rounded">
+                      {{ totalAgencies() }} Agencies
+                    </span>
+                    <span>•</span>
+                    <span>{{ totalDestinations() }} Destinations</span>
+                  </div>
+                </div>
+                <div class="kpi-icon-box bg-info-subtle text-info">
+                  <i class="bx bx-buildings fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── 3. TRIP PIPELINE WORKFLOW ────────────────────────────────────── -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+              <i class="bx bx-git-repo-forked fs-5"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold text-dark">Trip Status Pipeline</h5>
+              <span class="small text-muted">Real-time status distribution across all traveler inquiries</span>
+            </div>
+          </div>
+          <a routerLink="/agent/trips" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-medium">
+            Open Trips Board <i class="bx bx-chevron-right ms-1"></i>
+          </a>
+        </div>
+
+        <div class="card-body p-4">
+          <!-- Stacked Pipeline Progress Bar -->
+          <div class="progress rounded-pill mb-4" style="height: 10px;">
+            <div class="progress-bar bg-primary" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (newQueriesCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="New: {{ newQueriesCount() }}"></div>
+            <div class="progress-bar bg-info" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (inProgressCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="In Progress: {{ inProgressCount() }}"></div>
+            <div class="progress-bar bg-warning" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (onHoldCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="On Hold: {{ onHoldCount() }}"></div>
+            <div class="progress-bar bg-success" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (convertedCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="Converted: {{ convertedCount() }}"></div>
+            <div class="progress-bar bg-purple" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (onTripCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="On Trip: {{ onTripCount() }}"></div>
+            <div class="progress-bar bg-secondary" role="progressbar"
+                 [style.width.%]="totalQueriesCount() ? (pastTripsCount() / totalQueriesCount()) * 100 : 0"
+                 matTooltip="Past Trips: {{ pastTripsCount() }}"></div>
+          </div>
+
+          <!-- Pipeline Stage Counters -->
+          <div class="row g-2">
+            <!-- New -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('new')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-primary-subtle text-primary small fw-bold mb-1">New</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ newQueriesCount() }}</h4>
+                <span class="text-muted font-size-11">Awaiting Quote</span>
+              </div>
+            </div>
+
+            <!-- In Progress -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('progress')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-info-subtle text-info small fw-bold mb-1">In Progress</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ inProgressCount() }}</h4>
+                <span class="text-muted font-size-11">Drafting Itinerary</span>
+              </div>
+            </div>
+
+            <!-- On Hold -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('hold')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-warning-subtle text-warning small fw-bold mb-1">On Hold</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ onHoldCount() }}</h4>
+                <span class="text-muted font-size-11">Follow-up Needed</span>
+              </div>
+            </div>
+
+            <!-- Converted -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('converted')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-success-subtle text-success small fw-bold mb-1">Converted</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ convertedCount() }}</h4>
+                <span class="text-muted font-size-11">Booked & Confirmed</span>
+              </div>
+            </div>
+
+            <!-- On Trip -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('ontrip')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-purple-subtle text-purple small fw-bold mb-1">On Trip</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ onTripCount() }}</h4>
+                <span class="text-muted font-size-11">Guests Traveling</span>
+              </div>
+            </div>
+
+            <!-- Past Trips -->
+            <div class="col-6 col-sm-4 col-md">
+              <div class="pipeline-pill p-3 rounded-3 text-center border cursor-pointer"
+                   (click)="navigateToTripsWithFilter('past')">
+                <span class="d-inline-block p-1 px-2 rounded-pill bg-secondary-subtle text-secondary small fw-bold mb-1">Past Trips</span>
+                <h4 class="fw-bold mb-0 text-dark">{{ pastTripsCount() }}</h4>
+                <span class="text-muted font-size-11">Completed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 4. SPLIT ROW: RECENT QUERIES + INSIGHTS & ACTIONS ──────────── -->
+      <div class="row g-4 mb-4">
+
+        <!-- ── Left Column: Recent Queries Table (8 cols) ── -->
+        <div class="col-12 col-xl-8">
+          <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-transparent border-bottom px-4 py-3">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-2 rounded-3 bg-emerald-subtle text-emerald">
+                    <i class="bx bx-list-ul fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 fw-bold text-dark">Recent Inquiries & Quotes</h5>
+                    <span class="small text-muted">Showing {{ filteredQueries().length }} latest travel requests</span>
+                  </div>
+                </div>
+
+                <!-- Status Filter Pills -->
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <button type="button" class="btn btn-sm rounded-pill px-3"
+                          [class.btn-primary]="activeStatusFilter === 'all'"
+                          [class.btn-light]="activeStatusFilter !== 'all'"
+                          (click)="setFilterTab('all')">
+                    All
+                  </button>
+                  <button type="button" class="btn btn-sm rounded-pill px-3"
+                          [class.btn-primary]="activeStatusFilter === 'new'"
+                          [class.btn-light]="activeStatusFilter !== 'new'"
+                          (click)="setFilterTab('new')">
+                    New
+                  </button>
+                  <button type="button" class="btn btn-sm rounded-pill px-3"
+                          [class.btn-primary]="activeStatusFilter === 'progress'"
+                          [class.btn-light]="activeStatusFilter !== 'progress'"
+                          (click)="setFilterTab('progress')">
+                    In Progress
+                  </button>
+                  <button type="button" class="btn btn-sm rounded-pill px-3"
+                          [class.btn-primary]="activeStatusFilter === 'converted'"
+                          [class.btn-light]="activeStatusFilter !== 'converted'"
+                          (click)="setFilterTab('converted')">
+                    Converted
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Search Field -->
+              <div class="mt-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0 text-muted">
+                    <i class="bx bx-search font-size-16"></i>
+                  </span>
+                  <input type="text"
+                         class="form-control border-start-0 ps-0"
+                         placeholder="Quick search by guest name, quotation #, destination, or agency..."
+                         [(ngModel)]="searchQuery"
+                         (ngModelChange)="applyFilter()">
+                  @if (searchQuery) {
+                    <button class="btn btn-outline-secondary" type="button" (click)="searchQuery=''; applyFilter()">
+                      <i class="bx bx-x"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 dashboard-table">
+                  <thead class="table-light text-muted font-size-12 text-uppercase">
+                    <tr>
+                      <th class="ps-4" style="width: 100px;">Quote / ID</th>
+                      <th>Guest & Agency</th>
+                      <th>Trip Details</th>
+                      <th>Travel Date</th>
+                      <th>Status</th>
+                      <th class="pe-4 text-end" style="width: 120px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of filteredQueries().slice(0, 8); track item.id) {
+                      <tr class="align-middle">
+                        <!-- ID -->
+                        <td class="ps-4">
+                          <span class="badge bg-light text-dark fw-bold border">
+                            #{{ item.id }}
+                          </span>
+                          @if (item.quotationNo && item.quotationNo !== ('Q-' + item.id)) {
+                            <div class="font-size-11 text-muted">{{ item.quotationNo }}</div>
+                          }
+                        </td>
+
+                        <!-- Guest & Agency -->
+                        <td>
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="avatar-circle">
+                              {{ item.contactName.charAt(0).toUpperCase() || 'G' }}
+                            </div>
+                            <div>
+                              <div class="fw-semibold text-dark">{{ item.contactName }}</div>
+                              <div class="font-size-11 text-muted d-flex align-items-center gap-1">
+                                <i class="bx bx-briefcase text-secondary"></i>
+                                <span>{{ item.agencyName }}</span>
+                                @if (item.phone) {
+                                  <span>•</span>
+                                  <i class="bx bx-phone font-size-11"></i>
+                                  <span>{{ item.phone }}</span>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <!-- Destination & Pax -->
+                        <td>
+                          <div class="fw-medium text-dark d-flex align-items-center gap-1">
+                            <i class="bx bx-map text-primary"></i>
+                            <span>{{ item.destination }}</span>
+                          </div>
+                          <div class="font-size-11 text-muted">
+                            {{ item.nights }} Nights • {{ item.adults }} Adults
+                            @if (item.kidsCount > 0) {
+                              , {{ item.kidsCount }} Child
+                            }
+                          </div>
+                        </td>
+
+                        <!-- Date -->
+                        <td>
+                          <div class="font-size-13 text-dark fw-medium">{{ item.startDate }}</div>
+                          <div class="font-size-11 text-muted">{{ item.timeAgo }}</div>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td>
+                          <span class="badge rounded-pill px-2 py-1 fw-semibold font-size-11" [ngClass]="item.statusClass">
+                            {{ item.statusLabel }}
+                          </span>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="pe-4 text-end">
+                          <div class="d-inline-flex align-items-center gap-1">
+                            <!-- Edit Query -->
+                            <a [routerLink]="['/agent/query-stepone', item.id]"
+                               class="btn btn-sm btn-icon-action"
+                               matTooltip="Edit Query (Step 1)">
+                              <i class="bx bx-edit text-primary"></i>
+                            </a>
+
+                            <!-- Step 4 Voucher & Pricing -->
+                            <a [routerLink]="['/agent/query-stepfour', item.id]"
+                               class="btn btn-sm btn-icon-action"
+                               matTooltip="Pricing & Voucher (Step 4)">
+                              <i class="bx bx-file-blank text-success"></i>
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="6" class="text-center py-5">
+                          <div class="text-muted">
+                            <i class="bx bx-search-alt fs-1 text-black-50 mb-2"></i>
+                            <h6>No matching inquiries found</h6>
+                            <p class="font-size-12 mb-0">Try changing your search term or status filter</p>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Table Footer -->
+            <div class="card-footer bg-transparent border-top px-4 py-3 d-flex justify-content-between align-items-center">
+              <span class="font-size-12 text-muted">
+                Showing top {{ filteredQueries().slice(0, 8).length }} of {{ filteredQueries().length }} queries
+              </span>
+              <a routerLink="/agent/trips" class="fw-semibold text-primary font-size-13 text-decoration-none">
+                View All Trips on Full Board <i class="bx bx-right-arrow-alt"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right Column: Insights & Quick Operations Hub (4 cols) ── -->
+        <div class="col-12 col-xl-4">
+          <div class="d-flex flex-column gap-4">
+
+            <!-- 1. Top Destinations Demand Share -->
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex align-items-center gap-2">
+                <div class="p-2 rounded-3 bg-info-subtle text-info">
+                  <i class="bx bx-compass fs-5"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-bold text-dark">Top Destinations</h6>
+                  <span class="font-size-11 text-muted">Island demand from inquiries</span>
+                </div>
+              </div>
+              <div class="card-body p-4">
+                @for (dest of topDestinations(); track dest.name) {
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="fw-medium font-size-13 text-dark">
+                        <i class="bx bx-map-pin text-primary me-1"></i> {{ dest.name }}
+                      </span>
+                      <span class="text-muted font-size-12 fw-semibold">
+                        {{ dest.count }} queries ({{ dest.percentage }}%)
+                      </span>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 6px;">
+                      <div class="progress-bar bg-primary" role="progressbar"
+                           [style.width.%]="dest.percentage"></div>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="text-muted text-center py-3 font-size-12">
+                    No destination statistics available yet.
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- 2. Master Quick Operations Hub -->
+            <div class="card border-0 shadow-sm rounded-4">
+              <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex align-items-center gap-2">
+                <div class="p-2 rounded-3 bg-warning-subtle text-warning">
+                  <i class="bx bx-grid-alt fs-5"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-bold text-dark">Quick Operations Hub</h6>
+                  <span class="font-size-11 text-muted">Fast shortcuts to administrative tools</span>
+                </div>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-2">
+                  <!-- Special Inclusions -->
+                  <div class="col-6">
+                    <a routerLink="/admin/special-inclusion" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-emerald-subtle text-emerald mb-2">
+                        <i class="bx bx-gift fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">Special Inclusions</div>
+                      <div class="text-muted font-size-11">Add-ons & VIP gifts</div>
+                    </a>
+                  </div>
+
+                  <!-- Hotel Inventory -->
+                  <div class="col-6">
+                    <a routerLink="/admin/hotel" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-primary-subtle text-primary mb-2">
+                        <i class="bx bx-hotel fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">Hotel Inventory</div>
+                      <div class="text-muted font-size-11">{{ totalHotels() }} properties</div>
+                    </a>
+                  </div>
+
+                  <!-- Hotel Rate Lists -->
+                  <div class="col-6">
+                    <a routerLink="/admin/hotel-ratelist" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-success-subtle text-success mb-2">
+                        <i class="bx bx-dollar-circle fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">Hotel Rates</div>
+                      <div class="text-muted font-size-11">Tariff & seasonal plans</div>
+                    </a>
+                  </div>
+
+                  <!-- Activity Services -->
+                  <div class="col-6">
+                    <a routerLink="/admin/activity-service" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-info-subtle text-info mb-2">
+                        <i class="bx bx-water fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">Activities</div>
+                      <div class="text-muted font-size-11">Scuba, ferries, watersports</div>
+                    </a>
+                  </div>
+
+                  <!-- Vehicle Fleet -->
+                  <div class="col-6">
+                    <a routerLink="/admin/vehicle-type" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-warning-subtle text-warning mb-2">
+                        <i class="bx bx-car fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">Vehicle Fleet</div>
+                      <div class="text-muted font-size-11">Cabs & transfers</div>
+                    </a>
+                  </div>
+
+                  <!-- Agencies Directory -->
+                  <div class="col-6">
+                    <a routerLink="/admin/agency" class="shortcut-box p-3 rounded-3 text-decoration-none d-block">
+                      <div class="shortcut-icon bg-purple-subtle text-purple mb-2">
+                        <i class="bx bx-briefcase fs-5"></i>
+                      </div>
+                      <div class="fw-semibold text-dark font-size-13">B2B Agencies</div>
+                      <div class="text-muted font-size-11">{{ totalAgencies() }} partners</div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. System & Portal Status Card -->
+            <div class="card border-0 shadow-sm rounded-4 bg-light">
+              <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="font-size-12 fw-semibold text-dark">Portal Connection</span>
+                  <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill">
+                    <i class="bx bx-radio-circle-marked me-1"></i> Live Online
+                  </span>
+                </div>
+                <div class="font-size-12 text-muted mb-2">
+                  Connected to Green Island SQL Server & Web API. All live trip queries and voucher systems operational.
+                </div>
+                <div class="d-flex align-items-center justify-content-between font-size-11 text-muted border-top pt-2">
+                  <span>Version: <strong>2.0.4</strong></span>
+                  <span>Agent Module: <strong>Active</strong></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
 </div>

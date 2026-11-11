@@ -1,0 +1,245 @@
+/* ── ADMIN DASHBOARD STYLES ─────────────────────────────────────── */
+
+:host {
+  display: block;
+}
+
+/* ── 1. Hero Header Banner ────────────────────────────────────────── */
+.dashboard-hero-banner {
+  background: linear-gradient(135deg, #09203f 0%, #153e66 50%, #0c5a4b 100%);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 10px 30px rgba(9, 32, 63, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-hero-banner::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.btn-emerald {
+  background-color: #0ba360;
+  color: #ffffff !important;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-emerald:hover {
+  background-color: #098b51;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 163, 96, 0.35);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  padding: 0.55rem 1.25rem;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.btn-icon-glass {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-glass:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(180deg);
+}
+
+/* ── 2. KPI Cards ─────────────────────────────────────────────────── */
+.kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #f0f2f5 !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06) !important;
+}
+
+.kpi-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── 3. Pipeline Pills ────────────────────────────────────────────── */
+.pipeline-pill {
+  background-color: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.pipeline-pill:hover {
+  background-color: #ffffff;
+  border-color: #556ee6 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(85, 110, 230, 0.12);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* ── 4. Table Styles ──────────────────────────────────────────────── */
+.dashboard-table thead th {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.dashboard-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.dashboard-table tbody tr:hover {
+  background-color: #f8faff;
+}
+
+.avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #3730a3;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-size: 15px;
+}
+
+.btn-icon-action:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+/* ── 5. Shortcut Hub ──────────────────────────────────────────────── */
+.shortcut-box {
+  background-color: #ffffff;
+  border: 1px solid #edf0f5;
+  transition: all 0.2s ease;
+}
+
+.shortcut-box:hover {
+  border-color: #556ee6;
+  background-color: #fbfcfe;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(85, 110, 230, 0.08);
+}
+
+.shortcut-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 6. Palette & Color Subtles ──────────────────────────────────── */
+.bg-primary-subtle {
+  background-color: rgba(85, 110, 230, 0.1) !important;
+}
+
+.bg-success-subtle {
+  background-color: rgba(52, 195, 143, 0.12) !important;
+}
+
+.bg-warning-subtle {
+  background-color: rgba(241, 180, 76, 0.14) !important;
+}
+
+.bg-info-subtle {
+  background-color: rgba(80, 165, 241, 0.12) !important;
+}
+
+.bg-secondary-subtle {
+  background-color: rgba(116, 120, 141, 0.12) !important;
+}
+
+.bg-emerald-subtle {
+  background-color: rgba(11, 163, 96, 0.12) !important;
+}
+
+.text-emerald {
+  color: #0ba360 !important;
+}
+
+.bg-purple-subtle {
+  background-color: rgba(147, 51, 234, 0.12) !important;
+}
+
+.text-purple {
+  color: #7c3aed !important;
+}
+
+.bg-purple {
+  background-color: #8b5cf6 !important;
+}
+
+.font-size-11 {
+  font-size: 11px !important;
+}
+
+.font-size-12 {
+  font-size: 12px !important;
+}
+
+.font-size-13 {
+  font-size: 13px !important;
+}
+
+.font-size-14 {
+  font-size: 14px !important;
+}
+
+.font-size-16 {
+  font-size: 16px !important;
+}
