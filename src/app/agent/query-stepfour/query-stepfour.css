@@ -643,6 +643,17 @@ main {
   box-sizing: border-box !important;
 }
 
+::ng-deep .constrained-voucher-content .special-inclusions-table .col-sno {
+  width: 70px !important;
+  max-width: 70px !important;
+  text-align: center !important;
+}
+
+::ng-deep .constrained-voucher-content .special-inclusions-table .col-desc {
+  width: auto !important;
+  text-align: left !important;
+}
+
 ::ng-deep .constrained-voucher-content table {
   width: 100% !important;
   table-layout: fixed !important;
@@ -1050,6 +1061,17 @@ main {
 ::ng-deep .constrained-voucher-content * {
   max-width: 100% !important;
   box-sizing: border-box !important;
+}
+
+::ng-deep .constrained-voucher-content .special-inclusions-table .col-sno {
+  width: 70px !important;
+  max-width: 70px !important;
+  text-align: center !important;
+}
+
+::ng-deep .constrained-voucher-content .special-inclusions-table .col-desc {
+  width: auto !important;
+  text-align: left !important;
 }
 
 ::ng-deep .constrained-voucher-content table {
