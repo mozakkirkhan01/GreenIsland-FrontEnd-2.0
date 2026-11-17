@@ -1725,3 +1725,28 @@ main {
 .overflow-hidden {
   overflow: hidden;
 }
+
+
+/* Word download button in Quotation Sharing modal */
+.btn-word {
+  background-color: #5bc0de;
+  border-color: #46b8da;
+  color: #ffffff !important;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-word:hover {
+  background-color: #31b0d5;
+  border-color: #269abc;
+  color: #ffffff !important;
+}
+
+.btn-word:disabled {
+  background-color: #5bc0de;
+  border-color: #46b8da;
+  opacity: 0.65;
+  cursor: not-allowed;
+}

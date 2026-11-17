@@ -2569,45 +2569,133 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 
   downloadWordDoc(): void {
     try {
-      const htmlContent = this.toWordSafeHtml(this.generateEmailHTML());
-      const wordDoc = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office'
-              xmlns:w='urn:schemas-microsoft-com:office:word'
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-          <meta charset="utf-8">
-          <!--[if gte mso 9]>
-          <xml>
-            <w:WordDocument>
-              <w:View>Print</w:View>
-              <w:Zoom>90</w:Zoom>
-              <w:DoNotOptimizeForBrowser/>
-            </w:WordDocument>
-          </xml>
-          <![endif]-->
-          <style>
-            /* Landscape gives noticeably more usable width than portrait
-               for these wide comparison tables; combined with the fluid
-               containers above, nothing is hard-pinned wider than the page
-               anymore, so this is just for comfortable proportions, not
-               a load-bearing fix. */
-            @page WordSection1 {
-              size: 792.0pt 612.0pt;
-              margin: 36.0pt 36.0pt 36.0pt 36.0pt;
-              mso-page-orientation: landscape;
-            }
-            div.WordSection1 { page: WordSection1; }
-            table { width: 100% !important; }
-            table, td, th { word-wrap: break-word !important; overflow-wrap: break-word !important; }
-          </style>
-        </head>
-        <body>
-          <div class="WordSection1">
-            ${htmlContent}
-          </div>
-        </body>
-        </html>
-      `;
+      // 1. Sourced directly from buildEmailBody() so outer email centering wrappers are excluded
+      let bodyHtml = this.buildEmailBody();
+
+      // Normalize row paddings for Word (remove outer 15px email margin)
+      bodyHtml = bodyHtml.replace(/padding:\s*0\s+15px\s+12px\s+15px/gi, 'padding:0 0 12px 0');
+      bodyHtml = bodyHtml.replace(/padding:\s*6px\s+15px\s+0\s+15px/gi, 'padding:6px 0 0 0');
+
+      // Overview table: make sure it is 100% width and label is 25%, value is 75%
+      bodyHtml = bodyHtml.replace(/width="620"/gi, 'width="100%"');
+      bodyHtml = bodyHtml.replace(/width="140"/gi, 'width="25%"');
+      bodyHtml = bodyHtml.replace(/width="480"/gi, 'width="75%"');
+      bodyHtml = bodyHtml.replace(/style="width:140px;([^"]*)"/gi, 'style="width:25% !important;$1"');
+      bodyHtml = bodyHtml.replace(/style="width:480px;([^"]*)"/gi, 'style="width:75% !important;$1"');
+      bodyHtml = bodyHtml.replace(/display:\s*inline-block;/gi, 'display:block;');
+
+      // Hotels table: assign balanced percentage widths to the 5 columns so nothing overflows past A4 width
+      bodyHtml = bodyHtml.replace(
+        /(<td[^>]*>Nights<\/td>)\s*(<td[^>]*>City<\/td>)\s*(<td[^>]*>Hotel Name<\/td>)\s*(<td[^>]*>Meal Plan<\/td>)\s*(<td[^>]*>Accommodation<\/td>)/i,
+        `<td width="13%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:13%;">Nights</td>
+         <td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">City</td>
+         <td width="32%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:32%;">Hotel Name</td>
+         <td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">Meal Plan</td>
+         <td width="25%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:25%;">Accommodation</td>`
+      );
+
+      // Hotel Special Inclusions: balanced column percentage widths
+      bodyHtml = bodyHtml.replace(
+        /(<td[^>]*width:70px;[^>]*>Night<\/td>)\s*(<td[^>]*width:170px;[^>]*>Hotel<\/td>)\s*(<td[^>]*>Special Inclusion<\/td>)/i,
+        `<td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:15%;">Night</td>
+         <td width="35%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:35%;">Hotel</td>
+         <td width="50%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:50%;">Special Inclusion</td>`
+      );
+
+      // Strip remaining fixed pixel widths and neutralize soft hyphens
+      let cleanBody = this.toWordSafeHtml(bodyHtml);
+      cleanBody = this.preventWordMidWordBreaks(cleanBody);
+
+      const wordDoc = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<!--[if gte mso 9]>
+<xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+    <w:AutoHyphenation>false</w:AutoHyphenation>
+    <w:DoNotHyphenateCaps/>
+    <w:ConsecutiveHyphenLimit>0</w:ConsecutiveHyphenLimit>
+    <w:HyphenationZone>0</w:HyphenationZone>
+    <w:Compatibility>
+      <w:DontGrowAutofit/>
+    </w:Compatibility>
+  </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page WordSection1 {
+    size: 595.3pt 841.9pt; /* Standard A4 Portrait (210mm x 297mm) */
+    margin: 36.0pt 36.0pt 36.0pt 36.0pt; /* 0.5 inch margins = 523.3pt usable width */
+    mso-header-margin: 36.0pt;
+    mso-footer-margin: 36.0pt;
+    mso-paper-source: 0;
+  }
+  div.WordSection1 {
+    page: WordSection1;
+    width: 100%;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Bookman Old Style', 'URW Bookman', Georgia, serif;
+    font-size: 11pt;
+    color: #202124;
+    mso-hyphenate: none;
+  }
+  * {
+    box-sizing: border-box;
+    mso-hyphenate: none !important;
+    hyphens: none !important;
+    -ms-hyphens: none !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+  }
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    -ms-table-layout: fixed !important;
+    border-collapse: collapse !important;
+    mso-table-lspace: 0pt !important;
+    mso-table-rspace: 0pt !important;
+  }
+  td, th {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+    hyphens: none !important;
+    mso-hyphenate: none !important;
+  }
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  p, div, li {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    hyphens: none !important;
+    mso-hyphenate: none !important;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="WordSection1">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100% !important;table-layout:fixed !important;border-collapse:collapse;">
+    ${cleanBody}
+  </table>
+</div>
+</body>
+</html>`;
 
       const blob = new Blob(['\ufeff', wordDoc], { type: 'application/msword' });
       const url = URL.createObjectURL(blob);
