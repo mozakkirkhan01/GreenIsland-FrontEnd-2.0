@@ -1743,6 +1743,37 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // Usable content width inside each section (EMAIL_W minus 15px padding each side).
   private readonly CONTENT_W = 1000;
 
+  private formatEmailGreeting(rawHtml: string, trip: any): string {
+    if (rawHtml && rawHtml.trim()) {
+      let cleaned = this.normalizeNonBreakingSpaces(rawHtml.trim());
+      // Strip leading empty paragraphs or line breaks
+      cleaned = cleaned
+        .replace(/^(\s*<p[^>]*>(\s*<br\s*\/?>|\s*&nbsp;|\s*)*<\/p>|\s*<br\s*\/?>)+/gi, '')
+        .trim();
+
+      if (cleaned) {
+        // Only set margin-top: 0 on the very first <p> tag so it sits close to the top header
+        cleaned = cleaned.replace(/<p([^>]*)>/i, (_match, attrs: string) => {
+          let style = '';
+          const styleMatch = attrs.match(/style="([^"]*)"/i);
+          if (styleMatch) {
+            style = styleMatch[1].replace(/margin(-top|-block-start)?\s*:[^;]+;?/gi, '');
+          }
+          const otherAttrs = attrs.replace(/style="[^"]*"/i, '').trim();
+          return `<p ${otherAttrs} style="margin-top:0 !important;margin-bottom:10px;${style}">`;
+        });
+        return cleaned;
+      }
+    }
+
+    // Default fallback greeting with zero top margin on the first line
+    return `
+      <p style="margin:0 0 10px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
+      <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
+      <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
+    `;
+  }
+
   private buildEmailBody(): string {
     const t = this.emailTheme;
     const trip = this.tripInfo();
@@ -1755,15 +1786,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // Sourced from Master Entry > Template (see loadEmailGreetingTemplate()).
     // Falls back to the original hardcoded copy if the template is empty or
     // failed to load, so the email is never missing a greeting outright.
-    const greetingHtml = this.emailGreetingHtml();
     html += `
       <tr>
         <td style="padding:0 0 12px 0;font-family:${t.font};font-size:16px;color:${t.text};line-height:1.7;">
-          ${greetingHtml || `
-            <p style="margin:0 0 14px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
-            <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
-            <p style="margin:0;">Thank you for reaching out to us with your travel requirements. As your trusted Destination Management Company (DMC) for <strong>${trip?.DestinationName || 'your destination'}</strong>, we are pleased to share with you the proposed quotation for your upcoming travel plans.</p>
-          `}
+          ${this.formatEmailGreeting(this.emailGreetingHtml(), trip)}
         </td>
       </tr>
     `;
