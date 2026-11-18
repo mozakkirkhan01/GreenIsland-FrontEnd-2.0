@@ -1429,21 +1429,31 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     return this.daySlots().some(day => !!this.daySchedule(day.dayNumber));
   }
 
+  normalizeNonBreakingSpaces(str: string): string {
+    if (!str) return '';
+    return str
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#160;/g, ' ')
+      .replace(/&#xA0;/gi, ' ')
+      .replace(/\u00A0/g, ' ');
+  }
+
   rawDaySchedule(dayNumber: number): SafeHtml | null {
     const svc = this.scheduleServiceForDay(dayNumber);
-    return svc?.DaySchedule ? this.sanitizeHtml(svc.DaySchedule) : null;
+    return svc?.DaySchedule ? this.sanitizeHtml(this.normalizeNonBreakingSpaces(svc.DaySchedule)) : null;
   }
 
   rawDayScheduleHtml(dayNumber: number): string {
     const svc = this.scheduleServiceForDay(dayNumber);
-    return svc?.DaySchedule ? svc.DaySchedule : '';
+    return svc?.DaySchedule ? this.normalizeNonBreakingSpaces(svc.DaySchedule) : '';
   }
 
   sanitizeHtml(html: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
   private parseDaySchedule(raw: string): { intro: string; sections: { heading: string; body: string }[] } {
-    const blocks = (raw || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    const cleanRaw = this.normalizeNonBreakingSpaces(raw || '');
+    const blocks = cleanRaw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
     const sections: { heading: string; body: string }[] = [];
     let intro = '';
     let current: { heading: string; body: string } | null = null;
@@ -1711,8 +1721,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
 <body style="margin:0;padding:0;background-color:#ffffff;font-family:${this.emailTheme.font};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">
   <tr>
-    <td align="center" style="padding:16px 8px;">
-      <table role="presentation" width="${W}" cellpadding="0" cellspacing="0" border="0" style="width:${W}px;max-width:${W}px;background-color:#ffffff;font-family:${this.emailTheme.font};color:#202124;">
+    <td align="left" style="padding:0;">
+      <table role="presentation" width="${W}" align="left" cellpadding="0" cellspacing="0" border="0" style="width:${W}px;max-width:100%;background-color:#ffffff;font-family:${this.emailTheme.font};color:#202124;">
         ${this.buildEmailBody()}
       </table>
     </td>
@@ -1731,7 +1741,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   // than the previous 700px and matches the reference screenshot's proportions.
   private readonly EMAIL_W = 1000;
   // Usable content width inside each section (EMAIL_W minus 15px padding each side).
-  private readonly CONTENT_W = 970;
+  private readonly CONTENT_W = 1000;
 
   private buildEmailBody(): string {
     const t = this.emailTheme;
@@ -1748,7 +1758,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     const greetingHtml = this.emailGreetingHtml();
     html += `
       <tr>
-        <td style="padding:0 15px 12px 15px;font-family:${t.font};font-size:16px;color:${t.text};line-height:1.7;">
+        <td style="padding:0 0 12px 0;font-family:${t.font};font-size:16px;color:${t.text};line-height:1.7;">
           ${greetingHtml || `
             <p style="margin:0 0 14px 0;font-size:17px;font-weight:bold;">Greetings from Green Island Tours and Travels Private Limited!!!!!</p>
             <p style="margin:0 0 10px 0;">Dear ${trip?.ContactName || 'Sir / Madam'},</p>
@@ -1761,7 +1771,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Package Overview ──
     html += `
       <tr>
-        <td style="padding:6px 15px 0 15px;">
+        <td style="padding:6px 0 0 0;">
           ${this.buildStyledHeader('Package Overview', '620')}
           ${this.buildOverviewTable()}
         </td>
@@ -1775,7 +1785,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     this.packageTypes().forEach((pkg, idx) => {
       html += `
         <tr>
-          <td style="padding:6px 15px 0 15px;">
+          <td style="padding:6px 0 0 0;">
             ${this.buildStyledHeader(this.packageTypes().length > 1 ? `Option ${idx + 1} : ${pkg.PackageTypeName || 'Package'}` : (pkg.PackageTypeName || 'Hotels'))}
             ${this.buildPackageHTML(pkg.QuotePackageTypeId)}
           </td>
@@ -1787,7 +1797,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!this.removeItinerary()) {
       html += `
         <tr>
-          <td style="padding:6px 15px 0 15px;">
+          <td style="padding:6px 0 0 0;">
             ${this.buildStyledHeader('Day Wise Itinerary')}
             ${this.buildItineraryBlocks()}
           </td>
@@ -1802,7 +1812,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!this.removeTransportActivities() && this.hasAnyTransportOrActivity()) {
       html += `
         <tr>
-          <td style="padding:6px 15px 0 15px;">
+          <td style="padding:6px 0 0 0;">
             ${this.buildStyledHeader('Transportation and Activities')}
             ${this.buildTransportActivitiesHTML()}
           </td>
@@ -1813,8 +1823,8 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     // ── Inclusions / Exclusions ──
     if (this.effectiveInclusions().length || this.effectiveExclusions().length) {
       html += `
-        <tr>
-          <td style="padding:6px 15px 0 15px;">
+        <tr style="page-break-inside:avoid !important;">
+          <td style="padding:6px 0 0 0;">
             ${this.buildInclusionExclusionTable()}
           </td>
         </tr>
@@ -1825,7 +1835,7 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
     if (!this.removeTerms() && this.hasTerms()) {
       html += `
         <tr>
-          <td style="padding:6px 15px 0 15px;">
+          <td style="padding:6px 0 0 0;">
             ${this.buildStyledHeader('Terms and Conditions')}
             ${this.buildTermsList()}
           </td>
@@ -1847,9 +1857,9 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
   private buildStyledHeader(label: string, width: string = '100%'): string {
     const t = this.emailTheme;
     return `
-      <table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
+      <table role="presentation" width="${width}" bgcolor="#decef5" cellpadding="0" cellspacing="0" border="0" style="background-color:#decef5;border-radius:4px;margin-bottom:10px;">
         <tr>
-          <td align="left" style="font-family:${t.font};font-size:18px;font-weight:bold;color:${t.brand};padding:12px 16px;">
+          <td align="left" bgcolor="#decef5" style="background-color:#decef5;font-family:${t.font};font-size:18px;font-weight:bold;color:${t.brand};padding:12px 16px;">
             ${label}
           </td>
         </tr>
@@ -2285,20 +2295,36 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
         : `<div style="font-family:${t.font};font-size:15px;color:${t.muted};font-style:italic;">No ${mark === '✓' ? 'inclusions' : 'exclusions'} added.</div>`;
 
     return `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;table-layout:fixed;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;table-layout:fixed;page-break-inside:avoid !important;">
         <tr>
           <td width="50%" style="width:50%;padding:0 6px 0 0;vertical-align:top;">
-            ${this.buildInclusionHeader('Inclusions')}
-            <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
-              ${list(incItems, t.green, '✓')}
-            </div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid ${t.border};page-break-inside:avoid !important;">
+              <tr>
+                <td align="center" style="background-color:#e8f5e9;font-family:${t.font};font-size:18px;font-weight:bold;color:${t.green};padding:12px 16px;border-bottom:1px solid ${t.border};">
+                  Inclusions
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px;vertical-align:top;background-color:#ffffff;">
+                  ${list(incItems, t.green, '✓')}
+                </td>
+              </tr>
+            </table>
           </td>
           <td width="50%" style="width:50%;padding:0 0 0 6px;vertical-align:top;">
-            ${this.buildExclusionHeader('Exclusions')}
-            <div style="border:1px solid ${t.border};border-top:none;padding:10px 12px;border-radius:0 0 4px 4px;">
-              ${list(excItems, t.red, '✗')}
-              <div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
-            </div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid ${t.border};page-break-inside:avoid !important;">
+              <tr>
+                <td align="center" style="background-color:#ffebee;font-family:${t.font};font-size:18px;font-weight:bold;color:${t.red};padding:12px 16px;border-bottom:1px solid ${t.border};">
+                  Exclusions
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px;vertical-align:top;background-color:#ffffff;">
+                  ${list(excItems, t.red, '✗')}
+                  <div style="font-family:${t.font};font-size:13px;color:${t.muted};font-style:italic;margin-top:8px;">Anything not listed under inclusions is excluded.</div>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
@@ -2452,6 +2478,11 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       .replace(/\u200C/g, '')
       .replace(/\u200D/g, '')
       .replace(/&#8203;/g, '')
+      // Non-breaking spaces from rich-text editors prevent natural word wrapping
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#160;/g, ' ')
+      .replace(/&#xA0;/gi, ' ')
+      .replace(/\u00A0/g, ' ')
       // Neutralize any inline word-break rules that force mid-word wraps
       .replace(/word-break\s*:\s*[^;"]+;?/gi, 'word-break:normal;')
       .replace(/overflow-wrap\s*:\s*[^;"]+;?/gi, 'overflow-wrap:break-word;')
@@ -2572,9 +2603,10 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       // 1. Sourced directly from buildEmailBody() so outer email centering wrappers are excluded
       let bodyHtml = this.buildEmailBody();
 
-      // Normalize row paddings for Word (remove outer 15px email margin)
-      bodyHtml = bodyHtml.replace(/padding:\s*0\s+15px\s+12px\s+15px/gi, 'padding:0 0 12px 0');
-      bodyHtml = bodyHtml.replace(/padding:\s*6px\s+15px\s+0\s+15px/gi, 'padding:6px 0 0 0');
+      // Normalize row paddings for Word - provide generous, clean spacing between all major sections (matches reference image)
+      bodyHtml = bodyHtml.replace(/padding:\s*0\s+15px\s+12px\s+15px/gi, 'padding:0 0 16px 0');
+      bodyHtml = bodyHtml.replace(/padding:\s*6px\s+15px\s+0\s+15px/gi, 'padding:36px 0 0 0');
+      bodyHtml = bodyHtml.replace(/style="padding:\s*6px\s+0\s+0\s+0;"/gi, 'style="padding:36px 0 0 0;"');
 
       // Overview table: make sure it is 100% width and label is 25%, value is 75%
       bodyHtml = bodyHtml.replace(/width="620"/gi, 'width="100%"');
@@ -2584,27 +2616,46 @@ export class QueryStepfour implements OnInit, CanComponentDeactivate {
       bodyHtml = bodyHtml.replace(/style="width:480px;([^"]*)"/gi, 'style="width:75% !important;$1"');
       bodyHtml = bodyHtml.replace(/display:\s*inline-block;/gi, 'display:block;');
 
-      // Hotels table: assign balanced percentage widths to the 5 columns so nothing overflows past A4 width
+      // Hotels table: assign balanced percentage widths to the 5 columns + bgcolor="#decef5" for Word cell shading
       bodyHtml = bodyHtml.replace(
         /(<td[^>]*>Nights<\/td>)\s*(<td[^>]*>City<\/td>)\s*(<td[^>]*>Hotel Name<\/td>)\s*(<td[^>]*>Meal Plan<\/td>)\s*(<td[^>]*>Accommodation<\/td>)/i,
-        `<td width="13%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:13%;">Nights</td>
-         <td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">City</td>
-         <td width="32%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:32%;">Hotel Name</td>
-         <td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">Meal Plan</td>
-         <td width="25%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:25%;">Accommodation</td>`
+        `<td width="13%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:13%;">Nights</td>
+         <td width="15%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">City</td>
+         <td width="32%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:32%;">Hotel Name</td>
+         <td width="15%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:15%;">Meal Plan</td>
+         <td width="25%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:7px 8px;width:25%;">Accommodation</td>`
       );
 
-      // Hotel Special Inclusions: balanced column percentage widths
+      // Hotel Special Inclusions: balanced column percentage widths + bgcolor for Word shading
       bodyHtml = bodyHtml.replace(
         /(<td[^>]*width:70px;[^>]*>Night<\/td>)\s*(<td[^>]*width:170px;[^>]*>Hotel<\/td>)\s*(<td[^>]*>Special Inclusion<\/td>)/i,
-        `<td width="15%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:15%;">Night</td>
-         <td width="35%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:35%;">Hotel</td>
-         <td width="50%" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:50%;">Special Inclusion</td>`
+        `<td width="15%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:15%;">Night</td>
+         <td width="35%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:35%;">Hotel</td>
+         <td width="50%" bgcolor="#decef5" style="background-color:#decef5;border:1px solid #c4b5fd;font-family:'Bookman Old Style',Georgia,serif;font-size:13px;font-weight:bold;padding:6px 8px;width:50%;">Special Inclusion</td>`
       );
 
       // Strip remaining fixed pixel widths and neutralize soft hyphens
       let cleanBody = this.toWordSafeHtml(bodyHtml);
       cleanBody = this.preventWordMidWordBreaks(cleanBody);
+
+      // Insert uncollapsible table-based spacers AFTER word-joiners so &nbsp; stays preserved in Word
+      // 1. Spacers after purple section header bar (18px gap before content/table below, matching reference image)
+      cleanBody = cleanBody.replace(
+        /(style="background-color:#decef5;border-radius:4px;[^"]*"[\s\S]*?<\/table>)/gi,
+        `$1<table role="presentation" width="100%" height="18" cellpadding="0" cellspacing="0" border="0" style="width:100% !important;height:18px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td height="18" style="height:18px;font-size:1px;line-height:18px;mso-line-height-rule:exactly;">&nbsp;</td></tr></table>`
+      );
+
+      // 2. Spacer before Prices (INR) box (18px gap after Hotels table)
+      cleanBody = cleanBody.replace(
+        /(<table[^>]*style="border:1px solid #e7b400;)/gi,
+        `<table role="presentation" width="100%" height="18" cellpadding="0" cellspacing="0" border="0" style="width:100% !important;height:18px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td height="18" style="height:18px;font-size:1px;line-height:18px;mso-line-height-rule:exactly;">&nbsp;</td></tr></table>$1`
+      );
+
+      // 3. Spacer before Hotel Special Inclusions (14px gap after Hotels table)
+      cleanBody = cleanBody.replace(
+        /(<div[^>]*>Hotel Special Inclusions<\/div>)/gi,
+        `<table role="presentation" width="100%" height="14" cellpadding="0" cellspacing="0" border="0" style="width:100% !important;height:14px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td height="14" style="height:14px;font-size:1px;line-height:14px;mso-line-height-rule:exactly;">&nbsp;</td></tr></table>$1`
+      );
 
       const wordDoc = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -2665,6 +2716,14 @@ xmlns="http://www.w3.org/TR/REC-html40">
     border-collapse: collapse !important;
     mso-table-lspace: 0pt !important;
     mso-table-rspace: 0pt !important;
+  }
+  tr[style*="page-break-inside:avoid"], tr[style*="page-break-inside: avoid"] {
+    page-break-inside: avoid !important;
+    mso-pagination: widow-orphan;
+  }
+  table[style*="page-break-inside:avoid"], table[style*="page-break-inside: avoid"] {
+    page-break-inside: avoid !important;
+    mso-pagination: widow-orphan;
   }
   td, th {
     word-break: normal !important;
@@ -3266,29 +3325,11 @@ xmlns="http://www.w3.org/TR/REC-html40">
   }
 
   /**
-   * Harden HTML for Microsoft Word export.
-   * - Decode &nbsp; to real spaces (rich-text itineraries often use &nbsp; between
-   *   every word; if Word fails to parse HTML those show up as the literal text).
-   * - Insert Unicode WORD JOINER (U+2060) between letters of each word so Word
-   *   cannot break mid-word even when auto-hyphenation is on. No extra tags, so
-   *   the HTML structure stays valid.
+   * Normalizes non-breaking spaces to ordinary spaces so browsers and Word
+   * can break lines naturally at word boundaries rather than breaking mid-word.
    */
   private preventWordMidWordBreaks(html: string): string {
-    // Normalize non-breaking spaces to ordinary spaces for Word
-    let s = html
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&#160;/g, ' ')
-      .replace(/&#xA0;/gi, ' ')
-      .replace(/\u00A0/g, ' ');
-
-    // Only rewrite text nodes (between tags). Insert word joiners inside words.
-    return s.replace(/>([^<]+)</g, (_m, text: string) => {
-      if (!/\S/.test(text)) return `>${text}<`;
-      const fixed = text.replace(/[A-Za-z]{3,}/g, (word: string) =>
-        word.split('').join('\u2060')
-      );
-      return `>${fixed}<`;
-    });
+    return this.normalizeNonBreakingSpaces(html);
   }
 
   /** Same "HTML-as-.doc" technique as downloadWordDoc() — pointed at the voucher. */

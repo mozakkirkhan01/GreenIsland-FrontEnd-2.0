@@ -27,7 +27,12 @@ export function sanitizeQuillHtml(raw: string | null | undefined, sanitizerFn: (
 
 export function htmlToPdfMake(html: string): any[] {
   if (!html || !html.trim()) return [];
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const cleanHtml = html
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&#xA0;/gi, ' ')
+    .replace(/\u00A0/g, ' ');
+  const doc = new DOMParser().parseFromString(cleanHtml, 'text/html');
   const out: any[] = [];
   Array.from(doc.body.childNodes).forEach(node => {
     const block = convertBlock(node);

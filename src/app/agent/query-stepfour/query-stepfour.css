@@ -624,7 +624,7 @@ main {
   width: 100%;
   max-width: 100%;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
 }
 
 /*
@@ -663,8 +663,11 @@ main {
 ::ng-deep .constrained-voucher-content th,
 ::ng-deep .constrained-voucher-content td {
   white-space: normal !important;
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  -ms-hyphens: none !important;
 }
 
 ::ng-deep .constrained-voucher-content img {
@@ -1051,7 +1054,7 @@ main {
 .docs-preview__paper .constrained-voucher-content {
   width: 100%;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
 }
 
 /* ── Inner HTML content ─────────────────────────────────────
@@ -1083,8 +1086,11 @@ main {
 ::ng-deep .constrained-voucher-content th,
 ::ng-deep .constrained-voucher-content td {
   white-space: normal !important;
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  -ms-hyphens: none !important;
 }
 
 ::ng-deep .constrained-voucher-content img {
